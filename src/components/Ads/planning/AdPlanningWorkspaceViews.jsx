@@ -40,7 +40,8 @@ export const AdBreaksListView = ({
   onClearAdBreak,
   onOpenQuickModalBreak,
   onMoveAdInBreak,
-  onRemoveAdFromBreak
+  onRemoveAdFromBreak,
+  onSetBreakRamadanTag
 }) => {
   const themeConfig = useThemeStore(state => state.config);
   const emptyBreakColor = themeConfig?.modules?.ads?.emptyBreakColor || themeConfig?.specialColors?.adBreakEmptyColor || '#ea580c';
@@ -142,6 +143,40 @@ export const AdBreaksListView = ({
                   <span className="ta-badge ta-badge-info" style={{ fontSize: '10.5px' }}>
                     {brk.timeBlockName}
                   </span>
+                  {onSetBreakRamadanTag && (
+                    <select
+                      value={brk.ramadanBreakTag || ''}
+                      onClick={e => e.stopPropagation()}
+                      onChange={e => {
+                        e.stopPropagation();
+                        onSetBreakRamadanTag(brk, e.target.value);
+                      }}
+                      title="Bu reklam kuşağını Ramazan Özel (Sahur / İftar Öncesi, Arası, Sonrası) olarak işaretle"
+                      style={{
+                        fontSize: '10.5px',
+                        fontWeight: '900',
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        outline: 'none',
+                        background: (brk.ramadanBreakTag || '').startsWith('sahur')
+                          ? 'linear-gradient(135deg, #0284c7, #0369a1)'
+                          : (brk.ramadanBreakTag || '').startsWith('iftar')
+                          ? 'linear-gradient(135deg, #d97706, #b45309)'
+                          : 'var(--ads-card-subtle)',
+                        color: brk.ramadanBreakTag ? '#ffffff' : 'var(--ads-text-sub)',
+                        border: brk.ramadanBreakTag ? 'none' : '1px dashed var(--ads-border-strong)'
+                      }}
+                    >
+                      <option value="" style={{ background: '#1e293b', color: '#f8fafc' }}>🌙 Ramazan Özel İşaretle...</option>
+                      <option value="sahur_before" style={{ background: '#1e293b', color: '#38bdf8' }}>🌙 SAHUR ÖNCESİ KUŞAĞI</option>
+                      <option value="sahur_middle" style={{ background: '#1e293b', color: '#38bdf8' }}>🌙 SAHUR ARASI KUŞAĞI</option>
+                      <option value="sahur_after" style={{ background: '#1e293b', color: '#38bdf8' }}>🌙 SAHUR SONRASI KUŞAĞI</option>
+                      <option value="iftar_before" style={{ background: '#1e293b', color: '#fbbf24' }}>🕌 İFTAR ÖNCESİ KUŞAĞI</option>
+                      <option value="iftar_middle" style={{ background: '#1e293b', color: '#fbbf24' }}>🕌 İFTAR ARASI KUŞAĞI</option>
+                      <option value="iftar_after" style={{ background: '#1e293b', color: '#fbbf24' }}>🕌 İFTAR SONRASI KUŞAĞI</option>
+                    </select>
+                  )}
                   {isActiveTarget && (
                     <span className="ta-badge ta-badge-brand" style={{ fontSize: '10.5px' }}>
                       <Target size={11} /> Seçili Hedef Kuşak
@@ -149,18 +184,24 @@ export const AdBreaksListView = ({
                   )}
                 </div>
 
-                {/* Komşu Program Bilgisi */}
+                {/* Komşu Program ve Başlangıç Saati Bilgisi */}
                 {(brk.prevProgramTitle || brk.nextProgramTitle) && (
                   <div style={{ fontSize: '11.5px', color: 'var(--ads-text-muted)' }}>
                     {brk.prevProgramTitle && (
                       <span>
-                        Önceki Program: <strong style={{ color: 'var(--ads-text-sub)' }}>{brk.prevProgramTitle}</strong>
+                        Önceki Program:{' '}
+                        <strong style={{ color: 'var(--ads-text-sub)' }}>
+                          {brk.prevProgramTitle} {brk.prevProgramStartClock ? `(Başlangıç: ${brk.prevProgramStartClock})` : ''}
+                        </strong>
                       </span>
                     )}
                     {brk.prevProgramTitle && brk.nextProgramTitle && <span> • </span>}
                     {brk.nextProgramTitle && (
                       <span>
-                        Sonraki Program: <strong style={{ color: 'var(--ads-text-sub)' }}>{brk.nextProgramTitle}</strong>
+                        Sonraki Program:{' '}
+                        <strong style={{ color: 'var(--ads-text-sub)' }}>
+                          {brk.nextProgramTitle} {brk.nextProgramStartClock ? `(Başlangıç: ${brk.nextProgramStartClock})` : ''}
+                        </strong>
                       </span>
                     )}
                   </div>
@@ -294,6 +335,20 @@ export const AdBreaksListView = ({
                             <span style={{ fontSize: '12.5px', fontWeight: '800', color: 'var(--ads-text-main)' }}>
                               {mat?.name || 'Reklam Spotu'}
                             </span>
+                            {(ad.isRamadanSpot || resObj?.isRamadanSpecial) && (
+                              <span
+                                style={{
+                                  fontSize: '10px',
+                                  fontWeight: '900',
+                                  padding: '1px 7px',
+                                  borderRadius: '999px',
+                                  background: 'linear-gradient(135deg, #d97706, #b45309)',
+                                  color: '#fff'
+                                }}
+                              >
+                                🌙 Ramazan Özel
+                              </span>
+                            )}
                             {(ad.isSponsorSpot || resObj?.isSponsor) && (
                               <span
                                 style={{

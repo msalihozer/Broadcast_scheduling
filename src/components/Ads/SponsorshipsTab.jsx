@@ -87,7 +87,7 @@ const SponsorshipsTab = ({ setActiveTab }) => {
 
   const sponsorReservations = useMemo(() => {
     return reservations
-      .filter(r => r.isSponsor)
+      .filter(r => r.isSponsor || r.isRamadanSpecial || (Array.isArray(r.items) && r.items.some(it => it.isSponsor || it.isRamadanSpecial)))
       .map(res => {
         const items =
           Array.isArray(res.items) && res.items.length > 0
@@ -104,15 +104,26 @@ const SponsorshipsTab = ({ setActiveTab }) => {
               ];
         const firstItem = items[0] || {};
         const company = companies.find(c => String(c.id) === String(res.companyId || firstItem.companyId));
+        const isRamadan = Boolean(res.isRamadanSpecial || items.some(it => it.isRamadanSpecial));
+        const ramadanTarget = res.ramadanTarget || firstItem.ramadanTarget || 'iftar';
+        const ramadanProgLabel = ramadanTarget === 'sahur'
+          ? '🌙 Ramazan Sahur Programı'
+          : ramadanTarget === 'both'
+          ? '🌙+🕌 Ramazan Sahur & İftar Programları'
+          : '🕌 Ramazan İftar Programı';
+
         return {
           ...res,
           items,
           company,
           companyName: company?.name || '-',
-          programTitle: res.sponsorProgramTitle || 'İlim Dersleri- Tecvid',
+          isRamadanSpecial: isRamadan,
+          programTitle: res.sponsorProgramTitle || (isRamadan ? ramadanProgLabel : 'İlim Dersleri- Tecvid'),
           positions:
             Array.isArray(res.sponsorPositions) && res.sponsorPositions.length > 0
               ? res.sponsorPositions
+              : Array.isArray(res.ramadanPositions) && res.ramadanPositions.length > 0
+              ? res.ramadanPositions
               : ['before', 'after']
         };
       });

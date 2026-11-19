@@ -52,6 +52,9 @@ const AdPlanningTab = () => {
     products = [],
     materials = [],
     adPlacements = {},
+    ramadanConfig = { enabled: true, startDate: '2026-02-18', endDate: '2026-03-19' },
+    setRamadanConfig,
+    setBreakRamadanTag,
     ensureAdsBroadcastWeek,
     switchAdsDayListVariant,
     autoPlanAdsForDay,
@@ -62,6 +65,8 @@ const AdPlanningTab = () => {
     completeAds,
     resetAds
   } = usePlanningStore();
+
+  const updateBroadcastProgram = useBroadcastStore(state => state.updateProgram);
 
   const saveDaySchedule = useBroadcastStore(state => state.saveDaySchedule);
   const broadcastDays = useBroadcastStore(state => state.days || {});
@@ -372,6 +377,14 @@ const AdPlanningTab = () => {
       const remainingSec = Math.max(0, capacitySec - filledSec);
       const fillPct = capacitySec > 0 ? Math.min(100, Math.round((filledSec / capacitySec) * 100)) : 0;
 
+      const titleFull = `${prog.programTitle || ''} ${prog.title || ''} ${prog.name || ''} ${prog.clipName || ''}`;
+      const ramadanProgramType = !isAdBlock
+        ? (prog.ramadanProgramType || (/sahur/i.test(titleFull) ? 'sahur' : /iftar/i.test(titleFull) ? 'iftar' : ''))
+        : '';
+      const ramadanBreakTag = isAdBlock
+        ? (prog.ramadanBreakTag || placementObj?.ramadanBreakTag || '')
+        : '';
+
       return {
         ...prog,
         idx,
@@ -385,6 +398,8 @@ const AdPlanningTab = () => {
         exactStartClock,
         exactEndClock,
         isAdBlock,
+        ramadanProgramType,
+        ramadanBreakTag,
         timeBlockId: matchedTb.id,
         timeBlockName: matchedTb.name,
         capacitySec,
@@ -395,17 +410,51 @@ const AdPlanningTab = () => {
       };
     });
 
+    // Sahur ve İftar programlarının başlangıç saatine göre komşu kuşakları otomatik etiketle (eğer manuel etiketlenmemişse)
+    const autoDetectBreakRamadanTag = (idx) => {
+      const curr = mapped[idx];
+      if (!curr.isAdBlock) return '';
+      if (curr.ramadanBreakTag) return curr.ramadanBreakTag;
+      const prevProg = idx > 0 && !mapped[idx - 1].isAdBlock ? mapped[idx - 1] : null;
+      const nextProg = idx < mapped.length - 1 && !mapped[idx + 1].isAdBlock ? mapped[idx + 1] : null;
+      if (prevProg?.ramadanProgramType && nextProg?.ramadanProgramType === prevProg.ramadanProgramType) {
+        return `${prevProg.ramadanProgramType}_middle`;
+      }
+      if (nextProg?.ramadanProgramType) {
+        return `${nextProg.ramadanProgramType}_before`;
+      }
+      if (prevProg?.ramadanProgramType) {
+        return `${prevProg.ramadanProgramType}_after`;
+      }
+      return '';
+    };
+
     return mapped.map((item, idx) => {
       if (!item.isAdBlock) return item;
       const prevProg = idx > 0 && !mapped[idx - 1].isAdBlock ? mapped[idx - 1] : null;
       const nextProg = idx < mapped.length - 1 && !mapped[idx + 1].isAdBlock ? mapped[idx + 1] : null;
       return {
         ...item,
+        ramadanBreakTag: autoDetectBreakRamadanTag(idx),
         prevProgramTitle: prevProg?.title || null,
-        nextProgramTitle: nextProg?.title || null
+        nextProgramTitle: nextProg?.title || null,
+        prevProgramStartClock: prevProg?.exactStartClock || null,
+        nextProgramStartClock: nextProg?.exactStartClock || null
       };
     });
   }, [selectedDayInfo, activeListCode, selectedPlacements, timeBlocks]);
+
+  // Seçili günün yayın listesinden çekilen Sahur ve İftar program başlangıç saatleri
+  const todayRamadanScheduleInfo = useMemo(() => {
+    const sahurProg = enrichedTimeline.find(it => !it.isAdBlock && it.ramadanProgramType === 'sahur');
+    const iftarProg = enrichedTimeline.find(it => !it.isAdBlock && it.ramadanProgramType === 'iftar');
+    const ramadanBreaks = enrichedTimeline.filter(it => it.isAdBlock && Boolean(it.ramadanBreakTag));
+    return {
+      sahurProg,
+      iftarProg,
+      ramadanBreaksCount: ramadanBreaks.length
+    };
+  }, [enrichedTimeline]);
 
   const adBreaksList = useMemo(
     () => enrichedTimeline.filter(item => item.isAdBlock),
@@ -603,8 +652,58 @@ const AdPlanningTab = () => {
     }
   };
 
-  const handleQuickAddSpotToBreak = (targetBreak, itemPayload) => {
+  const handleQuickAddSpotToBreak = async (targetBreak, itemPayload) => {
     if (!selectedDayInfo || !targetBreak) return;
+
+    const mat = materials.find(m => String(m.id) === String(itemPayload.materialId));
+    const adDurSec = Number(itemPayload.durationSec || mat?.duration || 20);
+    const resObj = reservations.find(r => String(r.id) === String(itemPayload.reservationId));
+
+    // Aşım Kontrolleri (Spot Sayısı, Kuşak Süresi, Tarih Aralığı, Fiyat/Bütçe)
+    const warnings = [];
+    let spotDiff = 0;
+    let budgetDiff = 0;
+
+    if (targetBreak.filledSec + adDurSec > targetBreak.capacitySec) {
+      const overSec = (targetBreak.filledSec + adDurSec) - targetBreak.capacitySec;
+      warnings.push(`• Kuşak Süresi Aşımı: -${overSec} sn (${targetBreak.shortTime} kuşağı kapasitesi: ${targetBreak.capacitySec} sn)`);
+    }
+
+    if (resObj) {
+      let currentPlaced = Number(resObj.realizedSpots) || 0;
+      const planned = Number(resObj.totalPlannedSpots) || 20;
+      const nextSpotCount = currentPlaced + 1;
+      if (nextSpotCount > planned) {
+        spotDiff = planned - nextSpotCount; // negatif: örn -1, -5
+        warnings.push(`• Rezervasyon Spot Kotası Aşımı: ${spotDiff} Spot (Planlanan: ${planned}, Yeni Gerçekleşen: ${nextSpotCount})`);
+        const unitPrice = Number(resObj.spotPrice || resObj.items?.[0]?.spotPrice || 0);
+        if (unitPrice > 0) {
+          budgetDiff = spotDiff * unitPrice;
+          warnings.push(`• Fiyat / Bütçe Farkı: ${budgetDiff.toLocaleString('tr-TR')} ₺`);
+        }
+      }
+
+      if (resObj.startDate && resObj.endDate) {
+        if (selectedDayInfo.date < resObj.startDate || selectedDayInfo.date > resObj.endDate) {
+          warnings.push(`• Gün / Tarih Süresi Aşımı: Seçili gün (${selectedDayInfo.date}), rezervasyon tarih aralığı (${resObj.startDate} – ${resObj.endDate}) dışında!`);
+        }
+      }
+    }
+
+    if (warnings.length > 0) {
+      const ok = await dialog.confirm(
+        '⚠️ Spot / Süre / Fiyat Aşımı Uyarısı',
+        `Bu spot eklendiğinde aşağıdaki sınırlar aşılacaktır:\n\n` +
+          `${warnings.join('\n')}\n\n` +
+          `"Devam Et" derseniz spot kuşağa eklenecek ve eksi (-) aşım bilgisi rezervasyonda tutulacaktır. Devam edilsin mi?`,
+        {
+          confirmText: 'Devam Et (Aşımla Ekle)',
+          cancelText: 'Vazgeç'
+        }
+      );
+      if (!ok) return;
+    }
+
     addManualAdToBreak(
       selectedDayInfo.channelId,
       selectedDayInfo.date,
@@ -617,6 +716,27 @@ const AdPlanningTab = () => {
       },
       itemPayload
     );
+  };
+
+  const handleSetBreakRamadanTag = (brk, newTag) => {
+    if (!selectedDayInfo || !brk) return;
+    if (typeof setBreakRamadanTag === 'function') {
+      setBreakRamadanTag(
+        selectedDayInfo.channelId,
+        selectedDayInfo.date,
+        brk.instanceId || brk.shortTime,
+        newTag
+      );
+    }
+    if (brk.instanceId && typeof updateBroadcastProgram === 'function') {
+      updateBroadcastProgram(
+        selectedDayInfo.channelId,
+        selectedDayInfo.date,
+        activeListCode,
+        brk.instanceId,
+        { ramadanBreakTag: newTag }
+      );
+    }
   };
 
   const selectedStudioBreak = useMemo(
@@ -691,6 +811,101 @@ const AdPlanningTab = () => {
                 onCompleteAds={completeAds}
               />
 
+              {/* 🌙 RAMAZAN ÖZEL KONTROL ŞERİDİ: SAHUR & İFTAR PROGRAM BAŞLANGIÇ SAATİ VE TARİH ARALIĞI */}
+              <div
+                className="ta-card"
+                style={{
+                  padding: '12px 16px',
+                  border: '1.5px solid rgba(217, 119, 6, 0.45)',
+                  background: 'rgba(217, 119, 6, 0.05)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '12px'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <span
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '8px',
+                      background: 'linear-gradient(135deg, #d97706, #b45309)',
+                      color: '#fff',
+                      fontSize: '11.5px',
+                      fontWeight: '900'
+                    }}
+                  >
+                    🌙 Ramazan Özel Planlama
+                  </span>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', fontWeight: '700', color: 'var(--ads-text-main)' }}>
+                    <span>Ramazan Ayı Aralığı:</span>
+                    <input
+                      type="date"
+                      value={ramadanConfig?.startDate || '2026-02-18'}
+                      onChange={e => setRamadanConfig && setRamadanConfig({ startDate: e.target.value })}
+                      className="ads-saas-input"
+                      style={{ padding: '3px 7px', fontSize: '11px', height: '28px' }}
+                    />
+                    <span>–</span>
+                    <input
+                      type="date"
+                      value={ramadanConfig?.endDate || '2026-03-19'}
+                      onChange={e => setRamadanConfig && setRamadanConfig({ endDate: e.target.value })}
+                      className="ads-saas-input"
+                      style={{ padding: '3px 7px', fontSize: '11px', height: '28px' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', fontSize: '11.5px' }}>
+                  <span
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '7px',
+                      background: todayRamadanScheduleInfo.sahurProg ? 'rgba(2, 132, 199, 0.14)' : 'var(--ads-card-subtle)',
+                      color: todayRamadanScheduleInfo.sahurProg ? '#0284c7' : 'var(--ads-text-muted)',
+                      border: '1px solid rgba(2, 132, 199, 0.3)',
+                      fontWeight: '800'
+                    }}
+                  >
+                    🌙 Sahur Programı Başlangıç:{' '}
+                    {todayRamadanScheduleInfo.sahurProg
+                      ? `${todayRamadanScheduleInfo.sahurProg.exactStartClock} (${todayRamadanScheduleInfo.sahurProg.title})`
+                      : 'Kuşak üzerinden işaretleyebilirsiniz'}
+                  </span>
+
+                  <span
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '7px',
+                      background: todayRamadanScheduleInfo.iftarProg ? 'rgba(217, 119, 6, 0.16)' : 'var(--ads-card-subtle)',
+                      color: todayRamadanScheduleInfo.iftarProg ? '#d97706' : 'var(--ads-text-muted)',
+                      border: '1px solid rgba(217, 119, 6, 0.35)',
+                      fontWeight: '800'
+                    }}
+                  >
+                    🕌 İftar Programı Başlangıç:{' '}
+                    {todayRamadanScheduleInfo.iftarProg
+                      ? `${todayRamadanScheduleInfo.iftarProg.exactStartClock} (${todayRamadanScheduleInfo.iftarProg.title})`
+                      : 'Kuşak üzerinden işaretleyebilirsiniz'}
+                  </span>
+
+                  <span
+                    style={{
+                      padding: '4px 9px',
+                      borderRadius: '7px',
+                      background: 'rgba(5, 150, 105, 0.14)',
+                      color: '#059669',
+                      fontWeight: '800'
+                    }}
+                  >
+                    İşaretli Ramazan Kuşağı: {todayRamadanScheduleInfo.ramadanBreaksCount} Kuşak
+                  </span>
+                </div>
+              </div>
+
               {workspaceView === 'breaks' && (
                 <AdBreaksListView
                   adBreaksList={adBreaksList}
@@ -705,6 +920,7 @@ const AdPlanningTab = () => {
                   onOpenQuickModalBreak={setQuickModalBreak}
                   onMoveAdInBreak={moveAdInBreak}
                   onRemoveAdFromBreak={removeAdFromBreak}
+                  onSetBreakRamadanTag={handleSetBreakRamadanTag}
                 />
               )}
 

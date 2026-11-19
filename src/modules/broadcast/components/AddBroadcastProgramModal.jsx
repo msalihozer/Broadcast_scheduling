@@ -40,6 +40,7 @@ const AddBroadcastProgramModal = ({ isOpen, onClose }) => {
   const [manualDurationMin, setManualDurationMin] = useState(45);
   const [manualEpisode, setManualEpisode] = useState('');
   const [manualNote, setManualNote] = useState('');
+  const [ramadanProgramType, setRamadanProgramType] = useState('');
 
   useEffect(() => {
     if (!isOpen) {
@@ -49,6 +50,7 @@ const AddBroadcastProgramModal = ({ isOpen, onClose }) => {
       setManualTitle('');
       setManualEpisode('');
       setManualNote('');
+      setRamadanProgramType('');
       setMode('mam');
     }
   }, [isOpen]);
@@ -94,6 +96,7 @@ const AddBroadcastProgramModal = ({ isOpen, onClose }) => {
   const handleAddClip = (clip) => {
     const durTc = clip.durationFormatted || (clip.durationSec ? `${String(Math.floor(clip.durationSec / 3600)).padStart(2, '0')}.${String(Math.floor((clip.durationSec % 3600) / 60)).padStart(2, '0')}.${String(clip.durationSec % 60).padStart(2, '0')}.00` : '00.30.00.00');
     const clipDisplay = clip.name || clip.fileName || 'Klip';
+    const autoDetectedRamadan = ramadanProgramType || (/sahur/i.test(clipDisplay) ? 'sahur' : /iftar/i.test(clipDisplay) ? 'iftar' : '');
     addProgram(selectedChannel, selectedDate, activeList, {
       title: clip.name,
       name: clip.name,
@@ -106,6 +109,7 @@ const AddBroadcastProgramModal = ({ isOpen, onClose }) => {
       partNo: clip.partNo || null,
       note: clip.note || '',
       fileId: clip.fileId,
+      ramadanProgramType: autoDetectedRamadan,
       type: 'clip'
     });
     onClose();
@@ -123,6 +127,7 @@ const AddBroadcastProgramModal = ({ isOpen, onClose }) => {
     const m = durMin % 60;
     const durTc = `${String(h).padStart(2, '0')}.${String(m).padStart(2, '0')}.00.00`;
     const cleanTitle = manualTitle.trim();
+    const autoDetectedRamadan = ramadanProgramType || (/sahur/i.test(cleanTitle) ? 'sahur' : /iftar/i.test(cleanTitle) ? 'iftar' : '');
 
     addProgram(selectedChannel, selectedDate, activeList, {
       title: cleanTitle,
@@ -133,7 +138,9 @@ const AddBroadcastProgramModal = ({ isOpen, onClose }) => {
       categoryColor: '#3b82f6',
       episodeNo: manualEpisode ? parseInt(manualEpisode, 10) : null,
       note: manualNote.trim(),
-      type: 'program'
+      ramadanProgramType: autoDetectedRamadan,
+      isLive: /canl[ıi]/i.test(manualNote) || Boolean(autoDetectedRamadan),
+      type: (/canl[ıi]/i.test(manualNote) || Boolean(autoDetectedRamadan)) ? 'live' : 'program'
     });
     onClose();
     dialog.success(
@@ -568,6 +575,41 @@ const AddBroadcastProgramModal = ({ isOpen, onClose }) => {
                       fontSize: '13px'
                     }}
                   />
+                </div>
+              </div>
+
+              {/* Ramazan Özel Program İşareti */}
+              <div style={{
+                marginBottom: '16px',
+                padding: '10px 12px',
+                borderRadius: '10px',
+                background: ramadanProgramType ? 'rgba(217, 119, 6, 0.12)' : 'var(--bg-primary)',
+                border: ramadanProgramType ? '1.5px solid #d97706' : '1px solid var(--border-color)'
+              }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', color: ramadanProgramType ? '#d97706' : 'var(--text-primary)', marginBottom: '6px' }}>
+                  🌙 Ramazan Özel Programı mı? (Sahur / İftar Başlangıç Saati Tespiti İçin):
+                </label>
+                <select
+                  value={ramadanProgramType}
+                  onChange={(e) => setRamadanProgramType(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '9px 10px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--bg-secondary)',
+                    color: 'var(--text-primary)',
+                    fontSize: '12.5px',
+                    fontWeight: '700',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="">Normal Program (Ramazan Özel Değil)</option>
+                  <option value="sahur">🌙 Ramazan Sahur Programı (Canlı / Özel)</option>
+                  <option value="iftar">🕌 Ramazan İftar Programı (Canlı / Özel)</option>
+                </select>
+                <div style={{ fontSize: '10.5px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                  Seçildiğinde bu programın yayın listesindeki <strong>başlangıç saati</strong> otomatik olarak Sahur/İftar başlangıç saati olarak çekilir ve komşu reklam kuşakları Ramazan Özel olarak değerlendirilir.
                 </div>
               </div>
 

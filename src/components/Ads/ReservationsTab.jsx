@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import usePlanningStore from '../../store/planningStore';
 import AdsReservationForm, { SPONSOR_POSITIONS } from './AdsReservationForm';
+import { calculateItemOverageMetrics } from './reservation/reservationConstants';
 import useDialogStore from '../../store/dialogStore';
 import AdVideoPlayer from './AdVideoPlayer';
 
@@ -51,6 +52,7 @@ const ReservationsTab = ({ setActiveTab }) => {
     timeBlocks = [],
     channels = [],
     adPlacements = {},
+    ramadanConfig = { enabled: true, startDate: '2026-02-18', endDate: '2026-03-19' },
     removeReservation,
     clearAllReservations
   } = usePlanningStore();
@@ -116,22 +118,41 @@ const ReservationsTab = ({ setActiveTab }) => {
         items.reduce((sum, it) => sum + (Number(it.plannedSpots) || 0), 0) ||
         20;
 
+      const isRamadanSpecial = Boolean(res.isRamadanSpecial || items.some(it => it.isRamadanSpecial));
+      const overageInfo = calculateItemOverageMetrics(
+        {
+          ...res,
+          plannedSpots: totalPlanned,
+          dailyMinSpots: res.dailyMinSpots || firstItem.dailyMinSpots || 1,
+          dailyMaxSpots: res.dailyMaxSpots || firstItem.dailyMaxSpots || 4,
+          spotPrice: res.spotPrice || firstItem.spotPrice || 0,
+          totalBudget: res.toplamTutar || firstItem.totalBudget || 0,
+          isRamadanSpecial
+        },
+        effectiveRealized,
+        ramadanConfig
+      );
+
       return {
         ...res,
         items,
         company,
         companyName: company?.name || '-',
         effectiveRealized,
-        totalPlanned
+        totalPlanned,
+        isRamadanSpecial,
+        overageInfo
       };
     });
-  }, [reservations, companies, adPlacements]);
+  }, [reservations, companies, adPlacements, ramadanConfig]);
 
   // Filtrelenmiş rezervasyonlar
   const filteredReservations = useMemo(() => {
     return enrichedReservations.filter(res => {
       if (typeFilter === 'sponsor' && !res.isSponsor) return false;
-      if (typeFilter === 'standard' && res.isSponsor) return false;
+      if (typeFilter === 'standard' && (res.isSponsor || res.isRamadanSpecial)) return false;
+      if (typeFilter === 'ramadan' && !res.isRamadanSpecial) return false;
+      if (typeFilter === 'overage' && !res.overageInfo?.hasAnyOverage) return false;
       if (typeFilter === 'multi' && (res.items?.length || 0) < 2) return false;
 
       if (
@@ -162,6 +183,8 @@ const ReservationsTab = ({ setActiveTab }) => {
   const kpiStats = useMemo(() => {
     const totalRes = enrichedReservations.length;
     const sponsorCount = enrichedReservations.filter(r => r.isSponsor).length;
+    const ramadanCount = enrichedReservations.filter(r => r.isRamadanSpecial).length;
+    const overageCount = enrichedReservations.filter(r => r.overageInfo?.hasAnyOverage).length;
     const totalProductPlans = enrichedReservations.reduce((acc, r) => acc + (r.items?.length || 1), 0);
     const totalPlannedSpots = enrichedReservations.reduce((acc, r) => acc + r.totalPlanned, 0);
     const totalRealizedSpots = enrichedReservations.reduce((acc, r) => acc + r.effectiveRealized, 0);
@@ -169,6 +192,8 @@ const ReservationsTab = ({ setActiveTab }) => {
     return {
       totalRes,
       sponsorCount,
+      ramadanCount,
+      overageCount,
       totalProductPlans,
       totalPlannedSpots,
       totalRealizedSpots
@@ -240,6 +265,8 @@ const ReservationsTab = ({ setActiveTab }) => {
               { id: 'all', label: `Tümü (${enrichedReservations.length})` },
               { id: 'standard', label: 'Standart Kuşak' },
               { id: 'sponsor', label: `Sponsorluklar (${kpiStats.sponsorCount})` },
+              { id: 'ramadan', label: `🌙 Ramazan Özel (${kpiStats.ramadanCount})` },
+              { id: 'overage', label: `⚠️ Aşımlı (- Fark) (${kpiStats.overageCount})` },
               { id: 'multi', label: 'Çoklu Ürünlü Planlar' }
             ].map(tab => (
               <button
@@ -388,6 +415,23 @@ const ReservationsTab = ({ setActiveTab }) => {
                             }}
                           >
                             <Award size={10} /> Sponsor
+                          </span>
+                        )}
+                        {res.isRamadanSpecial && (
+                          <span
+                            style={{
+                              background: 'linear-gradient(135deg, #d97706, #b45309)',
+                              color: '#fff',
+                              padding: '2px 8px',
+                              borderRadius: '999px',
+                              fontSize: '10px',
+                              fontWeight: '900',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '3px'
+                            }}
+                          >
+                            🌙 Ramazan
                           </span>
                         )}
                       </div>
@@ -582,6 +626,22 @@ const ReservationsTab = ({ setActiveTab }) => {
 
                     {/* Program Sponsorluğu & Konumu */}
                     <td>
+                      {res.isRamadanSpecial && (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', marginBottom: res.isSponsor ? '6px' : 0 }}>
+                          <span
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: '900',
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              background: 'rgba(217, 119, 6, 0.14)',
+                              color: '#d97706'
+                            }}
+                          >
+                            {res.ramadanTarget === 'sahur' ? '🌙 Ramazan Sahur' : res.ramadanTarget === 'both' ? '🌙+🕌 Sahur & İftar' : '🕌 Ramazan İftar'}
+                          </span>
+                        </div>
+                      )}
                       {res.isSponsor ? (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
                           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: '800', fontSize: '12px', color: 'var(--ads-text-main)' }}>
@@ -612,9 +672,9 @@ const ReservationsTab = ({ setActiveTab }) => {
                             })}
                           </div>
                         </div>
-                      ) : (
+                      ) : !res.isRamadanSpecial ? (
                         <span style={{ fontSize: '11px', color: 'var(--ads-text-muted)' }}>Standart Kuşak</span>
-                      )}
+                      ) : null}
                     </td>
 
                     {/* Kanallar ve Kuşaklar */}
@@ -647,23 +707,80 @@ const ReservationsTab = ({ setActiveTab }) => {
                       </div>
                     </td>
 
-                    {/* Spot İlerlemesi */}
+                    {/* Spot İlerlemesi & Eksi (-) Aşım Gösterimi */}
                     <td>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '110px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '125px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px', fontWeight: '800' }}>
-                          <span style={{ color: 'var(--ads-brand)' }}>{res.effectiveRealized} / {res.totalPlanned}</span>
-                          <span style={{ color: 'var(--ads-text-muted)', fontSize: '10.5px' }}>%{pct}</span>
+                          <span style={{ color: res.effectiveRealized > res.totalPlanned ? '#dc2626' : 'var(--ads-brand)' }}>
+                            {res.effectiveRealized} / {res.totalPlanned}
+                          </span>
+                          <span style={{ color: res.effectiveRealized > res.totalPlanned ? '#dc2626' : 'var(--ads-text-muted)', fontSize: '10.5px' }}>
+                            %{Math.round((res.effectiveRealized / Math.max(1, res.totalPlanned)) * 100)}
+                          </span>
                         </div>
                         <div style={{ height: '6px', background: 'var(--ads-pill-bar-bg)', borderRadius: '999px', overflow: 'hidden' }}>
                           <div
                             style={{
                               width: `${pct}%`,
                               height: '100%',
-                              background: res.isSponsor ? '#9333ea' : 'var(--ads-brand)',
+                              background: res.effectiveRealized > res.totalPlanned
+                                ? '#dc2626'
+                                : res.isSponsor
+                                ? '#9333ea'
+                                : 'var(--ads-brand)',
                               borderRadius: '999px'
                             }}
                           />
                         </div>
+                        {res.overageInfo?.hasAnyOverage && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '2px' }}>
+                            {res.overageInfo.spotNegativeBalance < 0 && (
+                              <span
+                                style={{
+                                  fontSize: '10px',
+                                  fontWeight: '900',
+                                  color: '#dc2626',
+                                  background: 'rgba(220, 38, 38, 0.12)',
+                                  padding: '2px 6px',
+                                  borderRadius: '5px',
+                                  textAlign: 'center'
+                                }}
+                              >
+                                {res.overageInfo.spotNegativeBalance} Spot Aşım
+                              </span>
+                            )}
+                            {res.overageInfo.dayNegativeBalance < 0 && (
+                              <span
+                                style={{
+                                  fontSize: '10px',
+                                  fontWeight: '900',
+                                  color: '#d97706',
+                                  background: 'rgba(217, 119, 6, 0.14)',
+                                  padding: '2px 6px',
+                                  borderRadius: '5px',
+                                  textAlign: 'center'
+                                }}
+                              >
+                                {res.overageInfo.dayNegativeBalance} Gün Aşım
+                              </span>
+                            )}
+                            {res.overageInfo.budgetNegativeBalance < 0 && (
+                              <span
+                                style={{
+                                  fontSize: '10px',
+                                  fontWeight: '900',
+                                  color: '#dc2626',
+                                  background: 'rgba(220, 38, 38, 0.12)',
+                                  padding: '2px 6px',
+                                  borderRadius: '5px',
+                                  textAlign: 'center'
+                                }}
+                              >
+                                {res.overageInfo.budgetNegativeBalance.toLocaleString('tr-TR')} ₺
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </td>
 

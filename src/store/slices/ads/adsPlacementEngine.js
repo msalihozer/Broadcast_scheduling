@@ -319,12 +319,19 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
       .toLocaleLowerCase('tr-TR')
       .trim();
 
+    const ramadanProgramType = !isAdBlock && !isIntroItem
+      ? (prog.ramadanProgramType ||
+          (/sahur/i.test(fullSearchText) ? 'sahur' : /iftar/i.test(fullSearchText) ? 'iftar' : ''))
+      : '';
+
     return {
       idx,
       prog,
       isAdBlock,
       isIntroItem,
       fullSearchText,
+      ramadanProgramType,
+      ramadanBreakTag: isAdBlock ? (prog.ramadanBreakTag || '') : '',
       startMin,
       endMin: currentMinutes,
       durMin,
@@ -335,12 +342,16 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
     };
   });
 
+  const existingDayBlocks = state.adPlacements?.[key] || [];
+  let adOrdinalCounter = 0;
+
   // Reklam kuşaklarını ve komşu programlarını (İntro satırlarını şeffaf geçerek) belirle
   const adBreakBuckets = [];
   const bucketByTimelineIdx = new Map();
 
   timelineItems.forEach((item, idx) => {
     if (!item.isAdBlock) return;
+    adOrdinalCounter++;
 
     let prevItem = null;
     for (let p = idx - 1; p >= 0; p--) {
@@ -375,15 +386,22 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
       matchedTimeBlock = state.timeBlocks[0] || { id: 'tb-2', name: 'Öğle Kuşağı' };
     }
 
+    const blockIdVal = item.prog.instanceId || item.prog.id || `adbreak-${adOrdinalCounter}`;
+    const existingMatchedBlock = existingDayBlocks.find(
+      eb => eb.blockId === blockIdVal || eb.time === item.timeStr
+    );
+    const explicitRamadanTag = item.ramadanBreakTag || existingMatchedBlock?.ramadanBreakTag || '';
+
     const bucketObj = {
       timelineIdx: idx,
-      blockId: item.prog.instanceId || `blk-${date}-${idx}`,
+      blockId: blockIdVal,
       time: item.timeStr,
       duration: item.durMin,
       capacitySec: Math.max(30, item.capacitySec || 360),
       usedSec: 0,
       timeBlockId: matchedTimeBlock.id,
       timeBlockName: matchedTimeBlock.name,
+      ramadanBreakTag: explicitRamadanTag,
       prevProgTitle: prevItem ? prevItem.fullSearchText : '',
       nextProgTitle: nextItem ? nextItem.fullSearchText : '',
       openingPinnedAds: [], // İlk sıra kilitli: Devam Edecek ('to_be_continued') & Sundu ('presented')
@@ -400,6 +418,75 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
   });
 
   if (adBreakBuckets.length === 0) return state;
+
+  // 1B) Sahur ve İftar Programlarının Başlangıç Saatlerine Göre Komşu Reklam Kuşaklarını Otomatik Tespit Et
+  const autoTagNeighborsForRamadanType = (rType) => {
+    const matchingProgs = timelineItems.filter(it => !it.isAdBlock && !it.isIntroItem && it.ramadanProgramType === rType);
+    if (matchingProgs.length === 0) return;
+
+    const firstPart = matchingProgs[0];
+    const lastPart = matchingProgs[matchingProgs.length - 1];
+
+    // Program başlamadan önceki son reklam kuşağı -> `${rType}_before`
+    for (let i = firstPart.idx - 1; i >= 0; i--) {
+      if (timelineItems[i].isAdBlock) {
+        const b = bucketByTimelineIdx.get(i);
+        if (b && !b.ramadanBreakTag) b.ramadanBreakTag = `${rType}_before`;
+        break;
+      }
+      if (!timelineItems[i].isIntroItem) break;
+    }
+
+    // Program partları arasındaki reklam kuşakları -> `${rType}_middle`
+    for (let p = 0; p < matchingProgs.length - 1; p++) {
+      const partA = matchingProgs[p];
+      const partB = matchingProgs[p + 1];
+      adBreakBuckets.forEach(b => {
+        if (b.timelineIdx > partA.idx && b.timelineIdx < partB.idx && !b.ramadanBreakTag) {
+          b.ramadanBreakTag = `${rType}_middle`;
+        }
+      });
+    }
+
+    // Program bittikten sonraki ilk reklam kuşağı -> `${rType}_after`
+    for (let i = lastPart.idx + 1; i < timelineItems.length; i++) {
+      if (timelineItems[i].isAdBlock) {
+        const b = bucketByTimelineIdx.get(i);
+        if (b && !b.ramadanBreakTag) b.ramadanBreakTag = `${rType}_after`;
+        break;
+      }
+      if (!timelineItems[i].isIntroItem) break;
+    }
+  };
+
+  autoTagNeighborsForRamadanType('sahur');
+  autoTagNeighborsForRamadanType('iftar');
+
+  // Bu günün daha önceki yerleşiminde kullanılan spotları düş ki yeniden planlamada çift sayılmasın
+  const prevCountsByResId = {};
+  (existingDayBlocks || []).forEach(b => {
+    (b.ads || []).forEach(ad => {
+      if (ad?.reservationId) {
+        prevCountsByResId[ad.reservationId] = (prevCountsByResId[ad.reservationId] || 0) + 1;
+      }
+    });
+  });
+
+  const ramadanCfg = state.ramadanConfig || {
+    enabled: true,
+    startDate: '2026-02-18',
+    endDate: '2026-03-19'
+  };
+  const hasRamadanTaggedItemsToday =
+    adBreakBuckets.some(b => Boolean(b.ramadanBreakTag)) ||
+    timelineItems.some(it => Boolean(it.ramadanProgramType));
+  const isDateWithinRamadanRange = (() => {
+    if (!ramadanCfg.enabled) return hasRamadanTaggedItemsToday;
+    if (!ramadanCfg.startDate || !ramadanCfg.endDate) return true;
+    const s = new Date(`${ramadanCfg.startDate}T00:00:00`);
+    const e = new Date(`${ramadanCfg.endDate}T23:59:59`);
+    return (targetDateObj >= s && targetDateObj <= e) || hasRamadanTaggedItemsToday;
+  })();
 
   // 2) Uygun Rezervasyon Kalemlerini (Items) Topla
   const collectCandidateItems = (strictDate = true) => {
@@ -460,6 +547,22 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
 
         const itemIsSponsor =
           it.isSponsor !== undefined ? Boolean(it.isSponsor) : Boolean(res.isSponsor);
+        const itemIsRamadanSpecial =
+          it.isRamadanSpecial !== undefined ? Boolean(it.isRamadanSpecial) : Boolean(res.isRamadanSpecial);
+        const itemRamadanTarget =
+          it.ramadanTarget || res.ramadanTarget || 'iftar'; // 'sahur' | 'iftar' | 'both'
+        const itemRamadanPositions =
+          Array.isArray(it.ramadanPositions) && it.ramadanPositions.length > 0
+            ? it.ramadanPositions
+            : Array.isArray(res.ramadanPositions) && res.ramadanPositions.length > 0
+            ? res.ramadanPositions
+            : ['before', 'middle', 'after'];
+
+        // KURAL: Ramazan Özel olan rezervasyonlar SADECE Ramazan ayı tarih aralığında (veya Sahur/İftar kuşağı olan günde) değerlendirilir!
+        if (itemIsRamadanSpecial && !isDateWithinRamadanRange) {
+          return;
+        }
+
         const itemSponsorProgram = String(
           it.sponsorProgramTitle !== undefined ? it.sponsorProgramTitle : res.sponsorProgramTitle || ''
         )
@@ -485,6 +588,10 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
           sponsorProgramTitle: itemSponsorProgram,
           sponsorPositions: itemSponsorPositions,
           sponsorBumperMap: res.sponsorBumperMap || {},
+          isRamadanSpecial: itemIsRamadanSpecial,
+          ramadanTarget: itemRamadanTarget,
+          ramadanPositions: itemRamadanPositions,
+          allowQuotaOverflow: Boolean(it.allowQuotaOverflow ?? res.allowQuotaOverflow ?? true),
           companyId: it.companyId || res.companyId || material.companyId,
           productId: it.productId || res.productId || material.productId,
           materialId: material.id,
@@ -505,11 +612,11 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
     candidates = collectCandidateItems(false);
   }
 
-  // Önceliğe göre sırala (Sponsor > Zorunlu 1000 > Yüksek 700 > Normal 400 > Dolgu 100)
+  // Önceliğe göre sırala (Ramazan Özel Sponsor > Sponsor > Ramazan Özel > Zorunlu 1000 > Yüksek 700 > Normal 400 > Dolgu 100)
   candidates.sort((a, b) => {
-    if (a.isSponsor && !b.isSponsor) return -1;
-    if (!a.isSponsor && b.isSponsor) return 1;
-    return b.priority - a.priority;
+    const aScore = (a.isRamadanSpecial ? 2000 : 0) + (a.isSponsor ? 1500 : 0) + a.priority;
+    const bScore = (b.isRamadanSpecial ? 2000 : 0) + (b.isSponsor ? 1500 : 0) + b.priority;
+    return bScore - aScore;
   });
 
   const dailyCountMap = {};
@@ -523,10 +630,12 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
       ignoreTimeBlock = false,
       ignoreDailyMax = false,
       ignoreCapacity = false,
+      ignoreCompanyBalance = false,
       targetSlot = 'middle', // 'opening' | 'middle' | 'closing'
       sponsorRole = null,
       sponsorRoleLabel = null,
-      lockOrder = null
+      lockOrder = null,
+      isRamadanSpot = false
     } = options;
 
     const matIdStr = String(cand.materialId);
@@ -544,11 +653,15 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
       return false;
     }
 
-    if (targetSlot === 'middle') {
+    if (targetSlot === 'middle' && !ignoreCompanyBalance) {
       const allCurrent = [...bucket.openingPinnedAds, ...bucket.middleAds, ...bucket.closingPinnedAds];
       const sameCompCount = allCurrent.filter(a => String(a.companyId) === String(cand.companyId)).length;
       const otherCompCount = allCurrent.length - sameCompCount;
-      if (allCurrent.length > 0 && sameCompCount >= otherCompCount + 1) {
+      // Eğer kuşakta en az 2 reklam varsa ve aynı firma diğer tüm firmaların toplamını aşıyorsa üst üste gelmeyi önle
+      if (allCurrent.length >= 2 && sameCompCount > otherCompCount) {
+        return false;
+      }
+      if (allCurrent.length === 1 && sameCompCount === 1) {
         return false;
       }
     }
@@ -560,6 +673,7 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
       companyId: cand.companyId,
       productId: cand.productId,
       isSponsorSpot: Boolean(cand.isSponsor || sponsorRole),
+      isRamadanSpot: Boolean(cand.isRamadanSpecial || isRamadanSpot),
       sponsorRole: sponsorRole || null,
       sponsorRoleLabel: sponsorRoleLabel || null,
       lockOrder: lockOrder || null
@@ -689,14 +803,129 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
     };
   };
 
-  // AŞAMA 1: ÖZEL SUNUM & GEÇİŞ BANTLARI (TEKİL SIRA KİLİTLİ)
-  const sponsorCandidates = candidates.filter(c => c.isSponsor && c.sponsorProgramTitle);
+  // AŞAMA 0: RAMAZAN ÖZEL (SAHUR VE İFTAR) KUŞAKLARINI ÇÖZÜMLE VE YERLEŞTİR
+  const resolveRamadanTargetBreaks = (ramadanTargetType) => {
+    const targetTypes = ramadanTargetType === 'both' ? ['sahur', 'iftar'] : [ramadanTargetType || 'iftar'];
+    const openingBreaks = [];
+    const firstMidBreaks = [];
+    const allMidBreaks = [];
+    const lastMidBreaks = [];
+    const closingBreaks = [];
+
+    targetTypes.forEach(rType => {
+      // 1. Önce doğrudan kuşak üzerinde `ramadanBreakTag` ile işaretlenmiş olanları ekle
+      adBreakBuckets.forEach(b => {
+        if (b.ramadanBreakTag === `${rType}_before` && !openingBreaks.includes(b)) {
+          openingBreaks.push(b);
+        } else if (b.ramadanBreakTag === `${rType}_middle`) {
+          if (!allMidBreaks.includes(b)) allMidBreaks.push(b);
+          if (!firstMidBreaks.includes(b)) firstMidBreaks.push(b);
+          if (!lastMidBreaks.includes(b)) lastMidBreaks.push(b);
+        } else if (b.ramadanBreakTag === `${rType}_after` && !closingBreaks.includes(b)) {
+          closingBreaks.push(b);
+        }
+      });
+
+      // 2. Ayrıca program listesinde `ramadanProgramType === rType` veya başlığında sahur/iftar geçen programların komşu kuşaklarını ekle
+      const progTargets = resolveProgramBreakTargets(rType);
+      progTargets.openingBreaks.forEach(b => { if (!openingBreaks.includes(b)) openingBreaks.push(b); });
+      progTargets.firstMidBreaks.forEach(b => { if (!firstMidBreaks.includes(b)) firstMidBreaks.push(b); });
+      progTargets.allMidBreaks.forEach(b => { if (!allMidBreaks.includes(b)) allMidBreaks.push(b); });
+      progTargets.lastMidBreaks.forEach(b => { if (!lastMidBreaks.includes(b)) lastMidBreaks.push(b); });
+      progTargets.closingBreaks.forEach(b => { if (!closingBreaks.includes(b)) closingBreaks.push(b); });
+    });
+
+    return {
+      openingBreaks,
+      firstMidBreaks,
+      allMidBreaks,
+      lastMidBreaks,
+      closingBreaks
+    };
+  };
+
   const BUMPER_META = {
     presents: { label: 'Program Öncesi (Sunar)', slot: 'closing', lockOrder: 'last' },
     to_be_continued: { label: 'Program Arası (Devam Edecek)', slot: 'opening', lockOrder: 'first' },
     continues: { label: 'Program Arası (Devam Ediyor)', slot: 'closing', lockOrder: 'last' },
     presented: { label: 'Program Sonrası (Sundu)', slot: 'opening', lockOrder: 'first' }
   };
+
+  const ramadanCandidates = candidates.filter(c => c.isRamadanSpecial);
+  ramadanCandidates.forEach(rc => {
+    const rTargets = resolveRamadanTargetBreaks(rc.ramadanTarget);
+    const rPositions = Array.isArray(rc.ramadanPositions) && rc.ramadanPositions.length > 0
+      ? rc.ramadanPositions
+      : (Array.isArray(rc.sponsorPositions) && rc.sponsorPositions.length > 0 ? rc.sponsorPositions : ['before', 'middle', 'after']);
+    const rLabelPrefix = rc.ramadanTarget === 'sahur' ? '🌙 Sahur' : rc.ramadanTarget === 'both' ? '🌙+🕌 Ramazan' : '🕌 İftar';
+
+    // Ramazan Özel Tekil Sunum/Geçiş Bantları (Sunar, Devam Edecek, Devam Ediyor, Sundu)
+    SINGULAR_SPONSOR_ROLES.forEach(roleId => {
+      if (!rPositions.includes(roleId)) return;
+      let roleBuckets = [];
+      if (roleId === 'presents') roleBuckets = rTargets.openingBreaks;
+      else if (roleId === 'to_be_continued') roleBuckets = rTargets.firstMidBreaks;
+      else if (roleId === 'continues') roleBuckets = rTargets.lastMidBreaks;
+      else if (roleId === 'presented') roleBuckets = rTargets.closingBreaks;
+
+      const meta = BUMPER_META[roleId];
+      roleBuckets.forEach(bucket => {
+        const singularKey = `ramadan_${rc.ramadanTarget}::${roleId}`;
+        if (bucket.usedSingularRoles.has(singularKey)) return;
+        const placed = tryPlaceCandidateInBucket(rc, bucket, {
+          ignoreTimeBlock: true,
+          ignoreDailyMax: true,
+          targetSlot: meta.slot,
+          sponsorRole: roleId,
+          sponsorRoleLabel: `${rLabelPrefix} • ${meta.label}`,
+          lockOrder: meta.lockOrder,
+          isRamadanSpot: true
+        });
+        if (placed) bucket.usedSingularRoles.add(singularKey);
+      });
+    });
+
+    // Ramazan Özel Çoklu Kuşak Spotları (Öncesi, Arası, Sonrası)
+    if (rPositions.includes('before')) {
+      rTargets.openingBreaks.forEach(bucket => {
+        tryPlaceCandidateInBucket(rc, bucket, {
+          ignoreTimeBlock: true,
+          ignoreDailyMax: true,
+          targetSlot: 'middle',
+          sponsorRole: 'ramadan_before',
+          sponsorRoleLabel: `${rLabelPrefix} Öncesi`,
+          isRamadanSpot: true
+        });
+      });
+    }
+    if (rPositions.includes('middle')) {
+      rTargets.allMidBreaks.forEach(bucket => {
+        tryPlaceCandidateInBucket(rc, bucket, {
+          ignoreTimeBlock: true,
+          ignoreDailyMax: true,
+          targetSlot: 'middle',
+          sponsorRole: 'ramadan_middle',
+          sponsorRoleLabel: `${rLabelPrefix} Arası`,
+          isRamadanSpot: true
+        });
+      });
+    }
+    if (rPositions.includes('after')) {
+      rTargets.closingBreaks.forEach(bucket => {
+        tryPlaceCandidateInBucket(rc, bucket, {
+          ignoreTimeBlock: true,
+          ignoreDailyMax: true,
+          targetSlot: 'middle',
+          sponsorRole: 'ramadan_after',
+          sponsorRoleLabel: `${rLabelPrefix} Sonrası`,
+          isRamadanSpot: true
+        });
+      });
+    }
+  });
+
+  // AŞAMA 1: ÖZEL SUNUM & GEÇİŞ BANTLARI (TEKİL SIRA KİLİTLİ)
+  const sponsorCandidates = candidates.filter(c => c.isSponsor && c.sponsorProgramTitle);
 
   sponsorCandidates.forEach(cand => {
     const progNorm = cand.sponsorProgramTitle;
@@ -776,9 +1005,12 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
   });
 
   // AŞAMA 3: GÜNLÜK MİNİMUM SPOT GARANTİSİ (`dailyMinSpots`)
-  candidates.forEach(cand => {
+  // Ramazan Özel olanlar yalnızca Ramazan kuşaklarında değerlendirilir; standart olanlar tüm kuşaklara dengeli yayılır
+  const standardCandidates = candidates.filter(c => !c.isRamadanSpecial);
+
+  standardCandidates.forEach(cand => {
     let guard = 0;
-    while ((dailyCountMap[cand.itemKey] || 0) < cand.dailyMinSpots && guard < 24) {
+    while ((dailyCountMap[cand.itemKey] || 0) < cand.dailyMinSpots && guard < 36) {
       guard++;
       const eligibleBuckets = adBreakBuckets
         .filter(
@@ -788,7 +1020,11 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
             (cand.timeBlockIds.length === 0 || cand.timeBlockIds.includes(b.timeBlockId)) &&
             b.usedSec + cand.durationSec <= b.capacitySec
         )
-        .sort((a, b) => a.usedSec / a.capacitySec - b.usedSec / b.capacitySec);
+        .sort(
+          (a, b) =>
+            getBucketTotalCount(a) - getBucketTotalCount(b) ||
+            a.usedSec / a.capacitySec - b.usedSec / b.capacitySec
+        );
 
       if (eligibleBuckets.length === 0) break;
       let placedAny = false;
@@ -802,42 +1038,132 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
     }
   });
 
-  // AŞAMA 4: DENGELİ MAKSİMUM DOLDURMA (`dailyMaxSpots` Sınırına Kadar Round-Robin)
+  // AŞAMA 4A: TÜM 26-30 KUŞAK ARASINDA DENGELİ DOLDURMA (`dailyMaxSpots` Sınırına Kadar)
+  // Kuşakları her adımda en az dolu olandan en çok dolu olana sıralayarak paralel doldurur (1 kuşak dolunca durmaz!)
   let placedInRound = true;
   let roundCount = 0;
-  while (placedInRound && roundCount < 14) {
+  while (placedInRound && roundCount < 30) {
     placedInRound = false;
     roundCount++;
-    for (const bucket of adBreakBuckets) {
-      for (const cand of candidates) {
+
+    const bucketsSortedByLeastFilled = [...adBreakBuckets].sort(
+      (a, b) =>
+        getBucketTotalCount(a) - getBucketTotalCount(b) ||
+        a.usedSec / a.capacitySec - b.usedSec / b.capacitySec
+    );
+
+    for (const bucket of bucketsSortedByLeastFilled) {
+      if (bucket.usedSec >= bucket.capacitySec) continue;
+
+      // Eğer bu kuşak Ramazan kuşağı ise önce henüz yerleşmemiş Ramazan Özel adayları da dene
+      const poolForBucket = bucket.ramadanBreakTag
+        ? [...ramadanCandidates, ...standardCandidates]
+        : standardCandidates;
+
+      const sortedPool = [...poolForBucket].sort(
+        (a, b) =>
+          (dailyCountMap[a.itemKey] || 0) / Math.max(1, a.dailyMaxSpots) -
+            (dailyCountMap[b.itemKey] || 0) / Math.max(1, b.dailyMaxSpots) ||
+          b.priority - a.priority
+      );
+
+      for (const cand of sortedPool) {
         if ((dailyCountMap[cand.itemKey] || 0) >= cand.dailyMaxSpots) continue;
         if (tryPlaceCandidateInBucket(cand, bucket)) {
           placedInRound = true;
+          break; // Bu turda bu kuşağa 1 spot eklendi, hemen bir sonraki en az dolu kuşağa geç!
         }
       }
     }
   }
 
-  // AŞAMA 5: BOŞ KUŞAK GEÇEMEZ GARANTİSİ (Her kuşakta EN AZ 1 reklam bulunması zorunludur)
+  // AŞAMA 4B: MAKSİMUM KUŞAK KAPASİTESİ DOLDURMA (GÜNLÜK 26-30 KUŞAĞIN HİÇBİRİ SEYREK KALMASIN)
+  // Eğer `dailyMaxSpots` sınırına ulaşıldığı halde 26-30 kuşakta hala boş süre kapasitesi varsa,
+  // reklamları en az dolu kuşaklardan başlayarak kapasite dolana veya benzersiz adaylar tükenene kadar dağıtmaya devam et.
+  let overflowRound = 0;
+  let placedInOverflow = true;
+  const fallbackAllCandidates = standardCandidates.length > 0
+    ? standardCandidates
+    : collectCandidateItems(false).filter(c => !c.isRamadanSpecial);
+
+  while (placedInOverflow && overflowRound < 35) {
+    placedInOverflow = false;
+    overflowRound++;
+
+    const underfilledBuckets = [...adBreakBuckets]
+      .filter(b => b.usedSec + 15 <= b.capacitySec)
+      .sort(
+        (a, b) =>
+          a.usedSec / a.capacitySec - b.usedSec / b.capacitySec ||
+          getBucketTotalCount(a) - getBucketTotalCount(b)
+      );
+
+    if (underfilledBuckets.length === 0) break;
+
+    for (const bucket of underfilledBuckets) {
+      const pool = bucket.ramadanBreakTag
+        ? [...ramadanCandidates, ...fallbackAllCandidates]
+        : fallbackAllCandidates;
+
+      // En az kullanılmış ve en yüksek öncelikli adayı seç
+      const sortedCands = [...pool].sort(
+        (a, b) =>
+          (dailyCountMap[a.itemKey] || 0) - (dailyCountMap[b.itemKey] || 0) ||
+          b.priority - a.priority
+      );
+
+      let placedOne = false;
+      // Önce kendi yayın kuşağı (`timeBlockId`) eşleşenleri dene
+      for (const cand of sortedCands) {
+        if (
+          tryPlaceCandidateInBucket(cand, bucket, {
+            ignoreDailyMax: true,
+            ignoreTimeBlock: false
+          })
+        ) {
+          placedInOverflow = true;
+          placedOne = true;
+          break;
+        }
+      }
+
+      // Kendi saat diliminde aday kalmadıysa ve kuşak hala %65'in altındaysa diğer saat dilimi adaylarıyla destekle
+      if (!placedOne && bucket.usedSec / bucket.capacitySec < 0.65) {
+        for (const cand of sortedCands) {
+          if (
+            tryPlaceCandidateInBucket(cand, bucket, {
+              ignoreDailyMax: true,
+              ignoreTimeBlock: true
+            })
+          ) {
+            placedInOverflow = true;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  // AŞAMA 5: BOŞ KUŞAK KESİNLİKLE OLAMAZ GARANTİSİ (26-30 Kuşağın Tamamı En Az Birkaç Spot İle Dolu Olmalı)
   const allChannelCandidates = collectCandidateItems(false);
   let fallbackMatCursor = 0;
   adBreakBuckets.forEach(bucket => {
-    if (getBucketTotalCount(bucket) > 0) return;
+    // Kuşak boşsa veya çok az spot varsa eldeki adaylarla doldur
+    const minTargetSpots = Math.min(3, Math.max(1, Math.floor(bucket.capacitySec / 45)));
+    if (getBucketTotalCount(bucket) >= minTargetSpots) return;
 
     const sortedPool = [...(candidates.length > 0 ? candidates : allChannelCandidates)].sort(
       (a, b) => (dailyCountMap[a.itemKey] || 0) - (dailyCountMap[b.itemKey] || 0) || b.priority - a.priority
     );
 
     for (const cand of sortedPool) {
-      if (
-        tryPlaceCandidateInBucket(cand, bucket, {
-          ignoreTimeBlock: true,
-          ignoreDailyMax: true,
-          ignoreCapacity: true
-        })
-      ) {
-        break;
-      }
+      if (getBucketTotalCount(bucket) >= minTargetSpots) break;
+      if (cand.isRamadanSpecial && !bucket.ramadanBreakTag && !isDateWithinRamadanRange) continue;
+      tryPlaceCandidateInBucket(cand, bucket, {
+        ignoreTimeBlock: true,
+        ignoreDailyMax: true,
+        ignoreCapacity: getBucketTotalCount(bucket) === 0
+      });
     }
 
     if (getBucketTotalCount(bucket) === 0 && Array.isArray(state.materials) && state.materials.length > 0) {
@@ -870,16 +1196,35 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
       duration: b.duration,
       timeBlockId: b.timeBlockId,
       timeBlockName: b.timeBlockName,
+      ramadanBreakTag: b.ramadanBreakTag || '',
       ads: orderedAds
     };
   });
 
+  // Gerçekleşen spot sayısını ve aşım (- eksi fark) değerlerini güncelle
+  const finalCountsTodayByResId = {};
+  finalPlacements.forEach(fp => {
+    (fp.ads || []).forEach(ad => {
+      if (ad?.reservationId) {
+        finalCountsTodayByResId[ad.reservationId] = (finalCountsTodayByResId[ad.reservationId] || 0) + 1;
+      }
+    });
+  });
+
   const updatedReservations = state.reservations.map(res => {
-    const added = addedSpotsByResId[res.id] || 0;
-    if (!added) return res;
+    const prevToday = prevCountsByResId[res.id] || 0;
+    const nowToday = finalCountsTodayByResId[res.id] || 0;
+    const netDelta = nowToday - prevToday;
+    if (netDelta === 0 && !nowToday) return res;
+
+    const nextRealized = Math.max(0, (Number(res.realizedSpots) || 0) + netDelta);
+    const plannedTotal = Math.max(0, Number(res.totalPlannedSpots) || 0);
+    const overageSpots = plannedTotal > 0 && nextRealized > plannedTotal ? (nextRealized - plannedTotal) : 0;
+
     return {
       ...res,
-      realizedSpots: (Number(res.realizedSpots) || 0) + added
+      realizedSpots: nextRealized,
+      overageSpots: Math.max(Number(res.overageSpots) || 0, overageSpots)
     };
   });
 
@@ -970,9 +1315,30 @@ export function executeAddManualAdToBreak(state, channelId, date, breakMeta, adP
     ...state.adPlacements,
     [key]: existingBlocks
   };
-  saveAdsReservationsBackup(state.reservations, nextAdPlacements);
+
+  // Eğer eklenen spot mevcut bir rezervasyona bağlıysa realizedSpots ve overageSpots (- aşım) sayısını güncelle
+  let nextReservations = state.reservations;
+  if (adPayload.reservationId) {
+    nextReservations = (state.reservations || []).map(res => {
+      if (String(res.id) !== String(adPayload.reservationId)) return res;
+      const nextRealized = (Number(res.realizedSpots) || 0) + 1;
+      const plannedTotal = Math.max(0, Number(res.totalPlannedSpots) || 0);
+      const overageSpots = plannedTotal > 0 && nextRealized > plannedTotal ? (nextRealized - plannedTotal) : 0;
+      const spotPrice = Math.max(0, Number(res.spotPrice) || Number(res.items?.[0]?.spotPrice) || 0);
+      const overageBudget = overageSpots > 0 && spotPrice > 0 ? Math.round(overageSpots * spotPrice * 100) / 100 : (Number(res.overageBudget) || 0);
+      return {
+        ...res,
+        realizedSpots: nextRealized,
+        overageSpots: Math.max(Number(res.overageSpots) || 0, overageSpots),
+        overageBudget
+      };
+    });
+  }
+
+  saveAdsReservationsBackup(nextReservations, nextAdPlacements);
 
   return {
+    reservations: nextReservations,
     adPlacements: nextAdPlacements
   };
 }

@@ -37,7 +37,8 @@ import {
   getTodayIso,
   getPlusDaysIso,
   createEmptyProductPlan,
-  calculateRowPricing
+  calculateRowPricing,
+  calculateItemOverageMetrics
 } from './reservation/reservationConstants';
 
 import CompanySelectorCard from './reservation/CompanySelectorCard';
@@ -67,10 +68,41 @@ const AdsReservationForm = ({ onClose, existingData = null, defaultSponsorMode =
     reservations = [],
     timeBlocks = [],
     channels = [],
+    days = {},
+    ramadanConfig = { enabled: true, startDate: '2026-02-18', endDate: '2026-03-19' },
+    setRamadanConfig,
     hiddenCategoryIds = [],
     addReservation,
     updateReservation
   } = usePlanningStore();
+
+  // Yayın akışı listelerinden (days) Sahur ve İftar programlarının başlangıç saatlerini otomatik çek
+  const detectedRamadanPrograms = useMemo(() => {
+    let sahurStartTime = '';
+    let iftarStartTime = '';
+    Object.values(days || {}).forEach(dayObj => {
+      if (!dayObj?.variants) return;
+      const activeVar = dayObj.activeVariant || 'v1';
+      const progs = dayObj.variants[activeVar]?.programs || [];
+      let curMin = dayObj.startTime || 0;
+      progs.forEach(p => {
+        const sMin = p.startMinute !== undefined ? p.startMinute : curMin;
+        const dMin = parseFloat(p.duration || 0);
+        curMin = sMin + dMin;
+        const h = Math.floor(sMin / 60) % 24;
+        const m = Math.floor(sMin % 60);
+        const tStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        const titleStr = `${p.title || ''} ${p.name || ''}`;
+        if (!sahurStartTime && (p.ramadanProgramType === 'sahur' || /sahur/i.test(titleStr))) {
+          sahurStartTime = `${tStr} (${p.title || 'Sahur Programı'})`;
+        }
+        if (!iftarStartTime && (p.ramadanProgramType === 'iftar' || /iftar/i.test(titleStr))) {
+          iftarStartTime = `${tStr} (${p.title || 'İftar Programı'})`;
+        }
+      });
+    });
+    return { sahurStartTime, iftarStartTime };
+  }, [days]);
 
   const [usedPrograms, setUsedPrograms] = useState(FALLBACK_BROADCAST_PROGRAMS);
   const [previewMaterial, setPreviewMaterial] = useState(null);
@@ -196,6 +228,14 @@ const AdsReservationForm = ({ onClose, existingData = null, defaultSponsorMode =
                 sponsorProgramId: it.sponsorProgramId || existingData.sponsorProgramId || '',
                 sponsorProgramTitle: it.sponsorProgramTitle || existingData.sponsorProgramTitle || '',
                 sponsorPositions: itemPositions,
+                isRamadanSpecial: Boolean(it.isRamadanSpecial ?? existingData.isRamadanSpecial),
+                ramadanTarget: it.ramadanTarget || existingData.ramadanTarget || 'iftar',
+                ramadanPositions:
+                  Array.isArray(it.ramadanPositions) && it.ramadanPositions.length > 0
+                    ? it.ramadanPositions
+                    : Array.isArray(existingData.ramadanPositions) && existingData.ramadanPositions.length > 0
+                    ? existingData.ramadanPositions
+                    : ['before', 'middle', 'after'],
                 programSearch: ''
               };
             })
@@ -213,7 +253,10 @@ const AdsReservationForm = ({ onClose, existingData = null, defaultSponsorMode =
                 isSponsor: Boolean(existingData.isSponsor || defaultSponsorMode),
                 sponsorProgramId: existingData.sponsorProgramId || '',
                 sponsorProgramTitle: existingData.sponsorProgramTitle || '',
-                sponsorPositions: existingData.sponsorPositions || ['before', 'after']
+                sponsorPositions: existingData.sponsorPositions || ['before', 'after'],
+                isRamadanSpecial: Boolean(existingData.isRamadanSpecial),
+                ramadanTarget: existingData.ramadanTarget || 'iftar',
+                ramadanPositions: existingData.ramadanPositions || ['before', 'middle', 'after']
               })
             ];
 
@@ -393,6 +436,20 @@ const AdsReservationForm = ({ onClose, existingData = null, defaultSponsorMode =
     });
   };
 
+  const handleItemRamadanPositionToggle = (index, posId) => {
+    setFormData(prev => {
+      const nextItems = prev.items.map(it => ({ ...it, ramadanPositions: [...(it.ramadanPositions || ['before', 'middle', 'after'])] }));
+      const targetItem = nextItems[index];
+      const currentPositions = targetItem.ramadanPositions || [];
+      if (currentPositions.includes(posId)) {
+        targetItem.ramadanPositions = currentPositions.filter(p => p !== posId);
+      } else {
+        targetItem.ramadanPositions = [...currentPositions, posId];
+      }
+      return { ...prev, items: nextItems };
+    });
+  };
+
   const addProductPlanRow = () => {
     const firstItem = formData.items[0] || {};
     const usedMatIds = new Set(formData.items.map(i => String(i.materialId)).filter(Boolean));
@@ -565,13 +622,18 @@ const AdsReservationForm = ({ onClose, existingData = null, defaultSponsorMode =
     };
   }, [formData.items]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     if (e && typeof e.preventDefault === 'function') e.preventDefault();
 
     if (!formData.companyId) {
       dialog.warning('Firma Seçimi Gerekli', 'Lütfen rezervasyon yapılacak firmayı seçin.');
       return;
     }
+
+    const overageWarnings = [];
+    let totalOverageSpots = 0;
+    let totalOverageDays = 0;
+    let totalOverageBudget = 0;
 
     for (let i = 0; i < formData.items.length; i++) {
       const it = formData.items[i];
@@ -617,16 +679,55 @@ const AdsReservationForm = ({ onClose, existingData = null, defaultSponsorMode =
           return;
         }
       }
+
+      // Spot sayısı, gün süresi veya fiyat/bütçe aşımı (- eksi fark) kontrolü
+      const metrics = calculateItemOverageMetrics(it, existingData?.realizedSpots || 0, ramadanConfig);
+      if (metrics.hasAnyOverage) {
+        const parts = [];
+        if (metrics.spotNegativeBalance < 0) {
+          parts.push(`Spot Aşımı: ${metrics.spotNegativeBalance} Spot (Gereken: ${metrics.minRequiredSpotsForDays}, Planlanan: ${metrics.plannedSpots})`);
+          totalOverageSpots += Math.abs(metrics.spotNegativeBalance);
+        }
+        if (metrics.dayNegativeBalance < 0) {
+          parts.push(`Gün Süresi Aşımı: ${metrics.dayNegativeBalance} Gün`);
+          totalOverageDays += Math.abs(metrics.dayNegativeBalance);
+        }
+        if (metrics.budgetNegativeBalance < 0) {
+          parts.push(`Fiyat / Bütçe Aşımı: ${metrics.budgetNegativeBalance.toLocaleString('tr-TR')} ₺`);
+          totalOverageBudget += Math.abs(metrics.budgetNegativeBalance);
+        }
+        overageWarnings.push(`• ${clipLabel}: ${parts.join(' | ')}`);
+      }
+    }
+
+    // Eğer spot sayısı, gün süresi veya fiyat bilgisi aşılmışsa uyarı ver; "Devam Et" denildiğinde devam et ve - bilgisini kaydet!
+    if (overageWarnings.length > 0) {
+      const confirmed = await dialog.confirm(
+        '⚠️ Spot / Gün Süresi / Fiyat Aşımı Uyarısı',
+        `Bu rezervasyonda planlanan kota, gün süresi veya fiyat sınırları aşıldı:\n\n` +
+          `${overageWarnings.join('\n')}\n\n` +
+          `"Devam Et" butonuna tıklarsanız rezervasyon kaydedilecek ve aşım miktarı eksi (-) bakiye olarak (` +
+          `${totalOverageSpots > 0 ? `-${totalOverageSpots} Spot ` : ''}` +
+          `${totalOverageDays > 0 ? `-${totalOverageDays} Gün ` : ''}` +
+          `${totalOverageBudget > 0 ? `-${totalOverageBudget.toLocaleString('tr-TR')} ₺` : ''}` +
+          `) sistemde tutulacaktır. Devam etmek istiyor musunuz?`,
+        {
+          confirmText: 'Devam Et (Eksi Fark İle Kaydet)',
+          cancelText: 'Vazgeç ve Düzenle'
+        }
+      );
+      if (!confirmed) return;
     }
 
     const normalizedItems = formData.items.map(it => {
       const calc = calculateRowPricing(it);
+      const itemMetrics = calculateItemOverageMetrics(it, existingData?.realizedSpots || 0, ramadanConfig);
       return {
         id: it.id,
         companyId: formData.companyId,
         productId: it.productId,
         materialId: it.materialId,
-        priority: Number(it.priority) || (it.isSponsor ? 1000 : 700),
+        priority: Number(it.priority) || (it.isSponsor || it.isRamadanSpecial ? 1000 : 700),
         startDate: it.startDate,
         endDate: it.endDate,
         pricingMode: it.pricingMode || 'spots_only',
@@ -640,15 +741,24 @@ const AdsReservationForm = ({ onClose, existingData = null, defaultSponsorMode =
         isSponsor: Boolean(it.isSponsor),
         sponsorProgramId: it.isSponsor ? it.sponsorProgramId || it.sponsorProgramTitle : null,
         sponsorProgramTitle: it.isSponsor ? it.sponsorProgramTitle : null,
-        sponsorPositions: it.isSponsor ? it.sponsorPositions || [] : []
+        sponsorPositions: it.isSponsor ? it.sponsorPositions || [] : [],
+        isRamadanSpecial: Boolean(it.isRamadanSpecial),
+        ramadanTarget: it.isRamadanSpecial ? (it.ramadanTarget || 'iftar') : null,
+        ramadanPositions: it.isRamadanSpecial ? (it.ramadanPositions || ['before', 'middle', 'after']) : [],
+        overageSpots: Math.abs(itemMetrics.spotNegativeBalance),
+        overageDays: Math.abs(itemMetrics.dayNegativeBalance),
+        overageBudget: Math.abs(itemMetrics.budgetNegativeBalance)
       };
     });
 
     const firstItem = normalizedItems[0];
     const sponsorItems = normalizedItems.filter(it => it.isSponsor && it.sponsorProgramTitle);
+    const ramadanItems = normalizedItems.filter(it => it.isRamadanSpecial);
     const hasAnySponsor = sponsorItems.length > 0;
+    const hasAnyRamadan = ramadanItems.length > 0;
     const uniqueSponsorPrograms = Array.from(new Set(sponsorItems.map(it => it.sponsorProgramTitle)));
     const allSponsorPositions = Array.from(new Set(sponsorItems.flatMap(it => it.sponsorPositions || [])));
+    const allRamadanPositions = Array.from(new Set(ramadanItems.flatMap(it => it.ramadanPositions || [])));
 
     const finalSponsorBumperMap = {};
     sponsorItems.forEach(it => {
@@ -664,7 +774,9 @@ const AdsReservationForm = ({ onClose, existingData = null, defaultSponsorMode =
     const payload = {
       name:
         formData.name ||
-        (hasAnySponsor
+        (hasAnyRamadan
+          ? `🌙 Ramazan Özel — ${companies.find(c => String(c.id) === String(formData.companyId))?.name || 'Firma'}`
+          : hasAnySponsor
           ? `${uniqueSponsorPrograms.join(' & ')} Sponsorluğu`
           : `${companies.find(c => String(c.id) === String(formData.companyId))?.name || 'Firma'} Rezervasyon Planı`),
       description: formData.description || '',
@@ -685,7 +797,14 @@ const AdsReservationForm = ({ onClose, existingData = null, defaultSponsorMode =
       sponsorProgramTitle: hasAnySponsor ? uniqueSponsorPrograms.join(' • ') : null,
       sponsorPositions: hasAnySponsor ? allSponsorPositions : [],
       sponsorBumperMap: hasAnySponsor ? finalSponsorBumperMap : {},
+      isRamadanSpecial: hasAnyRamadan,
+      ramadanTarget: hasAnyRamadan ? (ramadanItems[0].ramadanTarget || 'iftar') : null,
+      ramadanPositions: hasAnyRamadan ? allRamadanPositions : [],
+      spotPrice: firstItem.spotPrice || 0,
       toplamTutar: summaryStats.hasAnyPricing ? summaryStats.totalBudget : 0,
+      overageSpots: totalOverageSpots,
+      overageDays: totalOverageDays,
+      overageBudget: totalOverageBudget,
       durum: 'Onaylandı',
       realizedSpots: existingData?.realizedSpots || 0
     };
@@ -864,11 +983,14 @@ const AdsReservationForm = ({ onClose, existingData = null, defaultSponsorMode =
                     rowBumperHolders={
                       item.isSponsor ? getProgramBumperHoldersForRow(idx, item.sponsorProgramTitle) : {}
                     }
+                    ramadanConfig={ramadanConfig}
+                    detectedRamadanPrograms={detectedRamadanPrograms}
                     onItemChange={handleItemChange}
                     onToggleChannel={handleToggleItemChannel}
                     onToggleTimeBlock={handleToggleItemTimeBlock}
                     onSelectAllTimeBlocks={handleSelectAllItemTimeBlocks}
                     onToggleSponsorPosition={handleItemSponsorPositionToggle}
+                    onToggleRamadanPosition={handleItemRamadanPositionToggle}
                     onRemoveRow={removeProductPlanRow}
                     onPreviewMaterial={setPreviewMaterial}
                   />

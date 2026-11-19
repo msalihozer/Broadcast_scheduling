@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Edit2, Check, Clock } from 'lucide-react';
 import useBroadcastStore from '../store/broadcastStore';
 import { normalizeTimecode, timecodeToFrames, framesToTimecode } from '../utils/timecodeUtils';
+import { RAMADAN_BREAK_TAG_OPTIONS } from './AddAdBreakModal';
 
 const EditBroadcastProgramModal = ({ isOpen, onClose, program }) => {
   const {
@@ -21,6 +22,8 @@ const EditBroadcastProgramModal = ({ isOpen, onClose, program }) => {
   const [episodeNo, setEpisodeNo] = useState('');
   const [partNo, setPartNo] = useState('');
   const [note, setNote] = useState('');
+  const [ramadanProgramType, setRamadanProgramType] = useState('');
+  const [ramadanBreakTag, setRamadanBreakTag] = useState('');
 
   useEffect(() => {
     if (program && isOpen) {
@@ -29,10 +32,14 @@ const EditBroadcastProgramModal = ({ isOpen, onClose, program }) => {
       setEpisodeNo(program.episodeNo !== null && program.episodeNo !== undefined ? String(program.episodeNo) : '');
       setPartNo(program.partNo !== null && program.partNo !== undefined ? String(program.partNo) : '');
       setNote(program.note || '');
+      setRamadanProgramType(program.ramadanProgramType || '');
+      setRamadanBreakTag(program.ramadanBreakTag || '');
     }
   }, [program, isOpen]);
 
   if (!isOpen || !program) return null;
+
+  const isAdBreak = program.type === 'ad_break';
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -47,7 +54,9 @@ const EditBroadcastProgramModal = ({ isOpen, onClose, program }) => {
       durationSec: Math.floor(durFrames / 25),
       episodeNo: episodeNo !== '' ? parseInt(episodeNo, 10) : null,
       partNo: partNo !== '' ? parseInt(partNo, 10) : null,
-      note: note.trim()
+      note: note.trim(),
+      ramadanProgramType: isAdBreak ? '' : ramadanProgramType,
+      ramadanBreakTag: isAdBreak ? ramadanBreakTag : ''
     });
     onClose();
   };
@@ -199,7 +208,7 @@ const EditBroadcastProgramModal = ({ isOpen, onClose, program }) => {
             </div>
           </div>
 
-          <div style={{ marginBottom: '20px' }}>
+          <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)', marginBottom: '6px' }}>
               Not / Açıklama:
             </label>
@@ -220,6 +229,60 @@ const EditBroadcastProgramModal = ({ isOpen, onClose, program }) => {
                 boxSizing: 'border-box'
               }}
             />
+          </div>
+
+          {/* Ramazan Özel Program / Kuşak İşaretlemesi */}
+          <div style={{
+            marginBottom: '20px',
+            padding: '10px 12px',
+            borderRadius: '10px',
+            background: (ramadanProgramType || ramadanBreakTag) ? 'rgba(217, 119, 6, 0.12)' : 'var(--bg-primary)',
+            border: (ramadanProgramType || ramadanBreakTag) ? '1.5px solid #d97706' : '1px solid var(--border-color)'
+          }}>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', color: (ramadanProgramType || ramadanBreakTag) ? '#d97706' : 'var(--text-primary)', marginBottom: '6px' }}>
+              {isAdBreak ? '🌙 Ramazan Özel Reklam Kuşağı İşareti:' : '🌙 Ramazan Özel Program Türü (Sahur / İftar):'}
+            </label>
+            {isAdBreak ? (
+              <select
+                value={ramadanBreakTag}
+                onChange={(e) => setRamadanBreakTag(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 10px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-secondary)',
+                  color: 'var(--text-primary)',
+                  fontSize: '12.5px',
+                  fontWeight: '700',
+                  cursor: 'pointer'
+                }}
+              >
+                {RAMADAN_BREAK_TAG_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            ) : (
+              <select
+                value={ramadanProgramType}
+                onChange={(e) => setRamadanProgramType(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 10px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-secondary)',
+                  color: 'var(--text-primary)',
+                  fontSize: '12.5px',
+                  fontWeight: '700',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="">Normal Program (Ramazan Özel Değil)</option>
+                <option value="sahur">🌙 Ramazan Sahur Programı (Başlangıç Saati Referansı)</option>
+                <option value="iftar">🕌 Ramazan İftar Programı (Başlangıç Saati Referansı)</option>
+              </select>
+            )}
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>

@@ -91,6 +91,8 @@ export const createProgramCrudSlice = (set, get) => ({
       host: programData.host || '',
       topic: programData.topic || '',
       note: programData.note || '',
+      ramadanProgramType: programData.ramadanProgramType || '',
+      ramadanBreakTag: programData.ramadanBreakTag || '',
       isFromDraft: !!programData.isFromDraft || !!programData.draftId,
       addedAt: Date.now()
     };
@@ -171,6 +173,10 @@ export const createProgramCrudSlice = (set, get) => ({
       ? adBreakData.note
       : (defaultAdSettings.note ?? 'Ticari Reklam Bloğu');
 
+    const ramadanBreakTag = (adBreakData && typeof adBreakData === 'object' && adBreakData.ramadanBreakTag !== undefined)
+      ? adBreakData.ramadanBreakTag
+      : (defaultAdSettings.ramadanBreakTag || '');
+
     const newAd = {
       id: `ad_${Date.now()}`,
       instanceId: `inst_ad_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
@@ -183,6 +189,7 @@ export const createProgramCrudSlice = (set, get) => ({
       category: 'Reklam',
       categoryColor: '#f59e0b',
       note: adNote,
+      ramadanBreakTag: ramadanBreakTag,
       addedAt: Date.now()
     };
 

@@ -24,6 +24,16 @@ const OTHER_PRESETS = [
   { minutes: 15, label: '15 dk', tc: '00.15.00.00' }
 ];
 
+export const RAMADAN_BREAK_TAG_OPTIONS = [
+  { value: '', label: 'Standart Reklam Kuşağı (Ramazan Özel Değil)', badge: '', color: '#f59e0b' },
+  { value: 'sahur_before', label: '🌙 Ramazan Sahur Öncesi Kuşağı', badge: '🌙 SAHUR ÖNCESİ', color: '#0ea5e9' },
+  { value: 'sahur_middle', label: '🌙 Ramazan Sahur Arası Kuşağı', badge: '🌙 SAHUR ARASI', color: '#0284c7' },
+  { value: 'sahur_after', label: '🌙 Ramazan Sahur Sonrası Kuşağı', badge: '🌙 SAHUR SONRASI', color: '#0369a1' },
+  { value: 'iftar_before', label: '🕌 Ramazan İftar Öncesi Kuşağı', badge: '🕌 İFTAR ÖNCESİ', color: '#d97706' },
+  { value: 'iftar_middle', label: '🕌 Ramazan İftar Arası Kuşağı', badge: '🕌 İFTAR ARASI', color: '#b45309' },
+  { value: 'iftar_after', label: '🕌 Ramazan İftar Sonrası Kuşağı', badge: '🕌 İFTAR SONRASI', color: '#92400e' }
+];
+
 export default function AddAdBreakModal({ isOpen, onClose }) {
   const {
     selectedChannel,
@@ -38,6 +48,7 @@ export default function AddAdBreakModal({ isOpen, onClose }) {
   const [manualMinutes, setManualMinutes] = useState(adBreakDefaultSettings?.durationMinutes ?? 5);
   const [manualSeconds, setManualSeconds] = useState(adBreakDefaultSettings?.durationSeconds ?? 0);
   const [note, setNote] = useState(adBreakDefaultSettings?.note ?? 'Ticari Reklam Bloğu');
+  const [ramadanBreakTag, setRamadanBreakTag] = useState(adBreakDefaultSettings?.ramadanBreakTag ?? '');
 
   useEffect(() => {
     if (isOpen && adBreakDefaultSettings) {
@@ -45,6 +56,7 @@ export default function AddAdBreakModal({ isOpen, onClose }) {
       setManualMinutes(adBreakDefaultSettings.durationMinutes ?? 5);
       setManualSeconds(adBreakDefaultSettings.durationSeconds ?? 0);
       setNote(adBreakDefaultSettings.note ?? 'Ticari Reklam Bloğu');
+      setRamadanBreakTag(adBreakDefaultSettings.ramadanBreakTag ?? '');
     }
   }, [isOpen, adBreakDefaultSettings]);
 
@@ -74,7 +86,8 @@ export default function AddAdBreakModal({ isOpen, onClose }) {
       durationMinutes: manualMinutes,
       durationSeconds: manualSeconds,
       durationTc: cleanTc,
-      note: note.trim() || 'Ticari Reklam Bloğu'
+      note: note.trim() || 'Ticari Reklam Bloğu',
+      ramadanBreakTag: ramadanBreakTag || ''
     });
     return cleanTc;
   };
@@ -91,7 +104,8 @@ export default function AddAdBreakModal({ isOpen, onClose }) {
     const cleanTc = saveSettingsToStore();
     addAdBreak(selectedChannel, selectedDate, activeList, {
       durationTc: cleanTc,
-      note: note.trim() || 'Ticari Reklam Bloğu'
+      note: note.trim() || 'Ticari Reklam Bloğu',
+      ramadanBreakTag: ramadanBreakTag || ''
     });
     onClose();
   };
@@ -407,6 +421,41 @@ export default function AddAdBreakModal({ isOpen, onClose }) {
                 boxSizing: 'border-box'
               }}
             />
+          </div>
+
+          {/* 3. Ramazan Özel Reklam Kuşağı İşareti */}
+          <div style={{
+            padding: '10px 12px',
+            borderRadius: '10px',
+            background: ramadanBreakTag ? 'rgba(217, 119, 6, 0.12)' : 'var(--bg-primary)',
+            border: ramadanBreakTag ? '1.5px solid #d97706' : '1px solid var(--border-color)'
+          }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', fontWeight: '800', color: ramadanBreakTag ? '#d97706' : 'var(--text-primary)', marginBottom: '6px' }}>
+              <span>🌙 Ramazan Özel Kuşak İşaretlemesi (Opsiyonel):</span>
+            </label>
+            <select
+              value={ramadanBreakTag}
+              onChange={e => setRamadanBreakTag(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '9px 10px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)',
+                background: 'var(--bg-secondary)',
+                color: 'var(--text-primary)',
+                fontSize: '12.5px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                outline: 'none'
+              }}
+            >
+              {RAMADAN_BREAK_TAG_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+            <div style={{ fontSize: '10.5px', color: 'var(--text-secondary)', marginTop: '5px', lineHeight: 1.35 }}>
+              Kuşağı eklerken veya eklendikten sonra doğrudan listeden <strong>Sahur / İftar (Öncesi, Arası, Sonrası)</strong> olarak işaretleyebilirsiniz.
+            </div>
           </div>
 
           {/* Aksiyon Butonları */}

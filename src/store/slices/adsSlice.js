@@ -55,6 +55,24 @@ export {
 
 const initialBackup = loadAdsReservationsBackup();
 
+const loadSavedRamadanConfig = () => {
+  try {
+    const raw = localStorage.getItem('yayin_ramadan_config_v1');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') return parsed;
+    }
+  } catch (e) {
+    // ignore
+  }
+  return {
+    enabled: true,
+    startDate: '2026-02-18',
+    endDate: '2026-03-19',
+    allowStandardAdsInRamadanBreaks: true
+  };
+};
+
 export const createAdsSlice = (set, get) => ({
   adsCatalogVersion: ADS_CATALOG_VERSION,
   companies: initialSyncedCatalog.companies,
@@ -62,6 +80,17 @@ export const createAdsSlice = (set, get) => ({
   materials: initialSyncedCatalog.materials,
   reservations: Array.isArray(initialBackup.reservations) ? initialBackup.reservations : [],
   timeBlocks: DEFAULT_TIME_BLOCKS,
+  ramadanConfig: loadSavedRamadanConfig(),
+
+  setRamadanConfig: (updates) => set(state => {
+    const nextConfig = { ...(state.ramadanConfig || {}), ...updates };
+    try {
+      localStorage.setItem('yayin_ramadan_config_v1', JSON.stringify(nextConfig));
+    } catch (e) {
+      // ignore
+    }
+    return { ramadanConfig: nextConfig };
+  }),
 
   adsSyncInfo: {
     lastSyncedAt: new Date().toISOString(),
@@ -771,6 +800,69 @@ export const createAdsSlice = (set, get) => ({
     saveAdsReservationsBackup(state.reservations, nextAdPlacements);
 
     return {
+      adPlacements: nextAdPlacements
+    };
+  }),
+
+  /**
+   * Reklam Planlama ekranından veya yayın akışından belirli bir reklam kuşağını
+   * Ramazan Özel (Sahur / İftar Öncesi, Arası, Sonrası) olarak işaretler veya işaretini kaldırır.
+   */
+  setBreakRamadanTag: (channelId, date, blockTimeOrId, ramadanBreakTag) => set(state => {
+    const key = `ready-${channelId}-${date}`;
+    const existingBlocks = (state.adPlacements[key] || []).map(b => {
+      if (b.blockId === blockTimeOrId || b.time === blockTimeOrId) {
+        return { ...b, ramadanBreakTag: ramadanBreakTag || '' };
+      }
+      return b;
+    });
+
+    // Ayrıca days[readyKey] içindeki ad_break program satırını da güncelle
+    const dayObj = state.days?.[key];
+    let nextDays = state.days;
+    if (dayObj && dayObj.variants) {
+      const activeVar = dayObj.activeVariant || 'v1';
+      const currentProgs = dayObj.variants[activeVar]?.programs || [];
+      let adCounter = 0;
+      const updatedProgs = currentProgs.map(p => {
+        const isAd = p.type === 'ad_break' || (p.title && p.title.toLowerCase().includes('reklam'));
+        if (isAd) {
+          adCounter++;
+          const blockIdCandidate = p.instanceId || p.id || `adbreak-${adCounter}`;
+          if (
+            blockIdCandidate === blockTimeOrId ||
+            p.instanceId === blockTimeOrId ||
+            p.id === blockTimeOrId ||
+            p.title === blockTimeOrId
+          ) {
+            return { ...p, ramadanBreakTag: ramadanBreakTag || '' };
+          }
+        }
+        return p;
+      });
+      nextDays = {
+        ...state.days,
+        [key]: {
+          ...dayObj,
+          variants: {
+            ...dayObj.variants,
+            [activeVar]: {
+              ...(dayObj.variants[activeVar] || {}),
+              programs: updatedProgs
+            }
+          }
+        }
+      };
+    }
+
+    const nextAdPlacements = {
+      ...state.adPlacements,
+      [key]: existingBlocks
+    };
+    saveAdsReservationsBackup(state.reservations, nextAdPlacements);
+
+    return {
+      days: nextDays,
       adPlacements: nextAdPlacements
     };
   })

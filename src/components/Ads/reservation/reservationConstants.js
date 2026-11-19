@@ -114,6 +114,49 @@ export const SPONSOR_POSITIONS = [
   ...SPONSOR_BUMPER_ROLES
 ];
 
+/**
+ * Ramazan Özel Rezervasyon & Sponsorluk Hedef Program Seçenekleri
+ */
+export const RAMADAN_TARGET_OPTIONS = [
+  {
+    id: 'sahur',
+    label: '🌙 Ramazan Sahur Programı',
+    shortLabel: '🌙 Sahur Programı',
+    desc: 'Sahur programının başlangıç saatine göre Öncesi, Arası ve Sonrası reklam kuşakları',
+    color: '#0284c7',
+    bg: 'rgba(2, 132, 199, 0.14)'
+  },
+  {
+    id: 'iftar',
+    label: '🕌 Ramazan İftar Programı',
+    shortLabel: '🕌 İftar Programı',
+    desc: 'İftar programının başlangıç saatine göre Öncesi, Arası ve Sonrası reklam kuşakları',
+    color: '#d97706',
+    bg: 'rgba(217, 119, 6, 0.14)'
+  },
+  {
+    id: 'both',
+    label: '🌙+🕌 Hem Sahur Hem İftar Programları',
+    shortLabel: '🌙+🕌 Sahur & İftar',
+    desc: 'Günün hem Sahur hem de İftar programı kuşaklarında yayınlanır',
+    color: '#059669',
+    bg: 'rgba(5, 150, 105, 0.14)'
+  }
+];
+
+/**
+ * Reklam Kuşakları için Ramazan Özel İşaretleme Etiketleri
+ */
+export const RAMADAN_BREAK_TAGS = [
+  { value: '', label: 'Standart Kuşak', shortLabel: 'Standart', color: '#64748b' },
+  { value: 'sahur_before', label: '🌙 Ramazan Sahur Öncesi Kuşağı', shortLabel: '🌙 Sahur Öncesi', target: 'sahur', pos: 'before', color: '#0284c7' },
+  { value: 'sahur_middle', label: '🌙 Ramazan Sahur Arası Kuşağı', shortLabel: '🌙 Sahur Arası', target: 'sahur', pos: 'middle', color: '#0369a1' },
+  { value: 'sahur_after', label: '🌙 Ramazan Sahur Sonrası Kuşağı', shortLabel: '🌙 Sahur Sonrası', target: 'sahur', pos: 'after', color: '#075985' },
+  { value: 'iftar_before', label: '🕌 Ramazan İftar Öncesi Kuşağı', shortLabel: '🕌 İftar Öncesi', target: 'iftar', pos: 'before', color: '#d97706' },
+  { value: 'iftar_middle', label: '🕌 Ramazan İftar Arası Kuşağı', shortLabel: '🕌 İftar Arası', target: 'iftar', pos: 'middle', color: '#b45309' },
+  { value: 'iftar_after', label: '🕌 Ramazan İftar Sonrası Kuşağı', shortLabel: '🕌 İftar Sonrası', target: 'iftar', pos: 'after', color: '#92400e' }
+];
+
 export const FALLBACK_BROADCAST_PROGRAMS = [
   { id: 'prog-1', title: 'İlim Dersleri- Tecvid', categoryId: 4, categoryName: 'Dini', totalClips: 190, totalEpisodes: 131 },
   { id: 'prog-2', title: 'Çerçeve', categoryId: 8, categoryName: 'Kültürel', totalClips: 84, totalEpisodes: 42 },
@@ -239,6 +282,13 @@ export const createEmptyProductPlan = (companyId = '', defaults = {}) => ({
     Array.isArray(defaults.sponsorPositions) && defaults.sponsorPositions.length > 0
       ? [...defaults.sponsorPositions]
       : ['before', 'after'],
+  isRamadanSpecial: Boolean(defaults.isRamadanSpecial),
+  ramadanTarget: defaults.ramadanTarget || 'iftar', // 'sahur' | 'iftar' | 'both'
+  ramadanPositions:
+    Array.isArray(defaults.ramadanPositions) && defaults.ramadanPositions.length > 0
+      ? [...defaults.ramadanPositions]
+      : ['before', 'middle', 'after'],
+  allowQuotaOverflow: Boolean(defaults.allowQuotaOverflow),
   programSearch: ''
 });
 
@@ -273,5 +323,90 @@ export const calculateRowPricing = (item) => {
     effectiveSpots: rawSpots,
     effectiveSpotPrice: 0,
     effectiveTotalBudget: 0
+  };
+};
+
+/**
+ * İki ISO tarih (`YYYY-MM-DD`) arasındaki toplam gün sayısını (dahil) hesaplar.
+ */
+export const calculateInclusiveDays = (startDate, endDate) => {
+  if (!startDate || !endDate) return 1;
+  const s = new Date(`${startDate}T00:00:00`);
+  const e = new Date(`${endDate}T00:00:00`);
+  if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) return 1;
+  const diff = Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  return Math.max(1, diff);
+};
+
+/**
+ * Bir rezervasyon veya klip satırı için Spot, Gün Süresi ve Fiyat/Bütçe aşım (`-` eksi fark) bilgilerini hesaplar.
+ * Aşım olduğunda negatif (`-`) değerlerle ne kadar eksiye / aşıma gidildiğini döndürür.
+ */
+export const calculateItemOverageMetrics = (item, realizedSpotsInput = null, ramadanConfig = null) => {
+  const pricing = calculateRowPricing(item);
+  const plannedSpots = Math.max(0, Number(pricing.effectiveSpots ?? item.plannedSpots ?? item.totalPlannedSpots) || 0);
+  const realizedSpots = realizedSpotsInput !== null && realizedSpotsInput !== undefined
+    ? Math.max(0, Number(realizedSpotsInput) || 0)
+    : Math.max(0, Number(item.realizedSpots) || 0);
+
+  const dailyMin = Math.max(0, Number(item.dailyMinSpots) || 0);
+  const dailyMax = Math.max(1, Number(item.dailyMaxSpots) || 4);
+  const totalDays = calculateInclusiveDays(item.startDate, item.endDate);
+  const minRequiredSpotsForDays = dailyMin * totalDays;
+
+  // 1. Spot Sayısı Farkı (Eksi değer = Aşım)
+  // Hem gerçekleşen spot > planlanan spot, hem de (gün × günlük min spot) > planlanan spot kontrolü
+  const realizedOverPlanned = Math.max(0, realizedSpots - plannedSpots);
+  const minRequiredOverPlanned = Math.max(0, minRequiredSpotsForDays - plannedSpots);
+  const spotOverageCount = Math.max(realizedOverPlanned, Number(item.overageSpots) || 0);
+  const spotNegativeBalance = spotOverageCount > 0 ? -spotOverageCount : (minRequiredOverPlanned > 0 ? -minRequiredOverPlanned : 0);
+
+  // 2. Gün Süresi Farkı (Eksi değer = Gün Aşımı)
+  // a) Günlük maks spot ile bile ya da planlanan spotun yettiği gün sayısından fazla gün seçilmişse
+  // b) Veya Ramazan Özel seçilmiş ve tarih aralığı Ramazan ayı dışına taşmışsa
+  let outOfRamadanDays = 0;
+  if (item.isRamadanSpecial && ramadanConfig?.startDate && ramadanConfig?.endDate && item.startDate && item.endDate) {
+    const rStart = new Date(`${ramadanConfig.startDate}T00:00:00`);
+    const rEnd = new Date(`${ramadanConfig.endDate}T00:00:00`);
+    const iStart = new Date(`${item.startDate}T00:00:00`);
+    const iEnd = new Date(`${item.endDate}T00:00:00`);
+    if (!Number.isNaN(rStart.getTime()) && !Number.isNaN(rEnd.getTime())) {
+      if (iStart < rStart) {
+        outOfRamadanDays += Math.max(0, Math.round((rStart - iStart) / (1000 * 60 * 60 * 24)));
+      }
+      if (iEnd > rEnd) {
+        outOfRamadanDays += Math.max(0, Math.round((iEnd - rEnd) / (1000 * 60 * 60 * 24)));
+      }
+    }
+  }
+  const maxSupportedDaysByMin = dailyMin > 0 && plannedSpots > 0 ? Math.floor(plannedSpots / dailyMin) : totalDays;
+  const daysExceedingQuota = dailyMin > 0 && totalDays > maxSupportedDaysByMin ? (totalDays - maxSupportedDaysByMin) : 0;
+  const dayOverageCount = Math.max(outOfRamadanDays, daysExceedingQuota, Number(item.overageDays) || 0);
+  const dayNegativeBalance = dayOverageCount > 0 ? -dayOverageCount : 0;
+
+  // 3. Fiyat / Bütçe Farkı (Eksi değer = Bütçe Aşımı)
+  const spotPrice = Math.max(0, Number(pricing.effectiveSpotPrice ?? item.spotPrice) || 0);
+  const plannedBudget = Math.max(0, Number(pricing.effectiveTotalBudget ?? item.totalBudget) || 0);
+  const effectiveSpotCountForCost = Math.max(realizedSpots, plannedSpots + minRequiredOverPlanned);
+  const actualCost = spotPrice > 0 ? Math.round(effectiveSpotCountForCost * spotPrice * 100) / 100 : 0;
+  const rawBudgetOverage = (spotPrice > 0 && plannedBudget > 0 && actualCost > plannedBudget)
+    ? Math.round((actualCost - plannedBudget) * 100) / 100
+    : (spotPrice > 0 && spotOverageCount > 0 ? Math.round(spotOverageCount * spotPrice * 100) / 100 : 0);
+  const budgetOverageAmount = Math.max(rawBudgetOverage, Number(item.overageBudget) || 0);
+  const budgetNegativeBalance = budgetOverageAmount > 0 ? -budgetOverageAmount : 0;
+
+  const hasAnyOverage = spotNegativeBalance < 0 || dayNegativeBalance < 0 || budgetNegativeBalance < 0;
+
+  return {
+    totalDays,
+    plannedSpots,
+    realizedSpots,
+    minRequiredSpotsForDays,
+    spotNegativeBalance,     // Ör: -6 (6 Spot Aşım)
+    dayNegativeBalance,      // Ör: -3 (3 Gün Aşım)
+    budgetNegativeBalance,   // Ör: -1500 (1.500 ₺ Bütçe Aşımı)
+    outOfRamadanDays,
+    daysExceedingQuota,
+    hasAnyOverage
   };
 };

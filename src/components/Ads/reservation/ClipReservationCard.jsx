@@ -27,11 +27,13 @@ import {
 import {
   SPONSOR_FLOW_POSITIONS,
   SPONSOR_BUMPER_ROLES,
+  RAMADAN_TARGET_OPTIONS,
   PRIORITY_OPTIONS,
   PRICING_MODES,
   getFullMaterialDisplayName,
   getBlockTheme,
-  calculateRowPricing
+  calculateRowPricing,
+  calculateItemOverageMetrics
 } from './reservationConstants';
 
 const ClipReservationCard = ({
@@ -45,11 +47,14 @@ const ClipReservationCard = ({
   activeTimeBlocks = [],
   usedPrograms = [],
   rowBumperHolders = {},
+  ramadanConfig = null,
+  detectedRamadanPrograms = {},
   onItemChange,
   onToggleChannel,
   onToggleTimeBlock,
   onSelectAllTimeBlocks,
   onToggleSponsorPosition,
+  onToggleRamadanPosition,
   onRemoveRow,
   onPreviewMaterial
 }) => {
@@ -58,6 +63,7 @@ const ClipReservationCard = ({
     : materials.filter(m => String(m.companyId) === String(selectedCompanyObj?.id || item.companyId));
   const selectedMatObj = materials.find(m => String(m.id) === String(item.materialId));
   const rowCalc = calculateRowPricing(item);
+  const overageMetrics = calculateItemOverageMetrics(item, null, ramadanConfig);
   const mode = item.pricingMode || 'spots_only';
   const rowProgramSearch = String(item.programSearch || '').trim().toLocaleLowerCase('tr-TR');
   const rowFilteredPrograms = rowProgramSearch
@@ -129,9 +135,45 @@ const ClipReservationCard = ({
               {item.sponsorProgramTitle ? `${item.sponsorProgramTitle} Sponsoru` : 'Program Sponsorluğu Aktif'}
             </span>
           )}
+          {item.isRamadanSpecial && (
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: '900',
+                padding: '3px 10px',
+                borderRadius: '999px',
+                background: 'linear-gradient(135deg, #d97706, #b45309)',
+                color: '#fff',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              🌙 RAMAZAN ÖZEL ({item.ramadanTarget === 'sahur' ? 'SAHUR' : item.ramadanTarget === 'both' ? 'SAHUR & İFTAR' : 'İFTAR'})
+            </span>
+          )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          {overageMetrics.hasAnyOverage && (
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: '900',
+                padding: '3px 10px',
+                borderRadius: '999px',
+                background: 'rgba(220, 38, 38, 0.14)',
+                color: '#dc2626',
+                border: '1px solid rgba(220, 38, 38, 0.35)'
+              }}
+              title="Spot sayısı, gün süresi veya bütçe aşımı (- eksi fark)"
+            >
+              ⚠️ AŞIM:
+              {overageMetrics.spotNegativeBalance < 0 ? ` ${overageMetrics.spotNegativeBalance} Spot` : ''}
+              {overageMetrics.dayNegativeBalance < 0 ? ` • ${overageMetrics.dayNegativeBalance} Gün` : ''}
+              {overageMetrics.budgetNegativeBalance < 0 ? ` • ${overageMetrics.budgetNegativeBalance.toLocaleString('tr-TR')} ₺` : ''}
+            </span>
+          )}
           <span
             style={{
               fontSize: '11.5px',
@@ -547,6 +589,47 @@ const ClipReservationCard = ({
           </div>
         )}
       </div>
+
+      {/* Spot / Gün Süresi / Fiyat Aşımı (- Eksi Fark) Canlı Uyarı Banner'ı */}
+      {overageMetrics.hasAnyOverage && (
+        <div
+          style={{
+            padding: '10px 14px',
+            borderRadius: '10px',
+            background: 'rgba(220, 38, 38, 0.08)',
+            border: '1.5px solid rgba(220, 38, 38, 0.35)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '8px'
+          }}
+        >
+          <div style={{ fontSize: '11.5px', fontWeight: '700', color: '#dc2626', lineHeight: 1.4 }}>
+            <strong>⚠️ Kota / Süre / Fiyat Aşımı Tespit Edildi:</strong>{' '}
+            {overageMetrics.spotNegativeBalance < 0 && (
+              <span>
+                Seçilen {overageMetrics.totalDays} gün × günlük min {item.dailyMinSpots} spot = <strong>{overageMetrics.minRequiredSpotsForDays} spot</strong> gerekiyor (Planlanan: {overageMetrics.plannedSpots} spot → <strong style={{ textDecoration: 'underline' }}>{overageMetrics.spotNegativeBalance} Spot Fark</strong>).{' '}
+              </span>
+            )}
+            {overageMetrics.dayNegativeBalance < 0 && (
+              <span>
+                {overageMetrics.outOfRamadanDays > 0
+                  ? `Ramazan tarih aralığı dışına taşan gün: ${overageMetrics.dayNegativeBalance} Gün. `
+                  : `Kota süresini aşan gün farkı: ${overageMetrics.dayNegativeBalance} Gün. `}
+              </span>
+            )}
+            {overageMetrics.budgetNegativeBalance < 0 && (
+              <span>
+                Bütçe farkı: <strong>{overageMetrics.budgetNegativeBalance.toLocaleString('tr-TR')} ₺</strong>.
+              </span>
+            )}
+            <span style={{ color: 'var(--ads-text-sub)' }}>
+              Kaydet butonuna bastığınızda <strong>"Devam Et"</strong> diyerek bu eksi (`-`) fark bilgisiyle kaydedebilirsiniz.
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* 3. SATIR: BU ÜRÜN / KLİP İÇİN KANAL SEÇİMİ VE YAYIN KUŞAĞI SEÇİMİ */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.85fr', gap: '14px', paddingTop: '4px' }}>
@@ -1049,6 +1132,209 @@ const ClipReservationCard = ({
                             : `⚠️ Şu an ${holder.companyName} (${holder.materialName}) üzerinde tanımlı. Seçip kaydederseniz bu kliple değiştirilir.`}
                         </div>
                       )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 5. SATIR: 🌙 RAMAZAN ÖZEL (SAHUR & İFTAR PROGRAM BAŞLANGIÇ SAATİ VE KUŞAK PLANLAMASI) */}
+      <div
+        style={{
+          padding: '14px 16px',
+          borderRadius: '12px',
+          border: item.isRamadanSpecial ? '2px solid #d97706' : '1px solid var(--ads-border)',
+          background: item.isRamadanSpecial ? 'rgba(217, 119, 6, 0.06)' : 'var(--ads-card-bg)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div
+              style={{
+                width: '34px',
+                height: '34px',
+                borderRadius: '9px',
+                background: 'rgba(217, 119, 6, 0.16)',
+                color: '#d97706',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '17px'
+              }}
+            >
+              🌙
+            </div>
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--ads-text-main)' }}>
+                🌙 Ramazan Özel Rezervasyon &amp; Sahur / İftar Sponsorluğu
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--ads-text-muted)' }}>
+                Sadece Ramazan ayı tarih aralığında değerlendirilir; yayın listesindeki <strong>Sahur ve İftar programlarının başlangıç saatine</strong> ve işaretlenen Ramazan kuşaklarına göre yerleşir.
+              </div>
+            </div>
+          </div>
+
+          <label
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '6px 14px',
+              borderRadius: '999px',
+              background: item.isRamadanSpecial ? 'linear-gradient(135deg, #d97706, #b45309)' : 'var(--ads-pill-bar-bg)',
+              color: item.isRamadanSpecial ? '#ffffff' : 'var(--ads-text-sub)',
+              fontWeight: '800',
+              fontSize: '11.5px',
+              cursor: 'pointer',
+              transition: 'all 0.18s ease'
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={Boolean(item.isRamadanSpecial)}
+              onChange={e => {
+                const checked = e.target.checked;
+                onItemChange(index, 'isRamadanSpecial', checked);
+                if (checked && ramadanConfig?.startDate && ramadanConfig?.endDate) {
+                  onItemChange(index, 'startDate', ramadanConfig.startDate);
+                  onItemChange(index, 'endDate', ramadanConfig.endDate);
+                }
+              }}
+              style={{ accentColor: '#fff', cursor: 'pointer' }}
+            />
+            <span>{item.isRamadanSpecial ? '🌙 Ramazan Özel Aktif' : '🌙 Ramazan Özel Olarak İşaretle'}</span>
+          </label>
+        </div>
+
+        {item.isRamadanSpecial && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingTop: '4px' }}>
+            {/* Yayın Akışından Çekilen Sahur & İftar Program Başlangıç Saatleri Özeti */}
+            <div
+              style={{
+                padding: '10px 13px',
+                borderRadius: '10px',
+                background: 'var(--ads-card-subtle)',
+                border: '1px solid rgba(217, 119, 6, 0.35)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '10px'
+              }}
+            >
+              <div style={{ fontSize: '11.5px', color: 'var(--ads-text-main)', fontWeight: '700' }}>
+                📅 Ramazan Ayı Vakit Aralığı:{' '}
+                <strong style={{ color: '#d97706' }}>
+                  {ramadanConfig?.startDate || '2026-02-18'} — {ramadanConfig?.endDate || '2026-03-19'}
+                </strong>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', fontSize: '11.5px' }}>
+                <span style={{ padding: '3px 9px', borderRadius: '6px', background: 'rgba(2, 132, 199, 0.12)', color: '#0284c7', fontWeight: '800' }}>
+                  🌙 Sahur Programı Başlangıç: {detectedRamadanPrograms?.sahurStartTime || 'Akıştan Otomatik Çekilir (Ör: 03:30)'}
+                </span>
+                <span style={{ padding: '3px 9px', borderRadius: '6px', background: 'rgba(217, 119, 6, 0.14)', color: '#d97706', fontWeight: '800' }}>
+                  🕌 İftar Programı Başlangıç: {detectedRamadanPrograms?.iftarStartTime || 'Akıştan Otomatik Çekilir (Ör: 18:30)'}
+                </span>
+              </div>
+            </div>
+
+            {/* Hedef Ramazan Programı Seçimi: Sahur / İftar / Her İkisi */}
+            <div>
+              <label style={{ display: 'block', fontSize: '11.5px', fontWeight: '800', color: 'var(--ads-text-main)', marginBottom: '6px' }}>
+                1. Hedef Ramazan Programı (Program Başlangıç Saatine ve İşaretli Kuşağa Göre):
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                {RAMADAN_TARGET_OPTIONS.map(tOpt => {
+                  const isSelected = (item.ramadanTarget || 'iftar') === tOpt.id;
+                  return (
+                    <div
+                      key={tOpt.id}
+                      onClick={() => onItemChange(index, 'ramadanTarget', tOpt.id)}
+                      style={{
+                        padding: '10px 12px',
+                        borderRadius: '10px',
+                        border: `1.5px solid ${isSelected ? tOpt.color : 'var(--ads-border)'}`,
+                        background: isSelected ? tOpt.bg : 'var(--ads-card-bg)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '3px'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '12px', fontWeight: '800', color: isSelected ? tOpt.color : 'var(--ads-text-main)' }}>
+                          {tOpt.label}
+                        </span>
+                        {isSelected && <Check size={14} color={tOpt.color} />}
+                      </div>
+                      <div style={{ fontSize: '10.5px', color: 'var(--ads-text-muted)' }}>{tOpt.desc}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Sahur / İftar Kuşak Konumu Seçimi (Öncesi, Arası, Sonrası + Sunar, Devam Edecek, Devam Ediyor, Sundu) */}
+            <div>
+              <label style={{ display: 'block', fontSize: '11.5px', fontWeight: '800', color: 'var(--ads-text-main)', marginBottom: '6px' }}>
+                2. Sahur / İftar Kuşak Konumu ve Ramazan Sponsorluk Rolü Seçimi:
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '8px' }}>
+                {SPONSOR_FLOW_POSITIONS.map(pos => {
+                  const isChecked = (item.ramadanPositions || ['before', 'middle', 'after']).includes(pos.id);
+                  return (
+                    <div
+                      key={pos.id}
+                      onClick={() => onToggleRamadanPosition && onToggleRamadanPosition(index, pos.id)}
+                      style={{
+                        padding: '9px 11px',
+                        borderRadius: '9px',
+                        border: `1.5px solid ${isChecked ? pos.color : 'var(--ads-border)'}`,
+                        background: isChecked ? pos.bg : 'var(--ads-card-bg)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between'
+                      }}
+                    >
+                      <span style={{ fontSize: '11.5px', fontWeight: '800', color: isChecked ? pos.color : 'var(--ads-text-main)' }}>
+                        Sahur/İftar {pos.shortLabel.replace('Program ', '')}
+                      </span>
+                      <input type="checkbox" checked={isChecked} readOnly style={{ accentColor: pos.color }} />
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+                {SPONSOR_BUMPER_ROLES.map(role => {
+                  const isChecked = (item.ramadanPositions || []).includes(role.id);
+                  return (
+                    <div
+                      key={role.id}
+                      onClick={() => onToggleRamadanPosition && onToggleRamadanPosition(index, role.id)}
+                      style={{
+                        padding: '8px 10px',
+                        borderRadius: '9px',
+                        border: `1.5px solid ${isChecked ? role.color : 'var(--ads-border)'}`,
+                        background: isChecked ? role.bg : 'var(--ads-card-bg)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '6px'
+                      }}
+                    >
+                      <span style={{ fontSize: '11px', fontWeight: '800', color: isChecked ? role.color : 'var(--ads-text-main)' }}>
+                        {role.shortLabel.replace('Program ', 'Ramazan ')}
+                      </span>
+                      <input type="checkbox" checked={isChecked} readOnly style={{ accentColor: role.color }} />
                     </div>
                   );
                 })}

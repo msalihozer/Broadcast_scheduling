@@ -893,6 +893,9 @@ export default function BroadcastRundownTable({
                       onOpenFillerModal={(fillerRow) => openFillerInSidebar(fillerRow)}
                       onInspectClip={handleInspectClip}
                       onUnpinProgram={handleUnpinProgram}
+                      onUpdateRamadanMeta={(instanceId, metaUpdates) => {
+                        updateProgram(selectedChannel, selectedDate, activeList, instanceId, metaUpdates);
+                      }}
                     />
                   );
                 })}

@@ -71,7 +71,8 @@ const BroadcastRundownRow = memo(function BroadcastRundownRow({
   onRemoveProgram,
   onOpenFillerModal,
   onInspectClip,
-  onUnpinProgram
+  onUnpinProgram,
+  onUpdateRamadanMeta
 }) {
   const isAd = item.type === 'ad_break';
   const isFiller = isFillerRundownItem(item);
@@ -85,6 +86,11 @@ const BroadcastRundownRow = memo(function BroadcastRundownRow({
     /^semerkand_intro/i.test(String(item.clipName || item.title || item.name || ''))
   );
   const isClip = !isFiller && !isLive && !isNotFound && (item.type === 'clip' || Boolean(item.fileId));
+
+  const effectiveRamadanProgType = !isAd && !isFiller && !isIntroClip
+    ? (item.ramadanProgramType || (/sahur/i.test(item.title || item.name || '') ? 'sahur' : /iftar/i.test(item.title || item.name || '') ? 'iftar' : ''))
+    : '';
+  const effectiveRamadanBreakTag = isAd ? (item.ramadanBreakTag || '') : '';
 
   const themeConfig = useThemeStore(state => state.config);
   const sp = themeConfig?.specialColors || {};
@@ -577,6 +583,78 @@ const BroadcastRundownRow = memo(function BroadcastRundownRow({
               }}>
                 ● CANLI YAYIN
               </span>
+            )}
+
+            {/* Ramazan Sahur / İftar Program Rozeti ve Hızlı Seçici */}
+            {!isAd && !isFiller && !isIntroClip && (effectiveRamadanProgType || isLive) && (
+              <select
+                value={effectiveRamadanProgType}
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  if (onUpdateRamadanMeta) {
+                    onUpdateRamadanMeta(item.instanceId, { ramadanProgramType: e.target.value });
+                  }
+                }}
+                title="Bu programın Ramazan Sahur veya İftar programı olduğunu belirleyin (Program başlangıç saati reklam algoritmasına referans olur)"
+                style={{
+                  fontSize: '10.5px',
+                  fontWeight: '900',
+                  padding: '2px 7px',
+                  borderRadius: '5px',
+                  cursor: 'pointer',
+                  outline: 'none',
+                  background: effectiveRamadanProgType === 'sahur'
+                    ? 'linear-gradient(135deg, #0284c7, #0369a1)'
+                    : effectiveRamadanProgType === 'iftar'
+                    ? 'linear-gradient(135deg, #d97706, #b45309)'
+                    : 'var(--bg-secondary)',
+                  color: effectiveRamadanProgType ? '#ffffff' : 'var(--text-secondary)',
+                  border: effectiveRamadanProgType ? '1px solid rgba(255,255,255,0.28)' : '1px dashed var(--border-color)'
+                }}
+              >
+                <option value="" style={{ background: '#1e293b', color: '#f8fafc' }}>🌙 Ramazan İşareti Yok</option>
+                <option value="sahur" style={{ background: '#1e293b', color: '#38bdf8' }}>🌙 SAHUR PROGRAMI (Başlangıç: {startInfo.hhmm})</option>
+                <option value="iftar" style={{ background: '#1e293b', color: '#fbbf24' }}>🕌 İFTAR PROGRAMI (Başlangıç: {startInfo.hhmm})</option>
+              </select>
+            )}
+
+            {/* Reklam Kuşağı Üzerinde Doğrudan Ramazan Özel İşaretleme Seçicisi */}
+            {isAd && (
+              <select
+                value={effectiveRamadanBreakTag}
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  if (onUpdateRamadanMeta) {
+                    onUpdateRamadanMeta(item.instanceId, { ramadanBreakTag: e.target.value });
+                  }
+                }}
+                title="Bu reklam kuşağını Ramazan Özel (Sahur / İftar Öncesi, Arası, Sonrası) olarak işaretleyin"
+                style={{
+                  fontSize: '11px',
+                  fontWeight: '900',
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  outline: 'none',
+                  background: effectiveRamadanBreakTag.startsWith('sahur')
+                    ? 'linear-gradient(135deg, #0284c7, #0369a1)'
+                    : effectiveRamadanBreakTag.startsWith('iftar')
+                    ? 'linear-gradient(135deg, #d97706, #b45309)'
+                    : 'rgba(245, 158, 11, 0.12)',
+                  color: effectiveRamadanBreakTag ? '#ffffff' : '#d97706',
+                  border: effectiveRamadanBreakTag ? '1px solid rgba(255,255,255,0.3)' : '1px dashed rgba(245, 158, 11, 0.5)'
+                }}
+              >
+                <option value="" style={{ background: '#1e293b', color: '#f8fafc' }}>🌙 Ramazan Özel İşaretle...</option>
+                <option value="sahur_before" style={{ background: '#1e293b', color: '#38bdf8' }}>🌙 RAMAZAN: SAHUR ÖNCESİ KUŞAĞI</option>
+                <option value="sahur_middle" style={{ background: '#1e293b', color: '#38bdf8' }}>🌙 RAMAZAN: SAHUR ARASI KUŞAĞI</option>
+                <option value="sahur_after" style={{ background: '#1e293b', color: '#38bdf8' }}>🌙 RAMAZAN: SAHUR SONRASI KUŞAĞI</option>
+                <option value="iftar_before" style={{ background: '#1e293b', color: '#fbbf24' }}>🕌 RAMAZAN: İFTAR ÖNCESİ KUŞAĞI</option>
+                <option value="iftar_middle" style={{ background: '#1e293b', color: '#fbbf24' }}>🕌 RAMAZAN: İFTAR ARASI KUŞAĞI</option>
+                <option value="iftar_after" style={{ background: '#1e293b', color: '#fbbf24' }}>🕌 RAMAZAN: İFTAR SONRASI KUŞAĞI</option>
+              </select>
             )}
 
             {(isFiller || isFillerClip) && onOpenFillerModal && (
