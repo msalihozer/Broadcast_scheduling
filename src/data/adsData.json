@@ -1,0 +1,5895 @@
+{
+  "companies": [
+    {
+      "id": "1",
+      "name": "POZİTİF PAZARLAMA",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "2",
+      "name": "Semerkand TV",
+      "contactPerson": "Murat Gürbüz",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "3",
+      "name": "SEMTİA",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "4",
+      "name": "TAC MEDYA",
+      "contactPerson": "MUHARREM ŞAHİN",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "5",
+      "name": "KARİYER TERCİHİ",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "6",
+      "name": "İSTANBUL CITY",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "7",
+      "name": "RADYO ONBEŞ",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "8",
+      "name": "MAVİ UÇURTMA YAYINLARI",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "9",
+      "name": "EMSEY TIP MERKEZİ",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "10",
+      "name": "NAKIŞ GIDA",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "11",
+      "name": "HAŞİMİ SOFRASI",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "12",
+      "name": "HAŞEMİ DİNLENME TESİSLERİ",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "13",
+      "name": "SEMERKAND YAYINLARI",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "14",
+      "name": "SEMTİA",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "15",
+      "name": "SEMERKAND DERGİSİ",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "16",
+      "name": "MOSTAR DERGİSİ",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "17",
+      "name": "AİLE DERGİSİ",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "18",
+      "name": "LORES KOZMETİK",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "19",
+      "name": "SEFAM CATERİNG",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "20",
+      "name": "SEMERKAND TEMSİLCİLİKLERİ",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "21",
+      "name": "ÇOCUK YAYINLARI",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "22",
+      "name": "SEMERKAND TV",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "23",
+      "name": "KİNG PAOLO AYAKKABI",
+      "contactPerson": "ZEKERİYA YALÇIN",
+      "phone": "0212 444 10 6",
+      "phone2": "",
+      "email": "zekeriya@kingpaolo.com.tr",
+      "website": "www.kingpaolo.com.tr",
+      "fax": "0212 67165 74",
+      "address": "ziya gökalp mah. dersan koop. san. sit. s6-a blok kat:3 no:201 ikitelli-ist"
+    },
+    {
+      "id": "24",
+      "name": "COŞKUN GİYİM",
+      "contactPerson": "RAMAZAN COŞKUN",
+      "phone": "0212 565 97 2",
+      "phone2": "0212 565 97 2",
+      "email": "online@cgx.com.tr",
+      "website": "www.cgx.com.tr",
+      "fax": "",
+      "address": "NUMUNEBAĞ CAD. NO:388/A BAYRAMPAŞA/İST"
+    },
+    {
+      "id": "25",
+      "name": "Test Firması",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "26",
+      "name": "BEŞLER ÇEREZ",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "27",
+      "name": "SEMERŞAH TURİZM",
+      "contactPerson": "METİN ŞENSOY",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "28",
+      "name": "TÜM KONUT",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "29",
+      "name": "YEŞİLVADİ ARSA OFİSİ",
+      "contactPerson": "RAFET ORHAN",
+      "phone": "0212 444 27 7",
+      "phone2": "",
+      "email": "info@yesilvadiarsaofisi.com",
+      "website": "www.yesilvadiarsaofisi.com",
+      "fax": "0212 425 31 27",
+      "address": "Sultan Murat Caddesi No:23 sefaköy K.Çekmece - İST"
+    },
+    {
+      "id": "30",
+      "name": "EMSEY BİLİŞİM",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "31",
+      "name": "İDEALNET TELEKOM",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "32",
+      "name": "ÇAYKUR",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "33",
+      "name": "PETLAS",
+      "contactPerson": "HÜMA ŞAHİN (REKLAM MÜDÜRÜ)",
+      "phone": "0312-309-3030",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "34",
+      "name": "KC DEKOR",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "35",
+      "name": "PETLAS",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "36",
+      "name": "HASEMİ",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "37",
+      "name": "ÇOBANOĞLU İNŞAAT",
+      "contactPerson": "AHMET ÖZCAN",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "38",
+      "name": "ÇAYKUR",
+      "contactPerson": "MERKEZ",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "39",
+      "name": "ŞEMS ENERJİ",
+      "contactPerson": "ATAKAN EROL",
+      "phone": "05052065154",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": "ANKARA"
+    },
+    {
+      "id": "40",
+      "name": "YEŞİL VADİ ARSA OFİSİ",
+      "contactPerson": "RAFET ORHAN",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "41",
+      "name": "BEYOĞLU GÜBRE",
+      "contactPerson": "FUAT ÇELİKEL",
+      "phone": "05333951339",
+      "phone2": "123",
+      "email": "beybilgi@hotmail.com",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "42",
+      "name": "BEYOĞLU GÜBRE",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "43",
+      "name": "SEFAM CATRİNG",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "44",
+      "name": "NAKIŞ GIDA",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "45",
+      "name": "BEŞİR DERNEĞİ",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "46",
+      "name": "BEŞİR DERNEĞİ",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "47",
+      "name": "EMSEY BİLİŞİM",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "48",
+      "name": "EMSEY HOSPİTAL",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "49",
+      "name": "SEMERŞAH TURİZM",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "50",
+      "name": "PETLAS YENİ",
+      "contactPerson": "HÜM ŞAHİN",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "51",
+      "name": "SEMERKAND RADYO",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "52",
+      "name": "SOFAŞ",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "53",
+      "name": "ÇAĞRI MARKET",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "54",
+      "name": "CONAX SU ARITMA",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "55",
+      "name": "OBAKU",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "56",
+      "name": "TURKSAT",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "57",
+      "name": "PETLAS",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "58",
+      "name": "SEMERŞAH TURİZM_SİLME",
+      "contactPerson": "METİN ŞENSOY",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "59",
+      "name": "BEŞİR DERNEĞİ",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "60",
+      "name": "HİMNET",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "61",
+      "name": "SEMERKAND",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "62",
+      "name": "MOSTAR DERİSİ",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "63",
+      "name": "AİLE DERGİSİ",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "64",
+      "name": "SEMERKAND DERGİSİ",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "65",
+      "name": "EMSEY HOSPİTAL",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "66",
+      "name": "KARALİ ÇAY",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "67",
+      "name": "İSTİKBAL MOBİLYA",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "68",
+      "name": "ŞEMS ENERJİ",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "69",
+      "name": "MAKRO İNŞAAT",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "70",
+      "name": "TÜRKİYE FİNANS",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "71",
+      "name": "GENÇ OKUR DERGİSİ",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "72",
+      "name": "S_PAZARLAMA.COM",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "73",
+      "name": "STARMAXX",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "74",
+      "name": "TURK TELEKOM",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "75",
+      "name": "EROL PERDE",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "76",
+      "name": "BELLONA",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "77",
+      "name": "CORNERLİFE",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "78",
+      "name": "KUVEYTTURK",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "79",
+      "name": "TÜRKİYE FİNANS",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "80",
+      "name": "ÇAYKUR",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "81",
+      "name": "TİBET A.Ş",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "82",
+      "name": "ÇAGRI MARKET",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "83",
+      "name": "NERGİS TEKSTİL",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "84",
+      "name": "CİVİL ÇOCUK GİYİM",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "85",
+      "name": "AJANS PRESS",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "86",
+      "name": "TUMEXPO",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "87",
+      "name": "İSTİKBAL",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "88",
+      "name": "GENÇ OKUR DERGİSİ",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "89",
+      "name": "ÇOCUK YAYINLARI",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "90",
+      "name": "BENDİ",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "91",
+      "name": "SERORGANIZASYON",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "92",
+      "name": "THY",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "93",
+      "name": "SEYİDOĞLU",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "94",
+      "name": "KENTON",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "95",
+      "name": "KANPOLAT İNŞAAT",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "96",
+      "name": "GÜNAYDIN GIDA",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "97",
+      "name": "EROL TEKNİK",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "98",
+      "name": "MAKRO İNŞAAT",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "99",
+      "name": "İDEAL NOKTA",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "100",
+      "name": "RİDAS CANLI SIVA",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "101",
+      "name": "TORKU",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "102",
+      "name": "SU YAPI",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "103",
+      "name": "SU YAPI",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "104",
+      "name": "jenerik",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "105",
+      "name": "MAKRO-UYUM MARKET",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "106",
+      "name": "BANK ASYA",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "107",
+      "name": "BEŞİR DERNEĞİ",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "108",
+      "name": "ERPİLİÇ",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "109",
+      "name": "VESTEL",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "110",
+      "name": "VESTEL",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "111",
+      "name": "TCDD",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "112",
+      "name": "SOFAŞ",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "113",
+      "name": "ARÇELİK",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "114",
+      "name": "KATILIM EMEKLİLİK",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "115",
+      "name": "SELAM GİYİM",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "116",
+      "name": "CİVİL ÇOCUK DÜNYASI",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "117",
+      "name": "DERGİ ABONE",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "118",
+      "name": "MAKRO İNŞAAT",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "119",
+      "name": "FUARLAR",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "120",
+      "name": "BELLONA",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "121",
+      "name": "ALBARAKA TÜRK KATILIM",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "122",
+      "name": "ÇAYKUR",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "123",
+      "name": "ÇOCUK DERGİSİ",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "124",
+      "name": "ÇOCUK YAYINLARI",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "125",
+      "name": "DENİZ YAPI",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "126",
+      "name": "EŞİK YAYINLARI",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "127",
+      "name": "GENÇ OKUR YAYINLARI",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "128",
+      "name": "MOSTAR YAYINLARI",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "129",
+      "name": "SEYTAR İNŞAAT",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "130",
+      "name": "ŞADIRVAN YAYINLARI",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "131",
+      "name": "SEMERKAND ÜRÜNLERİ",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "132",
+      "name": "STARMAXX LASTİK",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "133",
+      "name": "GÜLSAN GIDA",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "134",
+      "name": "BUHARA TERMAL",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "135",
+      "name": "SEMERKAND TAKVİMİ",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "136",
+      "name": "YEŞİLVADİ ARSA OFİSİ",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "137",
+      "name": "VAKIF KATILIM",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "138",
+      "name": "ZEHRA OTEL & NOKTA GLOBAL",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "139",
+      "name": "VOLİ ORGANİZASYON",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "140",
+      "name": "SEMERKAND VAKFI",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "141",
+      "name": "SEMERKAND RADYO",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "142",
+      "name": "LORES PERDE",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "143",
+      "name": "MAVİ FİDAN DERGİSİ",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "144",
+      "name": "SEFAM CATERİNG",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "145",
+      "name": "ÜÇ YILDIZ KUTU",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "146",
+      "name": "ÇAGRI MARKET",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "147",
+      "name": "GENÇ KON",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "148",
+      "name": "AKİDE ŞEKERİ YAYINLARI",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "149",
+      "name": "İZORİZ İZOLASYON",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "150",
+      "name": "SENETLE ARSA AL",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "151",
+      "name": "VEFA PASTANESİ",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "152",
+      "name": "MÜSİAD",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "153",
+      "name": "MEDYA DOKUZ",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "154",
+      "name": "AVRUPA FİRMALARI",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "155",
+      "name": "KLİMAKS",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "156",
+      "name": "HUZUR VADİ",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "157",
+      "name": "ROSE İNCİ",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "158",
+      "name": "PROYEM",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "159",
+      "name": "BARESSİ MOBİLYA",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "160",
+      "name": "İLGİ GÜVENLİK",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "161",
+      "name": "REDROSE",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "162",
+      "name": "SEDAT SAĞÇETİN TEKSTİL",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "163",
+      "name": "MENSAD",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "164",
+      "name": "ASLANLAR TEKSTİL",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "165",
+      "name": "PARTNERS MAKİNA",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "166",
+      "name": "SİNİ BAKLAVA",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "167",
+      "name": "GÜNDOĞDU RESTORASYON",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "168",
+      "name": "ATA ÇİFTLİĞİ",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "169",
+      "name": "GAARAJ",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "170",
+      "name": "TAVUS HALI",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "171",
+      "name": "RAMAZAN_2020",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "172",
+      "name": "ZİRAAT KATILIM",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "173",
+      "name": "GAPEX PLASTİK",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "174",
+      "name": "POZİTİF",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "175",
+      "name": "ÇAVUŞOĞLU YEMENLER",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "176",
+      "name": "AFİA",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "177",
+      "name": "ağaoglu inşaat",
+      "contactPerson": "ahmet cenikli",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "178",
+      "name": "emin evim",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "179",
+      "name": "kalyoncu",
+      "contactPerson": "ahmet",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    },
+    {
+      "id": "180",
+      "name": "FLO AYAKKABI",
+      "contactPerson": "X",
+      "phone": "X",
+      "phone2": "X",
+      "email": "X",
+      "website": "X",
+      "fax": "X",
+      "address": "X"
+    },
+    {
+      "id": "181",
+      "name": "OĞUZ GIDA",
+      "contactPerson": "",
+      "phone": "",
+      "phone2": "",
+      "email": "",
+      "website": "",
+      "fax": "",
+      "address": ""
+    }
+  ],
+  "products": [
+    {
+      "id": "1",
+      "companyId": "1",
+      "name": "KİTAP"
+    },
+    {
+      "id": "2",
+      "companyId": "2",
+      "name": "JENERİK"
+    },
+    {
+      "id": "3",
+      "companyId": "6",
+      "name": "KONUT"
+    },
+    {
+      "id": "4",
+      "companyId": "1",
+      "name": "FUAR"
+    },
+    {
+      "id": "5",
+      "companyId": "7",
+      "name": "RADYO"
+    },
+    {
+      "id": "6",
+      "companyId": "5",
+      "name": "WEB SİTESİ"
+    },
+    {
+      "id": "7",
+      "companyId": "1",
+      "name": "SESLİ VE GÖRÜNTÜLÜ YAYINLAR"
+    },
+    {
+      "id": "8",
+      "companyId": "12",
+      "name": "RESTAURANT & CAFE"
+    },
+    {
+      "id": "9",
+      "companyId": "8",
+      "name": "OYUN SETLERİ"
+    },
+    {
+      "id": "10",
+      "companyId": "9",
+      "name": "SAĞLIK"
+    },
+    {
+      "id": "11",
+      "companyId": "15",
+      "name": "DERGİ"
+    },
+    {
+      "id": "12",
+      "companyId": "17",
+      "name": "DERGİ"
+    },
+    {
+      "id": "13",
+      "companyId": "13",
+      "name": "KİTAP"
+    },
+    {
+      "id": "14",
+      "companyId": "18",
+      "name": "PARFÜM"
+    },
+    {
+      "id": "15",
+      "companyId": "18",
+      "name": "ŞAMPUAN"
+    },
+    {
+      "id": "16",
+      "companyId": "3",
+      "name": "DERGI"
+    },
+    {
+      "id": "17",
+      "companyId": "19",
+      "name": "CATERİNG"
+    },
+    {
+      "id": "18",
+      "companyId": "15",
+      "name": "DERGİ"
+    },
+    {
+      "id": "19",
+      "companyId": "13",
+      "name": "SESLİ VE GÖRÜNTÜLÜ YAYINLAR"
+    },
+    {
+      "id": "20",
+      "companyId": "16",
+      "name": "DERGİ"
+    },
+    {
+      "id": "21",
+      "companyId": "1",
+      "name": "WEB SİTESİ"
+    },
+    {
+      "id": "22",
+      "companyId": "14",
+      "name": "ZÜCCACİYE"
+    },
+    {
+      "id": "23",
+      "companyId": "31",
+      "name": "TELEKOM"
+    },
+    {
+      "id": "24",
+      "companyId": "4",
+      "name": "REKLAM AJANSI"
+    },
+    {
+      "id": "25",
+      "companyId": "20",
+      "name": "TEMSİLCİLİK"
+    },
+    {
+      "id": "26",
+      "companyId": "21",
+      "name": "KİTAP"
+    },
+    {
+      "id": "27",
+      "companyId": "11",
+      "name": "RESTAURANT & CAFE"
+    },
+    {
+      "id": "28",
+      "companyId": "10",
+      "name": "BİTKİSEL YAĞ"
+    },
+    {
+      "id": "29",
+      "companyId": "10",
+      "name": "TEMİZLİK ÜRÜNLERİ"
+    },
+    {
+      "id": "30",
+      "companyId": "22",
+      "name": "REKLAM JENERİK"
+    },
+    {
+      "id": "31",
+      "companyId": "14",
+      "name": "KUPA"
+    },
+    {
+      "id": "32",
+      "companyId": "10",
+      "name": "GIDA"
+    },
+    {
+      "id": "33",
+      "companyId": "23",
+      "name": "KLİMALI AYAKKABI"
+    },
+    {
+      "id": "34",
+      "companyId": "24",
+      "name": "GİYİM"
+    },
+    {
+      "id": "35",
+      "companyId": "26",
+      "name": "KURUYEMİŞ"
+    },
+    {
+      "id": "36",
+      "companyId": "25",
+      "name": "Test Ürünü"
+    },
+    {
+      "id": "37",
+      "companyId": "27",
+      "name": "HAC ORGANİZASYONU"
+    },
+    {
+      "id": "38",
+      "companyId": "28",
+      "name": "İNŞAAT & KONUT"
+    },
+    {
+      "id": "39",
+      "companyId": "10",
+      "name": "DİŞ MACUNU"
+    },
+    {
+      "id": "40",
+      "companyId": "14",
+      "name": "EDUTİP"
+    },
+    {
+      "id": "41",
+      "companyId": "29",
+      "name": "GAYRİMENKUL"
+    },
+    {
+      "id": "42",
+      "companyId": "30",
+      "name": "WEB SİTESİ"
+    },
+    {
+      "id": "43",
+      "companyId": "32",
+      "name": "GIDA / ÇAY"
+    },
+    {
+      "id": "44",
+      "companyId": "33",
+      "name": "LASTİK"
+    },
+    {
+      "id": "45",
+      "companyId": "14",
+      "name": "NAZENİN"
+    },
+    {
+      "id": "46",
+      "companyId": "34",
+      "name": "DEKORASYON"
+    },
+    {
+      "id": "47",
+      "companyId": "14",
+      "name": "EDU TECH"
+    },
+    {
+      "id": "48",
+      "companyId": "10",
+      "name": "KURUMSAL"
+    },
+    {
+      "id": "49",
+      "companyId": "14",
+      "name": "BİBLO"
+    },
+    {
+      "id": "50",
+      "companyId": "35",
+      "name": "LASTİK"
+    },
+    {
+      "id": "51",
+      "companyId": "27",
+      "name": "ELEMAN İLANI"
+    },
+    {
+      "id": "52",
+      "companyId": "36",
+      "name": "DİNLENME TESİSLERİ"
+    },
+    {
+      "id": "53",
+      "companyId": "37",
+      "name": "İNŞAAT"
+    },
+    {
+      "id": "54",
+      "companyId": "38",
+      "name": "ÇAY / GIDA"
+    },
+    {
+      "id": "55",
+      "companyId": "39",
+      "name": "ENERJİ"
+    },
+    {
+      "id": "56",
+      "companyId": "1",
+      "name": "TAKVİM"
+    },
+    {
+      "id": "57",
+      "companyId": "14",
+      "name": "ATKI BERE"
+    },
+    {
+      "id": "58",
+      "companyId": "14",
+      "name": "EDU EVA"
+    },
+    {
+      "id": "59",
+      "companyId": "44",
+      "name": "KURABİYE"
+    },
+    {
+      "id": "60",
+      "companyId": "41",
+      "name": "ORGOPOWER_GÜBRE"
+    },
+    {
+      "id": "61",
+      "companyId": "98",
+      "name": "MAKRO"
+    },
+    {
+      "id": "62",
+      "companyId": "41",
+      "name": "BLACK GOLD_GÜBRE"
+    },
+    {
+      "id": "63",
+      "companyId": "43",
+      "name": "SEFAM CATRİNG"
+    },
+    {
+      "id": "64",
+      "companyId": "28",
+      "name": "SEMERKAND KONUTLARI 2"
+    },
+    {
+      "id": "65",
+      "companyId": "8",
+      "name": "KİTAP"
+    },
+    {
+      "id": "66",
+      "companyId": "1",
+      "name": "EMSEY"
+    },
+    {
+      "id": "67",
+      "companyId": "14",
+      "name": "AKSESUAR"
+    },
+    {
+      "id": "68",
+      "companyId": "45",
+      "name": "KAN BAĞIŞI"
+    },
+    {
+      "id": "69",
+      "companyId": "46",
+      "name": "YARDIM KAMPANYASI"
+    },
+    {
+      "id": "70",
+      "companyId": "47",
+      "name": "BİLİŞİM"
+    },
+    {
+      "id": "71",
+      "companyId": "48",
+      "name": "SAĞLIK"
+    },
+    {
+      "id": "72",
+      "companyId": "44",
+      "name": "UNLU MAMÜLLER"
+    },
+    {
+      "id": "73",
+      "companyId": "49",
+      "name": "HAC"
+    },
+    {
+      "id": "74",
+      "companyId": "49",
+      "name": "UMRE"
+    },
+    {
+      "id": "75",
+      "companyId": "50",
+      "name": "LASTİK"
+    },
+    {
+      "id": "76",
+      "companyId": "51",
+      "name": "TANITIM"
+    },
+    {
+      "id": "77",
+      "companyId": "44",
+      "name": "GENEL"
+    },
+    {
+      "id": "78",
+      "companyId": "52",
+      "name": "HELVA"
+    },
+    {
+      "id": "79",
+      "companyId": "53",
+      "name": "MARKET"
+    },
+    {
+      "id": "80",
+      "companyId": "54",
+      "name": "SU ARITMA CİHAZLARI"
+    },
+    {
+      "id": "81",
+      "companyId": "55",
+      "name": "OBAKU"
+    },
+    {
+      "id": "82",
+      "companyId": "14",
+      "name": "KAHVE SETİ"
+    },
+    {
+      "id": "83",
+      "companyId": "13",
+      "name": "FUAR"
+    },
+    {
+      "id": "84",
+      "companyId": "56",
+      "name": "WEB"
+    },
+    {
+      "id": "85",
+      "companyId": "57",
+      "name": "LASTİK"
+    },
+    {
+      "id": "86",
+      "companyId": "58",
+      "name": "BAHAR UMRESİ"
+    },
+    {
+      "id": "87",
+      "companyId": "59",
+      "name": "YARDIM KAMPANYASI"
+    },
+    {
+      "id": "88",
+      "companyId": "60",
+      "name": "İNTERNET"
+    },
+    {
+      "id": "89",
+      "companyId": "61",
+      "name": "WEB SİTESİ"
+    },
+    {
+      "id": "90",
+      "companyId": "102",
+      "name": "BEYKENT LOCCA"
+    },
+    {
+      "id": "91",
+      "companyId": "64",
+      "name": "ABONE KAMPANYASI"
+    },
+    {
+      "id": "92",
+      "companyId": "64",
+      "name": "ABONE KAMPANYASI"
+    },
+    {
+      "id": "93",
+      "companyId": "63",
+      "name": "ABONE KAMPANYASI"
+    },
+    {
+      "id": "94",
+      "companyId": "65",
+      "name": "KLİNİK TANITIMI"
+    },
+    {
+      "id": "95",
+      "companyId": "66",
+      "name": "KARALİ ÇAY"
+    },
+    {
+      "id": "96",
+      "companyId": "44",
+      "name": "BENDİ"
+    },
+    {
+      "id": "97",
+      "companyId": "44",
+      "name": "NAME BAHARAT"
+    },
+    {
+      "id": "98",
+      "companyId": "67",
+      "name": "MOBİLYA"
+    },
+    {
+      "id": "99",
+      "companyId": "44",
+      "name": "KATIK BAKLİYAT"
+    },
+    {
+      "id": "100",
+      "companyId": "58",
+      "name": "HAC"
+    },
+    {
+      "id": "101",
+      "companyId": "68",
+      "name": "ELEKTRİK"
+    },
+    {
+      "id": "102",
+      "companyId": "69",
+      "name": "KAYA ŞEHİR"
+    },
+    {
+      "id": "103",
+      "companyId": "70",
+      "name": "HAREMEYN KART"
+    },
+    {
+      "id": "104",
+      "companyId": "71",
+      "name": "GENÇ OKUR DERGİSİ"
+    },
+    {
+      "id": "105",
+      "companyId": "58",
+      "name": "KÜLTÜREL TUR"
+    },
+    {
+      "id": "106",
+      "companyId": "72",
+      "name": "WEB SİTESİ"
+    },
+    {
+      "id": "107",
+      "companyId": "73",
+      "name": "LASTİK"
+    },
+    {
+      "id": "108",
+      "companyId": "44",
+      "name": "KUMANYA"
+    },
+    {
+      "id": "109",
+      "companyId": "74",
+      "name": "TTNET"
+    },
+    {
+      "id": "110",
+      "companyId": "56",
+      "name": "TELEDÜNYA"
+    },
+    {
+      "id": "111",
+      "companyId": "75",
+      "name": "LORES PERDE"
+    },
+    {
+      "id": "112",
+      "companyId": "76",
+      "name": "MOBİLYA"
+    },
+    {
+      "id": "113",
+      "companyId": "77",
+      "name": "CORNELİFE_GÜNEŞLİ"
+    },
+    {
+      "id": "114",
+      "companyId": "78",
+      "name": "KUVEYTTURK"
+    },
+    {
+      "id": "115",
+      "companyId": "79",
+      "name": "TFK"
+    },
+    {
+      "id": "116",
+      "companyId": "80",
+      "name": "ÇAYKUR_RAMAZAN"
+    },
+    {
+      "id": "117",
+      "companyId": "81",
+      "name": "KENTON_KABARTMA_TOZU"
+    },
+    {
+      "id": "118",
+      "companyId": "80",
+      "name": "DİDİ SOGUK ÇAY"
+    },
+    {
+      "id": "119",
+      "companyId": "82",
+      "name": "ÇAGRI SEBZE"
+    },
+    {
+      "id": "120",
+      "companyId": "81",
+      "name": "TATLILAR"
+    },
+    {
+      "id": "121",
+      "companyId": "59",
+      "name": "RAMAZAN KUMANYA"
+    },
+    {
+      "id": "122",
+      "companyId": "83",
+      "name": "GİYİM"
+    },
+    {
+      "id": "123",
+      "companyId": "83",
+      "name": "MEFRUŞAT"
+    },
+    {
+      "id": "124",
+      "companyId": "84",
+      "name": "ÇOCUK GİYİM"
+    },
+    {
+      "id": "125",
+      "companyId": "44",
+      "name": "HAC_KAR KONSEPT"
+    },
+    {
+      "id": "126",
+      "companyId": "85",
+      "name": "AJANS PRESS"
+    },
+    {
+      "id": "127",
+      "companyId": "86",
+      "name": "TUMEXPO"
+    },
+    {
+      "id": "128",
+      "companyId": "87",
+      "name": "ISTIKBAL"
+    },
+    {
+      "id": "129",
+      "companyId": "88",
+      "name": "GENÇ OKUR İÇERİK"
+    },
+    {
+      "id": "130",
+      "companyId": "89",
+      "name": "ÇOCUK YAYINLARI"
+    },
+    {
+      "id": "131",
+      "companyId": "13",
+      "name": "KİTAP KAMPANYA"
+    },
+    {
+      "id": "132",
+      "companyId": "90",
+      "name": "BENDİ"
+    },
+    {
+      "id": "133",
+      "companyId": "91",
+      "name": "SER ORGANIZASYON"
+    },
+    {
+      "id": "134",
+      "companyId": "92",
+      "name": "THY"
+    },
+    {
+      "id": "135",
+      "companyId": "93",
+      "name": "SEYİDOĞLU"
+    },
+    {
+      "id": "136",
+      "companyId": "44",
+      "name": "SÜT ÜRÜNLERİ"
+    },
+    {
+      "id": "137",
+      "companyId": "58",
+      "name": "UMRE"
+    },
+    {
+      "id": "138",
+      "companyId": "84",
+      "name": "CİVİL ÇOCUK GİYİM"
+    },
+    {
+      "id": "139",
+      "companyId": "95",
+      "name": "KANPOLAT İNŞAAT"
+    },
+    {
+      "id": "140",
+      "companyId": "44",
+      "name": "SEBAT ZEYTİN"
+    },
+    {
+      "id": "141",
+      "companyId": "44",
+      "name": "BİÇEL REÇEL"
+    },
+    {
+      "id": "142",
+      "companyId": "96",
+      "name": "MEYVE SUYU"
+    },
+    {
+      "id": "143",
+      "companyId": "97",
+      "name": "BİG MASTER"
+    },
+    {
+      "id": "144",
+      "companyId": "44",
+      "name": "FARK SEPETİ"
+    },
+    {
+      "id": "145",
+      "companyId": "80",
+      "name": "ÇAYKUR ÇAY"
+    },
+    {
+      "id": "146",
+      "companyId": "99",
+      "name": "İDEAL NOKTA.COM"
+    },
+    {
+      "id": "147",
+      "companyId": "100",
+      "name": "RİDAS CANLI SIVA"
+    },
+    {
+      "id": "148",
+      "companyId": "101",
+      "name": "GENEL"
+    },
+    {
+      "id": "149",
+      "companyId": "102",
+      "name": "LOCCA BEYKENT"
+    },
+    {
+      "id": "150",
+      "companyId": "104",
+      "name": "jenerik"
+    },
+    {
+      "id": "151",
+      "companyId": "105",
+      "name": "MARKET"
+    },
+    {
+      "id": "152",
+      "companyId": "106",
+      "name": "BANK ASYA"
+    },
+    {
+      "id": "153",
+      "companyId": "107",
+      "name": "KUMANYA"
+    },
+    {
+      "id": "154",
+      "companyId": "108",
+      "name": "ERPİLİÇ"
+    },
+    {
+      "id": "155",
+      "companyId": "109",
+      "name": "VESTEL"
+    },
+    {
+      "id": "156",
+      "companyId": "109",
+      "name": "VESTEL"
+    },
+    {
+      "id": "157",
+      "companyId": "110",
+      "name": "VESTEL"
+    },
+    {
+      "id": "158",
+      "companyId": "111",
+      "name": "YÜKSEK HIZLI TREN"
+    },
+    {
+      "id": "159",
+      "companyId": "58",
+      "name": "GENEL"
+    },
+    {
+      "id": "160",
+      "companyId": "14",
+      "name": "LALE SERİSİ"
+    },
+    {
+      "id": "161",
+      "companyId": "112",
+      "name": "SÜT"
+    },
+    {
+      "id": "162",
+      "companyId": "113",
+      "name": "DERİN DONDURUCU"
+    },
+    {
+      "id": "163",
+      "companyId": "114",
+      "name": "KATILIM EMEKLİLİK"
+    },
+    {
+      "id": "164",
+      "companyId": "115",
+      "name": "SELAM GİYİM"
+    },
+    {
+      "id": "165",
+      "companyId": "116",
+      "name": "CİVİL GİYİM"
+    },
+    {
+      "id": "166",
+      "companyId": "117",
+      "name": "DERGİ TANITIM"
+    },
+    {
+      "id": "167",
+      "companyId": "118",
+      "name": "BAŞAKŞEHİR YENİMERKEZ"
+    },
+    {
+      "id": "168",
+      "companyId": "113",
+      "name": "GERDİ DÖNÜŞÜM"
+    },
+    {
+      "id": "169",
+      "companyId": "119",
+      "name": "TÜMEXPO FUARI"
+    },
+    {
+      "id": "170",
+      "companyId": "119",
+      "name": "TÜYAP KİTAP FUARI"
+    },
+    {
+      "id": "171",
+      "companyId": "120",
+      "name": "BELLONA SATIŞ"
+    },
+    {
+      "id": "172",
+      "companyId": "63",
+      "name": "AİLE DERGİSİ İÇERİK TANITIM"
+    },
+    {
+      "id": "173",
+      "companyId": "121",
+      "name": "ALBARAKA TÜRK KATILIM"
+    },
+    {
+      "id": "174",
+      "companyId": "122",
+      "name": "ÇAYKUR_ALTINBAŞ"
+    },
+    {
+      "id": "175",
+      "companyId": "123",
+      "name": "ÇOCUK DERGİSİ İÇERİK TANITIM"
+    },
+    {
+      "id": "176",
+      "companyId": "124",
+      "name": "ÇOCUK YAYINLARI_KİTAP"
+    },
+    {
+      "id": "177",
+      "companyId": "125",
+      "name": "DNZ KURTKÖY"
+    },
+    {
+      "id": "178",
+      "companyId": "126",
+      "name": "EŞİK YAYINLARI_KİTAP"
+    },
+    {
+      "id": "179",
+      "companyId": "127",
+      "name": "GENÇ OKUR YAYINLARI"
+    },
+    {
+      "id": "180",
+      "companyId": "128",
+      "name": "MOSTAR YAYINLARI"
+    },
+    {
+      "id": "181",
+      "companyId": "44",
+      "name": "BAL PETEĞİ"
+    },
+    {
+      "id": "182",
+      "companyId": "44",
+      "name": "GALİP ÇAY"
+    },
+    {
+      "id": "183",
+      "companyId": "44",
+      "name": "NAKŞET"
+    },
+    {
+      "id": "184",
+      "companyId": "44",
+      "name": "NAKSÜT"
+    },
+    {
+      "id": "185",
+      "companyId": "44",
+      "name": "SEBAT ZEYTİNYAĞI"
+    },
+    {
+      "id": "186",
+      "companyId": "129",
+      "name": "SEYTAR İNŞAAT"
+    },
+    {
+      "id": "187",
+      "companyId": "130",
+      "name": "KİTAP"
+    },
+    {
+      "id": "188",
+      "companyId": "131",
+      "name": "YÜZÜKLER"
+    },
+    {
+      "id": "189",
+      "companyId": "124",
+      "name": "ÇOCUK YAYINLARI_TAKVİM"
+    },
+    {
+      "id": "190",
+      "companyId": "132",
+      "name": "STARMAXX LASTİK"
+    },
+    {
+      "id": "191",
+      "companyId": "133",
+      "name": "GÜLSAN REÇEL"
+    },
+    {
+      "id": "192",
+      "companyId": "134",
+      "name": "BUHARA TERMAL"
+    },
+    {
+      "id": "193",
+      "companyId": "135",
+      "name": "SEMERKAND TAKVİMİ"
+    },
+    {
+      "id": "194",
+      "companyId": "136",
+      "name": "YEŞİLVADİ ARSA OFİSİ"
+    },
+    {
+      "id": "195",
+      "companyId": "153",
+      "name": "MEDYA DOKUZ"
+    },
+    {
+      "id": "196",
+      "companyId": "123",
+      "name": "ABONE KAMPANYASI"
+    },
+    {
+      "id": "197",
+      "companyId": "137",
+      "name": "VAKIF KATILIM"
+    },
+    {
+      "id": "198",
+      "companyId": "138",
+      "name": "ZEHRA OTEL"
+    },
+    {
+      "id": "199",
+      "companyId": "139",
+      "name": "FUAR"
+    },
+    {
+      "id": "200",
+      "companyId": "122",
+      "name": "ÇAYKUR DİDİ"
+    },
+    {
+      "id": "201",
+      "companyId": "140",
+      "name": "KERMES"
+    },
+    {
+      "id": "202",
+      "companyId": "141",
+      "name": "SEMERKAND RADYO"
+    },
+    {
+      "id": "203",
+      "companyId": "142",
+      "name": "LORE PERDE"
+    },
+    {
+      "id": "204",
+      "companyId": "107",
+      "name": "RAMAZAN"
+    },
+    {
+      "id": "205",
+      "companyId": "143",
+      "name": "MAVİ FİDAN DERGİSİ"
+    },
+    {
+      "id": "206",
+      "companyId": "144",
+      "name": "SEFAM CATERİNG"
+    },
+    {
+      "id": "207",
+      "companyId": "145",
+      "name": "ÜÇ YILDIZ KUTU"
+    },
+    {
+      "id": "208",
+      "companyId": "44",
+      "name": "NAKSÜT"
+    },
+    {
+      "id": "209",
+      "companyId": "44",
+      "name": "BEYRUHA HURMA"
+    },
+    {
+      "id": "210",
+      "companyId": "146",
+      "name": "ÇAGRI MARKET"
+    },
+    {
+      "id": "211",
+      "companyId": "147",
+      "name": "GENÇ KON"
+    },
+    {
+      "id": "212",
+      "companyId": "148",
+      "name": "KİTAP"
+    },
+    {
+      "id": "213",
+      "companyId": "149",
+      "name": "İZORİZ İZOLASYON"
+    },
+    {
+      "id": "214",
+      "companyId": "150",
+      "name": "SENETLE ARSA AL"
+    },
+    {
+      "id": "215",
+      "companyId": "151",
+      "name": "VEFA PASTANESİ"
+    },
+    {
+      "id": "216",
+      "companyId": "152",
+      "name": "MÜSİAD_EXPO"
+    },
+    {
+      "id": "217",
+      "companyId": "154",
+      "name": "AVRUPA FİRMALARI"
+    },
+    {
+      "id": "218",
+      "companyId": "155",
+      "name": "KLİMAKS"
+    },
+    {
+      "id": "219",
+      "companyId": "156",
+      "name": "HUZUR VADİ"
+    },
+    {
+      "id": "220",
+      "companyId": "62",
+      "name": "MOSTAR DERGİSİ"
+    },
+    {
+      "id": "221",
+      "companyId": "157",
+      "name": "ROSE İNCİ"
+    },
+    {
+      "id": "222",
+      "companyId": "157",
+      "name": "ROSE İNCİ"
+    },
+    {
+      "id": "223",
+      "companyId": "158",
+      "name": "PROYEM"
+    },
+    {
+      "id": "224",
+      "companyId": "159",
+      "name": "BARESSİ MOBİLYA"
+    },
+    {
+      "id": "225",
+      "companyId": "160",
+      "name": "İLGİ GÜVENLİK"
+    },
+    {
+      "id": "226",
+      "companyId": "161",
+      "name": "REDROSE COLOR"
+    },
+    {
+      "id": "227",
+      "companyId": "162",
+      "name": "SEDAT SAĞÇETİN"
+    },
+    {
+      "id": "228",
+      "companyId": "163",
+      "name": "MENSAD GENEL"
+    },
+    {
+      "id": "229",
+      "companyId": "164",
+      "name": "ASLANLAR TEKSTİL"
+    },
+    {
+      "id": "230",
+      "companyId": "165",
+      "name": "PARTNERS MAKİNA"
+    },
+    {
+      "id": "231",
+      "companyId": "165",
+      "name": "PARTNERS MAKİNA"
+    },
+    {
+      "id": "232",
+      "companyId": "166",
+      "name": "SİNİ BAKLAVA"
+    },
+    {
+      "id": "233",
+      "companyId": "167",
+      "name": "GÜNDOĞDU RESTORASYON"
+    },
+    {
+      "id": "234",
+      "companyId": "168",
+      "name": "ATA ÇİFTLİĞİ"
+    },
+    {
+      "id": "235",
+      "companyId": "169",
+      "name": "GAARAJ"
+    },
+    {
+      "id": "236",
+      "companyId": "170",
+      "name": "TAVUS HALI"
+    },
+    {
+      "id": "237",
+      "companyId": "171",
+      "name": "RAMAZAN_2020"
+    },
+    {
+      "id": "238",
+      "companyId": "154",
+      "name": "RAMAZAN_2020_AVR"
+    },
+    {
+      "id": "239",
+      "companyId": "154",
+      "name": "RAMAZAN_2020"
+    },
+    {
+      "id": "240",
+      "companyId": "172",
+      "name": "ŞUBESİZ BANKA"
+    },
+    {
+      "id": "241",
+      "companyId": "173",
+      "name": "GAPEX PLASTİK"
+    },
+    {
+      "id": "242",
+      "companyId": "174",
+      "name": "ALTIN PAKET"
+    },
+    {
+      "id": "243",
+      "companyId": "175",
+      "name": "ÇAVUŞOĞLU YEMENLER"
+    },
+    {
+      "id": "244",
+      "companyId": "176",
+      "name": "AFİA"
+    },
+    {
+      "id": "245",
+      "companyId": "174",
+      "name": "RAMAZAN"
+    },
+    {
+      "id": "246",
+      "companyId": "174",
+      "name": "RMZ_01"
+    },
+    {
+      "id": "247",
+      "companyId": "174",
+      "name": "RMZ_02"
+    },
+    {
+      "id": "248",
+      "companyId": "174",
+      "name": "RMZ_03"
+    },
+    {
+      "id": "249",
+      "companyId": "174",
+      "name": "RMZ_04"
+    },
+    {
+      "id": "250",
+      "companyId": "174",
+      "name": "RMZ_05"
+    },
+    {
+      "id": "251",
+      "companyId": "174",
+      "name": "RMZ_06"
+    },
+    {
+      "id": "252",
+      "companyId": "174",
+      "name": "RMZ_07"
+    },
+    {
+      "id": "253",
+      "companyId": "174",
+      "name": "RMZ_08"
+    },
+    {
+      "id": "254",
+      "companyId": "174",
+      "name": "RMZ_09"
+    },
+    {
+      "id": "255",
+      "companyId": "174",
+      "name": "RMZ_10"
+    },
+    {
+      "id": "256",
+      "companyId": "174",
+      "name": "RMZ_11"
+    },
+    {
+      "id": "257",
+      "companyId": "174",
+      "name": "RMZ_12"
+    },
+    {
+      "id": "258",
+      "companyId": "177",
+      "name": "my village"
+    },
+    {
+      "id": "259",
+      "companyId": "178",
+      "name": "faizsiz araba"
+    },
+    {
+      "id": "260",
+      "companyId": "180",
+      "name": "kİNETİX"
+    },
+    {
+      "id": "261",
+      "companyId": "174",
+      "name": "ÜÇ AYLAR"
+    },
+    {
+      "id": "262",
+      "companyId": "22",
+      "name": "SEYİR"
+    },
+    {
+      "id": "263",
+      "companyId": "174",
+      "name": "YAYINDAKİLER"
+    },
+    {
+      "id": "264",
+      "companyId": "174",
+      "name": "RAMAZAN_WAY"
+    },
+    {
+      "id": "265",
+      "companyId": "174",
+      "name": "RAMAZAN_HD"
+    },
+    {
+      "id": "266",
+      "companyId": "174",
+      "name": "WAY"
+    },
+    {
+      "id": "267",
+      "companyId": "174",
+      "name": "23062023"
+    },
+    {
+      "id": "268",
+      "companyId": "181",
+      "name": "OĞUZ GIDA"
+    },
+    {
+      "id": "269",
+      "companyId": "174",
+      "name": "HD_10_RMZ"
+    },
+    {
+      "id": "270",
+      "companyId": "174",
+      "name": "0_WAY_RMZ_10"
+    },
+    {
+      "id": "271",
+      "companyId": "174",
+      "name": "YENİ REKLAMLAR_2025"
+    },
+    {
+      "id": "272",
+      "companyId": "174",
+      "name": "WAY YENİ 2025"
+    },
+    {
+      "id": "273",
+      "companyId": "174",
+      "name": "DENEME"
+    },
+    {
+      "id": "274",
+      "companyId": "174",
+      "name": "2026_ABONE_KAMPANYASI"
+    },
+    {
+      "id": "275",
+      "companyId": "174",
+      "name": "HD-RMZ-2026"
+    }
+  ],
+  "materials": [
+    {
+      "id": "1",
+      "name": "3ER GLOBAL",
+      "clipId": "21586",
+      "companyId": "174",
+      "productId": "242",
+      "clipName": "r_3er_global_reklam_yeni_27sn_220323",
+      "duration": 27,
+      "description": "3ER GLOBAL"
+    },
+    {
+      "id": "2",
+      "name": "A MELLER SERVİCE",
+      "clipId": "6282",
+      "companyId": "174",
+      "productId": "242",
+      "clipName": "r_adams_maler_reklam_20sn_140622",
+      "duration": 20,
+      "description": ""
+    },
+    {
+      "id": "3",
+      "name": "ADIYAMAN LEZZET ÇİĞKÖFTE",
+      "clipId": "26471",
+      "companyId": "174",
+      "productId": "269",
+      "clipName": "r_adiyaman_lezzet_ege_b_29sn_301125",
+      "duration": 29,
+      "description": "ADIYAMAN LEZZET ÇİĞKÖFTE"
+    },
+    {
+      "id": "4",
+      "name": "A_AFİA BAL",
+      "clipId": "6287",
+      "companyId": "176",
+      "productId": "244",
+      "clipName": "r_afia_bal_A_33sn_180321",
+      "duration": 33,
+      "description": ""
+    },
+    {
+      "id": "5",
+      "name": "B_AFİA BEBEBİS",
+      "clipId": "6288",
+      "companyId": "176",
+      "productId": "244",
+      "clipName": "r_afia_bebebis_B_32sn_180321",
+      "duration": 32,
+      "description": ""
+    },
+    {
+      "id": "6",
+      "name": "D_AFİA PASTA MALZEME",
+      "clipId": "20346",
+      "companyId": "176",
+      "productId": "244",
+      "clipName": "r_afia_pastamalzeme_D_28sn_180321",
+      "duration": 28,
+      "description": ""
+    },
+    {
+      "id": "7",
+      "name": "E_AFİA_DİŞMACUNU\"\"",
+      "clipId": "6289",
+      "companyId": "176",
+      "productId": "244",
+      "clipName": "r_afia_safia_dismacun_E_39sn_180321",
+      "duration": 39,
+      "description": ""
+    },
+    {
+      "id": "8",
+      "name": "G_AFİA SANAL MARKET",
+      "clipId": "6290",
+      "companyId": "176",
+      "productId": "244",
+      "clipName": "r_afia_sanalmarket_G_32sn_180321",
+      "duration": 32,
+      "description": ""
+    },
+    {
+      "id": "9",
+      "name": "F_AFİA SİRKE",
+      "clipId": "6291",
+      "companyId": "176",
+      "productId": "244",
+      "clipName": "r_afia_sirke_F_44sn_180321",
+      "duration": 44,
+      "description": ""
+    },
+    {
+      "id": "10",
+      "name": "AHMET SARI LOJİSTİK",
+      "clipId": "6296",
+      "companyId": "174",
+      "productId": "242",
+      "clipName": "r_ahmet_sari_lojistik_22sn_100622",
+      "duration": 22,
+      "description": ""
+    },
+    {
+      "id": "11",
+      "name": "A-NET TELEKOM",
+      "clipId": "6310",
+      "companyId": "174",
+      "productId": "264",
+      "clipName": "r_anet_telekom_yeni_21sn_070422",
+      "duration": 21,
+      "description": "W A Y (TR SİL)"
+    },
+    {
+      "id": "12",
+      "name": "A-NET TELEKOM",
+      "clipId": "6310",
+      "companyId": "174",
+      "productId": "246",
+      "clipName": "r_anet_telekom_yeni_21sn_070422",
+      "duration": 21,
+      "description": ""
+    },
+    {
+      "id": "13",
+      "name": "ANKOM MOBİLE",
+      "clipId": "6311",
+      "companyId": "174",
+      "productId": "261",
+      "clipName": "r_ankom_mobile_revizeli_280422",
+      "duration": 19,
+      "description": ""
+    },
+    {
+      "id": "14",
+      "name": "ARDA ALYANS",
+      "clipId": "6315",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_arda_alyans_25sn_030822",
+      "duration": 25,
+      "description": "ARDA ALYANS"
+    },
+    {
+      "id": "15",
+      "name": "ARI HURDA METAL",
+      "clipId": "21588",
+      "companyId": "174",
+      "productId": "263",
+      "clipName": "r_ari_metal_reklam_22sn_020623",
+      "duration": 22,
+      "description": ""
+    },
+    {
+      "id": "16",
+      "name": "ARMAĞAN KUYUMCULUK",
+      "clipId": "6318",
+      "companyId": "174",
+      "productId": "269",
+      "clipName": "r_armagan_kuyumcu_21sn_131022",
+      "duration": 21,
+      "description": "R M Z"
+    },
+    {
+      "id": "17",
+      "name": "ASB GMBH",
+      "clipId": "6321",
+      "companyId": "174",
+      "productId": "242",
+      "clipName": "r_asb_gmbh_reklam_22sn_050422",
+      "duration": 22,
+      "description": ""
+    },
+    {
+      "id": "18",
+      "name": "AUTOPARTS/GENK",
+      "clipId": "6329",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_autoparts_reklam_20sn_280519",
+      "duration": 20,
+      "description": "AUTOPARTS/GENK"
+    },
+    {
+      "id": "19",
+      "name": "BARIŞ EMLAK",
+      "clipId": "21592",
+      "companyId": "174",
+      "productId": "269",
+      "clipName": "r_baris_emlak_24sn_260523",
+      "duration": 24,
+      "description": "R M Z"
+    },
+    {
+      "id": "20",
+      "name": "BAULEMENTENTE",
+      "clipId": "6348",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_baulemtente_demirbag_25sn_120422",
+      "duration": 25,
+      "description": "BAULEMENTENTE"
+    },
+    {
+      "id": "21",
+      "name": "BAYRAKTAR OTOMOTİV",
+      "clipId": "6349",
+      "companyId": "174",
+      "productId": "242",
+      "clipName": "r_bayraktar_otomotiv_20sn_300123",
+      "duration": 20,
+      "description": ""
+    },
+    {
+      "id": "22",
+      "name": "BİARSA ÇANAKKALE",
+      "clipId": "21601",
+      "companyId": "174",
+      "productId": "263",
+      "clipName": "r_biarsa_yapildak_reklam_25sn_110723",
+      "duration": 25,
+      "description": ""
+    },
+    {
+      "id": "23",
+      "name": "BURSA ALTIN",
+      "clipId": "21603",
+      "companyId": "174",
+      "productId": "263",
+      "clipName": "r_bursa_altin_reklam_Y_14sn_040723",
+      "duration": 39,
+      "description": ""
+    },
+    {
+      "id": "24",
+      "name": "ÇAĞLAYAN YAPI",
+      "clipId": "6386",
+      "companyId": "174",
+      "productId": "263",
+      "clipName": "r_caglayan_yapi_24sn_100822",
+      "duration": 24,
+      "description": ""
+    },
+    {
+      "id": "25",
+      "name": "CARGO 24 AUTO",
+      "clipId": "6389",
+      "companyId": "174",
+      "productId": "246",
+      "clipName": "r_cargo_24_reklam_25sn_050422",
+      "duration": 25,
+      "description": "W A Y (TR SİL)"
+    },
+    {
+      "id": "26",
+      "name": "CARLO LORENZO",
+      "clipId": "21605",
+      "companyId": "174",
+      "productId": "242",
+      "clipName": "r_carlo_lorenzo_ayakkabi_18sn_160623",
+      "duration": 18,
+      "description": "/\\/\\/\\/\\/\\/\\"
+    },
+    {
+      "id": "27",
+      "name": "CC AUTOMOBİLE",
+      "clipId": "6393",
+      "companyId": "174",
+      "productId": "261",
+      "clipName": "r_cc_automobile_almanya_19sn_020422",
+      "duration": 19,
+      "description": ""
+    },
+    {
+      "id": "28",
+      "name": "CREATHOME",
+      "clipId": "6405",
+      "companyId": "174",
+      "productId": "246",
+      "clipName": "r_creathome_reklam_29sn_040323",
+      "duration": 29,
+      "description": "W A Y"
+    },
+    {
+      "id": "29",
+      "name": "DELTA YÖNETİM DAN.",
+      "clipId": "6410",
+      "companyId": "174",
+      "productId": "261",
+      "clipName": "r_delta_danismanlik_22sn_050422",
+      "duration": 22,
+      "description": ""
+    },
+    {
+      "id": "30",
+      "name": "DİNÇEL KUYUMCULUK",
+      "clipId": "6422",
+      "companyId": "174",
+      "productId": "269",
+      "clipName": "r_dincel_kuyumcu_22sn_260822",
+      "duration": 22,
+      "description": "R M Z"
+    },
+    {
+      "id": "31",
+      "name": "DURAK RESTORANT",
+      "clipId": "21608",
+      "companyId": "174",
+      "productId": "263",
+      "clipName": "r_durak_restorant_reklam_25sn_030723",
+      "duration": 25,
+      "description": "W A Y"
+    },
+    {
+      "id": "32",
+      "name": "EKALDES AYDINLATMA",
+      "clipId": "6443",
+      "companyId": "174",
+      "productId": "261",
+      "clipName": "r_ekaldes_reklam_yeni_33sn_201020",
+      "duration": 33,
+      "description": ""
+    },
+    {
+      "id": "33",
+      "name": "EMİN HAVUZCULUK",
+      "clipId": "6453",
+      "companyId": "174",
+      "productId": "269",
+      "clipName": "r_emin_havuzculuk_23sn_240622",
+      "duration": 23,
+      "description": "R M Z"
+    },
+    {
+      "id": "34",
+      "name": "EMPİ HOME TİNY HOUSE",
+      "clipId": "21613",
+      "companyId": "174",
+      "productId": "263",
+      "clipName": "r_empi_tiny_house_reklam_25sn_220323",
+      "duration": 25,
+      "description": ""
+    },
+    {
+      "id": "35",
+      "name": "EMSA POWER",
+      "clipId": "6454",
+      "companyId": "174",
+      "productId": "267",
+      "clipName": "r_emsa_power_jenerator_24sn_050922",
+      "duration": 24,
+      "description": "19 12 23"
+    },
+    {
+      "id": "36",
+      "name": "GARTNER APS",
+      "clipId": "6461",
+      "companyId": "174",
+      "productId": "242",
+      "clipName": "r_er_gartner_aps_reklam_21sn_141622",
+      "duration": 21,
+      "description": ""
+    },
+    {
+      "id": "37",
+      "name": "ERAS RMZ",
+      "clipId": "27853",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_eras_gmbh_yeni_33sn_050326",
+      "duration": 33,
+      "description": "ERAS RMZ"
+    },
+    {
+      "id": "38",
+      "name": "ERAS GMBH",
+      "clipId": "6465",
+      "companyId": "174",
+      "productId": "267",
+      "clipName": "r_eras_gmbh_21sn_100422",
+      "duration": 21,
+      "description": ""
+    },
+    {
+      "id": "39",
+      "name": "ERBAA TUĞLA",
+      "clipId": "6466",
+      "companyId": "174",
+      "productId": "267",
+      "clipName": "r_erba_tugla_reklam_25sn_151222",
+      "duration": 25,
+      "description": "14 03 2024"
+    },
+    {
+      "id": "40",
+      "name": "ERDORA PALET",
+      "clipId": "6470",
+      "companyId": "174",
+      "productId": "242",
+      "clipName": "r_erdora_palet_21sn_250722",
+      "duration": 21,
+      "description": ""
+    },
+    {
+      "id": "41",
+      "name": "SİLLL_ ERDOS RMZ",
+      "clipId": "6472",
+      "companyId": "174",
+      "productId": "270",
+      "clipName": "r_erdos_gmbh_revizeli_23sn_280422",
+      "duration": 23,
+      "description": "SİLLL_ ERDOS RMZ"
+    },
+    {
+      "id": "42",
+      "name": "SİLLLL_ERDOS",
+      "clipId": "6472",
+      "companyId": "174",
+      "productId": "267",
+      "clipName": "r_erdos_gmbh_revizeli_23sn_280422",
+      "duration": 23,
+      "description": "SİLLLL_ERDOS"
+    },
+    {
+      "id": "43",
+      "name": "ERÖZ AMBALAJ",
+      "clipId": "21616",
+      "companyId": "174",
+      "productId": "264",
+      "clipName": "r_eroz_gruppe_reklam_30sn_030423",
+      "duration": 30,
+      "description": "H D + W A Y"
+    },
+    {
+      "id": "44",
+      "name": "EVDES KOZMETİK",
+      "clipId": "6490",
+      "companyId": "174",
+      "productId": "261",
+      "clipName": "r_evdes_kozmetik_22sn_240222",
+      "duration": 22,
+      "description": ""
+    },
+    {
+      "id": "45",
+      "name": "FERMAN PFELEGEDİENST",
+      "clipId": "6494",
+      "companyId": "174",
+      "productId": "266",
+      "clipName": "r_ferman_pflegedienst_21sn_140422",
+      "duration": 21,
+      "description": "W A Y"
+    },
+    {
+      "id": "46",
+      "name": "FISTIKDALI TİCARET",
+      "clipId": "6497",
+      "companyId": "174",
+      "productId": "263",
+      "clipName": "r_fistikdali_ticaret_25sn_271222",
+      "duration": 25,
+      "description": "S İ L"
+    },
+    {
+      "id": "47",
+      "name": "GARAGE TUNE",
+      "clipId": "21622",
+      "companyId": "174",
+      "productId": "263",
+      "clipName": "r_garage_tuna_cepel_27sn_130423",
+      "duration": 27,
+      "description": ""
+    },
+    {
+      "id": "48",
+      "name": "GERMON GMBH",
+      "clipId": "6553",
+      "companyId": "174",
+      "productId": "246",
+      "clipName": "r_germon_gmbh_29sn_270223",
+      "duration": 29,
+      "description": "W A Y"
+    },
+    {
+      "id": "49",
+      "name": "GROSS_38",
+      "clipId": "21624",
+      "companyId": "174",
+      "productId": "263",
+      "clipName": "r_gross_38_reklam_24sn_230323",
+      "duration": 24,
+      "description": ""
+    },
+    {
+      "id": "50",
+      "name": "GROSS MARKET",
+      "clipId": "21624",
+      "companyId": "174",
+      "productId": "242",
+      "clipName": "r_gross_38_reklam_24sn_230323",
+      "duration": 24,
+      "description": "MRKT"
+    },
+    {
+      "id": "51",
+      "name": "GÜLERCE İNŞAAT",
+      "clipId": "21625",
+      "companyId": "174",
+      "productId": "263",
+      "clipName": "r_gulercelik_insaat_23sn_190423",
+      "duration": 23,
+      "description": ""
+    },
+    {
+      "id": "52",
+      "name": "HALİLBEY ÇORAP",
+      "clipId": "6576",
+      "companyId": "174",
+      "productId": "242",
+      "clipName": "r_halilbey_corap_21sn_270122",
+      "duration": 21,
+      "description": ""
+    },
+    {
+      "id": "53",
+      "name": "HAZEL YUFKA",
+      "clipId": "18657",
+      "companyId": "174",
+      "productId": "242",
+      "clipName": "r_hazel_yufka_reklam_22sn_301020",
+      "duration": 22,
+      "description": ""
+    },
+    {
+      "id": "54",
+      "name": "HC BEZETTİNG RMZ",
+      "clipId": "6585",
+      "companyId": "174",
+      "productId": "270",
+      "clipName": "r_hc_bezetting_reklam_23sn_130422",
+      "duration": 23,
+      "description": "R M Z"
+    },
+    {
+      "id": "55",
+      "name": "HC BEZETTİNG",
+      "clipId": "6585",
+      "companyId": "174",
+      "productId": "261",
+      "clipName": "r_hc_bezetting_reklam_23sn_130422",
+      "duration": 23,
+      "description": ""
+    },
+    {
+      "id": "56",
+      "name": "HERRE FRISOR",
+      "clipId": "6588",
+      "companyId": "174",
+      "productId": "261",
+      "clipName": "r_herre_frisor_reklam_20sn_031019",
+      "duration": 20,
+      "description": ""
+    },
+    {
+      "id": "57",
+      "name": "HİZMET MARKET TRABZON",
+      "clipId": "6591",
+      "companyId": "174",
+      "productId": "261",
+      "clipName": "r_hizmet_market_19sn_180222",
+      "duration": 19,
+      "description": ""
+    },
+    {
+      "id": "58",
+      "name": "İLCE YAPI_RMZ",
+      "clipId": "6598",
+      "companyId": "174",
+      "productId": "264",
+      "clipName": "r_ilce_yapi_reklam_32sn_011222",
+      "duration": 32,
+      "description": "RMZ"
+    },
+    {
+      "id": "59",
+      "name": "İMPORTADORA LİMİTADA",
+      "clipId": "20775",
+      "companyId": "154",
+      "productId": "217",
+      "clipName": "r_importadora_reklam_23sn_041019",
+      "duration": 23,
+      "description": "AVRUPA"
+    },
+    {
+      "id": "60",
+      "name": "İNEGÖL ÇALIŞIR MOBİLYA",
+      "clipId": "6603",
+      "companyId": "174",
+      "productId": "261",
+      "clipName": "r_inegol_mobilya_reklam_19sn_090222",
+      "duration": 19,
+      "description": ""
+    },
+    {
+      "id": "61",
+      "name": "İRİS MOBİLYA",
+      "clipId": "6604",
+      "companyId": "174",
+      "productId": "242",
+      "clipName": "r_iris_exculisive_reklam_33sn_210521",
+      "duration": 33,
+      "description": ""
+    },
+    {
+      "id": "62",
+      "name": "TALİTE TERCÜME",
+      "clipId": "6619",
+      "companyId": "174",
+      "productId": "242",
+      "clipName": "r_kalite_tercume_23sn_140922",
+      "duration": 23,
+      "description": ""
+    },
+    {
+      "id": "63",
+      "name": "KAMTEK MÜHENDİSLİK",
+      "clipId": "6624",
+      "companyId": "174",
+      "productId": "261",
+      "clipName": "r_kamtek_muh_reklam_20sn_070322",
+      "duration": 20,
+      "description": ""
+    },
+    {
+      "id": "64",
+      "name": "KANAL BOYU EMLAK",
+      "clipId": "6625",
+      "companyId": "174",
+      "productId": "269",
+      "clipName": "r_kanalboyu_emlak_23sn_301222",
+      "duration": 23,
+      "description": "R M Z"
+    },
+    {
+      "id": "65",
+      "name": "KARMA DOLAP",
+      "clipId": "6630",
+      "companyId": "174",
+      "productId": "242",
+      "clipName": "r_karma_dolap_22sn_270122",
+      "duration": 22,
+      "description": "ARA VERİLDİ"
+    },
+    {
+      "id": "66",
+      "name": "SONBAHAR KAMP. 2021",
+      "clipId": "20817",
+      "companyId": "180",
+      "productId": "260",
+      "clipName": "r_kartas_granit_mermer_18sn_121220",
+      "duration": 18,
+      "description": ""
+    },
+    {
+      "id": "67",
+      "name": "KARTAŞ GRANİT_RMZ",
+      "clipId": "6632",
+      "companyId": "174",
+      "productId": "265",
+      "clipName": "r_kartas_granit_mermer_18sn_300922",
+      "duration": 18,
+      "description": "RMZ"
+    },
+    {
+      "id": "68",
+      "name": "KAVUZOĞLU ÇELTİK",
+      "clipId": "6640",
+      "companyId": "174",
+      "productId": "269",
+      "clipName": "r_kavuzoglu_celtik_19sn_260822",
+      "duration": 19,
+      "description": "R M Z"
+    },
+    {
+      "id": "69",
+      "name": "HAYA HEIZUNG",
+      "clipId": "6643",
+      "companyId": "174",
+      "productId": "261",
+      "clipName": "r_kaya_heizung_24sn_210422",
+      "duration": 0,
+      "description": ""
+    },
+    {
+      "id": "70",
+      "name": "KAYA HEIZUNG",
+      "clipId": "6643",
+      "companyId": "174",
+      "productId": "246",
+      "clipName": "r_kaya_heizung_24sn_210422",
+      "duration": 24,
+      "description": "W A Y"
+    },
+    {
+      "id": "71",
+      "name": "KEBİR SÜT",
+      "clipId": "21635",
+      "companyId": "174",
+      "productId": "263",
+      "clipName": "r_kebir_sut_reklam_25sn_250423",
+      "duration": 25,
+      "description": ""
+    },
+    {
+      "id": "72",
+      "name": "KG BAUTENS",
+      "clipId": "6649",
+      "companyId": "174",
+      "productId": "266",
+      "clipName": "r_kg_bautenschuts_26sn_010323",
+      "duration": 26,
+      "description": "W A Y"
+    },
+    {
+      "id": "73",
+      "name": "KONYALILAR",
+      "clipId": "6656",
+      "companyId": "174",
+      "productId": "263",
+      "clipName": "r_konyalilar_yuzey_isleme_24sn_270223",
+      "duration": 24,
+      "description": "S İ L"
+    },
+    {
+      "id": "74",
+      "name": "KONYALILAR_RMZ",
+      "clipId": "6656",
+      "companyId": "174",
+      "productId": "265",
+      "clipName": "r_konyalilar_yuzey_isleme_24sn_270223",
+      "duration": 24,
+      "description": "S İ L"
+    },
+    {
+      "id": "75",
+      "name": "KOPUZLAR YAPI",
+      "clipId": "6657",
+      "companyId": "174",
+      "productId": "263",
+      "clipName": "r_kopuzyapi_yapi_24sn_311222",
+      "duration": 24,
+      "description": ""
+    },
+    {
+      "id": "76",
+      "name": "KURNAZ GARTER",
+      "clipId": "6662",
+      "companyId": "174",
+      "productId": "266",
+      "clipName": "r_kurnaz_garter_20sn_250123",
+      "duration": 20,
+      "description": "W A Y"
+    },
+    {
+      "id": "77",
+      "name": "LİDER SÖVE",
+      "clipId": "6666",
+      "companyId": "174",
+      "productId": "267",
+      "clipName": "r_lider_boya_28sn_041122",
+      "duration": 28,
+      "description": "10 03 2024"
+    },
+    {
+      "id": "78",
+      "name": "MARFEDO DONDURMA",
+      "clipId": "6672",
+      "companyId": "174",
+      "productId": "267",
+      "clipName": "r_mafredo_dondurma_23sn_210322",
+      "duration": 23,
+      "description": "12 03 24"
+    },
+    {
+      "id": "79",
+      "name": "MANTI 7",
+      "clipId": "6676",
+      "companyId": "174",
+      "productId": "261",
+      "clipName": "r_manti7_yeni_reklam_23sn_060422",
+      "duration": 23,
+      "description": ""
+    },
+    {
+      "id": "80",
+      "name": "MARANGOZ BİROL",
+      "clipId": "21639",
+      "companyId": "174",
+      "productId": "269",
+      "clipName": "r_marangoz_birol_30_050723",
+      "duration": 30,
+      "description": "R M Z"
+    },
+    {
+      "id": "81",
+      "name": "MEKARF MAKİNE",
+      "clipId": "21640",
+      "companyId": "174",
+      "productId": "263",
+      "clipName": "r_mekarf_makine_26sn_290323",
+      "duration": 26,
+      "description": "25 01 2024"
+    },
+    {
+      "id": "82",
+      "name": "MEN SÜT",
+      "clipId": "6714",
+      "companyId": "174",
+      "productId": "266",
+      "clipName": "r_mensut_bvba_21sn_200422",
+      "duration": 21,
+      "description": "W A Y (TR SİL)"
+    },
+    {
+      "id": "83",
+      "name": "MERKAD CENAZE FONU",
+      "clipId": "20988",
+      "companyId": "154",
+      "productId": "217",
+      "clipName": "r_merkad_cenaze_fonu_belkcika_32sn_170919",
+      "duration": 34,
+      "description": "AVRUPA"
+    },
+    {
+      "id": "84",
+      "name": "MİGRON RESTORAN",
+      "clipId": "21641",
+      "companyId": "174",
+      "productId": "263",
+      "clipName": "r_migron_restaurant_31sn_010623",
+      "duration": 31,
+      "description": "devam"
+    },
+    {
+      "id": "85",
+      "name": "MODLİNGER METAL",
+      "clipId": "6727",
+      "companyId": "174",
+      "productId": "264",
+      "clipName": "r_modlinger_metal_24sn_060422",
+      "duration": 24,
+      "description": "W A Y (TR SİL)"
+    },
+    {
+      "id": "86",
+      "name": "MOYSAN MAKİNA",
+      "clipId": "21643",
+      "companyId": "174",
+      "productId": "263",
+      "clipName": "r_moysan_makina_25sn_140423",
+      "duration": 25,
+      "description": ""
+    },
+    {
+      "id": "87",
+      "name": "MUSULLU_EV_ALETLERİ",
+      "clipId": "21644",
+      "companyId": "174",
+      "productId": "269",
+      "clipName": "r_musullu_ev_aletlieri_5sn_130423",
+      "duration": 5,
+      "description": "R M Z"
+    },
+    {
+      "id": "88",
+      "name": "MY KFZ GUTACHTER",
+      "clipId": "6760",
+      "companyId": "174",
+      "productId": "261",
+      "clipName": "r_my_kfz_reklam_25sn_260422",
+      "duration": 25,
+      "description": ""
+    },
+    {
+      "id": "89",
+      "name": "NEKA YOL YARDIM",
+      "clipId": "6795",
+      "companyId": "174",
+      "productId": "242",
+      "clipName": "r_neka_yolyardim_yeni_26sn_280122",
+      "duration": 26,
+      "description": ""
+    },
+    {
+      "id": "90",
+      "name": "NİS ENERJİ",
+      "clipId": "21669",
+      "companyId": "174",
+      "productId": "263",
+      "clipName": "r_nis_enerji_reklam_35sn_280723",
+      "duration": 35,
+      "description": ""
+    },
+    {
+      "id": "91",
+      "name": "NOKTA BİLGİSAYAR",
+      "clipId": "6801",
+      "companyId": "174",
+      "productId": "263",
+      "clipName": "r_nokta_bilgisayar_21sn_271222",
+      "duration": 21,
+      "description": "! ! !  !"
+    },
+    {
+      "id": "92",
+      "name": "OPTİMUM METAL (3)",
+      "clipId": "6807",
+      "companyId": "174",
+      "productId": "242",
+      "clipName": "r_optimum_metal_19sn_131022",
+      "duration": 19,
+      "description": ""
+    },
+    {
+      "id": "93",
+      "name": "OPTİMUM METAL_RMZ",
+      "clipId": "6807",
+      "companyId": "174",
+      "productId": "265",
+      "clipName": "r_optimum_metal_19sn_131022",
+      "duration": 19,
+      "description": "RMZ"
+    },
+    {
+      "id": "94",
+      "name": "OTONOMİ KAYSERİ",
+      "clipId": "21671",
+      "companyId": "174",
+      "productId": "264",
+      "clipName": "r_otonomi_kayseri_34sn_210322",
+      "duration": 34,
+      "description": "H D + W A Y"
+    },
+    {
+      "id": "95",
+      "name": "ÖZTAR İNŞAAT YAPI",
+      "clipId": "6815",
+      "companyId": "174",
+      "productId": "242",
+      "clipName": "r_oztar_insaat_yapi_24sn_040722",
+      "duration": 24,
+      "description": ""
+    },
+    {
+      "id": "96",
+      "name": "ÖZTAT SOSİS",
+      "clipId": "6816",
+      "companyId": "174",
+      "productId": "261",
+      "clipName": "r_oztat_taze_sosis_20sn_050519",
+      "duration": 20,
+      "description": ""
+    },
+    {
+      "id": "97",
+      "name": "PALAZ PİDE",
+      "clipId": "6819",
+      "companyId": "174",
+      "productId": "261",
+      "clipName": "r_palaz_pide_reklam_16sn_230322",
+      "duration": 16,
+      "description": "17 03 24"
+    },
+    {
+      "id": "98",
+      "name": "PARS GMBH",
+      "clipId": "6823",
+      "companyId": "174",
+      "productId": "270",
+      "clipName": "r_pars_gmbh_reklam_21sn_090422",
+      "duration": 21,
+      "description": "W A Y"
+    },
+    {
+      "id": "99",
+      "name": "PATATES",
+      "clipId": "6826",
+      "companyId": "10",
+      "productId": "32",
+      "clipName": "r_patates_061011",
+      "duration": 20,
+      "description": ""
+    },
+    {
+      "id": "100",
+      "name": "PAVAGE",
+      "clipId": "6827",
+      "companyId": "174",
+      "productId": "261",
+      "clipName": "r_pavage_city_22sn_100422",
+      "duration": 22,
+      "description": ""
+    },
+    {
+      "id": "101",
+      "name": "PEYNİRCİ HASAN",
+      "clipId": "21129",
+      "companyId": "174",
+      "productId": "242",
+      "clipName": "r_peynirci_hasan_reklam_19sn_171221",
+      "duration": 19,
+      "description": ""
+    },
+    {
+      "id": "102",
+      "name": "PINARLI GAYRİMENKUL",
+      "clipId": "21673",
+      "companyId": "174",
+      "productId": "269",
+      "clipName": "r_pinarli_gayrimenkul_25sn_240323",
+      "duration": 25,
+      "description": ""
+    },
+    {
+      "id": "103",
+      "name": "POSİTİVE SERVİS",
+      "clipId": "21133",
+      "companyId": "174",
+      "productId": "242",
+      "clipName": "r_positive_service_reklam_22sn_191120",
+      "duration": 22,
+      "description": "ARA VERİLDİ"
+    },
+    {
+      "id": "104",
+      "name": "QUBBE LOUNGE",
+      "clipId": "6839",
+      "companyId": "174",
+      "productId": "266",
+      "clipName": "r_qubbe_lounge_23sn_250123",
+      "duration": 23,
+      "description": "W A Y"
+    },
+    {
+      "id": "105",
+      "name": "RESTO SEFA",
+      "clipId": "6843",
+      "companyId": "154",
+      "productId": "217",
+      "clipName": "r_resto_sefa_reklam_17sn_260919",
+      "duration": 17,
+      "description": "AVRUPA"
+    },
+    {
+      "id": "106",
+      "name": "RN6 AUTO LYON",
+      "clipId": "21150",
+      "companyId": "154",
+      "productId": "217",
+      "clipName": "r_rn6_auto_reklam_19sn_190819",
+      "duration": 17,
+      "description": "AVRUPA"
+    },
+    {
+      "id": "107",
+      "name": "ROYAL KEBAP",
+      "clipId": "21152",
+      "companyId": "154",
+      "productId": "217",
+      "clipName": "r_royal_kebap_reklam_20sn_260719",
+      "duration": 20,
+      "description": "AVRUPA FİRMA"
+    },
+    {
+      "id": "108",
+      "name": "ŞAHİLAL SERAMİK",
+      "clipId": "21677",
+      "companyId": "174",
+      "productId": "263",
+      "clipName": "r_sahilal_seramik_24sn_310323",
+      "duration": 24,
+      "description": ""
+    },
+    {
+      "id": "109",
+      "name": "SAKAM KAFE RESTORAN",
+      "clipId": "21680",
+      "companyId": "174",
+      "productId": "269",
+      "clipName": "r_sakam_kafe_restoran_34sn_230623",
+      "duration": 34,
+      "description": "R M Z"
+    },
+    {
+      "id": "110",
+      "name": "SANCAK KÖMÜR",
+      "clipId": "21681",
+      "companyId": "174",
+      "productId": "264",
+      "clipName": "r_sancak_komur_21sn_070423",
+      "duration": 21,
+      "description": ""
+    },
+    {
+      "id": "111",
+      "name": "SARAY MOBİLYA",
+      "clipId": "6860",
+      "companyId": "154",
+      "productId": "217",
+      "clipName": "r_saray_mobilya_reklam_21sn_220120",
+      "duration": 21,
+      "description": ""
+    },
+    {
+      "id": "112",
+      "name": "SEDEF KERESTE",
+      "clipId": "21179",
+      "companyId": "174",
+      "productId": "242",
+      "clipName": "r_sedef_kereste_reklam_21sn_081121",
+      "duration": 21,
+      "description": ""
+    },
+    {
+      "id": "113",
+      "name": "SELAM CHEZ RAMAZAN",
+      "clipId": "21683",
+      "companyId": "174",
+      "productId": "264",
+      "clipName": "r_selam_chez_ramazan_22sn_030423",
+      "duration": 22,
+      "description": "W A Y"
+    },
+    {
+      "id": "114",
+      "name": "SEMERBİ BAHARAT",
+      "clipId": "6875",
+      "companyId": "174",
+      "productId": "242",
+      "clipName": "r_semerbi_baharat_yeni_22sn_280122",
+      "duration": 22,
+      "description": ""
+    },
+    {
+      "id": "115",
+      "name": "SEMERKAND ANKARA KM",
+      "clipId": "6878",
+      "companyId": "174",
+      "productId": "261",
+      "clipName": "r_semerkand_ankara_26sn_170322",
+      "duration": 26,
+      "description": "R M Z"
+    },
+    {
+      "id": "116",
+      "name": "ŞEMS AUTO",
+      "clipId": "6914",
+      "companyId": "174",
+      "productId": "242",
+      "clipName": "r_sems_auto_reklam_17sn_180821",
+      "duration": 17,
+      "description": "OTO"
+    },
+    {
+      "id": "117",
+      "name": "ŞENSEL EMLAK",
+      "clipId": "6917",
+      "companyId": "174",
+      "productId": "242",
+      "clipName": "r_sensel_emlak_23sn_100622",
+      "duration": 23,
+      "description": ""
+    },
+    {
+      "id": "118",
+      "name": "ŞENTÜRK İNŞAAT",
+      "clipId": "6919",
+      "companyId": "174",
+      "productId": "252",
+      "clipName": "r_senturk_insaat_reklam_27sn_260321",
+      "duration": 27,
+      "description": "ARA VERİLDİ"
+    },
+    {
+      "id": "119",
+      "name": "SEYCAN SERAMİK",
+      "clipId": "21687",
+      "companyId": "174",
+      "productId": "269",
+      "clipName": "r_seycan_seramik_24sn_280723",
+      "duration": 24,
+      "description": "R M Z"
+    },
+    {
+      "id": "120",
+      "name": "SEYİR ANA REKLAM",
+      "clipId": "20948",
+      "companyId": "22",
+      "productId": "262",
+      "clipName": "r_seyir_ana_reklam_28sn_220422",
+      "duration": 28,
+      "description": ""
+    },
+    {
+      "id": "121",
+      "name": "SMT FİLO_RMZ",
+      "clipId": "6931",
+      "companyId": "174",
+      "productId": "265",
+      "clipName": "r_smt_filo_reklam_29sn_300922",
+      "duration": 29,
+      "description": "RMZ"
+    },
+    {
+      "id": "122",
+      "name": "SOFRAM BERRİNGEN",
+      "clipId": "6932",
+      "companyId": "174",
+      "productId": "261",
+      "clipName": "r_sofram_berringen_22sn_050422",
+      "duration": 22,
+      "description": ""
+    },
+    {
+      "id": "123",
+      "name": "STARMAX YENİ KAMPANYA",
+      "clipId": "6937",
+      "companyId": "132",
+      "productId": "190",
+      "clipName": "r_starmax_bahar_kamp_18sn_230421",
+      "duration": 18,
+      "description": ""
+    },
+    {
+      "id": "124",
+      "name": "STEVİLLA",
+      "clipId": "21688",
+      "companyId": "174",
+      "productId": "270",
+      "clipName": "r_stelvilla_bek_grup_28sn_160623",
+      "duration": 28,
+      "description": "R M Z"
+    },
+    {
+      "id": "125",
+      "name": "STROM AMBALAJ",
+      "clipId": "6938",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_strom_ambalaj_23sn_300422",
+      "duration": 23,
+      "description": "STROM AMBALAJ"
+    },
+    {
+      "id": "126",
+      "name": "SUAT OYUNCAK",
+      "clipId": "6939",
+      "companyId": "174",
+      "productId": "242",
+      "clipName": "r_suat_oyuncak_reklam_16sn_091020",
+      "duration": 16,
+      "description": ""
+    },
+    {
+      "id": "127",
+      "name": "ŞÜKÜR ALÜMİNYUM",
+      "clipId": "21689",
+      "companyId": "174",
+      "productId": "269",
+      "clipName": "r_sukur_aluminyum_cam_balkon_29sn_280723",
+      "duration": 29,
+      "description": "R M Z"
+    },
+    {
+      "id": "128",
+      "name": "ŞEHZADE YÜZÜKLERİ",
+      "clipId": "18703",
+      "companyId": "131",
+      "productId": "188",
+      "clipName": "r_s-urun_sehzade_yuzuk_29sn_300821",
+      "duration": 29,
+      "description": ""
+    },
+    {
+      "id": "129",
+      "name": "SWEDİSHHOME",
+      "clipId": "18705",
+      "companyId": "154",
+      "productId": "217",
+      "clipName": "r_swedishhome_reklam_28sn_030719",
+      "duration": 28,
+      "description": "AVRUPA FREEE"
+    },
+    {
+      "id": "130",
+      "name": "TAKVİM_OKUL ÖNCESİ",
+      "clipId": "6944",
+      "companyId": "135",
+      "productId": "193",
+      "clipName": "r_takvim_okul_oncesi_45sn_091122",
+      "duration": 45,
+      "description": "T A K"
+    },
+    {
+      "id": "131",
+      "name": "TAPKI KARTEN",
+      "clipId": "6945",
+      "companyId": "174",
+      "productId": "266",
+      "clipName": "r_tapki_garten_25sn_250123",
+      "duration": 25,
+      "description": "W A Y"
+    },
+    {
+      "id": "132",
+      "name": "TEGEL PLUS",
+      "clipId": "21366",
+      "companyId": "154",
+      "productId": "217",
+      "clipName": "r_tegelplus_reklam_22sn_110919",
+      "duration": 22,
+      "description": "AVRUPA"
+    },
+    {
+      "id": "133",
+      "name": "TİEFPUNKT",
+      "clipId": "6957",
+      "companyId": "174",
+      "productId": "242",
+      "clipName": "r_tiefpunkt_bau_reklam_23sn_100422",
+      "duration": 23,
+      "description": ""
+    },
+    {
+      "id": "134",
+      "name": "TR MÜHENDİSLİK",
+      "clipId": "21378",
+      "companyId": "154",
+      "productId": "217",
+      "clipName": "r_tr_muhendislik_reklam_29sn_090719",
+      "duration": 29,
+      "description": ""
+    },
+    {
+      "id": "135",
+      "name": "TUDİ ELEKTROTEKNİK",
+      "clipId": "6958",
+      "companyId": "174",
+      "productId": "269",
+      "clipName": "r_tudi_elektroteknik_23sn_060422",
+      "duration": 23,
+      "description": "W A Y"
+    },
+    {
+      "id": "136",
+      "name": "TUDİ ELEKTROTEKNİK RMZ",
+      "clipId": "6958",
+      "companyId": "174",
+      "productId": "270",
+      "clipName": "r_tudi_elektroteknik_23sn_060422",
+      "duration": 23,
+      "description": "R M Z"
+    },
+    {
+      "id": "137",
+      "name": "UKA MİMARLIK",
+      "clipId": "6972",
+      "companyId": "174",
+      "productId": "242",
+      "clipName": "r_uka_mimarlik_reklam_23sn_100822",
+      "duration": 23,
+      "description": "S İ L"
+    },
+    {
+      "id": "138",
+      "name": "USİMMO",
+      "clipId": "6977",
+      "companyId": "174",
+      "productId": "261",
+      "clipName": "r_usimmo_reklam_18sn_130422",
+      "duration": 18,
+      "description": ""
+    },
+    {
+      "id": "139",
+      "name": "VAROL TARIM",
+      "clipId": "6979",
+      "companyId": "174",
+      "productId": "242",
+      "clipName": "r_varol_tarim_22sn_070722",
+      "duration": 22,
+      "description": ""
+    },
+    {
+      "id": "140",
+      "name": "VERANDA KİNG",
+      "clipId": "6980",
+      "companyId": "174",
+      "productId": "246",
+      "clipName": "r_veranda_king_21sn_250123",
+      "duration": 21,
+      "description": "W A Y"
+    },
+    {
+      "id": "141",
+      "name": "VİLLA DURAK_RMZ",
+      "clipId": "21708",
+      "companyId": "174",
+      "productId": "269",
+      "clipName": "r_villa_durak_fethiye_26sn_220323",
+      "duration": 26,
+      "description": "R M Z"
+    },
+    {
+      "id": "142",
+      "name": "DURAK VİLLA RMZ",
+      "clipId": "21708",
+      "companyId": "174",
+      "productId": "270",
+      "clipName": "r_villa_durak_fethiye_26sn_220323",
+      "duration": 26,
+      "description": "R M Z"
+    },
+    {
+      "id": "143",
+      "name": "XSERVİCE PLUS RMZ",
+      "clipId": "6988",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_xserviceplus_reklam_32sn_050422",
+      "duration": 32,
+      "description": "XSERVİCE PLUS RMZ"
+    },
+    {
+      "id": "144",
+      "name": "XSERVİCEPLUS",
+      "clipId": "6988",
+      "companyId": "174",
+      "productId": "246",
+      "clipName": "r_xserviceplus_reklam_32sn_050422",
+      "duration": 32,
+      "description": "W A Y (TR SİL)"
+    },
+    {
+      "id": "145",
+      "name": "YCD YAPI",
+      "clipId": "6996",
+      "companyId": "171",
+      "productId": "237",
+      "clipName": "r_ycd_yapi_reklam_18sn_270420",
+      "duration": 18,
+      "description": "YAPI"
+    },
+    {
+      "id": "146",
+      "name": "YÜCEL MANAV",
+      "clipId": "7011",
+      "companyId": "174",
+      "productId": "267",
+      "clipName": "r_yucel_manav_25sn_240322",
+      "duration": 25,
+      "description": "17 03 24"
+    },
+    {
+      "id": "147",
+      "name": "ZARİF GİYİM",
+      "clipId": "7015",
+      "companyId": "174",
+      "productId": "263",
+      "clipName": "r_zarif_giyim_17sn_270223",
+      "duration": 17,
+      "description": ""
+    },
+    {
+      "id": "148",
+      "name": "REKLAM__ÇIKIŞ__BAYAN",
+      "clipId": "3533",
+      "companyId": "22",
+      "productId": "30",
+      "clipName": "reklam_bayan_cikis_2014",
+      "duration": 9,
+      "description": "ÇIKIŞ_BAYAN_JENERİK"
+    },
+    {
+      "id": "149",
+      "name": "REKLAM__GİRİŞ__BAYAN",
+      "clipId": "3534",
+      "companyId": "22",
+      "productId": "30",
+      "clipName": "reklam_bayan_giris_2014",
+      "duration": 9,
+      "description": "GİRİŞ_BAYAN_JENERİK"
+    },
+    {
+      "id": "150",
+      "name": "REKLAM__ÇIKIŞ__ÇOCUK",
+      "clipId": "3535",
+      "companyId": "22",
+      "productId": "30",
+      "clipName": "reklam_cocuk_cikis_2014",
+      "duration": 9,
+      "description": "ÇIKIŞ_ÇOCUK_JENERİK"
+    },
+    {
+      "id": "151",
+      "name": "REKLAM__GİRİŞ__ÇOCUK",
+      "clipId": "3536",
+      "companyId": "22",
+      "productId": "30",
+      "clipName": "reklam_cocuk_giris_2014",
+      "duration": 9,
+      "description": "GİRİŞ_ÇOCUK_JENERİK"
+    },
+    {
+      "id": "152",
+      "name": "REKLAM__ÇIKIŞ__DİNİ",
+      "clipId": "3537",
+      "companyId": "22",
+      "productId": "30",
+      "clipName": "reklam_dini_cikis_2014",
+      "duration": 9,
+      "description": "ÇIKIŞ_DİNİ_JENERİK"
+    },
+    {
+      "id": "153",
+      "name": "REKLAM__GİRİŞ__DİNİ",
+      "clipId": "3538",
+      "companyId": "22",
+      "productId": "30",
+      "clipName": "reklam_dini_giris_2014",
+      "duration": 9,
+      "description": "GİRİŞ_DİNİ_JENERİK"
+    },
+    {
+      "id": "154",
+      "name": "REKLAM__ÇIKIŞ__KÜLTÜREL",
+      "clipId": "3539",
+      "companyId": "22",
+      "productId": "30",
+      "clipName": "reklam_kulturel_cikis_2014",
+      "duration": 9,
+      "description": "ÇIKIŞ_KÜLTÜREL_JENERİK"
+    },
+    {
+      "id": "155",
+      "name": "REKLAM__GİRİŞ__KÜLTÜREL",
+      "clipId": "3540",
+      "companyId": "22",
+      "productId": "30",
+      "clipName": "reklam_kulturel_giris_2014",
+      "duration": 9,
+      "description": "GİRİŞ_KÜLTÜREL_JENERİK"
+    },
+    {
+      "id": "156",
+      "name": "REKLAM_ÇIKIŞ_WAY",
+      "clipId": "734",
+      "companyId": "22",
+      "productId": "30",
+      "clipName": "SemerkandWay_Reklam_Cikis",
+      "duration": 9,
+      "description": "- + - + - + - + - + -"
+    },
+    {
+      "id": "157",
+      "name": "REKLAM_GİRİŞ_WAY",
+      "clipId": "735",
+      "companyId": "22",
+      "productId": "30",
+      "clipName": "SemerkandWay_Reklam_Giris",
+      "duration": 9,
+      "description": "- + - + - + - + - + -"
+    },
+    {
+      "id": "159",
+      "name": "---WOOD LİNE",
+      "clipId": "26039",
+      "companyId": "174",
+      "productId": "263",
+      "clipName": "r_woodline_reklam_26sn_130825",
+      "duration": 26,
+      "description": "---WOOD LİNE"
+    },
+    {
+      "id": "160",
+      "name": "ADIYAMAN LEZZET ÇİĞKÖFTE",
+      "clipId": "26471",
+      "companyId": "174",
+      "productId": "271",
+      "clipName": "r_adiyaman_lezzet_ege_b_29sn_301125",
+      "duration": 29,
+      "description": ""
+    },
+    {
+      "id": "161",
+      "name": "ZARİF GİYİM",
+      "clipId": "7015",
+      "companyId": "174",
+      "productId": "271",
+      "clipName": "r_zarif_giyim_17sn_270223",
+      "duration": 17,
+      "description": ""
+    },
+    {
+      "id": "162",
+      "name": "---OF ÇAMLIK BUNGALOV",
+      "clipId": "26493",
+      "companyId": "174",
+      "productId": "271",
+      "clipName": "r_of_camlik_bungalov_27sn_251124",
+      "duration": 27,
+      "description": "---OF ÇAMLIK BUNGALOV"
+    },
+    {
+      "id": "163",
+      "name": "DİNÇEL KUYUMCULUK",
+      "clipId": "26496",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_dincel_kuyumculuk_31sn_251124",
+      "duration": 31,
+      "description": "DİNÇEL KUYUMCULUK"
+    },
+    {
+      "id": "164",
+      "name": "GÖÇ ENDÜSTRİYEL",
+      "clipId": "26497",
+      "companyId": "174",
+      "productId": "271",
+      "clipName": "r_goc_endustriyel_25_sn_180125",
+      "duration": 25,
+      "description": ""
+    },
+    {
+      "id": "165",
+      "name": "---GEMCİOGLU MOTORLU ARACLAR",
+      "clipId": "26498",
+      "companyId": "174",
+      "productId": "271",
+      "clipName": "r_gemcioglu_motor_senetli_26sn_130225",
+      "duration": 26,
+      "description": "---GEMCİOGLU MOTORLU ARACLAR"
+    },
+    {
+      "id": "166",
+      "name": "SİLLLLL_ÖZÇELİK EMLAK",
+      "clipId": "26499",
+      "companyId": "174",
+      "productId": "271",
+      "clipName": "r_ozcelik_emlak_26sn_260225",
+      "duration": 26,
+      "description": "SİLLLLL_ÖZÇELİK EMLAK"
+    },
+    {
+      "id": "167",
+      "name": "ŞÜKÜR ALÜMİNYUM",
+      "clipId": "21689",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_sukur_aluminyum_cam_balkon_29sn_280723",
+      "duration": 29,
+      "description": "ŞÜKÜR ALÜMİNYUM"
+    },
+    {
+      "id": "168",
+      "name": "DC ASANSÖR",
+      "clipId": "26494",
+      "companyId": "174",
+      "productId": "271",
+      "clipName": "r_dc_asansor_reklam_28sn_210325",
+      "duration": 28,
+      "description": ""
+    },
+    {
+      "id": "169",
+      "name": "PINARLI GAYRİMENKUL",
+      "clipId": "21673",
+      "companyId": "174",
+      "productId": "271",
+      "clipName": "r_pinarli_gayrimenkul_25sn_240323",
+      "duration": 25,
+      "description": ""
+    },
+    {
+      "id": "170",
+      "name": "DURAK VİLLA",
+      "clipId": "21708",
+      "companyId": "174",
+      "productId": "271",
+      "clipName": "r_villa_durak_fethiye_26sn_220323",
+      "duration": 26,
+      "description": ""
+    },
+    {
+      "id": "171",
+      "name": "KAVAKÖY DONDURMA",
+      "clipId": "26495",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_kavakoy_dondurma_24sn_300725",
+      "duration": 24,
+      "description": "KAVAKÖY DONDURMA"
+    },
+    {
+      "id": "172",
+      "name": "DUHA İLETİŞİM",
+      "clipId": "26489",
+      "companyId": "174",
+      "productId": "271",
+      "clipName": "r_duha_iletisim_22sn_130825",
+      "duration": 22,
+      "description": ""
+    },
+    {
+      "id": "173",
+      "name": "---WOOD LİNE",
+      "clipId": "26491",
+      "companyId": "174",
+      "productId": "271",
+      "clipName": "r_woodline_reklam_26sn_130825",
+      "duration": 26,
+      "description": "---WOOD LİNE"
+    },
+    {
+      "id": "174",
+      "name": "KARAHASAN MOBİLYA",
+      "clipId": "26490",
+      "companyId": "174",
+      "productId": "271",
+      "clipName": "r_karahasanoglu_mobilya_27sn_130825",
+      "duration": 27,
+      "description": ""
+    },
+    {
+      "id": "175",
+      "name": "SELİNE ÇİÇEKÇİLİK",
+      "clipId": "26470",
+      "companyId": "174",
+      "productId": "271",
+      "clipName": "r_selina_cicekcilik_23sn_081025",
+      "duration": 23,
+      "description": ""
+    },
+    {
+      "id": "176",
+      "name": "ASAF SU ARITMA",
+      "clipId": "26466",
+      "companyId": "174",
+      "productId": "271",
+      "clipName": "r_asaf_su_aritma_indirim_23sn_301125",
+      "duration": 23,
+      "description": ""
+    },
+    {
+      "id": "177",
+      "name": "LİDER BOYA",
+      "clipId": "26464",
+      "companyId": "174",
+      "productId": "271",
+      "clipName": "r_lider_boya_23sn_081025",
+      "duration": 23,
+      "description": ""
+    },
+    {
+      "id": "178",
+      "name": "ER ISI METAL",
+      "clipId": "26479",
+      "companyId": "174",
+      "productId": "271",
+      "clipName": "r_er_isi_metal_reklam_30sn_301125",
+      "duration": 30,
+      "description": ""
+    },
+    {
+      "id": "179",
+      "name": "NİZAM KLİMA",
+      "clipId": "26469",
+      "companyId": "174",
+      "productId": "271",
+      "clipName": "r_nizam_klima_26sn_301125",
+      "duration": 26,
+      "description": ""
+    },
+    {
+      "id": "180",
+      "name": "S İ L - DURAK RESTORAN",
+      "clipId": "26463",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_durak_kebap_reklam_23sn_081025",
+      "duration": 23,
+      "description": "S İ L - DURAK RESTORAN"
+    },
+    {
+      "id": "181",
+      "name": "GÜNEY TİCARET",
+      "clipId": "26480",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_guneylioglu_ticaret_24sn_081025",
+      "duration": 24,
+      "description": "GÜNEY TİCARET"
+    },
+    {
+      "id": "182",
+      "name": "EROL ÇELİK YAPILAR",
+      "clipId": "26468",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_erol_celik_yapilar_23sn_301125",
+      "duration": 23,
+      "description": "EROL ÇELİK YAPILAR"
+    },
+    {
+      "id": "183",
+      "name": "SİİİLLL - MEC DORSE TRAYLER",
+      "clipId": "26467",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_mec_dorse_treyler_28sn_301125",
+      "duration": 28,
+      "description": "SİİİLLL - MEC DORSE TRAYLER"
+    },
+    {
+      "id": "184",
+      "name": "ALTIN PLAZA",
+      "clipId": "26473",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_altin_plaza_27sn_301125",
+      "duration": 27,
+      "description": "ALTIN PLAZA"
+    },
+    {
+      "id": "185",
+      "name": "TEKNO DÜNYAM",
+      "clipId": "26465",
+      "companyId": "174",
+      "productId": "271",
+      "clipName": "r_mutes_yazilim_teknodunya_32_301125",
+      "duration": 32,
+      "description": ""
+    },
+    {
+      "id": "186",
+      "name": "MUTES YAZILIM",
+      "clipId": "26474",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_mutes_yazilim_etiket_29sn_301125",
+      "duration": 29,
+      "description": "MUTES YAZILIM"
+    },
+    {
+      "id": "187",
+      "name": "- WESTWİND",
+      "clipId": "26500",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_westwind_gmbh_36sn_100124",
+      "duration": 36,
+      "description": "- WESTWİND"
+    },
+    {
+      "id": "188",
+      "name": "SİLLLL_ERDOS",
+      "clipId": "6471",
+      "companyId": "174",
+      "productId": "272",
+      "clipName": "r_erdos_gmbh_reklam_23sn_120422",
+      "duration": 23,
+      "description": "SİLLLL_ERDOS"
+    },
+    {
+      "id": "189",
+      "name": "MARS GMBH",
+      "clipId": "26501",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_mars_gmbh_yeni_26sn_140324",
+      "duration": 26,
+      "description": "MARS GMBH"
+    },
+    {
+      "id": "190",
+      "name": "ÖZTÜRK GALA GMBH",
+      "clipId": "26502",
+      "companyId": "174",
+      "productId": "272",
+      "clipName": "r_ozturk_gala_gmbh_29sn_140324",
+      "duration": 29,
+      "description": ""
+    },
+    {
+      "id": "191",
+      "name": "PARS GMBH",
+      "clipId": "26503",
+      "companyId": "174",
+      "productId": "272",
+      "clipName": "r_pars_gmbh_reklam_21sn_090422",
+      "duration": 21,
+      "description": ""
+    },
+    {
+      "id": "192",
+      "name": "ERAS GMBH",
+      "clipId": "26504",
+      "companyId": "174",
+      "productId": "272",
+      "clipName": "r_eras_gmbh_21sn_100422",
+      "duration": 21,
+      "description": ""
+    },
+    {
+      "id": "193",
+      "name": "TUDİ ELEKTROTEKNİK",
+      "clipId": "6958",
+      "companyId": "174",
+      "productId": "272",
+      "clipName": "r_tudi_elektroteknik_23sn_060422",
+      "duration": 23,
+      "description": ""
+    },
+    {
+      "id": "194",
+      "name": "KUKA GAYRİMENKUL",
+      "clipId": "26506",
+      "companyId": "174",
+      "productId": "272",
+      "clipName": "r_kuka_gayrimenkul_reklam_30sn_200324",
+      "duration": 30,
+      "description": ""
+    },
+    {
+      "id": "195",
+      "name": "EFE BAU",
+      "clipId": "26507",
+      "companyId": "174",
+      "productId": "272",
+      "clipName": "r_efebau_reklam_2025_37sn_150325",
+      "duration": 37,
+      "description": ""
+    },
+    {
+      "id": "196",
+      "name": "YALIPOR",
+      "clipId": "26656",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_yalipor_reklam_32sn_240924",
+      "duration": 32,
+      "description": "YALIPOR"
+    },
+    {
+      "id": "197",
+      "name": "YATU GAYRİMENKUL",
+      "clipId": "26657",
+      "companyId": "174",
+      "productId": "271",
+      "clipName": "r_yatu_gayrimenkul_35sn_040625",
+      "duration": 35,
+      "description": ""
+    },
+    {
+      "id": "198",
+      "name": "MAKSAN MEKATRONİK",
+      "clipId": "26658",
+      "companyId": "174",
+      "productId": "271",
+      "clipName": "r_maksan_mekatronik_26sn_090923",
+      "duration": 26,
+      "description": ""
+    },
+    {
+      "id": "199",
+      "name": "- TUDİ ELEKTROTEKNİK",
+      "clipId": "26659",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_yt_holding_reklam_41sn_010325",
+      "duration": 41,
+      "description": "- TUDİ ELEKTROTEKNİK"
+    },
+    {
+      "id": "200",
+      "name": "RB BAU",
+      "clipId": "26660",
+      "companyId": "174",
+      "productId": "271",
+      "clipName": "r_rg_bau_reklam_20sn_010325",
+      "duration": 20,
+      "description": ""
+    },
+    {
+      "id": "201",
+      "name": "EFE BAU",
+      "clipId": "26661",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_efebau_reklam_2025_37sn_150325",
+      "duration": 37,
+      "description": "EFE BAU"
+    },
+    {
+      "id": "202",
+      "name": "SİLLLL------ALEMLERE RAHMET ABONE",
+      "clipId": "26669",
+      "companyId": "174",
+      "productId": "271",
+      "clipName": "r_2026_abone_alemlere_rahmet_081225",
+      "duration": 49,
+      "description": "SİLLLL------ALEMLERE RAHMET ABONE"
+    },
+    {
+      "id": "203",
+      "name": "SİLLLL------ABONE_AİLE_2026",
+      "clipId": "26666",
+      "companyId": "174",
+      "productId": "271",
+      "clipName": "r_abone_2026_aile_081225",
+      "duration": 41,
+      "description": "SİLLLL------ABONE_AİLE_2026"
+    },
+    {
+      "id": "204",
+      "name": "SİLLLL------MOSTAR ABONE 2026",
+      "clipId": "26670",
+      "companyId": "174",
+      "productId": "271",
+      "clipName": "r_abone_2026_mostar_081225",
+      "duration": 34,
+      "description": "SİLLLL------MOSTAR ABONE 2026"
+    },
+    {
+      "id": "205",
+      "name": "SİLLLL------ŞEKER AGACI ABONE",
+      "clipId": "26665",
+      "companyId": "174",
+      "productId": "271",
+      "clipName": "r_abone_2026_sekeragaci_081225",
+      "duration": 25,
+      "description": "SİLLLL------ŞEKER AGACI ABONE"
+    },
+    {
+      "id": "206",
+      "name": "SİLLLL------SEMERRKAND ABONE",
+      "clipId": "26668",
+      "companyId": "174",
+      "productId": "271",
+      "clipName": "r_abone_2026_semerkand_081225",
+      "duration": 52,
+      "description": "SİLLLL------SEMERRKAND ABONE"
+    },
+    {
+      "id": "207",
+      "name": "ELİT GRANİT",
+      "clipId": "26689",
+      "companyId": "174",
+      "productId": "271",
+      "clipName": "r_elit_granit_reklam_32sn_131225",
+      "duration": 32,
+      "description": ""
+    },
+    {
+      "id": "208",
+      "name": "KAVEDO",
+      "clipId": "26772",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_kavedo_reklam_25sn_050126",
+      "duration": 25,
+      "description": "KAVEDO"
+    },
+    {
+      "id": "209",
+      "name": "OSMANLI SOFRASI",
+      "clipId": "27849",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_osmanli_sofrasi_22_yeni_050326",
+      "duration": 22,
+      "description": "OSMANLI SOFRASI"
+    },
+    {
+      "id": "210",
+      "name": "SİLLLL------MAVİ FİDAN 2026 SANA DEĞER",
+      "clipId": "26774",
+      "companyId": "174",
+      "productId": "274",
+      "clipName": "r_mavi_fidan_abone_2026_28sn_050126",
+      "duration": 28,
+      "description": "SİLLLL------MAVİ FİDAN 2026 SANA DEĞER"
+    },
+    {
+      "id": "211",
+      "name": "S İ L _GENÇ OKUR 2026 SANA DEĞER",
+      "clipId": "26773",
+      "companyId": "174",
+      "productId": "274",
+      "clipName": "r_genc_okur_abone_2026_32sn_050126",
+      "duration": 33,
+      "description": "S İ L _GENÇ OKUR 2026 SANA DEĞER"
+    },
+    {
+      "id": "212",
+      "name": "SİLLL_NAKIŞ KANDİL SİMİDİ",
+      "clipId": "26833",
+      "companyId": "174",
+      "productId": "184",
+      "clipName": "r_nakis_gida_kandil_simidi_67sn_220126",
+      "duration": 67,
+      "description": "SİLLL_NAKIŞ KANDİL SİMİDİ"
+    },
+    {
+      "id": "213",
+      "name": "ROLKON OTOMASYON",
+      "clipId": "26834",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_rolkon_otomasyon_2025_220126",
+      "duration": 29,
+      "description": "ROLKON OTOMASYON"
+    },
+    {
+      "id": "214",
+      "name": "SİLLL_ÇOCUK KANDİL SİMİİDİ",
+      "clipId": "26846",
+      "companyId": "44",
+      "productId": "184",
+      "clipName": "r_nakis_cocuk_kandil_simidi_21sn_260126",
+      "duration": 21,
+      "description": "SİLLL_ÇOCUK KANDİL SİMİİDİ"
+    },
+    {
+      "id": "215",
+      "name": "ERDOS GMBH",
+      "clipId": "26864",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_erdos_gmbh_22sn_290126",
+      "duration": 22,
+      "description": "ERDOS GMBH"
+    },
+    {
+      "id": "216",
+      "name": "KARAMEL PASTANESİ",
+      "clipId": "26866",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_karamel_pastanesi_28sn_071024",
+      "duration": 28,
+      "description": "KARAMEL PASTANESİ"
+    },
+    {
+      "id": "217",
+      "name": "BİRBEN KAHVE",
+      "clipId": "26867",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_birben_kahve_reklam_27sn_181024",
+      "duration": 27,
+      "description": "BİRBEN KAHVE"
+    },
+    {
+      "id": "218",
+      "name": "BRB PARFUM",
+      "clipId": "26869",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_brb_parfume_reklam_27sn_071024",
+      "duration": 27,
+      "description": "BRB PARFUM"
+    },
+    {
+      "id": "219",
+      "name": "SİLLLL------DERGİLER HEDİYE ÇEKİ",
+      "clipId": "26922",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_dergiler_hediye_ceki_29sn_120226",
+      "duration": 29,
+      "description": "SİLLLL------DERGİLER HEDİYE ÇEKİ"
+    },
+    {
+      "id": "220",
+      "name": "GAPEX",
+      "clipId": "27032",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_gapex_reklam_32sn_181024",
+      "duration": 32,
+      "description": ""
+    },
+    {
+      "id": "221",
+      "name": "RG BAU",
+      "clipId": "27033",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_rg_bau_reklam_20sn_010325",
+      "duration": 20,
+      "description": ""
+    },
+    {
+      "id": "222",
+      "name": "REGENBOGEN",
+      "clipId": "27034",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_regenbogen_realestate_21sn_200224",
+      "duration": 21,
+      "description": ""
+    },
+    {
+      "id": "223",
+      "name": "SİLLL     -    BEŞİR_RAMAZAN_2026",
+      "clipId": "27038",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_besir_dernegi_ramazan_83sn_190226",
+      "duration": 83,
+      "description": "SİLLL     -    BEŞİR_RAMAZAN_2026"
+    },
+    {
+      "id": "224",
+      "name": "HUDA VERMİTLUNG",
+      "clipId": "27035",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_huda_vermitltung_27sn_280224",
+      "duration": 27,
+      "description": ""
+    },
+    {
+      "id": "225",
+      "name": "SİLLL     -    SEMERKAND KİTAP İMAJ",
+      "clipId": "27043",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_semerkand_kitap_imaj_44sn_190226",
+      "duration": 44,
+      "description": "SİLLL     -    SEMERKAND KİTAP İMAJ"
+    },
+    {
+      "id": "226",
+      "name": "SİLLL     -    SEMERKAND_KİTAP_PROMO",
+      "clipId": "27048",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_semerkand_kitap_promosyon_35sn_190226",
+      "duration": 35,
+      "description": "SİLLL     -    SEMERKAND_KİTAP_PROMO"
+    },
+    {
+      "id": "227",
+      "name": "SEFAM CATERİNG",
+      "clipId": "27050",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_sefam_catering_35sn_190226",
+      "duration": 35,
+      "description": ""
+    },
+    {
+      "id": "228",
+      "name": "SİLLL     -    NAKIŞ KUMANYA_UZUN",
+      "clipId": "27153",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_nakis_gida_kumanya_2_48sn_200226",
+      "duration": 48,
+      "description": "SİLLL     -    NAKIŞ KUMANYA_UZUN"
+    },
+    {
+      "id": "229",
+      "name": "SİLLL     -     NAKIŞ KUMANYA KISA",
+      "clipId": "27152",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_nakis_gida_kumanya_2_28sn_200226",
+      "duration": 28,
+      "description": "SİLLL     -     NAKIŞ KUMANYA KISA"
+    },
+    {
+      "id": "230",
+      "name": "RECİSTAN TURİZM",
+      "clipId": "27053",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_recistan_turizm_38sn_190226",
+      "duration": 38,
+      "description": ""
+    },
+    {
+      "id": "231",
+      "name": "SEMERŞAH TUR_HAC",
+      "clipId": "27054",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_semersah_tur_2026_hac_51sn_190226",
+      "duration": 51,
+      "description": ""
+    },
+    {
+      "id": "232",
+      "name": "MO XCLUSİVE",
+      "clipId": "27384",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_moexclusive_reklam_32sn_230226",
+      "duration": 32,
+      "description": "MO XCLUSİVE"
+    },
+    {
+      "id": "233",
+      "name": "HYPERUS GMBH",
+      "clipId": "27851",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_hyperus_reklam_30sn_050326",
+      "duration": 30,
+      "description": "HYPERUS GMBH"
+    },
+    {
+      "id": "234",
+      "name": "- PREMİUM SELECTİON AUTO",
+      "clipId": "27068",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_premium_selection_auto_33sn_200324",
+      "duration": 33,
+      "description": "- PREMİUM SELECTİON AUTO"
+    },
+    {
+      "id": "235",
+      "name": "HİDRO EREN VİNÇ",
+      "clipId": "27364",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_hidroeren_vinc_23sn_270624",
+      "duration": 23,
+      "description": ""
+    },
+    {
+      "id": "236",
+      "name": "HİDRO EREN VİNÇ",
+      "clipId": "27364",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_hidroeren_vinc_23sn_270624",
+      "duration": 23,
+      "description": ""
+    },
+    {
+      "id": "237",
+      "name": "SİLLL     -    İHYA ULUMUDDİN KAMP",
+      "clipId": "27635",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_s-yay_ihyau-ulumiddin_rmz_kamp_41sn_260226",
+      "duration": 41,
+      "description": "SİLLL     -    İHYA ULUMUDDİN KAMP"
+    },
+    {
+      "id": "238",
+      "name": "TABAR LOJİSTİK",
+      "clipId": "27854",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_tabar_lojistik_reklam_31sn_050326",
+      "duration": 31,
+      "description": ""
+    },
+    {
+      "id": "239",
+      "name": "SİLLL     -    FETHUR RABBANİ",
+      "clipId": "27852",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_s-yay_fethur_rabbani_42sn_050326",
+      "duration": 42,
+      "description": "SİLLL     -    FETHUR RABBANİ"
+    },
+    {
+      "id": "240",
+      "name": "SİLLL     -    MUSHAF-I ŞERİF",
+      "clipId": "27850",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_s-yay_mushafi_serif_32sn_050326",
+      "duration": 32,
+      "description": "SİLLL     -    MUSHAF-I ŞERİF"
+    },
+    {
+      "id": "241",
+      "name": "EL MEDİNE",
+      "clipId": "27848",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_el_medine_reklam_23_050326",
+      "duration": 23,
+      "description": ""
+    },
+    {
+      "id": "242",
+      "name": "SİLLL     -    DELAİLÜL HAYRAT",
+      "clipId": "27855",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_s-yay_delailul_hayrat_46sn_050326",
+      "duration": 46,
+      "description": "SİLLL     -    DELAİLÜL HAYRAT"
+    },
+    {
+      "id": "243",
+      "name": "TABAR LOJİSTİK",
+      "clipId": "27936",
+      "companyId": "174",
+      "productId": "275",
+      "clipName": "r_tabar_lojistik_hayirli_ramazanlar_100326",
+      "duration": 10,
+      "description": ""
+    },
+    {
+      "id": "244",
+      "name": "GAPEX",
+      "clipId": "28274",
+      "companyId": "174",
+      "productId": "263",
+      "clipName": "r_gapex_yeni_reklam_270426",
+      "duration": 40,
+      "description": ""
+    },
+    {
+      "id": "245",
+      "name": "S İ L _ BEŞİR KURBAN - 20026",
+      "clipId": "28339",
+      "companyId": "174",
+      "productId": "263",
+      "clipName": "r_besir_kurbanim_sana_58sn_080526",
+      "duration": 58,
+      "description": "S İ L _ BEŞİR KURBAN - 20026"
+    },
+    {
+      "id": "246",
+      "name": "AİLE DERGİSİ ÖZEL SAYI",
+      "clipId": "28548",
+      "companyId": "174",
+      "productId": "166",
+      "clipName": "r_aile_Dergisi_ozel_sayi_47sn_030726",
+      "duration": 47,
+      "description": ""
+    },
+    {
+      "id": "247",
+      "name": "GÖKTÜRK PROJE",
+      "clipId": "28547",
+      "companyId": "174",
+      "productId": "263",
+      "clipName": "r_gokturk_proje_dan_38sn_030726",
+      "duration": 38,
+      "description": ""
+    },
+    {
+      "id": "248",
+      "name": "AİLE DERGİSİ - TEMMUZ",
+      "clipId": "28549",
+      "companyId": "174",
+      "productId": "263",
+      "clipName": "r_aile_dergisi_temmuz_43sn_060726",
+      "duration": 43,
+      "description": ""
+    },
+    {
+      "id": "249",
+      "name": "ALEMLERE RAHMET 7 CİLT",
+      "clipId": "28550",
+      "companyId": "174",
+      "productId": "263",
+      "clipName": "r_alemlere_rahmet_7_cilt_56sn_060726",
+      "duration": 56,
+      "description": ""
+    },
+    {
+      "id": "250",
+      "name": "SEMERKAND TEMMUZ",
+      "clipId": "28551",
+      "companyId": "174",
+      "productId": "166",
+      "clipName": "r_semerkand_temmuz_35sn_070726",
+      "duration": 35,
+      "description": ""
+    },
+    {
+      "id": "251",
+      "name": "MAVİFİDAN TEMMUZ",
+      "clipId": "28552",
+      "companyId": "174",
+      "productId": "166",
+      "clipName": "r_mavifidan_temmuz_30sn_070726",
+      "duration": 30,
+      "description": ""
+    },
+    {
+      "id": "252",
+      "name": "ŞEKERAĞACI TEMMUZ",
+      "clipId": "28553",
+      "companyId": "174",
+      "productId": "166",
+      "clipName": "r_sekeragaci_temmuz_28sn_070726",
+      "duration": 28,
+      "description": ""
+    },
+    {
+      "id": "253",
+      "name": "MOSTAR TEMMUZ",
+      "clipId": "28554",
+      "companyId": "174",
+      "productId": "166",
+      "clipName": "r_mostar_temmuz_34sn_070726",
+      "duration": 34,
+      "description": ""
+    }
+  ],
+  "reservations": []
+}

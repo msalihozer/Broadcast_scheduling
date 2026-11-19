@@ -1,0 +1,40 @@
+# Bağımlılıklar ve Derleme Çıktıları
+node_modules/
+dist/
+dist-ssr/
+
+# GİZLİ ORTAM DEĞİŞKENLERİ, ŞİFRELER, SUNUCU SCRIPTLERİ VE İÇ DOKÜMANLAR (Asla Git'e gönderilmez!)
+.env
+.env.*
+!.env.example
+deploy/
+KURULUM_VE_DOCKER_REHBERI.md
+MIMARI_VE_SISTEM_HARITASI.md
+sqlden/
+yayinplanlama/
+document/
+backend/analysis_results.md
+backend/clip_names.json
+dini_program_listesi.txt
+tum_kategoriler_program_listesi.txt
+src/data/mockExternalDb.json
+src/data/runtime_draft_schedule_*.json
+
+# Geçici Önbellek, Yedekler, Kullanıcı & Oturum Kayıtları
+backend_cache.json
+backend/backups/
+backend/data/managed_users.json
+backend/data/system_logs.json
+backend/data/role_templates.json
+backend/temp_uploaded_*.xlsx
+backend/__pycache__/
+*.pyc
+*.sql
+*.dump
+
+# Loglar ve Sistem Dosyaları
+logs
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db

@@ -1,0 +1,39 @@
+# ==============================================================================
+# UYGULAMA KONTEYNERİ (docker-compose.app.yml)
+# Çalıştırma komutu:
+#   docker compose -f docker-compose.app.yml up -d --build
+# ==============================================================================
+services:
+  app:
+    build: .
+    container_name: yayin_planlama_app
+    restart: always
+    environment:
+      PORT: ${PORT:-3001}
+      APP_SERVER_HOST: ${APP_SERVER_HOST:-127.0.0.1}
+      BACKUP_SERVER_HOST: ${BACKUP_SERVER_HOST:-127.0.0.1}
+      PG_HOST: ${PG_HOST:-127.0.0.1}
+      PG_PORT: ${PG_PORT:-5432}
+      PG_DATABASE: ${PG_DATABASE:-yayin_planlama}
+      PG_USER: ${PG_USER:-postgres}
+      PG_PASSWORD: ${PG_PASSWORD:-}
+      MSSQL_HOST: ${MSSQL_HOST:-127.0.0.1}
+      MSSQL_PORT: ${MSSQL_PORT:-1433}
+      MSSQL_DATABASE: ${MSSQL_DATABASE:-MAM_DB}
+      MSSQL_USER: ${MSSQL_USER:-}
+      MSSQL_PASSWORD: ${MSSQL_PASSWORD:-}
+      MAM_SMB_HOST: ${MAM_SMB_HOST:-127.0.0.1}
+      MAM_HIGHRES_PATH: ${MAM_HIGHRES_PATH:-/mnt/media_highres}
+      YAYIN_ARSIV_PATH: ${YAYIN_ARSIV_PATH:-/mnt/media_archive}
+      SERVE_STATIC: ${SERVE_STATIC:-true}
+    ports:
+      - "0.0.0.0:3001:3001"
+      - "0.0.0.0:5173:5173"
+    volumes:
+      - ./:/app
+      - /app/node_modules
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3001/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5

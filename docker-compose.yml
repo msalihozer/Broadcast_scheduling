@@ -1,0 +1,69 @@
+services:
+  # ============================================================================
+  # 1. YEREL VERİTABANI SERVİSİ (PostgreSQL 16)
+  # ============================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: yayin_planlama_db
+    restart: always
+    environment:
+      POSTGRES_DB: ${PG_DATABASE:-yayin_planlama}
+      POSTGRES_USER: ${PG_USER:-postgres}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:?Lutfen .env dosyasinda PG_PASSWORD tanimlayin}
+      TZ: Europe/Istanbul
+    ports:
+      - "${PG_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./backend/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PG_USER:-postgres} -d ${PG_DATABASE:-yayin_planlama}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================================
+  # 2. UYGULAMA SERVİSİ (Frontend Vite :5173 + Backend Express & Static :3001)
+  # ============================================================================
+  app:
+    build: .
+    container_name: yayin_planlama_app
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PORT: ${PORT:-3001}
+      # Yerel PostgreSQL Bağlantısı (Docker içi servis adı: postgres)
+      PG_HOST: postgres
+      PG_PORT: 5432
+      PG_DATABASE: ${PG_DATABASE:-yayin_planlama}
+      PG_USER: ${PG_USER:-postgres}
+      PG_PASSWORD: ${PG_PASSWORD:-}
+      # Uzak MAM MSSQL Bağlantısı
+      MSSQL_HOST: ${MSSQL_HOST:-127.0.0.1}
+      MSSQL_PORT: ${MSSQL_PORT:-1433}
+      MSSQL_DATABASE: ${MSSQL_DATABASE:-MAM_DB}
+      MSSQL_USER: ${MSSQL_USER:-}
+      MSSQL_PASSWORD: ${MSSQL_PASSWORD:-}
+      # Medya Sunucusu (SMB / CIFS Mount) Yolları
+      MAM_SMB_HOST: ${MAM_SMB_HOST:-127.0.0.1}
+      MAM_HIGHRES_PATH: ${MAM_HIGHRES_PATH:-/mnt/media_highres}
+      YAYIN_ARSIV_PATH: ${YAYIN_ARSIV_PATH:-/mnt/media_archive}
+      # Production Statik Dosya Sunumu
+      SERVE_STATIC: ${SERVE_STATIC:-true}
+    ports:
+      - "${PORT:-3001}:3001"
+      - "5173:5173"
+    volumes:
+      - ./:/app
+      - /app/node_modules
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3001/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
+    driver: local

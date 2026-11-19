@@ -1,0 +1,8 @@
+node_modules
+dist
+.git
+backend_cache.json
+backend/temp_uploaded_*.xlsx
+backend/__pycache__
+*.log
+

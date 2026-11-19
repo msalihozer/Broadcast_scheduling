@@ -1,0 +1,5070 @@
+{
+  "2025-10-27": {
+    "date": "27 Ekim 2025",
+    "dayName": "Pazartesi",
+    "programs": [],
+    "isStage1Locked": false,
+    "isStage2Locked": false
+  },
+  "2025-10-28": {
+    "date": "28 Ekim 2025",
+    "dayName": "Salı",
+    "programs": [],
+    "isStage1Locked": false,
+    "isStage2Locked": false
+  },
+  "2025-10-29": {
+    "date": "29 Ekim 2025",
+    "dayName": "Çarşamba",
+    "programs": [],
+    "isStage1Locked": false,
+    "isStage2Locked": false
+  },
+  "2025-10-30": {
+    "date": "30 Ekim 2025",
+    "dayName": "Perşembe",
+    "programs": [],
+    "isStage1Locked": false,
+    "isStage2Locked": false
+  },
+  "2025-10-31": {
+    "date": "31 Ekim 2025",
+    "dayName": "Cuma",
+    "programs": [],
+    "isStage1Locked": false,
+    "isStage2Locked": false
+  },
+  "2025-11-01": {
+    "date": "1 Kasım 2025",
+    "dayName": "Cumartesi",
+    "programs": [],
+    "isStage1Locked": false,
+    "isStage2Locked": false
+  },
+  "2025-11-02": {
+    "date": "2 Kasım 2025",
+    "dayName": "Pazar",
+    "programs": [],
+    "isStage1Locked": false,
+    "isStage2Locked": false
+  },
+  "2026-09-28": {
+    "date": "28 Eylül 2026",
+    "dayName": "Pazartesi",
+    "programs": []
+  },
+  "2026-09-29": {
+    "date": "29 Eylül 2026",
+    "dayName": "Salı",
+    "programs": []
+  },
+  "2026-09-30": {
+    "date": "30 Eylül 2026",
+    "dayName": "Çarşamba",
+    "programs": []
+  },
+  "2026-10-01": {
+    "date": "1 Ekim 2026",
+    "dayName": "Perşembe",
+    "programs": []
+  },
+  "2026-10-02": {
+    "date": "2 Ekim 2026",
+    "dayName": "Cuma",
+    "programs": []
+  },
+  "2026-10-03": {
+    "date": "3 Ekim 2026",
+    "dayName": "Cumartesi",
+    "programs": []
+  },
+  "2026-10-04": {
+    "date": "4 Ekim 2026",
+    "dayName": "Pazar",
+    "programs": []
+  },
+  "2026-10-26": {
+    "date": "26 Ekim 2026",
+    "dayName": "Pazartesi",
+    "programs": [
+      {
+        "startTime": "00:00",
+        "endTime": "00:30",
+        "title": "İlim Dersleri- TECVİD",
+        "rawTitle": "İlim Dersleri- Tecvid - 65",
+        "episode": "65",
+        "host": "65",
+        "topic": "",
+        "category": "Dini / İlim",
+        "categoryColor": "#10b981",
+        "categoryBadge": "İlim",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 1,
+        "id": "prog_2026-10-26_01",
+        "instanceId": "inst_2026-10-26_01",
+        "startMinute": 0,
+        "endMinute": 30,
+        "duration": 30
+      },
+      {
+        "startTime": "00:30",
+        "endTime": "01:30",
+        "title": "BEŞ VAKİT BİR ŞEHİR",
+        "rawTitle": "BEŞ VAKİT BİR ŞEHİR-5",
+        "episode": "5",
+        "host": "Bursa",
+        "topic": "",
+        "category": "Kültürel",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Kültü",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 2,
+        "id": "prog_2026-10-26_02",
+        "instanceId": "inst_2026-10-26_02",
+        "startMinute": 30,
+        "endMinute": 90,
+        "duration": 60
+      },
+      {
+        "startTime": "01:30",
+        "endTime": "02:00",
+        "title": "HATTIN İZİNDE",
+        "rawTitle": "HATTIN İZİNDE - 7",
+        "episode": "7",
+        "host": "",
+        "topic": "",
+        "category": "Kültür / Tarih",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Kültür",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 3,
+        "id": "prog_2026-10-26_03",
+        "instanceId": "inst_2026-10-26_03",
+        "startMinute": 90,
+        "endMinute": 120,
+        "duration": 30
+      },
+      {
+        "startTime": "02:00",
+        "endTime": "02:30",
+        "title": "SON İNCİ",
+        "rawTitle": "SON İNCİ - 29",
+        "episode": "29",
+        "host": "",
+        "topic": "",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 4,
+        "id": "prog_2026-10-26_04",
+        "instanceId": "inst_2026-10-26_04",
+        "startMinute": 120,
+        "endMinute": 150,
+        "duration": 30
+      },
+      {
+        "startTime": "02:30",
+        "endTime": "04:30",
+        "title": "KISAS-I ENBİYA",
+        "rawTitle": "KISAS-I ENBİYA  - 65",
+        "episode": "65",
+        "host": "65",
+        "topic": "Hakan Öner - Hz.. Muhammed-3",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 5,
+        "id": "prog_2026-10-26_05",
+        "instanceId": "inst_2026-10-26_05",
+        "startMinute": 150,
+        "endMinute": 270,
+        "duration": 120
+      },
+      {
+        "startTime": "04:30",
+        "endTime": "05:00",
+        "title": "Dolgu Kuşağı",
+        "rawTitle": "Kasideler + Aşr-ı Şerifler",
+        "episode": "",
+        "host": "",
+        "topic": "Kullanılabilir Seçenekler: Kısa Program, Kaside, Aşr-ı Şerif",
+        "category": "Dolgu Kuşağı",
+        "categoryColor": "#06b6d4",
+        "categoryBadge": "Dolgu Kuşağı",
+        "isKisaSlot": true,
+        "isLive": false,
+        "availableOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "selectedOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "order": 6,
+        "id": "prog_2026-10-26_06",
+        "instanceId": "inst_2026-10-26_06",
+        "startMinute": 270,
+        "endMinute": 300,
+        "duration": 30
+      },
+      {
+        "startTime": "05:00",
+        "endTime": "06:00",
+        "title": "DELAİL-ÜL HAYRAT",
+        "rawTitle": "DELAİL-ÜL HAYRAT",
+        "episode": "",
+        "host": "Pazartesi",
+        "topic": "",
+        "category": "Dini / İlim",
+        "categoryColor": "#10b981",
+        "categoryBadge": "İlim",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 7,
+        "id": "prog_2026-10-26_07",
+        "instanceId": "inst_2026-10-26_07",
+        "startMinute": 300,
+        "endMinute": 360,
+        "duration": 60
+      },
+      {
+        "startTime": "06:00",
+        "endTime": "07:00",
+        "title": "HATM-İ ŞERİF",
+        "rawTitle": "HATM-İ ŞERİF",
+        "episode": "",
+        "host": "Kerim Öztürk - Cüz- 27",
+        "topic": "",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 8,
+        "id": "prog_2026-10-26_08",
+        "instanceId": "inst_2026-10-26_08",
+        "startMinute": 360,
+        "endMinute": 420,
+        "duration": 60
+      },
+      {
+        "startTime": "07:00",
+        "endTime": "08:30",
+        "title": "TEFSİR-İ MEVAKİB",
+        "rawTitle": "TEFSİR-İ MEVAKİB",
+        "episode": "",
+        "host": "Cüz - 27",
+        "topic": "Ses: Cengiz Demir",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 9,
+        "id": "prog_2026-10-26_09",
+        "instanceId": "inst_2026-10-26_09",
+        "startMinute": 420,
+        "endMinute": 510,
+        "duration": 90
+      },
+      {
+        "startTime": "08:30",
+        "endTime": "09:30",
+        "title": "NEŞELİ PETEK",
+        "rawTitle": "NEŞELİ PETEK - 17",
+        "episode": "17",
+        "host": "",
+        "topic": "",
+        "category": "Çocuk",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Çocuk",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 10,
+        "id": "prog_2026-10-26_10",
+        "instanceId": "inst_2026-10-26_10",
+        "startMinute": 510,
+        "endMinute": 570,
+        "duration": 60
+      },
+      {
+        "startTime": "09:30",
+        "endTime": "10:00",
+        "title": "Dolgu Kuşağı",
+        "rawTitle": "Kasideler + Aşr-ı Şerifler",
+        "episode": "",
+        "host": "",
+        "topic": "Kullanılabilir Seçenekler: Kısa Program, Kaside, Aşr-ı Şerif",
+        "category": "Dolgu Kuşağı",
+        "categoryColor": "#06b6d4",
+        "categoryBadge": "Dolgu Kuşağı",
+        "isKisaSlot": true,
+        "isLive": false,
+        "availableOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "selectedOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "order": 11,
+        "id": "prog_2026-10-26_11",
+        "instanceId": "inst_2026-10-26_11",
+        "startMinute": 570,
+        "endMinute": 600,
+        "duration": 30
+      },
+      {
+        "startTime": "10:00",
+        "endTime": "11:00",
+        "title": "SEMERKAND SOHBETLERİ",
+        "rawTitle": "SEMERKAND SOHBETİ-117",
+        "episode": "117",
+        "host": "M.Raşid Durmuş-Avcılar Vakfı",
+        "topic": "",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 12,
+        "id": "prog_2026-10-26_12",
+        "instanceId": "inst_2026-10-26_12",
+        "startMinute": 600,
+        "endMinute": 660,
+        "duration": 60
+      },
+      {
+        "startTime": "11:00",
+        "endTime": "12:00",
+        "title": "YÜZYILIN ALİMLERİ",
+        "rawTitle": "YÜZYILIN ALİMLERİ- 6",
+        "episode": "6",
+        "host": "Ali Haydar Ahıskalı Hz.-1",
+        "topic": "",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 13,
+        "id": "prog_2026-10-26_13",
+        "instanceId": "inst_2026-10-26_13",
+        "startMinute": 660,
+        "endMinute": 720,
+        "duration": 60
+      },
+      {
+        "startTime": "12:00",
+        "endTime": "13:00",
+        "title": "BEDESTEN",
+        "rawTitle": "BEDESTEN - 9",
+        "episode": "9",
+        "host": "Tarsus",
+        "topic": "",
+        "category": "Kültürel",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Kültü",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 14,
+        "id": "prog_2026-10-26_14",
+        "instanceId": "inst_2026-10-26_14",
+        "startMinute": 720,
+        "endMinute": 780,
+        "duration": 60
+      },
+      {
+        "startTime": "13:00",
+        "endTime": "13:30",
+        "title": "AZİZ İSTANBUL",
+        "rawTitle": "AZİZ İSTANBUL-28-Arnavutköy Bebek",
+        "episode": "28",
+        "host": "Arnavutköy Bebek",
+        "topic": "",
+        "category": "Kültürel",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Kültü",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 15,
+        "id": "prog_2026-10-26_15",
+        "instanceId": "inst_2026-10-26_15",
+        "startMinute": 780,
+        "endMinute": 810,
+        "duration": 30
+      },
+      {
+        "startTime": "13:30",
+        "endTime": "14:00",
+        "title": "İlim Dersleri- TECVİD",
+        "rawTitle": "İlim Dersleri- Tecvid - 65",
+        "episode": "65",
+        "host": "65",
+        "topic": "",
+        "category": "Dini / İlim",
+        "categoryColor": "#10b981",
+        "categoryBadge": "İlim",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 16,
+        "id": "prog_2026-10-26_16",
+        "instanceId": "inst_2026-10-26_16",
+        "startMinute": 810,
+        "endMinute": 840,
+        "duration": 30
+      },
+      {
+        "startTime": "14:00",
+        "endTime": "15:00",
+        "title": "HATM-İ ŞERİF",
+        "rawTitle": "HATM-İ ŞERİF",
+        "episode": "",
+        "host": "Kerim Öztürk - Cüz- 27",
+        "topic": "",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 17,
+        "id": "prog_2026-10-26_17",
+        "instanceId": "inst_2026-10-26_17",
+        "startMinute": 840,
+        "endMinute": 900,
+        "duration": 60
+      },
+      {
+        "startTime": "15:00",
+        "endTime": "16:30",
+        "title": "TEFSİR-İ MEVAKİB",
+        "rawTitle": "TEFSİR-İ MEVAKİB",
+        "episode": "",
+        "host": "Cüz - 27",
+        "topic": "Ses: Cengiz Demir",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 18,
+        "id": "prog_2026-10-26_18",
+        "instanceId": "inst_2026-10-26_18",
+        "startMinute": 900,
+        "endMinute": 990,
+        "duration": 90
+      },
+      {
+        "startTime": "16:30",
+        "endTime": "17:30",
+        "title": "NEŞELİ PETEK",
+        "rawTitle": "NEŞELİ PETEK - 17",
+        "episode": "17",
+        "host": "",
+        "topic": "",
+        "category": "Çocuk",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Çocuk",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 19,
+        "id": "prog_2026-10-26_19",
+        "instanceId": "inst_2026-10-26_19",
+        "startMinute": 990,
+        "endMinute": 1050,
+        "duration": 60
+      },
+      {
+        "startTime": "17:30",
+        "endTime": "18:00",
+        "title": "Dolgu Kuşağı",
+        "rawTitle": "Kasideler + Aşr-ı Şerifler",
+        "episode": "",
+        "host": "",
+        "topic": "Kullanılabilir Seçenekler: Kısa Program, Kaside, Aşr-ı Şerif",
+        "category": "Dolgu Kuşağı",
+        "categoryColor": "#06b6d4",
+        "categoryBadge": "Dolgu Kuşağı",
+        "isKisaSlot": true,
+        "isLive": false,
+        "availableOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "selectedOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "order": 20,
+        "id": "prog_2026-10-26_20",
+        "instanceId": "inst_2026-10-26_20",
+        "startMinute": 1050,
+        "endMinute": 1080,
+        "duration": 30
+      },
+      {
+        "startTime": "18:00",
+        "endTime": "19:00",
+        "title": "GÜZERGAH",
+        "rawTitle": "GÜZERGAH - 118",
+        "episode": "118",
+        "host": "Akhisar-Manisa",
+        "topic": "",
+        "category": "Kültürel",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Kültü",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 21,
+        "id": "prog_2026-10-26_21",
+        "instanceId": "inst_2026-10-26_21",
+        "startMinute": 1080,
+        "endMinute": 1140,
+        "duration": 60
+      },
+      {
+        "startTime": "19:00",
+        "endTime": "20:00",
+        "title": "Taliü’l – Büşra",
+        "rawTitle": "Taliü’l – Büşra -22",
+        "episode": "22",
+        "host": "Akaid-Abdullah Bıyıklıoğlu",
+        "topic": "",
+        "category": "Sohbet / Tasavvuf",
+        "categoryColor": "#8b5cf6",
+        "categoryBadge": "Sohbet",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 22,
+        "id": "prog_2026-10-26_22",
+        "instanceId": "inst_2026-10-26_22",
+        "startMinute": 1140,
+        "endMinute": 1200,
+        "duration": 60
+      },
+      {
+        "startTime": "20:00",
+        "endTime": "21:00",
+        "title": "BEŞ VAKİT BİR ŞEHİR",
+        "rawTitle": "BEŞ VAKİT BİR ŞEHİR-6",
+        "episode": "6",
+        "host": "Kastamonu",
+        "topic": "",
+        "category": "Kültürel",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Kültü",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 23,
+        "id": "prog_2026-10-26_23",
+        "instanceId": "inst_2026-10-26_23",
+        "startMinute": 1200,
+        "endMinute": 1260,
+        "duration": 60
+      },
+      {
+        "startTime": "21:00",
+        "endTime": "23:00",
+        "title": "HASBİHAL",
+        "rawTitle": "HASBİHAL-71",
+        "episode": "71",
+        "host": "Fatih Yasin Demiral",
+        "topic": "Abdulkerim Çelik-Ümraniye Müft. - Ahir Zamanda Müslümanca Yaşamak",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 24,
+        "id": "prog_2026-10-26_24",
+        "instanceId": "inst_2026-10-26_24",
+        "startMinute": 1260,
+        "endMinute": 1380,
+        "duration": 120
+      },
+      {
+        "startTime": "23:00",
+        "endTime": "24:00",
+        "title": "HACEGAN SOHBETLERİ",
+        "rawTitle": "HACEGAN SOHBETLERİ-27",
+        "episode": "27",
+        "host": "Raşit Durmuş-Sivas",
+        "topic": "",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 25,
+        "id": "prog_2026-10-26_25",
+        "instanceId": "inst_2026-10-26_25",
+        "startMinute": 1380,
+        "endMinute": 1440,
+        "duration": 60
+      }
+    ]
+  },
+  "2026-10-27": {
+    "date": "27 Ekim 2026",
+    "dayName": "Salı",
+    "programs": [
+      {
+        "startTime": "00:00",
+        "endTime": "00:30",
+        "title": "İlim Dersleri- TECVİD",
+        "rawTitle": "İlim Dersleri- Tecvid - 66",
+        "episode": "66",
+        "host": "66",
+        "topic": "",
+        "category": "Dini / İlim",
+        "categoryColor": "#10b981",
+        "categoryBadge": "İlim",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 1,
+        "id": "prog_2026-10-27_01",
+        "instanceId": "inst_2026-10-27_01",
+        "startMinute": 0,
+        "endMinute": 30,
+        "duration": 30
+      },
+      {
+        "startTime": "00:30",
+        "endTime": "01:30",
+        "title": "YÜZYILIN ALİMLERİ",
+        "rawTitle": "YÜZYILIN ALİMLERİ- 6",
+        "episode": "6",
+        "host": "Ali Haydar Ahıskalı Hz.-1",
+        "topic": "",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 2,
+        "id": "prog_2026-10-27_02",
+        "instanceId": "inst_2026-10-27_02",
+        "startMinute": 30,
+        "endMinute": 90,
+        "duration": 60
+      },
+      {
+        "startTime": "01:30",
+        "endTime": "02:30",
+        "title": "Taliü’l – Büşra",
+        "rawTitle": "Taliü’l – Büşra -22",
+        "episode": "22",
+        "host": "Akaid-Abdullah Bıyıklıoğlu",
+        "topic": "",
+        "category": "Sohbet / Tasavvuf",
+        "categoryColor": "#8b5cf6",
+        "categoryBadge": "Sohbet",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 3,
+        "id": "prog_2026-10-27_03",
+        "instanceId": "inst_2026-10-27_03",
+        "startMinute": 90,
+        "endMinute": 150,
+        "duration": 60
+      },
+      {
+        "startTime": "02:30",
+        "endTime": "04:30",
+        "title": "ÇERÇEVE",
+        "rawTitle": "ÇERÇEVE- 121",
+        "episode": "121",
+        "host": "Mustafa Yıldız",
+        "topic": "Prof.Dr.Eyüp Sallabaş - Değişen Okuma Kültürü",
+        "category": "Kültürel",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Kültü",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 4,
+        "id": "prog_2026-10-27_04",
+        "instanceId": "inst_2026-10-27_04",
+        "startMinute": 150,
+        "endMinute": 270,
+        "duration": 120
+      },
+      {
+        "startTime": "04:30",
+        "endTime": "05:00",
+        "title": "Dolgu Kuşağı",
+        "rawTitle": "Kasideler + Aşr-ı Şerifler",
+        "episode": "",
+        "host": "",
+        "topic": "Kullanılabilir Seçenekler: Kısa Program, Kaside, Aşr-ı Şerif",
+        "category": "Dolgu Kuşağı",
+        "categoryColor": "#06b6d4",
+        "categoryBadge": "Dolgu Kuşağı",
+        "isKisaSlot": true,
+        "isLive": false,
+        "availableOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "selectedOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "order": 5,
+        "id": "prog_2026-10-27_05",
+        "instanceId": "inst_2026-10-27_05",
+        "startMinute": 270,
+        "endMinute": 300,
+        "duration": 30
+      },
+      {
+        "startTime": "05:00",
+        "endTime": "06:00",
+        "title": "DELAİL-ÜL HAYRAT",
+        "rawTitle": "DELAİL-ÜL HAYRAT",
+        "episode": "",
+        "host": "Salı",
+        "topic": "",
+        "category": "Dini / İlim",
+        "categoryColor": "#10b981",
+        "categoryBadge": "İlim",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 6,
+        "id": "prog_2026-10-27_06",
+        "instanceId": "inst_2026-10-27_06",
+        "startMinute": 300,
+        "endMinute": 360,
+        "duration": 60
+      },
+      {
+        "startTime": "06:00",
+        "endTime": "07:00",
+        "title": "HATM-İ ŞERİF",
+        "rawTitle": "HATM-İ ŞERİF",
+        "episode": "",
+        "host": "Kerim Öztürk - Cüz- 28",
+        "topic": "",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 7,
+        "id": "prog_2026-10-27_07",
+        "instanceId": "inst_2026-10-27_07",
+        "startMinute": 360,
+        "endMinute": 420,
+        "duration": 60
+      },
+      {
+        "startTime": "07:00",
+        "endTime": "08:30",
+        "title": "TEFSİR-İ MEVAKİB",
+        "rawTitle": "TEFSİR-İ MEVAKİB",
+        "episode": "",
+        "host": "Cüz - 28",
+        "topic": "Ses: Cengiz Demir",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 8,
+        "id": "prog_2026-10-27_08",
+        "instanceId": "inst_2026-10-27_08",
+        "startMinute": 420,
+        "endMinute": 510,
+        "duration": 90
+      },
+      {
+        "startTime": "08:30",
+        "endTime": "09:30",
+        "title": "NEŞELİ PETEK",
+        "rawTitle": "NEŞELİ PETEK - 18",
+        "episode": "18",
+        "host": "",
+        "topic": "",
+        "category": "Çocuk",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Çocuk",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 9,
+        "id": "prog_2026-10-27_09",
+        "instanceId": "inst_2026-10-27_09",
+        "startMinute": 510,
+        "endMinute": 570,
+        "duration": 60
+      },
+      {
+        "startTime": "09:30",
+        "endTime": "10:00",
+        "title": "Dolgu Kuşağı",
+        "rawTitle": "Kasideler + Aşr-ı Şerifler",
+        "episode": "",
+        "host": "",
+        "topic": "Kullanılabilir Seçenekler: Kısa Program, Kaside, Aşr-ı Şerif",
+        "category": "Dolgu Kuşağı",
+        "categoryColor": "#06b6d4",
+        "categoryBadge": "Dolgu Kuşağı",
+        "isKisaSlot": true,
+        "isLive": false,
+        "availableOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "selectedOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "order": 10,
+        "id": "prog_2026-10-27_10",
+        "instanceId": "inst_2026-10-27_10",
+        "startMinute": 570,
+        "endMinute": 600,
+        "duration": 30
+      },
+      {
+        "startTime": "10:00",
+        "endTime": "11:00",
+        "title": "GÜZERGAH",
+        "rawTitle": "GÜZERGAH - 118",
+        "episode": "118",
+        "host": "Akhisar-Manisa",
+        "topic": "",
+        "category": "Kültürel",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Kültü",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 11,
+        "id": "prog_2026-10-27_11",
+        "instanceId": "inst_2026-10-27_11",
+        "startMinute": 600,
+        "endMinute": 660,
+        "duration": 60
+      },
+      {
+        "startTime": "11:00",
+        "endTime": "12:00",
+        "title": "Taliü’l – Büşra",
+        "rawTitle": "Taliü’l – Büşra -22",
+        "episode": "22",
+        "host": "Akaid-Abdullah Bıyıklıoğlu",
+        "topic": "",
+        "category": "Sohbet / Tasavvuf",
+        "categoryColor": "#8b5cf6",
+        "categoryBadge": "Sohbet",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 12,
+        "id": "prog_2026-10-27_12",
+        "instanceId": "inst_2026-10-27_12",
+        "startMinute": 660,
+        "endMinute": 720,
+        "duration": 60
+      },
+      {
+        "startTime": "12:00",
+        "endTime": "13:00",
+        "title": "HACEGAN SOHBETLERİ",
+        "rawTitle": "HACEGAN SOHBETLERİ-27",
+        "episode": "27",
+        "host": "Raşit Durmuş-Sivas",
+        "topic": "",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 13,
+        "id": "prog_2026-10-27_13",
+        "instanceId": "inst_2026-10-27_13",
+        "startMinute": 720,
+        "endMinute": 780,
+        "duration": 60
+      },
+      {
+        "startTime": "13:00",
+        "endTime": "13:30",
+        "title": "ULU CAMİ",
+        "rawTitle": "ULU CAMİ-3- Afyon",
+        "episode": "3",
+        "host": "Afyon",
+        "topic": "",
+        "category": "Kültürel",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Kültü",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 14,
+        "id": "prog_2026-10-27_14",
+        "instanceId": "inst_2026-10-27_14",
+        "startMinute": 780,
+        "endMinute": 810,
+        "duration": 30
+      },
+      {
+        "startTime": "13:30",
+        "endTime": "14:00",
+        "title": "İlim Dersleri- TECVİD",
+        "rawTitle": "İlim Dersleri- Tecvid - 66",
+        "episode": "66",
+        "host": "66",
+        "topic": "",
+        "category": "Dini / İlim",
+        "categoryColor": "#10b981",
+        "categoryBadge": "İlim",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 15,
+        "id": "prog_2026-10-27_15",
+        "instanceId": "inst_2026-10-27_15",
+        "startMinute": 810,
+        "endMinute": 840,
+        "duration": 30
+      },
+      {
+        "startTime": "14:00",
+        "endTime": "15:00",
+        "title": "HATM-İ ŞERİF",
+        "rawTitle": "HATM-İ ŞERİF",
+        "episode": "",
+        "host": "Kerim Öztürk - Cüz- 28",
+        "topic": "",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 16,
+        "id": "prog_2026-10-27_16",
+        "instanceId": "inst_2026-10-27_16",
+        "startMinute": 840,
+        "endMinute": 900,
+        "duration": 60
+      },
+      {
+        "startTime": "15:00",
+        "endTime": "16:30",
+        "title": "TEFSİR-İ MEVAKİB",
+        "rawTitle": "TEFSİR-İ MEVAKİB",
+        "episode": "",
+        "host": "Cüz - 28",
+        "topic": "Ses: Cengiz Demir",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 17,
+        "id": "prog_2026-10-27_17",
+        "instanceId": "inst_2026-10-27_17",
+        "startMinute": 900,
+        "endMinute": 990,
+        "duration": 90
+      },
+      {
+        "startTime": "16:30",
+        "endTime": "17:30",
+        "title": "NEŞELİ PETEK",
+        "rawTitle": "NEŞELİ PETEK - 18",
+        "episode": "18",
+        "host": "",
+        "topic": "",
+        "category": "Çocuk",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Çocuk",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 18,
+        "id": "prog_2026-10-27_18",
+        "instanceId": "inst_2026-10-27_18",
+        "startMinute": 990,
+        "endMinute": 1050,
+        "duration": 60
+      },
+      {
+        "startTime": "17:30",
+        "endTime": "18:00",
+        "title": "Dolgu Kuşağı",
+        "rawTitle": "Kasideler + Aşr-ı Şerifler",
+        "episode": "",
+        "host": "",
+        "topic": "Kullanılabilir Seçenekler: Kısa Program, Kaside, Aşr-ı Şerif",
+        "category": "Dolgu Kuşağı",
+        "categoryColor": "#06b6d4",
+        "categoryBadge": "Dolgu Kuşağı",
+        "isKisaSlot": true,
+        "isLive": false,
+        "availableOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "selectedOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "order": 19,
+        "id": "prog_2026-10-27_19",
+        "instanceId": "inst_2026-10-27_19",
+        "startMinute": 1050,
+        "endMinute": 1080,
+        "duration": 30
+      },
+      {
+        "startTime": "18:00",
+        "endTime": "19:00",
+        "title": "SEMERKAND SOHBETLERİ",
+        "rawTitle": "SEMERKAND SOHBETİ-118",
+        "episode": "118",
+        "host": "Recep Bircan-Gebze Vakfı",
+        "topic": "",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 20,
+        "id": "prog_2026-10-27_20",
+        "instanceId": "inst_2026-10-27_20",
+        "startMinute": 1080,
+        "endMinute": 1140,
+        "duration": 60
+      },
+      {
+        "startTime": "19:00",
+        "endTime": "20:00",
+        "title": "Muhtasaru’l – Kuduri",
+        "rawTitle": "Muhtasaru’l – Kuduri-55",
+        "episode": "55",
+        "host": "Hanefi İlmihali-Yücel Baştürk",
+        "topic": "",
+        "category": "Dini / İlim",
+        "categoryColor": "#10b981",
+        "categoryBadge": "İlim",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 21,
+        "id": "prog_2026-10-27_21",
+        "instanceId": "inst_2026-10-27_21",
+        "startMinute": 1140,
+        "endMinute": 1200,
+        "duration": 60
+      },
+      {
+        "startTime": "20:00",
+        "endTime": "21:00",
+        "title": "BEDESTEN",
+        "rawTitle": "BEDESTEN - 11",
+        "episode": "11",
+        "host": "Bursa",
+        "topic": "",
+        "category": "Kültürel",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Kültü",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 22,
+        "id": "prog_2026-10-27_22",
+        "instanceId": "inst_2026-10-27_22",
+        "startMinute": 1200,
+        "endMinute": 1260,
+        "duration": 60
+      },
+      {
+        "startTime": "21:00",
+        "endTime": "23:00",
+        "title": "KISAS-I ENBİYA",
+        "rawTitle": "KISAS-I ENBİYA  - 66",
+        "episode": "66",
+        "host": "66",
+        "topic": "Hakan Öner - Hz.. Muhammed-4",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 23,
+        "id": "prog_2026-10-27_23",
+        "instanceId": "inst_2026-10-27_23",
+        "startMinute": 1260,
+        "endMinute": 1380,
+        "duration": 120
+      },
+      {
+        "startTime": "23:00",
+        "endTime": "23:30",
+        "title": "AZİZ İSTANBUL",
+        "rawTitle": "AZİZ İSTANBUL-28-Arnavutköy Bebek",
+        "episode": "28",
+        "host": "Arnavutköy Bebek",
+        "topic": "",
+        "category": "Kültürel",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Kültü",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 24,
+        "id": "prog_2026-10-27_24",
+        "instanceId": "inst_2026-10-27_24",
+        "startMinute": 1380,
+        "endMinute": 1410,
+        "duration": 30
+      },
+      {
+        "startTime": "23:30",
+        "endTime": "24:00",
+        "title": "MESNEVİDEN DERSLER",
+        "rawTitle": "MESNEVİDEN DERSLER-3",
+        "episode": "3",
+        "host": "",
+        "topic": "",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 25,
+        "id": "prog_2026-10-27_25",
+        "instanceId": "inst_2026-10-27_25",
+        "startMinute": 1410,
+        "endMinute": 1440,
+        "duration": 30
+      }
+    ]
+  },
+  "2026-10-28": {
+    "date": "28 Ekim 2026",
+    "dayName": "Çarşamba",
+    "programs": [
+      {
+        "startTime": "00:00",
+        "endTime": "00:30",
+        "title": "İlim Dersleri- TECVİD",
+        "rawTitle": "İlim Dersleri- Tecvid - 67",
+        "episode": "67",
+        "host": "67",
+        "topic": "",
+        "category": "Dini / İlim",
+        "categoryColor": "#10b981",
+        "categoryBadge": "İlim",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 1,
+        "id": "prog_2026-10-28_01",
+        "instanceId": "inst_2026-10-28_01",
+        "startMinute": 0,
+        "endMinute": 30,
+        "duration": 30
+      },
+      {
+        "startTime": "00:30",
+        "endTime": "01:30",
+        "title": "BEDESTEN",
+        "rawTitle": "BEDESTEN - 11",
+        "episode": "11",
+        "host": "Bursa",
+        "topic": "",
+        "category": "Kültürel",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Kültü",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 2,
+        "id": "prog_2026-10-28_02",
+        "instanceId": "inst_2026-10-28_02",
+        "startMinute": 30,
+        "endMinute": 90,
+        "duration": 60
+      },
+      {
+        "startTime": "01:30",
+        "endTime": "02:30",
+        "title": "Muhtasaru’l – Kuduri",
+        "rawTitle": "Muhtasaru’l – Kuduri-55",
+        "episode": "55",
+        "host": "Hanefi İlmihali-Yücel Baştürk",
+        "topic": "",
+        "category": "Dini / İlim",
+        "categoryColor": "#10b981",
+        "categoryBadge": "İlim",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 3,
+        "id": "prog_2026-10-28_03",
+        "instanceId": "inst_2026-10-28_03",
+        "startMinute": 90,
+        "endMinute": 150,
+        "duration": 60
+      },
+      {
+        "startTime": "02:30",
+        "endTime": "04:30",
+        "title": "HASBİHAL",
+        "rawTitle": "HASBİHAL-71",
+        "episode": "71",
+        "host": "Fatih Yasin Demiral",
+        "topic": "Abdulkerim Çelik-Ümraniye Müft. - Ahir Zamanda Müslümanca Yaşamak",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 4,
+        "id": "prog_2026-10-28_04",
+        "instanceId": "inst_2026-10-28_04",
+        "startMinute": 150,
+        "endMinute": 270,
+        "duration": 120
+      },
+      {
+        "startTime": "04:30",
+        "endTime": "05:00",
+        "title": "Dolgu Kuşağı",
+        "rawTitle": "Kasideler + Aşr-ı Şerifler",
+        "episode": "",
+        "host": "",
+        "topic": "Kullanılabilir Seçenekler: Kısa Program, Kaside, Aşr-ı Şerif",
+        "category": "Dolgu Kuşağı",
+        "categoryColor": "#06b6d4",
+        "categoryBadge": "Dolgu Kuşağı",
+        "isKisaSlot": true,
+        "isLive": false,
+        "availableOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "selectedOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "order": 5,
+        "id": "prog_2026-10-28_05",
+        "instanceId": "inst_2026-10-28_05",
+        "startMinute": 270,
+        "endMinute": 300,
+        "duration": 30
+      },
+      {
+        "startTime": "05:00",
+        "endTime": "06:00",
+        "title": "DELAİL-ÜL HAYRAT",
+        "rawTitle": "DELAİL-ÜL HAYRAT",
+        "episode": "",
+        "host": "Çarşamba",
+        "topic": "",
+        "category": "Dini / İlim",
+        "categoryColor": "#10b981",
+        "categoryBadge": "İlim",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 6,
+        "id": "prog_2026-10-28_06",
+        "instanceId": "inst_2026-10-28_06",
+        "startMinute": 300,
+        "endMinute": 360,
+        "duration": 60
+      },
+      {
+        "startTime": "06:00",
+        "endTime": "07:00",
+        "title": "HATM-İ ŞERİF",
+        "rawTitle": "HATM-İ ŞERİF",
+        "episode": "",
+        "host": "Kerim Öztürk - Cüz- 29",
+        "topic": "",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 7,
+        "id": "prog_2026-10-28_07",
+        "instanceId": "inst_2026-10-28_07",
+        "startMinute": 360,
+        "endMinute": 420,
+        "duration": 60
+      },
+      {
+        "startTime": "07:00",
+        "endTime": "08:30",
+        "title": "TEFSİR-İ MEVAKİB",
+        "rawTitle": "TEFSİR-İ MEVAKİB",
+        "episode": "",
+        "host": "Cüz - 29",
+        "topic": "Ses: Cengiz Demir",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 8,
+        "id": "prog_2026-10-28_08",
+        "instanceId": "inst_2026-10-28_08",
+        "startMinute": 420,
+        "endMinute": 510,
+        "duration": 90
+      },
+      {
+        "startTime": "08:30",
+        "endTime": "09:30",
+        "title": "NEŞELİ PETEK",
+        "rawTitle": "NEŞELİ PETEK - 19",
+        "episode": "19",
+        "host": "",
+        "topic": "",
+        "category": "Çocuk",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Çocuk",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 9,
+        "id": "prog_2026-10-28_09",
+        "instanceId": "inst_2026-10-28_09",
+        "startMinute": 510,
+        "endMinute": 570,
+        "duration": 60
+      },
+      {
+        "startTime": "09:30",
+        "endTime": "10:00",
+        "title": "Dolgu Kuşağı",
+        "rawTitle": "Kasideler + Aşr-ı Şerifler",
+        "episode": "",
+        "host": "",
+        "topic": "Kullanılabilir Seçenekler: Kısa Program, Kaside, Aşr-ı Şerif",
+        "category": "Dolgu Kuşağı",
+        "categoryColor": "#06b6d4",
+        "categoryBadge": "Dolgu Kuşağı",
+        "isKisaSlot": true,
+        "isLive": false,
+        "availableOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "selectedOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "order": 10,
+        "id": "prog_2026-10-28_10",
+        "instanceId": "inst_2026-10-28_10",
+        "startMinute": 570,
+        "endMinute": 600,
+        "duration": 30
+      },
+      {
+        "startTime": "10:00",
+        "endTime": "11:00",
+        "title": "HACEGAN SOHBETLERİ",
+        "rawTitle": "HACEGAN SOHBETLERİ-29",
+        "episode": "29",
+        "host": "N.Cihan Karakurt-Amasya",
+        "topic": "",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 11,
+        "id": "prog_2026-10-28_11",
+        "instanceId": "inst_2026-10-28_11",
+        "startMinute": 600,
+        "endMinute": 660,
+        "duration": 60
+      },
+      {
+        "startTime": "11:00",
+        "endTime": "12:00",
+        "title": "Muhtasaru’l – Kuduri",
+        "rawTitle": "Muhtasaru’l – Kuduri-55",
+        "episode": "55",
+        "host": "Hanefi İlmihali-Yücel Baştürk",
+        "topic": "",
+        "category": "Dini / İlim",
+        "categoryColor": "#10b981",
+        "categoryBadge": "İlim",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 12,
+        "id": "prog_2026-10-28_12",
+        "instanceId": "inst_2026-10-28_12",
+        "startMinute": 660,
+        "endMinute": 720,
+        "duration": 60
+      },
+      {
+        "startTime": "12:00",
+        "endTime": "13:00",
+        "title": "YÜZYILIN ALİMLERİ",
+        "rawTitle": "YÜZYILIN ALİMLERİ- 6",
+        "episode": "6",
+        "host": "Ali Haydar Ahıskalı Hz.-1",
+        "topic": "",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 13,
+        "id": "prog_2026-10-28_13",
+        "instanceId": "inst_2026-10-28_13",
+        "startMinute": 720,
+        "endMinute": 780,
+        "duration": 60
+      },
+      {
+        "startTime": "13:00",
+        "endTime": "13:30",
+        "title": "HATTIN İZİNDE",
+        "rawTitle": "HATTIN İZİNDE - 8",
+        "episode": "8",
+        "host": "",
+        "topic": "",
+        "category": "Kültür / Tarih",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Kültür",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 14,
+        "id": "prog_2026-10-28_14",
+        "instanceId": "inst_2026-10-28_14",
+        "startMinute": 780,
+        "endMinute": 810,
+        "duration": 30
+      },
+      {
+        "startTime": "13:30",
+        "endTime": "14:00",
+        "title": "İlim Dersleri- TECVİD",
+        "rawTitle": "İlim Dersleri- Tecvid - 67",
+        "episode": "67",
+        "host": "67",
+        "topic": "",
+        "category": "Dini / İlim",
+        "categoryColor": "#10b981",
+        "categoryBadge": "İlim",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 15,
+        "id": "prog_2026-10-28_15",
+        "instanceId": "inst_2026-10-28_15",
+        "startMinute": 810,
+        "endMinute": 840,
+        "duration": 30
+      },
+      {
+        "startTime": "14:00",
+        "endTime": "15:00",
+        "title": "HATM-İ ŞERİF",
+        "rawTitle": "HATM-İ ŞERİF",
+        "episode": "",
+        "host": "Kerim Öztürk - Cüz- 29",
+        "topic": "",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 16,
+        "id": "prog_2026-10-28_16",
+        "instanceId": "inst_2026-10-28_16",
+        "startMinute": 840,
+        "endMinute": 900,
+        "duration": 60
+      },
+      {
+        "startTime": "15:00",
+        "endTime": "16:30",
+        "title": "TEFSİR-İ MEVAKİB",
+        "rawTitle": "TEFSİR-İ MEVAKİB",
+        "episode": "",
+        "host": "Cüz - 29",
+        "topic": "Ses: Cengiz Demir",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 17,
+        "id": "prog_2026-10-28_17",
+        "instanceId": "inst_2026-10-28_17",
+        "startMinute": 900,
+        "endMinute": 990,
+        "duration": 90
+      },
+      {
+        "startTime": "16:30",
+        "endTime": "17:30",
+        "title": "NEŞELİ PETEK",
+        "rawTitle": "NEŞELİ PETEK - 19",
+        "episode": "19",
+        "host": "",
+        "topic": "",
+        "category": "Çocuk",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Çocuk",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 18,
+        "id": "prog_2026-10-28_18",
+        "instanceId": "inst_2026-10-28_18",
+        "startMinute": 990,
+        "endMinute": 1050,
+        "duration": 60
+      },
+      {
+        "startTime": "17:30",
+        "endTime": "18:00",
+        "title": "Dolgu Kuşağı",
+        "rawTitle": "Kasideler + Aşr-ı Şerifler",
+        "episode": "",
+        "host": "",
+        "topic": "Kullanılabilir Seçenekler: Kısa Program, Kaside, Aşr-ı Şerif",
+        "category": "Dolgu Kuşağı",
+        "categoryColor": "#06b6d4",
+        "categoryBadge": "Dolgu Kuşağı",
+        "isKisaSlot": true,
+        "isLive": false,
+        "availableOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "selectedOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "order": 19,
+        "id": "prog_2026-10-28_19",
+        "instanceId": "inst_2026-10-28_19",
+        "startMinute": 1050,
+        "endMinute": 1080,
+        "duration": 30
+      },
+      {
+        "startTime": "18:00",
+        "endTime": "19:00",
+        "title": "BEŞ VAKİT BİR ŞEHİR",
+        "rawTitle": "BEŞ VAKİT BİR ŞEHİR-6",
+        "episode": "6",
+        "host": "Kastamonu",
+        "topic": "",
+        "category": "Kültürel",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Kültü",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 20,
+        "id": "prog_2026-10-28_20",
+        "instanceId": "inst_2026-10-28_20",
+        "startMinute": 1080,
+        "endMinute": 1140,
+        "duration": 60
+      },
+      {
+        "startTime": "19:00",
+        "endTime": "20:00",
+        "title": "El-Yakutu’n-Nefis",
+        "rawTitle": "El-Yakutu’n-Nefis-5",
+        "episode": "5",
+        "host": "Nefis",
+        "topic": "",
+        "category": "Dini / İlim",
+        "categoryColor": "#10b981",
+        "categoryBadge": "İlim",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 21,
+        "id": "prog_2026-10-28_21",
+        "instanceId": "inst_2026-10-28_21",
+        "startMinute": 1140,
+        "endMinute": 1200,
+        "duration": 60
+      },
+      {
+        "startTime": "20:00",
+        "endTime": "21:00",
+        "title": "GÜZERGAH",
+        "rawTitle": "GÜZERGAH - 128",
+        "episode": "128",
+        "host": "Nevşehir",
+        "topic": "",
+        "category": "Kültürel",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Kültü",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 22,
+        "id": "prog_2026-10-28_22",
+        "instanceId": "inst_2026-10-28_22",
+        "startMinute": 1200,
+        "endMinute": 1260,
+        "duration": 60
+      },
+      {
+        "startTime": "21:00",
+        "endTime": "23:00",
+        "title": "ÇERÇEVE",
+        "rawTitle": "ÇERÇEVE- 122 - Canlı",
+        "episode": "122",
+        "host": "Mustafa Yıldız",
+        "topic": "Yunus Emre Özsaray-Davut Bayraklı - Akl-ı Selim-Kalb-i Selim-Zevk-i Selim",
+        "category": "Kültürel",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Kültü",
+        "isKisaSlot": false,
+        "isLive": true,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Canlı"
+        ],
+        "order": 23,
+        "id": "prog_2026-10-28_23",
+        "instanceId": "inst_2026-10-28_23",
+        "startMinute": 1260,
+        "endMinute": 1380,
+        "duration": 120
+      },
+      {
+        "startTime": "23:00",
+        "endTime": "23:30",
+        "title": "ULU CAMİ",
+        "rawTitle": "ULU CAMİ-3- Afyon",
+        "episode": "3",
+        "host": "Afyon",
+        "topic": "",
+        "category": "Kültürel",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Kültü",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 24,
+        "id": "prog_2026-10-28_24",
+        "instanceId": "inst_2026-10-28_24",
+        "startMinute": 1380,
+        "endMinute": 1410,
+        "duration": 30
+      },
+      {
+        "startTime": "23:30",
+        "endTime": "24:00",
+        "title": "SON İNCİ",
+        "rawTitle": "SON İNCİ - 29",
+        "episode": "29",
+        "host": "",
+        "topic": "",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 25,
+        "id": "prog_2026-10-28_25",
+        "instanceId": "inst_2026-10-28_25",
+        "startMinute": 1410,
+        "endMinute": 1440,
+        "duration": 30
+      }
+    ]
+  },
+  "2026-10-29": {
+    "date": "29 Ekim 2026",
+    "dayName": "Perşembe",
+    "programs": [
+      {
+        "startTime": "00:00",
+        "endTime": "00:30",
+        "title": "İlim Dersleri- TECVİD",
+        "rawTitle": "İlim Dersleri- Tecvid - 68",
+        "episode": "68",
+        "host": "68",
+        "topic": "",
+        "category": "Dini / İlim",
+        "categoryColor": "#10b981",
+        "categoryBadge": "İlim",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 1,
+        "id": "prog_2026-10-29_01",
+        "instanceId": "inst_2026-10-29_01",
+        "startMinute": 0,
+        "endMinute": 30,
+        "duration": 30
+      },
+      {
+        "startTime": "00:30",
+        "endTime": "01:30",
+        "title": "SEMERKAND SOHBETLERİ",
+        "rawTitle": "SEMERKAND SOHBETİ-118",
+        "episode": "118",
+        "host": "Recep Bircan-Gebze Vakfı",
+        "topic": "",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 2,
+        "id": "prog_2026-10-29_02",
+        "instanceId": "inst_2026-10-29_02",
+        "startMinute": 30,
+        "endMinute": 90,
+        "duration": 60
+      },
+      {
+        "startTime": "01:30",
+        "endTime": "02:30",
+        "title": "El-Yakutu’n-Nefis",
+        "rawTitle": "El-Yakutu’n-Nefis-5",
+        "episode": "5",
+        "host": "Nefis",
+        "topic": "",
+        "category": "Dini / İlim",
+        "categoryColor": "#10b981",
+        "categoryBadge": "İlim",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 3,
+        "id": "prog_2026-10-29_03",
+        "instanceId": "inst_2026-10-29_03",
+        "startMinute": 90,
+        "endMinute": 150,
+        "duration": 60
+      },
+      {
+        "startTime": "02:30",
+        "endTime": "04:30",
+        "title": "KISAS-I ENBİYA",
+        "rawTitle": "KISAS-I ENBİYA  - 66",
+        "episode": "66",
+        "host": "66",
+        "topic": "Hakan Öner - Hz.. Muhammed-4",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 4,
+        "id": "prog_2026-10-29_04",
+        "instanceId": "inst_2026-10-29_04",
+        "startMinute": 150,
+        "endMinute": 270,
+        "duration": 120
+      },
+      {
+        "startTime": "04:30",
+        "endTime": "05:00",
+        "title": "Dolgu Kuşağı",
+        "rawTitle": "Kasideler + Aşr-ı Şerifler",
+        "episode": "",
+        "host": "",
+        "topic": "Kullanılabilir Seçenekler: Kısa Program, Kaside, Aşr-ı Şerif",
+        "category": "Dolgu Kuşağı",
+        "categoryColor": "#06b6d4",
+        "categoryBadge": "Dolgu Kuşağı",
+        "isKisaSlot": true,
+        "isLive": false,
+        "availableOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "selectedOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "order": 5,
+        "id": "prog_2026-10-29_05",
+        "instanceId": "inst_2026-10-29_05",
+        "startMinute": 270,
+        "endMinute": 300,
+        "duration": 30
+      },
+      {
+        "startTime": "05:00",
+        "endTime": "06:00",
+        "title": "DELAİL-ÜL HAYRAT",
+        "rawTitle": "DELAİL-ÜL HAYRAT",
+        "episode": "",
+        "host": "Perşembe",
+        "topic": "",
+        "category": "Dini / İlim",
+        "categoryColor": "#10b981",
+        "categoryBadge": "İlim",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 6,
+        "id": "prog_2026-10-29_06",
+        "instanceId": "inst_2026-10-29_06",
+        "startMinute": 300,
+        "endMinute": 360,
+        "duration": 60
+      },
+      {
+        "startTime": "06:00",
+        "endTime": "07:30",
+        "title": "HATM-İ ŞERİF",
+        "rawTitle": "HATM-İ ŞERİF",
+        "episode": "",
+        "host": "Kerim Öztürk - Cüz- 30",
+        "topic": "Hatim Duası",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 7,
+        "id": "prog_2026-10-29_07",
+        "instanceId": "inst_2026-10-29_07",
+        "startMinute": 360,
+        "endMinute": 450,
+        "duration": 90
+      },
+      {
+        "startTime": "07:30",
+        "endTime": "09:00",
+        "title": "TEFSİR-İ MEVAKİB",
+        "rawTitle": "TEFSİR-İ MEVAKİB",
+        "episode": "",
+        "host": "Cüz - 30",
+        "topic": "Ses: Cengiz Demir",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 8,
+        "id": "prog_2026-10-29_08",
+        "instanceId": "inst_2026-10-29_08",
+        "startMinute": 450,
+        "endMinute": 540,
+        "duration": 90
+      },
+      {
+        "startTime": "09:00",
+        "endTime": "09:30",
+        "title": "NEŞELİ PETEK",
+        "rawTitle": "NEŞELİ PETEK - 29",
+        "episode": "29",
+        "host": "",
+        "topic": "",
+        "category": "Çocuk",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Çocuk",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 9,
+        "id": "prog_2026-10-29_09",
+        "instanceId": "inst_2026-10-29_09",
+        "startMinute": 540,
+        "endMinute": 570,
+        "duration": 30
+      },
+      {
+        "startTime": "09:30",
+        "endTime": "10:00",
+        "title": "Dolgu Kuşağı",
+        "rawTitle": "Kasideler + Aşr-ı Şerifler",
+        "episode": "",
+        "host": "",
+        "topic": "Kullanılabilir Seçenekler: Kısa Program, Kaside, Aşr-ı Şerif",
+        "category": "Dolgu Kuşağı",
+        "categoryColor": "#06b6d4",
+        "categoryBadge": "Dolgu Kuşağı",
+        "isKisaSlot": true,
+        "isLive": false,
+        "availableOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "selectedOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "order": 10,
+        "id": "prog_2026-10-29_10",
+        "instanceId": "inst_2026-10-29_10",
+        "startMinute": 570,
+        "endMinute": 600,
+        "duration": 30
+      },
+      {
+        "startTime": "10:00",
+        "endTime": "11:00",
+        "title": "BEDESTEN",
+        "rawTitle": "BEDESTEN - 11",
+        "episode": "11",
+        "host": "Bursa",
+        "topic": "",
+        "category": "Kültürel",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Kültü",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 11,
+        "id": "prog_2026-10-29_11",
+        "instanceId": "inst_2026-10-29_11",
+        "startMinute": 600,
+        "endMinute": 660,
+        "duration": 60
+      },
+      {
+        "startTime": "11:00",
+        "endTime": "12:00",
+        "title": "El-Yakutu’n-Nefis",
+        "rawTitle": "El-Yakutu’n-Nefis-5",
+        "episode": "5",
+        "host": "Nefis",
+        "topic": "",
+        "category": "Dini / İlim",
+        "categoryColor": "#10b981",
+        "categoryBadge": "İlim",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 12,
+        "id": "prog_2026-10-29_12",
+        "instanceId": "inst_2026-10-29_12",
+        "startMinute": 660,
+        "endMinute": 720,
+        "duration": 60
+      },
+      {
+        "startTime": "12:00",
+        "endTime": "13:00",
+        "title": "BEŞ VAKİT BİR ŞEHİR",
+        "rawTitle": "BEŞ VAKİT BİR ŞEHİR-6",
+        "episode": "6",
+        "host": "Kastamonu",
+        "topic": "",
+        "category": "Kültürel",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Kültü",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 13,
+        "id": "prog_2026-10-29_13",
+        "instanceId": "inst_2026-10-29_13",
+        "startMinute": 720,
+        "endMinute": 780,
+        "duration": 60
+      },
+      {
+        "startTime": "13:00",
+        "endTime": "13:30",
+        "title": "SON İNCİ",
+        "rawTitle": "SON İNCİ - 30",
+        "episode": "30",
+        "host": "",
+        "topic": "",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 14,
+        "id": "prog_2026-10-29_14",
+        "instanceId": "inst_2026-10-29_14",
+        "startMinute": 780,
+        "endMinute": 810,
+        "duration": 30
+      },
+      {
+        "startTime": "13:30",
+        "endTime": "14:00",
+        "title": "İlim Dersleri- TECVİD",
+        "rawTitle": "İlim Dersleri- Tecvid - 68",
+        "episode": "68",
+        "host": "68",
+        "topic": "",
+        "category": "Dini / İlim",
+        "categoryColor": "#10b981",
+        "categoryBadge": "İlim",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 15,
+        "id": "prog_2026-10-29_15",
+        "instanceId": "inst_2026-10-29_15",
+        "startMinute": 810,
+        "endMinute": 840,
+        "duration": 30
+      },
+      {
+        "startTime": "14:00",
+        "endTime": "15:30",
+        "title": "HATM-İ ŞERİF",
+        "rawTitle": "HATM-İ ŞERİF",
+        "episode": "",
+        "host": "Kerim Öztürk - Cüz- 30",
+        "topic": "Hatim Duası",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 16,
+        "id": "prog_2026-10-29_16",
+        "instanceId": "inst_2026-10-29_16",
+        "startMinute": 840,
+        "endMinute": 930,
+        "duration": 90
+      },
+      {
+        "startTime": "15:30",
+        "endTime": "17:00",
+        "title": "TEFSİR-İ MEVAKİB",
+        "rawTitle": "TEFSİR-İ MEVAKİB",
+        "episode": "",
+        "host": "Cüz - 30",
+        "topic": "Ses: Cengiz Demir",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 17,
+        "id": "prog_2026-10-29_17",
+        "instanceId": "inst_2026-10-29_17",
+        "startMinute": 930,
+        "endMinute": 1020,
+        "duration": 90
+      },
+      {
+        "startTime": "17:00",
+        "endTime": "17:30",
+        "title": "NEŞELİ PETEK",
+        "rawTitle": "NEŞELİ PETEK - 20",
+        "episode": "20",
+        "host": "",
+        "topic": "",
+        "category": "Çocuk",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Çocuk",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 18,
+        "id": "prog_2026-10-29_18",
+        "instanceId": "inst_2026-10-29_18",
+        "startMinute": 1020,
+        "endMinute": 1050,
+        "duration": 30
+      },
+      {
+        "startTime": "17:30",
+        "endTime": "18:00",
+        "title": "Dolgu Kuşağı",
+        "rawTitle": "Kasideler + Aşr-ı Şerifler",
+        "episode": "",
+        "host": "",
+        "topic": "Kullanılabilir Seçenekler: Kısa Program, Kaside, Aşr-ı Şerif",
+        "category": "Dolgu Kuşağı",
+        "categoryColor": "#06b6d4",
+        "categoryBadge": "Dolgu Kuşağı",
+        "isKisaSlot": true,
+        "isLive": false,
+        "availableOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "selectedOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "order": 19,
+        "id": "prog_2026-10-29_19",
+        "instanceId": "inst_2026-10-29_19",
+        "startMinute": 1050,
+        "endMinute": 1080,
+        "duration": 30
+      },
+      {
+        "startTime": "18:00",
+        "endTime": "19:00",
+        "title": "GÜZERGAH",
+        "rawTitle": "GÜZERGAH - 128",
+        "episode": "128",
+        "host": "Nevşehir",
+        "topic": "",
+        "category": "Kültürel",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Kültü",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 20,
+        "id": "prog_2026-10-29_20",
+        "instanceId": "inst_2026-10-29_20",
+        "startMinute": 1080,
+        "endMinute": 1140,
+        "duration": 60
+      },
+      {
+        "startTime": "19:00",
+        "endTime": "20:00",
+        "title": "Safvetüt- Tefasir",
+        "rawTitle": "Safvetüt- Tefasir-16",
+        "episode": "16",
+        "host": "16",
+        "topic": "",
+        "category": "Dini / İlim",
+        "categoryColor": "#10b981",
+        "categoryBadge": "İlim",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 21,
+        "id": "prog_2026-10-29_21",
+        "instanceId": "inst_2026-10-29_21",
+        "startMinute": 1140,
+        "endMinute": 1200,
+        "duration": 60
+      },
+      {
+        "startTime": "20:00",
+        "endTime": "21:00",
+        "title": "HACEGAN SOHBETLERİ",
+        "rawTitle": "HACEGAN SOHBETLERİ-29",
+        "episode": "29",
+        "host": "N.Cihan Karakurt-Amasya",
+        "topic": "",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 22,
+        "id": "prog_2026-10-29_22",
+        "instanceId": "inst_2026-10-29_22",
+        "startMinute": 1200,
+        "endMinute": 1260,
+        "duration": 60
+      },
+      {
+        "startTime": "21:00",
+        "endTime": "23:00",
+        "title": "HASBİHAL",
+        "rawTitle": "HASBİHAL-72 - Canlı",
+        "episode": "72",
+        "host": "Fatih Yasin Demiral",
+        "topic": "Hakan Öner - İnsanın Eşref-i Mahlukat Oluşu",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": true,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Canlı"
+        ],
+        "order": 23,
+        "id": "prog_2026-10-29_23",
+        "instanceId": "inst_2026-10-29_23",
+        "startMinute": 1260,
+        "endMinute": 1380,
+        "duration": 120
+      },
+      {
+        "startTime": "23:00",
+        "endTime": "23:30",
+        "title": "HATTIN İZİNDE",
+        "rawTitle": "HATTIN İZİNDE - 8",
+        "episode": "8",
+        "host": "",
+        "topic": "",
+        "category": "Kültür / Tarih",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Kültür",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 24,
+        "id": "prog_2026-10-29_24",
+        "instanceId": "inst_2026-10-29_24",
+        "startMinute": 1380,
+        "endMinute": 1410,
+        "duration": 30
+      },
+      {
+        "startTime": "23:30",
+        "endTime": "24:00",
+        "title": "ULU CAMİ",
+        "rawTitle": "ULU CAMİ-3- Afyon",
+        "episode": "3",
+        "host": "Afyon",
+        "topic": "",
+        "category": "Kültürel",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Kültü",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 25,
+        "id": "prog_2026-10-29_25",
+        "instanceId": "inst_2026-10-29_25",
+        "startMinute": 1410,
+        "endMinute": 1440,
+        "duration": 30
+      }
+    ]
+  },
+  "2026-10-30": {
+    "date": "30 Ekim 2026",
+    "dayName": "Cuma",
+    "programs": [
+      {
+        "startTime": "00:00",
+        "endTime": "00:30",
+        "title": "İlim Dersleri- TECVİD",
+        "rawTitle": "İlim Dersleri- Tecvid - 69",
+        "episode": "69",
+        "host": "69",
+        "topic": "",
+        "category": "Dini / İlim",
+        "categoryColor": "#10b981",
+        "categoryBadge": "İlim",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 1,
+        "id": "prog_2026-10-30_01",
+        "instanceId": "inst_2026-10-30_01",
+        "startMinute": 0,
+        "endMinute": 30,
+        "duration": 30
+      },
+      {
+        "startTime": "00:30",
+        "endTime": "01:30",
+        "title": "GÜZERGAH",
+        "rawTitle": "GÜZERGAH - 118",
+        "episode": "118",
+        "host": "Akhisar-Manisa",
+        "topic": "",
+        "category": "Kültürel",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Kültü",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 2,
+        "id": "prog_2026-10-30_02",
+        "instanceId": "inst_2026-10-30_02",
+        "startMinute": 30,
+        "endMinute": 90,
+        "duration": 60
+      },
+      {
+        "startTime": "01:30",
+        "endTime": "02:30",
+        "title": "Safvetüt- Tefasir",
+        "rawTitle": "Safvetüt- Tefasir-16",
+        "episode": "16",
+        "host": "16",
+        "topic": "",
+        "category": "Dini / İlim",
+        "categoryColor": "#10b981",
+        "categoryBadge": "İlim",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 3,
+        "id": "prog_2026-10-30_03",
+        "instanceId": "inst_2026-10-30_03",
+        "startMinute": 90,
+        "endMinute": 150,
+        "duration": 60
+      },
+      {
+        "startTime": "02:30",
+        "endTime": "04:30",
+        "title": "ÇERÇEVE",
+        "rawTitle": "ÇERÇEVE- 122",
+        "episode": "122",
+        "host": "Mustafa Yıldız",
+        "topic": "Yunus Emre Özsaray-Davut Bayraklı - Akl-ı Selim-Kalb-i Selim-Zevk-i Selim",
+        "category": "Kültürel",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Kültü",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 4,
+        "id": "prog_2026-10-30_04",
+        "instanceId": "inst_2026-10-30_04",
+        "startMinute": 150,
+        "endMinute": 270,
+        "duration": 120
+      },
+      {
+        "startTime": "04:30",
+        "endTime": "05:00",
+        "title": "Dolgu Kuşağı",
+        "rawTitle": "Kasideler + Aşr-ı Şerifler",
+        "episode": "",
+        "host": "",
+        "topic": "Kullanılabilir Seçenekler: Kısa Program, Kaside, Aşr-ı Şerif",
+        "category": "Dolgu Kuşağı",
+        "categoryColor": "#06b6d4",
+        "categoryBadge": "Dolgu Kuşağı",
+        "isKisaSlot": true,
+        "isLive": false,
+        "availableOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "selectedOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "order": 5,
+        "id": "prog_2026-10-30_05",
+        "instanceId": "inst_2026-10-30_05",
+        "startMinute": 270,
+        "endMinute": 300,
+        "duration": 30
+      },
+      {
+        "startTime": "05:00",
+        "endTime": "06:00",
+        "title": "DELAİL-ÜL HAYRAT",
+        "rawTitle": "DELAİL-ÜL HAYRAT",
+        "episode": "",
+        "host": "Cuma",
+        "topic": "",
+        "category": "Dini / İlim",
+        "categoryColor": "#10b981",
+        "categoryBadge": "İlim",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 6,
+        "id": "prog_2026-10-30_06",
+        "instanceId": "inst_2026-10-30_06",
+        "startMinute": 300,
+        "endMinute": 360,
+        "duration": 60
+      },
+      {
+        "startTime": "06:00",
+        "endTime": "07:00",
+        "title": "HATM-İ ŞERİF",
+        "rawTitle": "HATM-İ ŞERİF",
+        "episode": "",
+        "host": "Kerim Öztürk - Cüz- 1",
+        "topic": "",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 7,
+        "id": "prog_2026-10-30_07",
+        "instanceId": "inst_2026-10-30_07",
+        "startMinute": 360,
+        "endMinute": 420,
+        "duration": 60
+      },
+      {
+        "startTime": "07:00",
+        "endTime": "08:30",
+        "title": "TEFSİR-İ MEVAKİB",
+        "rawTitle": "TEFSİR-İ MEVAKİB",
+        "episode": "",
+        "host": "Cüz - 1",
+        "topic": "Ses: Cengiz Demir",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 8,
+        "id": "prog_2026-10-30_08",
+        "instanceId": "inst_2026-10-30_08",
+        "startMinute": 420,
+        "endMinute": 510,
+        "duration": 90
+      },
+      {
+        "startTime": "08:30",
+        "endTime": "09:30",
+        "title": "NEŞELİ PETEK",
+        "rawTitle": "NEŞELİ PETEK - 21",
+        "episode": "21",
+        "host": "",
+        "topic": "",
+        "category": "Çocuk",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Çocuk",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 9,
+        "id": "prog_2026-10-30_09",
+        "instanceId": "inst_2026-10-30_09",
+        "startMinute": 510,
+        "endMinute": 570,
+        "duration": 60
+      },
+      {
+        "startTime": "09:30",
+        "endTime": "10:00",
+        "title": "Dolgu Kuşağı",
+        "rawTitle": "Kasideler + Aşr-ı Şerifler",
+        "episode": "",
+        "host": "",
+        "topic": "Kullanılabilir Seçenekler: Kısa Program, Kaside, Aşr-ı Şerif",
+        "category": "Dolgu Kuşağı",
+        "categoryColor": "#06b6d4",
+        "categoryBadge": "Dolgu Kuşağı",
+        "isKisaSlot": true,
+        "isLive": false,
+        "availableOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "selectedOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "order": 10,
+        "id": "prog_2026-10-30_10",
+        "instanceId": "inst_2026-10-30_10",
+        "startMinute": 570,
+        "endMinute": 600,
+        "duration": 30
+      },
+      {
+        "startTime": "10:00",
+        "endTime": "11:00",
+        "title": "SEMERKAND SOHBETLERİ",
+        "rawTitle": "SEMERKAND SOHBETİ-118",
+        "episode": "118",
+        "host": "Recep Bircan-Gebze Vakfı",
+        "topic": "",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 11,
+        "id": "prog_2026-10-30_11",
+        "instanceId": "inst_2026-10-30_11",
+        "startMinute": 600,
+        "endMinute": 660,
+        "duration": 60
+      },
+      {
+        "startTime": "11:00",
+        "endTime": "12:00",
+        "title": "Safvetüt- Tefasir",
+        "rawTitle": "Safvetüt- Tefasir-16",
+        "episode": "16",
+        "host": "16",
+        "topic": "",
+        "category": "Dini / İlim",
+        "categoryColor": "#10b981",
+        "categoryBadge": "İlim",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 12,
+        "id": "prog_2026-10-30_12",
+        "instanceId": "inst_2026-10-30_12",
+        "startMinute": 660,
+        "endMinute": 720,
+        "duration": 60
+      },
+      {
+        "startTime": "12:00",
+        "endTime": "13:00",
+        "title": "BEDESTEN",
+        "rawTitle": "BEDESTEN - 11",
+        "episode": "11",
+        "host": "Bursa",
+        "topic": "",
+        "category": "Kültürel",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Kültü",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 13,
+        "id": "prog_2026-10-30_13",
+        "instanceId": "inst_2026-10-30_13",
+        "startMinute": 720,
+        "endMinute": 780,
+        "duration": 60
+      },
+      {
+        "startTime": "13:00",
+        "endTime": "13:30",
+        "title": "MESNEVİDEN DERSLER",
+        "rawTitle": "MESNEVİDEN DERSLER-4",
+        "episode": "4",
+        "host": "",
+        "topic": "",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 14,
+        "id": "prog_2026-10-30_14",
+        "instanceId": "inst_2026-10-30_14",
+        "startMinute": 780,
+        "endMinute": 810,
+        "duration": 30
+      },
+      {
+        "startTime": "13:30",
+        "endTime": "14:00",
+        "title": "İlim Dersleri- TECVİD",
+        "rawTitle": "İlim Dersleri- Tecvid - 69",
+        "episode": "69",
+        "host": "69",
+        "topic": "",
+        "category": "Dini / İlim",
+        "categoryColor": "#10b981",
+        "categoryBadge": "İlim",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 15,
+        "id": "prog_2026-10-30_15",
+        "instanceId": "inst_2026-10-30_15",
+        "startMinute": 810,
+        "endMinute": 840,
+        "duration": 30
+      },
+      {
+        "startTime": "14:00",
+        "endTime": "15:00",
+        "title": "HATM-İ ŞERİF",
+        "rawTitle": "HATM-İ ŞERİF",
+        "episode": "",
+        "host": "Kerim Öztürk - Cüz- 1",
+        "topic": "",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 16,
+        "id": "prog_2026-10-30_16",
+        "instanceId": "inst_2026-10-30_16",
+        "startMinute": 840,
+        "endMinute": 900,
+        "duration": 60
+      },
+      {
+        "startTime": "15:00",
+        "endTime": "16:30",
+        "title": "TEFSİR-İ MEVAKİB",
+        "rawTitle": "TEFSİR-İ MEVAKİB",
+        "episode": "",
+        "host": "Cüz - 1",
+        "topic": "Ses: Cengiz Demir",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 17,
+        "id": "prog_2026-10-30_17",
+        "instanceId": "inst_2026-10-30_17",
+        "startMinute": 900,
+        "endMinute": 990,
+        "duration": 90
+      },
+      {
+        "startTime": "16:30",
+        "endTime": "17:30",
+        "title": "NEŞELİ PETEK",
+        "rawTitle": "NEŞELİ PETEK - 21",
+        "episode": "21",
+        "host": "",
+        "topic": "",
+        "category": "Çocuk",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Çocuk",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 18,
+        "id": "prog_2026-10-30_18",
+        "instanceId": "inst_2026-10-30_18",
+        "startMinute": 990,
+        "endMinute": 1050,
+        "duration": 60
+      },
+      {
+        "startTime": "17:30",
+        "endTime": "18:00",
+        "title": "Dolgu Kuşağı",
+        "rawTitle": "Kasideler + Aşr-ı Şerifler",
+        "episode": "",
+        "host": "",
+        "topic": "Kullanılabilir Seçenekler: Kısa Program, Kaside, Aşr-ı Şerif",
+        "category": "Dolgu Kuşağı",
+        "categoryColor": "#06b6d4",
+        "categoryBadge": "Dolgu Kuşağı",
+        "isKisaSlot": true,
+        "isLive": false,
+        "availableOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "selectedOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "order": 19,
+        "id": "prog_2026-10-30_19",
+        "instanceId": "inst_2026-10-30_19",
+        "startMinute": 1050,
+        "endMinute": 1080,
+        "duration": 30
+      },
+      {
+        "startTime": "18:00",
+        "endTime": "19:00",
+        "title": "BEŞ VAKİT BİR ŞEHİR",
+        "rawTitle": "BEŞ VAKİT BİR ŞEHİR-6",
+        "episode": "6",
+        "host": "Kastamonu",
+        "topic": "",
+        "category": "Kültürel",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Kültü",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 20,
+        "id": "prog_2026-10-30_20",
+        "instanceId": "inst_2026-10-30_20",
+        "startMinute": 1080,
+        "endMinute": 1140,
+        "duration": 60
+      },
+      {
+        "startTime": "19:00",
+        "endTime": "20:00",
+        "title": "Riyazüs – Salihin",
+        "rawTitle": "Riyazüs – Salihin-51",
+        "episode": "51",
+        "host": "Hadis-Eyüp Demirtaş",
+        "topic": "",
+        "category": "Sohbet / Tasavvuf",
+        "categoryColor": "#8b5cf6",
+        "categoryBadge": "Sohbet",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 21,
+        "id": "prog_2026-10-30_21",
+        "instanceId": "inst_2026-10-30_21",
+        "startMinute": 1140,
+        "endMinute": 1200,
+        "duration": 60
+      },
+      {
+        "startTime": "20:00",
+        "endTime": "21:00",
+        "title": "YÜZYILIN ALİMLERİ",
+        "rawTitle": "YÜZYILIN ALİMLERİ- 7",
+        "episode": "7",
+        "host": "Ali Haydar Ahıskalı Hz.-2",
+        "topic": "",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 22,
+        "id": "prog_2026-10-30_22",
+        "instanceId": "inst_2026-10-30_22",
+        "startMinute": 1200,
+        "endMinute": 1260,
+        "duration": 60
+      },
+      {
+        "startTime": "21:00",
+        "endTime": "23:00",
+        "title": "KISAS-I ENBİYA",
+        "rawTitle": "KISAS-I ENBİYA  - 66",
+        "episode": "66",
+        "host": "66",
+        "topic": "Hakan Öner - Hz.. Muhammed-4",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 23,
+        "id": "prog_2026-10-30_23",
+        "instanceId": "inst_2026-10-30_23",
+        "startMinute": 1260,
+        "endMinute": 1380,
+        "duration": 120
+      },
+      {
+        "startTime": "23:00",
+        "endTime": "23:30",
+        "title": "ULU CAMİ",
+        "rawTitle": "ULU CAMİ-3- Afyon",
+        "episode": "3",
+        "host": "Afyon",
+        "topic": "",
+        "category": "Kültürel",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Kültü",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 24,
+        "id": "prog_2026-10-30_24",
+        "instanceId": "inst_2026-10-30_24",
+        "startMinute": 1380,
+        "endMinute": 1410,
+        "duration": 30
+      },
+      {
+        "startTime": "23:30",
+        "endTime": "24:00",
+        "title": "AZİZ İSTANBUL",
+        "rawTitle": "AZİZ İSTANBUL-28-Arnavutköy Bebek",
+        "episode": "28",
+        "host": "Arnavutköy Bebek",
+        "topic": "",
+        "category": "Kültürel",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Kültü",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 25,
+        "id": "prog_2026-10-30_25",
+        "instanceId": "inst_2026-10-30_25",
+        "startMinute": 1410,
+        "endMinute": 1440,
+        "duration": 30
+      }
+    ]
+  },
+  "2026-10-31": {
+    "date": "31 Ekim 2026",
+    "dayName": "Cumartesi",
+    "programs": [
+      {
+        "startTime": "00:00",
+        "endTime": "00:30",
+        "title": "İlim Dersleri- TECVİD",
+        "rawTitle": "İlim Dersleri- Tecvid - 70",
+        "episode": "70",
+        "host": "70",
+        "topic": "",
+        "category": "Dini / İlim",
+        "categoryColor": "#10b981",
+        "categoryBadge": "İlim",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 1,
+        "id": "prog_2026-10-31_01",
+        "instanceId": "inst_2026-10-31_01",
+        "startMinute": 0,
+        "endMinute": 30,
+        "duration": 30
+      },
+      {
+        "startTime": "00:30",
+        "endTime": "01:00",
+        "title": "SON İNCİ",
+        "rawTitle": "SON İNCİ - 30",
+        "episode": "30",
+        "host": "",
+        "topic": "",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 2,
+        "id": "prog_2026-10-31_02",
+        "instanceId": "inst_2026-10-31_02",
+        "startMinute": 30,
+        "endMinute": 60,
+        "duration": 30
+      },
+      {
+        "startTime": "01:00",
+        "endTime": "01:30",
+        "title": "MESNEVİDEN DERSLER",
+        "rawTitle": "MESNEVİDEN DERSLER-4",
+        "episode": "4",
+        "host": "",
+        "topic": "",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 3,
+        "id": "prog_2026-10-31_03",
+        "instanceId": "inst_2026-10-31_03",
+        "startMinute": 60,
+        "endMinute": 90,
+        "duration": 30
+      },
+      {
+        "startTime": "01:30",
+        "endTime": "02:30",
+        "title": "Riyazüs – Salihin",
+        "rawTitle": "Riyazüs – Salihin-51",
+        "episode": "51",
+        "host": "Hadis-Eyüp Demirtaş",
+        "topic": "",
+        "category": "Sohbet / Tasavvuf",
+        "categoryColor": "#8b5cf6",
+        "categoryBadge": "Sohbet",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 4,
+        "id": "prog_2026-10-31_04",
+        "instanceId": "inst_2026-10-31_04",
+        "startMinute": 90,
+        "endMinute": 150,
+        "duration": 60
+      },
+      {
+        "startTime": "02:30",
+        "endTime": "04:30",
+        "title": "KISAS-I ENBİYA",
+        "rawTitle": "KISAS-I ENBİYA  - 66",
+        "episode": "66",
+        "host": "66",
+        "topic": "Hakan Öner - Hz.. Muhammed-4",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 5,
+        "id": "prog_2026-10-31_05",
+        "instanceId": "inst_2026-10-31_05",
+        "startMinute": 150,
+        "endMinute": 270,
+        "duration": 120
+      },
+      {
+        "startTime": "04:30",
+        "endTime": "05:00",
+        "title": "Dolgu Kuşağı",
+        "rawTitle": "Kasideler + Aşr-ı Şerifler",
+        "episode": "",
+        "host": "",
+        "topic": "Kullanılabilir Seçenekler: Kısa Program, Kaside, Aşr-ı Şerif",
+        "category": "Dolgu Kuşağı",
+        "categoryColor": "#06b6d4",
+        "categoryBadge": "Dolgu Kuşağı",
+        "isKisaSlot": true,
+        "isLive": false,
+        "availableOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "selectedOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "order": 6,
+        "id": "prog_2026-10-31_06",
+        "instanceId": "inst_2026-10-31_06",
+        "startMinute": 270,
+        "endMinute": 300,
+        "duration": 30
+      },
+      {
+        "startTime": "05:00",
+        "endTime": "06:00",
+        "title": "DELAİL-ÜL HAYRAT",
+        "rawTitle": "DELAİL-ÜL HAYRAT",
+        "episode": "",
+        "host": "Cumartesi",
+        "topic": "",
+        "category": "Dini / İlim",
+        "categoryColor": "#10b981",
+        "categoryBadge": "İlim",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 7,
+        "id": "prog_2026-10-31_07",
+        "instanceId": "inst_2026-10-31_07",
+        "startMinute": 300,
+        "endMinute": 360,
+        "duration": 60
+      },
+      {
+        "startTime": "06:00",
+        "endTime": "07:00",
+        "title": "HATM-İ ŞERİF",
+        "rawTitle": "HATM-İ ŞERİF",
+        "episode": "",
+        "host": "Kerim Öztürk - Cüz- 2",
+        "topic": "",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 8,
+        "id": "prog_2026-10-31_08",
+        "instanceId": "inst_2026-10-31_08",
+        "startMinute": 360,
+        "endMinute": 420,
+        "duration": 60
+      },
+      {
+        "startTime": "07:00",
+        "endTime": "08:30",
+        "title": "TEFSİR-İ MEVAKİB",
+        "rawTitle": "TEFSİR-İ MEVAKİB",
+        "episode": "",
+        "host": "Cüz - 2",
+        "topic": "Ses: Cengiz Demir",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 9,
+        "id": "prog_2026-10-31_09",
+        "instanceId": "inst_2026-10-31_09",
+        "startMinute": 420,
+        "endMinute": 510,
+        "duration": 90
+      },
+      {
+        "startTime": "08:30",
+        "endTime": "09:30",
+        "title": "NEŞELİ PETEK",
+        "rawTitle": "NEŞELİ PETEK - 17",
+        "episode": "17",
+        "host": "",
+        "topic": "",
+        "category": "Çocuk",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Çocuk",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 10,
+        "id": "prog_2026-10-31_10",
+        "instanceId": "inst_2026-10-31_10",
+        "startMinute": 510,
+        "endMinute": 570,
+        "duration": 60
+      },
+      {
+        "startTime": "09:30",
+        "endTime": "10:00",
+        "title": "Dolgu Kuşağı",
+        "rawTitle": "Kasideler + Aşr-ı Şerifler",
+        "episode": "",
+        "host": "",
+        "topic": "Kullanılabilir Seçenekler: Kısa Program, Kaside, Aşr-ı Şerif",
+        "category": "Dolgu Kuşağı",
+        "categoryColor": "#06b6d4",
+        "categoryBadge": "Dolgu Kuşağı",
+        "isKisaSlot": true,
+        "isLive": false,
+        "availableOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "selectedOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "order": 11,
+        "id": "prog_2026-10-31_11",
+        "instanceId": "inst_2026-10-31_11",
+        "startMinute": 570,
+        "endMinute": 600,
+        "duration": 30
+      },
+      {
+        "startTime": "10:00",
+        "endTime": "11:00",
+        "title": "BEDESTEN",
+        "rawTitle": "BEDESTEN - 11",
+        "episode": "11",
+        "host": "Bursa",
+        "topic": "",
+        "category": "Kültürel",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Kültü",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 12,
+        "id": "prog_2026-10-31_12",
+        "instanceId": "inst_2026-10-31_12",
+        "startMinute": 600,
+        "endMinute": 660,
+        "duration": 60
+      },
+      {
+        "startTime": "11:00",
+        "endTime": "12:00",
+        "title": "Riyazüs – Salihin",
+        "rawTitle": "Riyazüs – Salihin-51",
+        "episode": "51",
+        "host": "Hadis-Eyüp Demirtaş",
+        "topic": "",
+        "category": "Sohbet / Tasavvuf",
+        "categoryColor": "#8b5cf6",
+        "categoryBadge": "Sohbet",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 13,
+        "id": "prog_2026-10-31_13",
+        "instanceId": "inst_2026-10-31_13",
+        "startMinute": 660,
+        "endMinute": 720,
+        "duration": 60
+      },
+      {
+        "startTime": "12:00",
+        "endTime": "13:00",
+        "title": "YÜZYILIN ALİMLERİ",
+        "rawTitle": "YÜZYILIN ALİMLERİ- 7",
+        "episode": "7",
+        "host": "Ali Haydar Ahıskalı Hz.-2",
+        "topic": "",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 14,
+        "id": "prog_2026-10-31_14",
+        "instanceId": "inst_2026-10-31_14",
+        "startMinute": 720,
+        "endMinute": 780,
+        "duration": 60
+      },
+      {
+        "startTime": "13:00",
+        "endTime": "13:30",
+        "title": "AZİZ İSTANBUL",
+        "rawTitle": "AZİZ İSTANBUL-28-Arnavutköy Bebek",
+        "episode": "28",
+        "host": "Arnavutköy Bebek",
+        "topic": "",
+        "category": "Kültürel",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Kültü",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 15,
+        "id": "prog_2026-10-31_15",
+        "instanceId": "inst_2026-10-31_15",
+        "startMinute": 780,
+        "endMinute": 810,
+        "duration": 30
+      },
+      {
+        "startTime": "13:30",
+        "endTime": "14:00",
+        "title": "İlim Dersleri- TECVİD",
+        "rawTitle": "İlim Dersleri- Tecvid - 70",
+        "episode": "70",
+        "host": "70",
+        "topic": "",
+        "category": "Dini / İlim",
+        "categoryColor": "#10b981",
+        "categoryBadge": "İlim",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 16,
+        "id": "prog_2026-10-31_16",
+        "instanceId": "inst_2026-10-31_16",
+        "startMinute": 810,
+        "endMinute": 840,
+        "duration": 30
+      },
+      {
+        "startTime": "14:00",
+        "endTime": "15:00",
+        "title": "HATM-İ ŞERİF",
+        "rawTitle": "HATM-İ ŞERİF",
+        "episode": "",
+        "host": "Kerim Öztürk - Cüz- 2",
+        "topic": "",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 17,
+        "id": "prog_2026-10-31_17",
+        "instanceId": "inst_2026-10-31_17",
+        "startMinute": 840,
+        "endMinute": 900,
+        "duration": 60
+      },
+      {
+        "startTime": "15:00",
+        "endTime": "16:30",
+        "title": "TEFSİR-İ MEVAKİB",
+        "rawTitle": "TEFSİR-İ MEVAKİB",
+        "episode": "",
+        "host": "Cüz - 2",
+        "topic": "Ses: Cengiz Demir",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 18,
+        "id": "prog_2026-10-31_18",
+        "instanceId": "inst_2026-10-31_18",
+        "startMinute": 900,
+        "endMinute": 990,
+        "duration": 90
+      },
+      {
+        "startTime": "16:30",
+        "endTime": "17:30",
+        "title": "NEŞELİ PETEK",
+        "rawTitle": "NEŞELİ PETEK - 18",
+        "episode": "18",
+        "host": "",
+        "topic": "",
+        "category": "Çocuk",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Çocuk",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 19,
+        "id": "prog_2026-10-31_19",
+        "instanceId": "inst_2026-10-31_19",
+        "startMinute": 990,
+        "endMinute": 1050,
+        "duration": 60
+      },
+      {
+        "startTime": "17:30",
+        "endTime": "18:00",
+        "title": "Dolgu Kuşağı",
+        "rawTitle": "Kasideler + Aşr-ı Şerifler",
+        "episode": "",
+        "host": "",
+        "topic": "Kullanılabilir Seçenekler: Kısa Program, Kaside, Aşr-ı Şerif",
+        "category": "Dolgu Kuşağı",
+        "categoryColor": "#06b6d4",
+        "categoryBadge": "Dolgu Kuşağı",
+        "isKisaSlot": true,
+        "isLive": false,
+        "availableOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "selectedOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "order": 20,
+        "id": "prog_2026-10-31_20",
+        "instanceId": "inst_2026-10-31_20",
+        "startMinute": 1050,
+        "endMinute": 1080,
+        "duration": 30
+      },
+      {
+        "startTime": "18:00",
+        "endTime": "19:00",
+        "title": "SEMERKAND SOHBETLERİ",
+        "rawTitle": "SEMERKAND SOHBETİ-118",
+        "episode": "118",
+        "host": "Recep Bircan-Gebze Vakfı",
+        "topic": "",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 21,
+        "id": "prog_2026-10-31_21",
+        "instanceId": "inst_2026-10-31_21",
+        "startMinute": 1080,
+        "endMinute": 1140,
+        "duration": 60
+      },
+      {
+        "startTime": "19:00",
+        "endTime": "20:00",
+        "title": "Minhâcü’s Senî",
+        "rawTitle": "Minhâcü’s Senî-14",
+        "episode": "14",
+        "host": "Tasavvuf-Ömer Faruk Çelik",
+        "topic": "",
+        "category": "Sohbet / Tasavvuf",
+        "categoryColor": "#8b5cf6",
+        "categoryBadge": "Sohbet",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 22,
+        "id": "prog_2026-10-31_22",
+        "instanceId": "inst_2026-10-31_22",
+        "startMinute": 1140,
+        "endMinute": 1200,
+        "duration": 60
+      },
+      {
+        "startTime": "20:00",
+        "endTime": "21:00",
+        "title": "HACEGAN SOHBETLERİ",
+        "rawTitle": "HACEGAN SOHBETLERİ-27",
+        "episode": "27",
+        "host": "Raşit Durmuş-Sivas",
+        "topic": "",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 23,
+        "id": "prog_2026-10-31_23",
+        "instanceId": "inst_2026-10-31_23",
+        "startMinute": 1200,
+        "endMinute": 1260,
+        "duration": 60
+      },
+      {
+        "startTime": "21:00",
+        "endTime": "23:00",
+        "title": "HASBİHAL",
+        "rawTitle": "HASBİHAL-72",
+        "episode": "72",
+        "host": "Fatih Yasin Demiral",
+        "topic": "Hakan Öner - İnsanın Eşref-i Mahlukat Oluşu",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 24,
+        "id": "prog_2026-10-31_24",
+        "instanceId": "inst_2026-10-31_24",
+        "startMinute": 1260,
+        "endMinute": 1380,
+        "duration": 120
+      },
+      {
+        "startTime": "23:00",
+        "endTime": "24:00",
+        "title": "GÜZERGAH",
+        "rawTitle": "GÜZERGAH - 118",
+        "episode": "118",
+        "host": "Akhisar-Manisa",
+        "topic": "",
+        "category": "Kültürel",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Kültü",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 25,
+        "id": "prog_2026-10-31_25",
+        "instanceId": "inst_2026-10-31_25",
+        "startMinute": 1380,
+        "endMinute": 1440,
+        "duration": 60
+      }
+    ]
+  },
+  "2026-11-01": {
+    "date": "1 Kasım 2026",
+    "dayName": "Pazar",
+    "programs": [
+      {
+        "startTime": "00:00",
+        "endTime": "00:30",
+        "title": "İlim Dersleri- TECVİD",
+        "rawTitle": "İlim Dersleri- Tecvid - 71",
+        "episode": "71",
+        "host": "71",
+        "topic": "",
+        "category": "Dini / İlim",
+        "categoryColor": "#10b981",
+        "categoryBadge": "İlim",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 1,
+        "id": "prog_2026-11-01_01",
+        "instanceId": "inst_2026-11-01_01",
+        "startMinute": 0,
+        "endMinute": 30,
+        "duration": 30
+      },
+      {
+        "startTime": "00:30",
+        "endTime": "01:00",
+        "title": "MESNEVİDEN DERSLER",
+        "rawTitle": "MESNEVİDEN DERSLER-4",
+        "episode": "4",
+        "host": "",
+        "topic": "",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 2,
+        "id": "prog_2026-11-01_02",
+        "instanceId": "inst_2026-11-01_02",
+        "startMinute": 30,
+        "endMinute": 60,
+        "duration": 30
+      },
+      {
+        "startTime": "01:00",
+        "endTime": "01:30",
+        "title": "ULU CAMİ",
+        "rawTitle": "ULU CAMİ-3- Afyon",
+        "episode": "3",
+        "host": "Afyon",
+        "topic": "",
+        "category": "Kültürel",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Kültü",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 3,
+        "id": "prog_2026-11-01_03",
+        "instanceId": "inst_2026-11-01_03",
+        "startMinute": 60,
+        "endMinute": 90,
+        "duration": 30
+      },
+      {
+        "startTime": "01:30",
+        "endTime": "02:30",
+        "title": "Minhâcü’s Senî",
+        "rawTitle": "Minhâcü’s Senî-14",
+        "episode": "14",
+        "host": "Tasavvuf-Ömer Faruk Çelik",
+        "topic": "",
+        "category": "Sohbet / Tasavvuf",
+        "categoryColor": "#8b5cf6",
+        "categoryBadge": "Sohbet",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 4,
+        "id": "prog_2026-11-01_04",
+        "instanceId": "inst_2026-11-01_04",
+        "startMinute": 90,
+        "endMinute": 150,
+        "duration": 60
+      },
+      {
+        "startTime": "02:30",
+        "endTime": "04:30",
+        "title": "HASBİHAL",
+        "rawTitle": "HASBİHAL-72",
+        "episode": "72",
+        "host": "Fatih Yasin Demiral",
+        "topic": "Hakan Öner - İnsanın Eşref-i Mahlukat Oluşu",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 5,
+        "id": "prog_2026-11-01_05",
+        "instanceId": "inst_2026-11-01_05",
+        "startMinute": 150,
+        "endMinute": 270,
+        "duration": 120
+      },
+      {
+        "startTime": "04:30",
+        "endTime": "05:00",
+        "title": "Dolgu Kuşağı",
+        "rawTitle": "Kasideler + Aşr-ı Şerifler",
+        "episode": "",
+        "host": "",
+        "topic": "Kullanılabilir Seçenekler: Kısa Program, Kaside, Aşr-ı Şerif",
+        "category": "Dolgu Kuşağı",
+        "categoryColor": "#06b6d4",
+        "categoryBadge": "Dolgu Kuşağı",
+        "isKisaSlot": true,
+        "isLive": false,
+        "availableOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "selectedOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "order": 6,
+        "id": "prog_2026-11-01_06",
+        "instanceId": "inst_2026-11-01_06",
+        "startMinute": 270,
+        "endMinute": 300,
+        "duration": 30
+      },
+      {
+        "startTime": "05:00",
+        "endTime": "06:00",
+        "title": "DELAİL-ÜL HAYRAT",
+        "rawTitle": "DELAİL-ÜL HAYRAT",
+        "episode": "",
+        "host": "Pazar",
+        "topic": "",
+        "category": "Dini / İlim",
+        "categoryColor": "#10b981",
+        "categoryBadge": "İlim",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 7,
+        "id": "prog_2026-11-01_07",
+        "instanceId": "inst_2026-11-01_07",
+        "startMinute": 300,
+        "endMinute": 360,
+        "duration": 60
+      },
+      {
+        "startTime": "06:00",
+        "endTime": "07:00",
+        "title": "HATM-İ ŞERİF",
+        "rawTitle": "HATM-İ ŞERİF",
+        "episode": "",
+        "host": "Kerim Öztürk - Cüz- 3",
+        "topic": "",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 8,
+        "id": "prog_2026-11-01_08",
+        "instanceId": "inst_2026-11-01_08",
+        "startMinute": 360,
+        "endMinute": 420,
+        "duration": 60
+      },
+      {
+        "startTime": "07:00",
+        "endTime": "08:30",
+        "title": "TEFSİR-İ MEVAKİB",
+        "rawTitle": "TEFSİR-İ MEVAKİB",
+        "episode": "",
+        "host": "Cüz - 3",
+        "topic": "Ses: Cengiz Demir",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 9,
+        "id": "prog_2026-11-01_09",
+        "instanceId": "inst_2026-11-01_09",
+        "startMinute": 420,
+        "endMinute": 510,
+        "duration": 90
+      },
+      {
+        "startTime": "08:30",
+        "endTime": "09:30",
+        "title": "NEŞELİ PETEK",
+        "rawTitle": "NEŞELİ PETEK - 19",
+        "episode": "19",
+        "host": "",
+        "topic": "",
+        "category": "Çocuk",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Çocuk",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 10,
+        "id": "prog_2026-11-01_10",
+        "instanceId": "inst_2026-11-01_10",
+        "startMinute": 510,
+        "endMinute": 570,
+        "duration": 60
+      },
+      {
+        "startTime": "09:30",
+        "endTime": "10:00",
+        "title": "Dolgu Kuşağı",
+        "rawTitle": "Kasideler + Aşr-ı Şerifler",
+        "episode": "",
+        "host": "",
+        "topic": "Kullanılabilir Seçenekler: Kısa Program, Kaside, Aşr-ı Şerif",
+        "category": "Dolgu Kuşağı",
+        "categoryColor": "#06b6d4",
+        "categoryBadge": "Dolgu Kuşağı",
+        "isKisaSlot": true,
+        "isLive": false,
+        "availableOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "selectedOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "order": 11,
+        "id": "prog_2026-11-01_11",
+        "instanceId": "inst_2026-11-01_11",
+        "startMinute": 570,
+        "endMinute": 600,
+        "duration": 30
+      },
+      {
+        "startTime": "10:00",
+        "endTime": "11:00",
+        "title": "BEŞ VAKİT BİR ŞEHİR",
+        "rawTitle": "BEŞ VAKİT BİR ŞEHİR-6",
+        "episode": "6",
+        "host": "Kastamonu",
+        "topic": "",
+        "category": "Kültürel",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Kültü",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 12,
+        "id": "prog_2026-11-01_12",
+        "instanceId": "inst_2026-11-01_12",
+        "startMinute": 600,
+        "endMinute": 660,
+        "duration": 60
+      },
+      {
+        "startTime": "11:00",
+        "endTime": "12:00",
+        "title": "Minhâcü’s Senî",
+        "rawTitle": "Minhâcü’s Senî-14",
+        "episode": "14",
+        "host": "Tasavvuf-Ömer Faruk Çelik",
+        "topic": "",
+        "category": "Sohbet / Tasavvuf",
+        "categoryColor": "#8b5cf6",
+        "categoryBadge": "Sohbet",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 13,
+        "id": "prog_2026-11-01_13",
+        "instanceId": "inst_2026-11-01_13",
+        "startMinute": 660,
+        "endMinute": 720,
+        "duration": 60
+      },
+      {
+        "startTime": "12:00",
+        "endTime": "13:00",
+        "title": "HACEGAN SOHBETLERİ",
+        "rawTitle": "HACEGAN SOHBETLERİ-29",
+        "episode": "29",
+        "host": "N.Cihan Karakurt-Amasya",
+        "topic": "",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 14,
+        "id": "prog_2026-11-01_14",
+        "instanceId": "inst_2026-11-01_14",
+        "startMinute": 720,
+        "endMinute": 780,
+        "duration": 60
+      },
+      {
+        "startTime": "13:00",
+        "endTime": "13:30",
+        "title": "HATTIN İZİNDE",
+        "rawTitle": "HATTIN İZİNDE - 8",
+        "episode": "8",
+        "host": "",
+        "topic": "",
+        "category": "Kültür / Tarih",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Kültür",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 15,
+        "id": "prog_2026-11-01_15",
+        "instanceId": "inst_2026-11-01_15",
+        "startMinute": 780,
+        "endMinute": 810,
+        "duration": 30
+      },
+      {
+        "startTime": "13:30",
+        "endTime": "14:00",
+        "title": "İlim Dersleri- TECVİD",
+        "rawTitle": "İlim Dersleri- Tecvid - 71",
+        "episode": "71",
+        "host": "71",
+        "topic": "",
+        "category": "Dini / İlim",
+        "categoryColor": "#10b981",
+        "categoryBadge": "İlim",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 16,
+        "id": "prog_2026-11-01_16",
+        "instanceId": "inst_2026-11-01_16",
+        "startMinute": 810,
+        "endMinute": 840,
+        "duration": 30
+      },
+      {
+        "startTime": "14:00",
+        "endTime": "15:00",
+        "title": "HATM-İ ŞERİF",
+        "rawTitle": "HATM-İ ŞERİF",
+        "episode": "",
+        "host": "Kerim Öztürk - Cüz- 3",
+        "topic": "",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 17,
+        "id": "prog_2026-11-01_17",
+        "instanceId": "inst_2026-11-01_17",
+        "startMinute": 840,
+        "endMinute": 900,
+        "duration": 60
+      },
+      {
+        "startTime": "15:00",
+        "endTime": "16:30",
+        "title": "TEFSİR-İ MEVAKİB",
+        "rawTitle": "TEFSİR-İ MEVAKİB",
+        "episode": "",
+        "host": "Cüz - 3",
+        "topic": "Ses: Cengiz Demir",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 18,
+        "id": "prog_2026-11-01_18",
+        "instanceId": "inst_2026-11-01_18",
+        "startMinute": 900,
+        "endMinute": 990,
+        "duration": 90
+      },
+      {
+        "startTime": "16:30",
+        "endTime": "17:30",
+        "title": "NEŞELİ PETEK",
+        "rawTitle": "NEŞELİ PETEK - 20",
+        "episode": "20",
+        "host": "",
+        "topic": "",
+        "category": "Çocuk",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Çocuk",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 19,
+        "id": "prog_2026-11-01_19",
+        "instanceId": "inst_2026-11-01_19",
+        "startMinute": 990,
+        "endMinute": 1050,
+        "duration": 60
+      },
+      {
+        "startTime": "17:30",
+        "endTime": "18:00",
+        "title": "Dolgu Kuşağı",
+        "rawTitle": "Kasideler + Aşr-ı Şerifler",
+        "episode": "",
+        "host": "",
+        "topic": "Kullanılabilir Seçenekler: Kısa Program, Kaside, Aşr-ı Şerif",
+        "category": "Dolgu Kuşağı",
+        "categoryColor": "#06b6d4",
+        "categoryBadge": "Dolgu Kuşağı",
+        "isKisaSlot": true,
+        "isLive": false,
+        "availableOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "selectedOptions": [
+          "Kısa Program",
+          "Kaside",
+          "Aşr-ı Şerif"
+        ],
+        "order": 20,
+        "id": "prog_2026-11-01_20",
+        "instanceId": "inst_2026-11-01_20",
+        "startMinute": 1050,
+        "endMinute": 1080,
+        "duration": 30
+      },
+      {
+        "startTime": "18:00",
+        "endTime": "19:00",
+        "title": "YÜZYILIN ALİMLERİ",
+        "rawTitle": "YÜZYILIN ALİMLERİ- 7",
+        "episode": "7",
+        "host": "Ali Haydar Ahıskalı Hz.-2",
+        "topic": "",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 21,
+        "id": "prog_2026-11-01_21",
+        "instanceId": "inst_2026-11-01_21",
+        "startMinute": 1080,
+        "endMinute": 1140,
+        "duration": 60
+      },
+      {
+        "startTime": "19:00",
+        "endTime": "20:00",
+        "title": "GÜZERGAH",
+        "rawTitle": "GÜZERGAH - 128",
+        "episode": "128",
+        "host": "Nevşehir",
+        "topic": "",
+        "category": "Kültürel",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Kültü",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 22,
+        "id": "prog_2026-11-01_22",
+        "instanceId": "inst_2026-11-01_22",
+        "startMinute": 1140,
+        "endMinute": 1200,
+        "duration": 60
+      },
+      {
+        "startTime": "20:00",
+        "endTime": "21:00",
+        "title": "SEMERKAND SOHBETLERİ",
+        "rawTitle": "SEMERKAND SOHBETİ-118",
+        "episode": "118",
+        "host": "Recep Bircan-Gebze Vakfı",
+        "topic": "",
+        "category": "Dini",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Dini",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 23,
+        "id": "prog_2026-11-01_23",
+        "instanceId": "inst_2026-11-01_23",
+        "startMinute": 1200,
+        "endMinute": 1260,
+        "duration": 60
+      },
+      {
+        "startTime": "21:00",
+        "endTime": "23:00",
+        "title": "ÇERÇEVE",
+        "rawTitle": "ÇERÇEVE- 122",
+        "episode": "122",
+        "host": "Mustafa Yıldız",
+        "topic": "Yunus Emre Özsaray-Davut Bayraklı - Akl-ı Selim-Kalb-i Selim-Zevk-i Selim",
+        "category": "Kültürel",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Kültü",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 24,
+        "id": "prog_2026-11-01_24",
+        "instanceId": "inst_2026-11-01_24",
+        "startMinute": 1260,
+        "endMinute": 1380,
+        "duration": 120
+      },
+      {
+        "startTime": "23:00",
+        "endTime": "24:00",
+        "title": "BEDESTEN",
+        "rawTitle": "BEDESTEN - 11",
+        "episode": "11",
+        "host": "Bursa",
+        "topic": "",
+        "category": "Kültürel",
+        "categoryColor": "#3b82f6",
+        "categoryBadge": "Kültü",
+        "isKisaSlot": false,
+        "isLive": false,
+        "availableOptions": [
+          "Bant",
+          "Canlı",
+          "Altyazı"
+        ],
+        "selectedOptions": [
+          "Bant"
+        ],
+        "order": 25,
+        "id": "prog_2026-11-01_25",
+        "instanceId": "inst_2026-11-01_25",
+        "startMinute": 1380,
+        "endMinute": 1440,
+        "duration": 60
+      }
+    ]
+  }
+}

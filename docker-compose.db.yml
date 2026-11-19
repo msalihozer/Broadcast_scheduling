@@ -1,0 +1,29 @@
+# ==============================================================================
+# DOCKER POSTGRESQL VERİTABANI SERVİSİ (docker-compose.db.yml)
+# Çalıştırma komutu:
+#   docker compose -f docker-compose.db.yml up -d
+# ==============================================================================
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: yayin_planlama_db
+    restart: always
+    environment:
+      POSTGRES_DB: ${PG_DATABASE:-yayin_planlama}
+      POSTGRES_USER: ${PG_USER:-postgres}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:?Lutfen .env dosyasinda PG_PASSWORD tanimlayin}
+      TZ: Europe/Istanbul
+    ports:
+      - "0.0.0.0:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./backend/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PG_USER:-postgres} -d ${PG_DATABASE:-yayin_planlama}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
+    driver: local
