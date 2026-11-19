@@ -48,7 +48,8 @@ const DraftHeader = ({
   saveStatus = 'saved',
   isLibraryOpen = true,
   onToggleLibrary,
-  onOpenSendModal
+  onOpenSendModal,
+  onOpenReports
 }) => {
   return (
     <div style={{
@@ -503,6 +504,25 @@ const DraftHeader = ({
             >
               <Trash2 size={13} />
               <span>{selectedDayKey === 'all' ? 'Haftayı Temizle' : 'Günü Temizle'}</span>
+            </button>
+          )}
+
+          {/* Detaylı Taslak Raporları & Yayın Planlama Karşılaştırma Butonu */}
+          {onOpenReports && (
+            <button
+              type="button"
+              onClick={onOpenReports}
+              className="corp-btn"
+              title="Taslak Planlama Detaylı Raporları, Haftalık/Aylık/Yıllık Analiz, Yayın Planlama Karşılaştırması ve PDF/Excel/CSV Çıktısı"
+              style={{
+                background: 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%)',
+                color: '#ffffff',
+                border: '1px solid #1e40af',
+                boxShadow: '0 3px 10px rgba(30, 58, 138, 0.25)'
+              }}
+            >
+              <BarChart3 size={14} color="#38bdf8" />
+              <span>Detaylı Raporlar &amp; Çıktı (PDF / Excel / CSV)</span>
             </button>
           )}
         </div>

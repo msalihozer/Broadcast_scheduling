@@ -28,6 +28,7 @@ import {
   ArrowUpToLine,
   CornerDownRight,
   ArrowDownToLine,
+  BarChart3,
   X
 } from 'lucide-react';
 import useBroadcastStore, { BROADCAST_CHANNELS } from '../store/broadcastStore';
@@ -446,7 +447,8 @@ const BroadcastHeader = ({ onOpenShortcuts, onOpenAdSettingsModal, onOpenIntroSe
           {[
             { id: 'daily', label: 'Günlük', icon: Calendar },
             { id: 'weekly', label: 'Haftalık', icon: CalendarDays },
-            { id: 'monthly', label: 'Aylık', icon: CalendarRange }
+            { id: 'monthly', label: 'Aylık', icon: CalendarRange },
+            { id: 'reports', label: 'Raporlar', icon: BarChart3 }
           ].map(mode => {
             const Icon = mode.icon;
             const active = viewMode === mode.id;

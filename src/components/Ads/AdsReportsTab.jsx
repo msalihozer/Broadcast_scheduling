@@ -20,10 +20,20 @@ import {
   ExternalLink,
   CheckCircle2,
   Sparkles,
-  Filter
+  Filter,
+  FileText,
+  FileSpreadsheet,
+  Package,
+  Wallet
 } from 'lucide-react';
 import usePlanningStore from '../../store/planningStore';
 import { computeAdsAnalyticsReport } from '../../modules/ads/utils/adsAutoSyncEngine';
+import {
+  exportToCSV,
+  exportToExcel,
+  exportToPresentationPDF,
+  formatSecondsToHoursMin
+} from '../../utils/reportExportUtils';
 
 const KUŞAK_BADGE_STYLES = {
   'Sabah Kuşağı': { bg: 'rgba(245, 158, 11, 0.14)', border: 'rgba(245, 158, 11, 0.35)', color: '#fbbf24' },
@@ -49,6 +59,7 @@ const AdsReportsTab = ({ setActiveTab }) => {
   const companies = usePlanningStore(state => state.companies || []);
   const products = usePlanningStore(state => state.products || []);
   const materials = usePlanningStore(state => state.materials || []);
+  const reservations = usePlanningStore(state => state.reservations || []);
   const adPlacements = usePlanningStore(state => state.adPlacements || {});
   const channels = usePlanningStore(state => state.channels || []);
   const timeBlocks = usePlanningStore(state => state.timeBlocks || []);
@@ -56,7 +67,8 @@ const AdsReportsTab = ({ setActiveTab }) => {
   const setSelectedMaterialDetailId = usePlanningStore(state => state.setSelectedMaterialDetailId);
   const regenerateSampleAdPlacements = usePlanningStore(state => state.regenerateSampleAdPlacements);
 
-  const [reportView, setReportView] = useState('material'); // 'material' | 'daily' | 'company' | 'timeblocks' | 'logs'
+  // 'material' | 'product' | 'company' | 'plans' | 'periods' | 'daily' | 'timeblocks' | 'logs'
+  const [reportView, setReportView] = useState('material');
   const [filters, setFilters] = useState({
     companyId: '',
     productId: '',
@@ -97,22 +109,26 @@ const AdsReportsTab = ({ setActiveTab }) => {
         companies,
         products,
         materials,
+        reservations,
         adPlacements,
         channels,
         timeBlocks,
         filters
       }),
-    [companies, products, materials, adPlacements, channels, timeBlocks, filters]
+    [companies, products, materials, reservations, adPlacements, channels, timeBlocks, filters]
   );
 
   const {
     summary,
-    materialReports,
-    companyReports,
-    dailyReports,
-    timeBlockReports,
-    hourlyReports,
-    spotLogs
+    materialReports = [],
+    productReports = [],
+    companyReports = [],
+    planReports = [],
+    periodReports = { weekly: [], monthly: [], yearly: [] },
+    dailyReports = [],
+    timeBlockReports = [],
+    hourlyReports = [],
+    spotLogs = []
   } = reportData;
 
   const resetFilters = () => {
@@ -134,56 +150,358 @@ const AdsReportsTab = ({ setActiveTab }) => {
     if (setActiveTab) setActiveTab('company-details');
   };
 
+  const selectedCompanyObj = useMemo(
+    () => companies.find(c => String(c.id) === String(filters.companyId)),
+    [companies, filters.companyId]
+  );
+  const selectedProductObj = useMemo(
+    () => products.find(p => String(p.id) === String(filters.productId)),
+    [products, filters.productId]
+  );
+  const selectedMaterialObj = useMemo(
+    () => materials.find(m => String(m.id) === String(filters.materialId)),
+    [materials, filters.materialId]
+  );
+
+  const getScopeTitle = () => {
+    const parts = [];
+    if (selectedCompanyObj) parts.push(`Firma: ${selectedCompanyObj.name}`);
+    if (selectedProductObj) parts.push(`Ürün: ${selectedProductObj.name}`);
+    if (selectedMaterialObj) parts.push(`Materyal: ${selectedMaterialObj.name}`);
+    if (filters.startDate || filters.endDate) {
+      parts.push(`Tarih: ${filters.startDate || '*'} – ${filters.endDate || '*'}`);
+    }
+    return parts.length > 0 ? parts.join(' • ') : 'Tüm Firmalar, Ürünler ve Materyaller (Genel Rapor)';
+  };
+
   const handleExportCSV = () => {
-    const headers = [
-      'Reklam Materyali',
-      'Klip Kodu',
-      'Klip ID',
-      'Firma',
-      'Ürün / Kampanya',
-      'Birim Süre (sn)',
-      'Toplam Yayın (Kaç Defa)',
-      'Toplam Süre (Saniye)',
-      'Yayınlandığı Gün Sayısı',
-      'Günde Ortalama (Spot/Gün)',
-      'Min-Maks Günlük Spot',
-      'Yayınlandığı Kuşaklar',
-      'Yayınlandığı Saatler',
-      'İlk Yayın Tarihi',
-      'Son Yayın Tarihi'
-    ];
+    const scopeSuffix = selectedMaterialObj
+      ? `_${selectedMaterialObj.name}`
+      : selectedProductObj
+      ? `_${selectedProductObj.name}`
+      : selectedCompanyObj
+      ? `_${selectedCompanyObj.name}`
+      : '';
 
-    const rows = materialReports.map(m => [
-      m.materialName,
-      m.clipName,
-      `#${m.clipId}`,
-      m.companyName,
-      m.productName,
-      m.unitDurationSec,
-      m.totalSpots,
-      m.totalDurationSec,
-      m.activeDaysCount,
-      m.avgDailySpots,
-      `${m.minDailySpots}-${m.maxDailySpots}`,
-      m.timeBlocksBreakdown.map(tb => `${tb.name} (${tb.count})`).join(' | '),
-      m.sortedHours.join(', '),
-      m.firstDate,
-      m.lastDate
-    ]);
+    if (reportView === 'company') {
+      exportToCSV({
+        filename: `Reklam_Firma_Bazli_Rapor${scopeSuffix}`,
+        headers: [
+          'Firma Adı',
+          'Ürün Sayısı',
+          'Materyal Sayısı',
+          'Toplam Yayın (Spot)',
+          'Toplam Süre (sn)',
+          'Toplam Süre (Saat)',
+          'Hangi Gün Kaç Defa Yayınlandı',
+          'Haftalık Yayın',
+          'Aylık Yayın',
+          'Yıllık Yayın',
+          'Toplam Tutar (₺)'
+        ],
+        rows: companyReports.map(c => [
+          c.companyName,
+          c.productsCount,
+          c.materialsCount,
+          c.totalSpots,
+          c.totalDurationSec,
+          formatSecondsToHoursMin(c.totalDurationSec),
+          c.dayOfWeekBreakdown,
+          c.weeksBreakdown,
+          c.monthsBreakdown,
+          c.yearsBreakdown,
+          c.totalRevenue > 0 ? `${c.totalRevenue.toLocaleString('tr-TR')} ₺` : '-'
+        ])
+      });
+      return;
+    }
 
-    const csvContent =
-      '\uFEFF' +
-      [headers, ...rows]
-        .map(row => row.map(cell => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(';'))
-        .join('\n');
+    if (reportView === 'product') {
+      exportToCSV({
+        filename: `Reklam_Urun_Bazli_Rapor${scopeSuffix}`,
+        headers: [
+          'Ürün / Kampanya Adı',
+          'Firma',
+          'Materyal Sayısı',
+          'Toplam Yayın (Spot)',
+          'Toplam Süre (sn)',
+          'Hangi Gün Kaç Defa',
+          'Haftalık Dağılım',
+          'Aylık Dağılım',
+          'Yıllık Dağılım',
+          'Toplam Tutar (₺)'
+        ],
+        rows: productReports.map(p => [
+          p.productName,
+          p.companyName,
+          p.materialsCount,
+          p.totalSpots,
+          p.totalDurationSec,
+          p.dayOfWeekBreakdown,
+          p.weeksBreakdown,
+          p.monthsBreakdown,
+          p.yearsBreakdown,
+          p.totalRevenue > 0 ? `${p.totalRevenue.toLocaleString('tr-TR')} ₺` : '-'
+        ])
+      });
+      return;
+    }
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Reklam_Rezervasyon_Raporu_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    if (reportView === 'plans') {
+      exportToCSV({
+        filename: `Reklam_Yayin_Plan_Kullanim_Raporu${scopeSuffix}`,
+        headers: [
+          'Plan / Kampanya Adı',
+          'Firma',
+          'Başlangıç - Bitiş',
+          'Planlanan Spot',
+          'Gerçekleşen Spot',
+          'Fark / Aşım (-)',
+          'Kullanım Oranı (%)',
+          'Birim Spot Fiyatı (₺)',
+          'Planlanan Bütçe (₺)',
+          'Gerçekleşen Tutar (₺)'
+        ],
+        rows: planReports.map(pr => [
+          pr.name,
+          pr.companyName,
+          `${pr.startDate} - ${pr.endDate}`,
+          pr.plannedSpots,
+          pr.realizedSpots,
+          pr.spotDiff,
+          `%${pr.usagePct}`,
+          pr.unitPrice,
+          pr.plannedBudget,
+          pr.realizedBudget
+        ])
+      });
+      return;
+    }
+
+    exportToCSV({
+      filename: `Reklam_Materyal_Bazli_Rapor${scopeSuffix}`,
+      headers: [
+        'Reklam Materyali',
+        'Klip Kodu',
+        'Klip ID',
+        'Firma',
+        'Ürün / Kampanya',
+        'Birim Süre (sn)',
+        'Toplam Yayın (Kaç Defa)',
+        'Toplam Süre (Saniye)',
+        'Hangi Gün Kaç Defa Yayınlandı',
+        'Haftalık Yayın',
+        'Aylık Yayın',
+        'Yıllık Yayın',
+        'Birim Spot Ücreti (₺)',
+        'Toplam Tutar (₺)',
+        'Yayınlandığı Kuşaklar',
+        'Yayınlandığı Saatler'
+      ],
+      rows: materialReports.map(m => [
+        m.materialName,
+        m.clipName,
+        `#${m.clipId}`,
+        m.companyName,
+        m.productName,
+        m.unitDurationSec,
+        m.totalSpots,
+        m.totalDurationSec,
+        m.dayOfWeekBreakdown,
+        m.weeksBreakdown,
+        m.monthsBreakdown,
+        m.yearsBreakdown,
+        m.unitPrice > 0 ? `${m.unitPrice} ₺` : '-',
+        m.totalRevenue > 0 ? `${m.totalRevenue.toLocaleString('tr-TR')} ₺` : '-',
+        m.timeBlocksBreakdown.map(tb => `${tb.name} (${tb.count})`).join(' | '),
+        m.sortedHours.join(', ')
+      ])
+    });
+  };
+
+  const handleExportExcel = () => {
+    const scopeSuffix = selectedMaterialObj
+      ? `_${selectedMaterialObj.name}`
+      : selectedProductObj
+      ? `_${selectedProductObj.name}`
+      : selectedCompanyObj
+      ? `_${selectedCompanyObj.name}`
+      : '';
+
+    exportToExcel({
+      filename: `Reklam_Rezervasyon_Detayli_Rapor${scopeSuffix}`,
+      title: `REKLAM REZERVASYON & MEDYA TAKİP DETAYLI RAPORU`,
+      subtitle: getScopeTitle(),
+      kpis: [
+        { label: 'Toplam Yayınlanan Spot', value: `${summary.totalSpotsCount} Spot` },
+        { label: 'Toplam Yayın Süresi', value: `${summary.totalBroadcastSec.toLocaleString('tr-TR')} sn (${formatSecondsToHoursMin(summary.totalBroadcastSec)})` },
+        { label: 'Aktif Firma & Ürün', value: `${summary.activeCompaniesCount} Firma / ${summary.activeProductsCount} Ürün` },
+        { label: 'Aktif Materyal (Spot)', value: `${summary.activeMaterialsCount} Klip` },
+        { label: 'Hesaplanan Yayın Tutarı', value: summary.totalRevenue > 0 ? `${summary.totalRevenue.toLocaleString('tr-TR')} ₺` : 'Spot Bazlı' }
+      ],
+      sections: [
+        {
+          title: '1. MATERYAL (SPOT KLİP) BAZLI GÜNLÜK, HAFTALIK, AYLIK VE YILLIK YAYINLANMA RAPORU',
+          headers: [
+            'Materyal Adı',
+            'Klip Kodu',
+            'Firma',
+            'Ürün',
+            'Süre (sn)',
+            'Kaç Defa Yayınlandı',
+            'Toplam Süre',
+            'Hangi Gün Kaç Defa',
+            'Haftalık / Aylık / Yıllık Dağılım',
+            'Birim Fiyat / Toplam Tutar',
+            'Kuşaklar'
+          ],
+          rows: materialReports.map(m => [
+            m.materialName,
+            m.clipName,
+            m.companyName,
+            m.productName,
+            `${m.unitDurationSec} sn`,
+            `${m.totalSpots} Defa`,
+            formatSecondsToHoursMin(m.totalDurationSec),
+            m.dayOfWeekBreakdown,
+            `Hafta: ${m.weeksBreakdown} | Ay: ${m.monthsBreakdown} | Yıl: ${m.yearsBreakdown}`,
+            m.totalRevenue > 0 ? `${m.unitPrice} ₺ / ${m.totalRevenue.toLocaleString('tr-TR')} ₺` : '-',
+            m.timeBlocksBreakdown.map(tb => `${tb.name}: ${tb.count}`).join(', ')
+          ])
+        },
+        {
+          title: '2. FİRMA BAZLI GÜNLÜK, HAFTALIK, AYLIK VE YILLIK YAYINLANMA RAPORU',
+          headers: ['Firma Adı', 'Ürün / Materyal', 'Toplam Spot', 'Toplam Süre', 'Hangi Gün Kaç Defa', 'Haftalık', 'Aylık', 'Yıllık', 'Toplam Tutar (₺)'],
+          rows: companyReports.map(c => [
+            c.companyName,
+            `${c.productsCount} Ürün / ${c.materialsCount} Spot`,
+            `${c.totalSpots} Defa`,
+            formatSecondsToHoursMin(c.totalDurationSec),
+            c.dayOfWeekBreakdown,
+            c.weeksBreakdown,
+            c.monthsBreakdown,
+            c.yearsBreakdown,
+            c.totalRevenue > 0 ? `${c.totalRevenue.toLocaleString('tr-TR')} ₺` : '-'
+          ])
+        },
+        {
+          title: '3. ÜRÜN / KAMPANYA BAZLI YAYINLANMA RAPORU',
+          headers: ['Ürün Adı', 'Firma', 'Materyal Sayısı', 'Toplam Spot', 'Toplam Süre', 'Hangi Gün Kaç Defa', 'Haftalık / Aylık / Yıllık', 'Toplam Tutar (₺)'],
+          rows: productReports.map(p => [
+            p.productName,
+            p.companyName,
+            `${p.materialsCount} Materyal`,
+            `${p.totalSpots} Defa`,
+            formatSecondsToHoursMin(p.totalDurationSec),
+            p.dayOfWeekBreakdown,
+            `${p.weeksBreakdown} | ${p.monthsBreakdown} | ${p.yearsBreakdown}`,
+            p.totalRevenue > 0 ? `${p.totalRevenue.toLocaleString('tr-TR')} ₺` : '-'
+          ])
+        },
+        {
+          title: '4. YAYIN PLANI / KOTA KULLANIM VE FİYAT / AŞIM (- FARK) RAPORU',
+          headers: ['Plan Adı', 'Firma', 'Tarih Aralığı', 'Planlanan Spot', 'Gerçekleşen Spot', 'Kalan / Aşım (-)', 'Kullanım %', 'Planlanan Bütçe', 'Gerçekleşen Tutar'],
+          rows: planReports.map(pr => [
+            pr.name,
+            pr.companyName,
+            `${pr.startDate} – ${pr.endDate}`,
+            `${pr.plannedSpots} Spot`,
+            `${pr.realizedSpots} Spot`,
+            `${pr.spotDiff} Spot`,
+            `%${pr.usagePct}`,
+            pr.plannedBudget > 0 ? `${pr.plannedBudget.toLocaleString('tr-TR')} ₺` : '-',
+            pr.realizedBudget > 0 ? `${pr.realizedBudget.toLocaleString('tr-TR')} ₺` : '-'
+          ])
+        }
+      ]
+    });
+  };
+
+  const handleExportPDF = () => {
+    exportToPresentationPDF({
+      title: selectedCompanyObj
+        ? `${selectedCompanyObj.name} — KURUMSAL REKLAM & MEDYA TAKİP SUNUMU`
+        : `REKLAM REZERVASYON & MEDYA TAKİP YÖNETİM SUNUMU`,
+      subtitle: getScopeTitle(),
+      badgeText: 'REKLAM REZERVASYON & MEDYA ANALİTİK MERKEZİ',
+      accentColor: '#0066ff',
+      kpis: [
+        { label: 'Toplam Yayınlanan Spot', value: `${summary.totalSpotsCount} Spot`, sub: `${summary.totalBroadcastDays} Yayın Günü` },
+        { label: 'Toplam Yayın Süresi', value: formatSecondsToHoursMin(summary.totalBroadcastSec), sub: `${summary.totalBroadcastSec.toLocaleString('tr-TR')} Saniye`, color: '#0d9488' },
+        { label: 'Aktif Firma & Ürün', value: `${summary.activeCompaniesCount} Firma`, sub: `${summary.activeProductsCount} Ürün • ${summary.activeMaterialsCount} Materyal`, color: '#8b5cf6' },
+        { label: 'Günlük Ortalama Yayın', value: `${summary.avgSpotsPerDay} Spot/Gün`, sub: `${summary.avgSecPerDay} sn/gün`, color: '#d97706' },
+        { label: 'Hesaplanan Yayın Tutarı', value: summary.totalRevenue > 0 ? `${summary.totalRevenue.toLocaleString('tr-TR')} ₺` : 'Spot Kotası', sub: 'Plan & Birim Ücret Bazlı', color: '#059669' }
+      ],
+      highlightCards: [
+        {
+          title: 'Dönemsel (Haftalık / Aylık / Yıllık) Yayın Özeti',
+          body:
+            `Haftalık: ${periodReports.weekly.map(w => `${w.label} (${w.spots} spot)`).join(', ') || '-'} | ` +
+            `Aylık: ${periodReports.monthly.map(m => `${m.label} (${m.spots} spot)`).join(', ') || '-'} | ` +
+            `Yıllık: ${periodReports.yearly.map(y => `${y.label} (${y.spots} spot)`).join(', ') || '-'}`
+        },
+        {
+          title: 'Kuşak Dağılım Özeti',
+          body: timeBlockReports.map(tb => `${tb.timeBlockName}: ${tb.totalSpots} Spot (%${tb.sharePercentage})`).join(' • ') || '-'
+        }
+      ],
+      sections: [
+        {
+          title: '1. Materyal (Reklam Spotu) Bazlı Günlük, Haftalık, Aylık ve Yıllık Yayın Raporu',
+          description: 'Hangi reklamın hangi gün, hafta, ay ve yılda kaçar defa yayınlandığı, süre ve fiyat özeti.',
+          headers: ['Materyal & Kod', 'Firma & Ürün', 'Toplam Spot', 'Toplam Süre', 'Hangi Gün Kaç Defa', 'Hafta / Ay / Yıl Dağılımı', 'Tutar (₺)'],
+          rows: materialReports.map(m => [
+            `${m.materialName} (${m.clipName})`,
+            `${m.companyName} • ${m.productName}`,
+            `${m.totalSpots} Defa`,
+            formatSecondsToHoursMin(m.totalDurationSec),
+            m.dayOfWeekBreakdown,
+            `H: ${m.weeksBreakdown} | A: ${m.monthsBreakdown} | Y: ${m.yearsBreakdown}`,
+            m.totalRevenue > 0 ? `${m.totalRevenue.toLocaleString('tr-TR')} ₺` : '-'
+          ])
+        },
+        {
+          title: '2. Firma Bazlı Yayınlanma Raporu',
+          headers: ['Firma Adı', 'Ürün / Materyal', 'Toplam Spot', 'Toplam Süre', 'Hangi Gün Kaç Defa', 'Aylık / Yıllık', 'Toplam Tutar (₺)'],
+          rows: companyReports.map(c => [
+            c.companyName,
+            `${c.productsCount} Ürün / ${c.materialsCount} Materyal`,
+            `${c.totalSpots} Defa`,
+            formatSecondsToHoursMin(c.totalDurationSec),
+            c.dayOfWeekBreakdown,
+            `${c.monthsBreakdown} | ${c.yearsBreakdown}`,
+            c.totalRevenue > 0 ? `${c.totalRevenue.toLocaleString('tr-TR')} ₺` : '-'
+          ])
+        },
+        {
+          title: '3. Ürün Bazlı Yayınlanma Raporu',
+          headers: ['Ürün Adı', 'Firma', 'Materyal', 'Toplam Spot', 'Toplam Süre', 'Hangi Gün Kaç Defa', 'Toplam Tutar (₺)'],
+          rows: productReports.map(p => [
+            p.productName,
+            p.companyName,
+            `${p.materialsCount} Klip`,
+            `${p.totalSpots} Defa`,
+            formatSecondsToHoursMin(p.totalDurationSec),
+            p.dayOfWeekBreakdown,
+            p.totalRevenue > 0 ? `${p.totalRevenue.toLocaleString('tr-TR')} ₺` : '-'
+          ])
+        },
+        {
+          title: '4. Yayın Planı & Kota Kullanım / Aşım (- Fark) Raporu',
+          headers: ['Plan Adı', 'Firma', 'Tarih Aralığı', 'Planlanan', 'Gerçekleşen', 'Fark / Aşım (-)', 'Planlanan Bütçe', 'Gerçekleşen Tutar'],
+          rows: planReports.map(pr => [
+            pr.name,
+            pr.companyName,
+            `${pr.startDate} – ${pr.endDate}`,
+            `${pr.plannedSpots} Spot`,
+            `${pr.realizedSpots} Spot`,
+            `${pr.spotDiff} Spot (%${pr.usagePct})`,
+            pr.plannedBudget > 0 ? `${pr.plannedBudget.toLocaleString('tr-TR')} ₺` : '-',
+            pr.realizedBudget > 0 ? `${pr.realizedBudget.toLocaleString('tr-TR')} ₺` : '-'
+          ])
+        }
+      ]
+    });
   };
 
   return (
@@ -232,6 +550,17 @@ const AdsReportsTab = ({ setActiveTab }) => {
 
           <select
             className="ads-saas-select"
+            value={filters.materialId}
+            onChange={e => setFilters(prev => ({ ...prev, materialId: e.target.value }))}
+          >
+            <option value="">Tüm Materyaller ({filteredMaterialsList.length})</option>
+            {filteredMaterialsList.map(m => (
+              <option key={m.id} value={m.id}>{m.name} (#{m.clipId})</option>
+            ))}
+          </select>
+
+          <select
+            className="ads-saas-select"
             value={filters.timeBlockId}
             onChange={e => setFilters(prev => ({ ...prev, timeBlockId: e.target.value }))}
           >
@@ -258,11 +587,31 @@ const AdsReportsTab = ({ setActiveTab }) => {
           />
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
           <button onClick={resetFilters} className="ads-saas-btn">
             <RotateCcw size={13} /> Sıfırla
           </button>
-          <button onClick={handleExportCSV} className="ads-saas-btn primary">
+          <button
+            onClick={handleExportPDF}
+            className="ads-saas-btn"
+            style={{ background: '#dc2626', color: '#fff', borderColor: '#b91c1c', fontWeight: 800 }}
+            title="Seçili Firma / Ürün / Materyal veya Genel Rapor için PDF Sunum Çıktısı"
+          >
+            <FileText size={14} /> PDF (Sunum)
+          </button>
+          <button
+            onClick={handleExportExcel}
+            className="ads-saas-btn"
+            style={{ background: '#059669', color: '#fff', borderColor: '#047857', fontWeight: 800 }}
+            title="Seçili Firma / Ürün / Materyal veya Genel Rapor için Excel (.xls) Çıktısı"
+          >
+            <FileSpreadsheet size={14} /> Excel (.xls)
+          </button>
+          <button
+            onClick={handleExportCSV}
+            className="ads-saas-btn primary"
+            title="Aktif Sekme ve Filtreye Özel CSV Çıktısı"
+          >
             <Download size={14} /> CSV İndir
           </button>
         </div>
@@ -329,14 +678,17 @@ const AdsReportsTab = ({ setActiveTab }) => {
       </div>
 
       {/* RAPOR GÖRÜNÜM SEKMELERİ */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-        <div className="ads-saas-pill-group">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, flexWrap: 'wrap', gap: '8px' }}>
+        <div className="ads-saas-pill-group" style={{ flexWrap: 'wrap' }}>
           {[
-            { id: 'material', label: `Spot Bazlı (${materialReports.length})` },
-            { id: 'daily', label: `Günlük & Saat (${dailyReports.length})` },
-            { id: 'company', label: `Firma Bazlı (${companyReports.length})` },
-            { id: 'timeblocks', label: `Kuşak & Saat Analizi` },
-            { id: 'logs', label: `Tüm Spot Kayıtları (${spotLogs.length})` }
+            { id: 'material', label: `1. Materyal / Spot Bazlı (${materialReports.length})` },
+            { id: 'company', label: `2. Firma Bazlı (${companyReports.length})` },
+            { id: 'product', label: `3. Ürün Bazlı (${productReports.length})` },
+            { id: 'plans', label: `4. Yayın Planı & Kullanım / Fiyat (${planReports.length})` },
+            { id: 'periods', label: '5. Haftalık / Aylık / Yıllık Analiz' },
+            { id: 'daily', label: `6. Günlük & Saat (${dailyReports.length})` },
+            { id: 'timeblocks', label: '7. Kuşak & Saat Yoğunluğu' },
+            { id: 'logs', label: `8. Tüm Spot Kayıtları (${spotLogs.length})` }
           ].map(tab => (
             <button
               key={tab.id}
@@ -390,7 +742,10 @@ const AdsReportsTab = ({ setActiveTab }) => {
                     Toplam Kaç Saniye
                   </th>
                   <th style={{ padding: '14px 12px', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>
-                    Günde Kaç Defa
+                    Günde / Haftada / Ayda / Yılda
+                  </th>
+                  <th style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-color)' }}>
+                    Hangi Gün Kaç Defa Yayınlandı
                   </th>
                   <th style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-color)' }}>
                     Hangi Kuşaklarda Yayınlandı
@@ -500,13 +855,39 @@ const AdsReportsTab = ({ setActiveTab }) => {
                       </div>
                     </td>
 
-                    {/* Günde Kaç Defa */}
+                    {/* Günde / Haftada / Ayda / Yılda */}
                     <td style={{ padding: '14px 12px', textAlign: 'center' }}>
-                      <div style={{ fontWeight: '800', color: '#fbbf24', fontSize: '14px' }}>
+                      <div style={{ fontWeight: '800', color: '#fbbf24', fontSize: '13px' }}>
                         Günde {m.avgDailySpots} kez
                       </div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                        (Min: {m.minDailySpots} / Maks: {m.maxDailySpots})
+                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                        Hafta: <strong>{m.avgWeeklySpots}</strong> • Ay: <strong>~{m.estMonthlySpots}</strong> • Yıl: <strong>~{m.estYearlySpots}</strong>
+                      </div>
+                      {m.totalRevenue > 0 && (
+                        <div style={{ fontSize: '11px', fontWeight: '800', color: '#10b981', marginTop: '2px' }}>
+                          {m.totalRevenue.toLocaleString('tr-TR')} ₺
+                        </div>
+                      )}
+                    </td>
+
+                    {/* Hangi Gün Kaç Defa Yayınlandı */}
+                    <td style={{ padding: '14px 16px' }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', maxWidth: '240px' }}>
+                        {Object.entries(m.dayOfWeekCounts || {}).map(([dName, cnt]) => (
+                          <span
+                            key={dName}
+                            style={{
+                              fontSize: '10.5px',
+                              fontWeight: '700',
+                              padding: '2px 7px',
+                              borderRadius: '5px',
+                              background: 'rgba(59, 130, 246, 0.12)',
+                              color: '#60a5fa'
+                            }}
+                          >
+                            {dName}: <strong>{cnt}</strong>
+                          </span>
+                        ))}
                       </div>
                     </td>
 
@@ -781,7 +1162,10 @@ const AdsReportsTab = ({ setActiveTab }) => {
                     Toplam Süre (Kaç Saniye)
                   </th>
                   <th style={{ padding: '14px 14px', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>
-                    Günde Ortalama
+                    Günde / Haftada / Ayda / Yılda
+                  </th>
+                  <th style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-color)' }}>
+                    Hangi Gün Kaç Defa Yayınlandı
                   </th>
                   <th style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-color)' }}>
                     Kuşak Dağılımı
@@ -829,7 +1213,34 @@ const AdsReportsTab = ({ setActiveTab }) => {
                       {formatDurationReadable(c.totalDurationSec)}
                     </td>
                     <td style={{ padding: '14px 14px', textAlign: 'center', fontWeight: '700', color: '#fbbf24' }}>
-                      {c.avgDailySpots} spot / gün ({c.activeDaysCount} gün)
+                      <div>{c.avgDailySpots} spot/gün ({c.activeDaysCount} gün)</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                        Hafta: {c.avgWeeklySpots} • Ay: ~{c.estMonthlySpots} • Yıl: ~{c.estYearlySpots}
+                      </div>
+                      {c.totalRevenue > 0 && (
+                        <div style={{ fontSize: '11.5px', fontWeight: '800', color: '#10b981', marginTop: '2px' }}>
+                          {c.totalRevenue.toLocaleString('tr-TR')} ₺
+                        </div>
+                      )}
+                    </td>
+                    <td style={{ padding: '14px 16px' }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', maxWidth: '240px' }}>
+                        {Object.entries(c.dayOfWeekCounts || {}).map(([dName, cnt]) => (
+                          <span
+                            key={dName}
+                            style={{
+                              fontSize: '10.5px',
+                              fontWeight: '700',
+                              padding: '2px 7px',
+                              borderRadius: '5px',
+                              background: 'rgba(59, 130, 246, 0.12)',
+                              color: '#60a5fa'
+                            }}
+                          >
+                            {dName}: <strong>{cnt}</strong>
+                          </span>
+                        ))}
+                      </div>
                     </td>
                     <td style={{ padding: '14px 16px' }}>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
@@ -877,6 +1288,269 @@ const AdsReportsTab = ({ setActiveTab }) => {
                       >
                         Firma Raporuna Git
                       </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* 3B. ÜRÜN / KAMPANYA BAZLI RAPOR */}
+      {reportView === 'product' && (
+        <div
+          style={{
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '12px',
+            display: 'flex',
+            flexDirection: 'column'
+          }}
+        >
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '1050px' }}>
+              <thead
+                style={{
+                  background: 'var(--bg-tertiary)',
+                  color: 'var(--text-muted)',
+                  fontSize: '11px',
+                  textTransform: 'uppercase'
+                }}
+              >
+                <tr>
+                  <th style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-color)' }}>Ürün / Kampanya Adı</th>
+                  <th style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-color)' }}>Firma</th>
+                  <th style={{ padding: '14px 14px', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>Materyal Sayısı</th>
+                  <th style={{ padding: '14px 14px', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>Kaç Defa Yayınlandı</th>
+                  <th style={{ padding: '14px 14px', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>Toplam Süre</th>
+                  <th style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-color)' }}>Hangi Gün Kaç Defa Yayınlandı</th>
+                  <th style={{ padding: '14px 14px', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>Haftalık / Aylık / Yıllık</th>
+                </tr>
+              </thead>
+              <tbody>
+                {productReports.map(p => (
+                  <tr
+                    key={p.productId}
+                    onClick={() => openMaterialAndCompanyDetail(p.companyId)}
+                    style={{ borderBottom: '1px solid var(--border-color)', cursor: 'pointer' }}
+                  >
+                    <td style={{ padding: '13px 16px', fontWeight: '800', color: 'var(--text-primary)' }}>{p.productName}</td>
+                    <td style={{ padding: '13px 16px', fontWeight: '700', color: '#60a5fa' }}>{p.companyName}</td>
+                    <td style={{ padding: '13px 14px', textAlign: 'center', fontWeight: '700' }}>{p.materialsCount} Spot</td>
+                    <td style={{ padding: '13px 14px', textAlign: 'center', fontWeight: '900', color: '#60a5fa' }}>{p.totalSpots} Defa</td>
+                    <td style={{ padding: '13px 14px', textAlign: 'center', fontWeight: '800', color: '#34d399' }}>
+                      {formatDurationReadable(p.totalDurationSec)}
+                    </td>
+                    <td style={{ padding: '13px 16px' }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                        {Object.entries(p.dayOfWeekCounts || {}).map(([d, cnt]) => (
+                          <span
+                            key={d}
+                            style={{
+                              fontSize: '10.5px',
+                              fontWeight: '700',
+                              padding: '2px 7px',
+                              borderRadius: '5px',
+                              background: 'rgba(59, 130, 246, 0.12)',
+                              color: '#60a5fa'
+                            }}
+                          >
+                            {d}: <strong>{cnt}</strong>
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td style={{ padding: '13px 14px', textAlign: 'center', fontSize: '11.5px', color: 'var(--text-secondary)' }}>
+                      <div>Hafta: <strong>{p.avgWeeklySpots}</strong> • Ay: <strong>~{p.estMonthlySpots}</strong> • Yıl: <strong>~{p.estYearlySpots}</strong></div>
+                      {p.totalRevenue > 0 && (
+                        <div style={{ fontWeight: '800', color: '#10b981', marginTop: '2px' }}>
+                          {p.totalRevenue.toLocaleString('tr-TR')} ₺
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* 3C. YAYIN PLANI & KULLANIM / FİYAT / AŞIM (- FARK) RAPORU */}
+      {reportView === 'plans' && (
+        <div
+          style={{
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '12px',
+            display: 'flex',
+            flexDirection: 'column'
+          }}
+        >
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '1050px' }}>
+              <thead
+                style={{
+                  background: 'var(--bg-tertiary)',
+                  color: 'var(--text-muted)',
+                  fontSize: '11px',
+                  textTransform: 'uppercase'
+                }}
+              >
+                <tr>
+                  <th style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-color)' }}>Plan / Kampanya Adı</th>
+                  <th style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-color)' }}>Firma</th>
+                  <th style={{ padding: '14px 14px', borderBottom: '1px solid var(--border-color)' }}>Tarih Aralığı</th>
+                  <th style={{ padding: '14px 14px', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>Planlanan Spot</th>
+                  <th style={{ padding: '14px 14px', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>Gerçekleşen Spot</th>
+                  <th style={{ padding: '14px 14px', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>Kalan / Aşım (- Fark)</th>
+                  <th style={{ padding: '14px 14px', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>Birim Fiyat &amp; Bütçe</th>
+                </tr>
+              </thead>
+              <tbody>
+                {planReports.map(pr => (
+                  <tr
+                    key={pr.id}
+                    onClick={() => openMaterialAndCompanyDetail(pr.companyId)}
+                    style={{ borderBottom: '1px solid var(--border-color)', cursor: 'pointer' }}
+                  >
+                    <td style={{ padding: '13px 16px', fontWeight: '800', color: 'var(--text-primary)' }}>
+                      {pr.name}
+                      {pr.isRamadanSpecial && (
+                        <span style={{ marginLeft: '6px', fontSize: '10px', padding: '2px 7px', borderRadius: '999px', background: '#d97706', color: '#fff', fontWeight: 900 }}>
+                          🌙 Ramazan
+                        </span>
+                      )}
+                      {pr.isSponsor && (
+                        <span style={{ marginLeft: '6px', fontSize: '10px', padding: '2px 7px', borderRadius: '999px', background: 'rgba(147,51,234,0.16)', color: '#c084fc', fontWeight: 800 }}>
+                          Sponsor
+                        </span>
+                      )}
+                    </td>
+                    <td style={{ padding: '13px 16px', fontWeight: '700', color: '#60a5fa' }}>{pr.companyName}</td>
+                    <td style={{ padding: '13px 14px', fontFamily: 'monospace', fontSize: '12px' }}>
+                      {pr.startDate} – {pr.endDate}
+                    </td>
+                    <td style={{ padding: '13px 14px', textAlign: 'center', fontWeight: '800' }}>{pr.plannedSpots} Spot</td>
+                    <td style={{ padding: '13px 14px', textAlign: 'center', fontWeight: '900', color: pr.spotDiff < 0 ? '#ef4444' : '#34d399' }}>
+                      {pr.realizedSpots} Spot (%{pr.usagePct})
+                    </td>
+                    <td style={{ padding: '13px 14px', textAlign: 'center' }}>
+                      <span
+                        style={{
+                          padding: '4px 10px',
+                          borderRadius: '6px',
+                          fontWeight: '900',
+                          fontSize: '12px',
+                          background: pr.spotDiff < 0 ? 'rgba(239, 68, 68, 0.16)' : 'rgba(16, 185, 129, 0.14)',
+                          color: pr.spotDiff < 0 ? '#ef4444' : '#34d399'
+                        }}
+                      >
+                        {pr.spotDiff < 0 ? `${pr.spotDiff} Spot Aşım` : `${pr.spotDiff} Kalan`}
+                      </span>
+                    </td>
+                    <td style={{ padding: '13px 14px', textAlign: 'center', fontSize: '12px' }}>
+                      {pr.plannedBudget > 0 || pr.unitPrice > 0 ? (
+                        <div>
+                          <div style={{ fontWeight: '800', color: '#10b981' }}>
+                            Gerçekleşen: {pr.realizedBudget.toLocaleString('tr-TR')} ₺
+                          </div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                            Plan: {pr.plannedBudget.toLocaleString('tr-TR')} ₺ {pr.unitPrice > 0 ? `(${pr.unitPrice} ₺/spot)` : ''}
+                          </div>
+                          {pr.budgetDiff < 0 && (
+                            <div style={{ fontSize: '11px', fontWeight: '900', color: '#ef4444' }}>
+                              {pr.budgetDiff.toLocaleString('tr-TR')} ₺ Bütçe Aşımı
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)' }}>Sadece Spot Kotası</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* 3D. HAFTALIK / AYLIK / YILLIK DÖNEMSEL YAYIN ANALİZİ */}
+      {reportView === 'periods' && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+          <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '12px', overflow: 'hidden' }}>
+            <div style={{ padding: '12px 16px', background: 'var(--bg-tertiary)', fontWeight: '800', fontSize: '13px' }}>
+              📅 Haftalık Yayınlanma Raporu
+            </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', textAlign: 'left' }}>
+                  <th style={{ padding: '9px 12px' }}>Hafta</th>
+                  <th style={{ padding: '9px 12px' }}>Toplam Spot</th>
+                  <th style={{ padding: '9px 12px' }}>Süre &amp; Firma</th>
+                </tr>
+              </thead>
+              <tbody>
+                {periodReports.weekly.map(w => (
+                  <tr key={w.key} style={{ borderTop: '1px solid var(--border-color)' }}>
+                    <td style={{ padding: '9px 12px', fontWeight: '700' }}>{w.label}</td>
+                    <td style={{ padding: '9px 12px', fontWeight: '900', color: '#60a5fa' }}>{w.spots} Spot</td>
+                    <td style={{ padding: '9px 12px', fontSize: '11.5px', color: 'var(--text-secondary)' }}>
+                      {formatSecondsToHoursMin(w.durationSec)} • {w.companiesCount} Firma
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '12px', overflow: 'hidden' }}>
+            <div style={{ padding: '12px 16px', background: 'var(--bg-tertiary)', fontWeight: '800', fontSize: '13px' }}>
+              🗓️ Aylık Yayınlanma Raporu
+            </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', textAlign: 'left' }}>
+                  <th style={{ padding: '9px 12px' }}>Ay</th>
+                  <th style={{ padding: '9px 12px' }}>Toplam Spot</th>
+                  <th style={{ padding: '9px 12px' }}>Süre &amp; Firma</th>
+                </tr>
+              </thead>
+              <tbody>
+                {periodReports.monthly.map(m => (
+                  <tr key={m.key} style={{ borderTop: '1px solid var(--border-color)' }}>
+                    <td style={{ padding: '9px 12px', fontWeight: '700' }}>{m.label}</td>
+                    <td style={{ padding: '9px 12px', fontWeight: '900', color: '#60a5fa' }}>{m.spots} Spot</td>
+                    <td style={{ padding: '9px 12px', fontSize: '11.5px', color: 'var(--text-secondary)' }}>
+                      {formatSecondsToHoursMin(m.durationSec)} • {m.companiesCount} Firma
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '12px', overflow: 'hidden' }}>
+            <div style={{ padding: '12px 16px', background: 'var(--bg-tertiary)', fontWeight: '800', fontSize: '13px' }}>
+              📊 Yıllık Yayınlanma Raporu
+            </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', textAlign: 'left' }}>
+                  <th style={{ padding: '9px 12px' }}>Yıl</th>
+                  <th style={{ padding: '9px 12px' }}>Toplam Spot</th>
+                  <th style={{ padding: '9px 12px' }}>Süre &amp; Firma</th>
+                </tr>
+              </thead>
+              <tbody>
+                {periodReports.yearly.map(y => (
+                  <tr key={y.key} style={{ borderTop: '1px solid var(--border-color)' }}>
+                    <td style={{ padding: '9px 12px', fontWeight: '700' }}>{y.label}</td>
+                    <td style={{ padding: '9px 12px', fontWeight: '900', color: '#60a5fa' }}>{y.spots} Spot</td>
+                    <td style={{ padding: '9px 12px', fontSize: '11.5px', color: 'var(--text-secondary)' }}>
+                      {formatSecondsToHoursMin(y.durationSec)} • {y.companiesCount} Firma
                     </td>
                   </tr>
                 ))}

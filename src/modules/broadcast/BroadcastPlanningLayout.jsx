@@ -15,6 +15,7 @@ import BroadcastHeader from './components/BroadcastHeader';
 import BroadcastDayView from './components/BroadcastDayView';
 import BroadcastWeekView from './components/BroadcastWeekView';
 import BroadcastMonthView from './components/BroadcastMonthView';
+import BroadcastReportsView from './components/BroadcastReportsView';
 import AddBroadcastProgramModal from './components/AddBroadcastProgramModal';
 import EditBroadcastProgramModal from './components/EditBroadcastProgramModal';
 import AddAdBreakModal from './components/AddAdBreakModal';
@@ -153,6 +154,10 @@ const BroadcastPlanningLayout = () => {
 
         {viewMode === 'monthly' && (
           <BroadcastMonthView />
+        )}
+
+        {viewMode === 'reports' && (
+          <BroadcastReportsView />
         )}
       </div>
 

@@ -386,6 +386,7 @@ const DraftPlanningModule = () => {
           isLibraryOpen={isLibraryOpen}
           onToggleLibrary={() => setIsLibraryOpen(prev => !prev)}
           onOpenSendModal={() => handleOpenSendModal(selectedDayKey !== 'all' ? selectedDayKey : null, null)}
+          onOpenReports={() => setIsReportsOpen(true)}
         />
 
         <DraftDayFilter
@@ -600,6 +601,8 @@ const DraftPlanningModule = () => {
         isOpen={isReportsOpen}
         onClose={() => setIsReportsOpen(false)}
         scheduleData={scheduleData}
+        allChannelSchedule={schedulesByChannel?.[selectedChannel] || scheduleData}
+        selectedChannel={selectedChannel}
         currentChannel={currentChannel}
         dateRangeLabel={dateRangeLabel}
       />

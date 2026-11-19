@@ -631,6 +631,7 @@ export function computeAdsAnalyticsReport({
   companies = [],
   products = [],
   materials = [],
+  reservations = [],
   adPlacements = {},
   channels = [],
   timeBlocks = [],
@@ -654,6 +655,62 @@ export function computeAdsAnalyticsReport({
   const productMap = new Map(products.map(p => [String(p.id), p]));
   const companyMap = new Map(companies.map(c => [String(c.id), c]));
   const channelMap = new Map(channels.map(c => [String(c.id), c.name]));
+  const reservationMap = new Map((reservations || []).map(r => [String(r.id), r]));
+
+  // Materyal / Rezervasyon birim spot fiyatı ve planlanan spot / bütçe haritası
+  const pricingByResAndMat = new Map();
+  const pricingByMat = new Map();
+  (reservations || []).forEach(res => {
+    const items = Array.isArray(res.items) && res.items.length > 0 ? res.items : [res];
+    items.forEach(it => {
+      const mId = String(it.materialId || res.materialId || '');
+      const planned = Math.max(1, Number(it.plannedSpots || res.totalPlannedSpots || 20));
+      const unitPrice = Math.max(
+        0,
+        Number(it.spotPrice) ||
+          Number(res.spotPrice) ||
+          (Number(it.totalBudget || res.toplamTutar) > 0
+            ? Number(it.totalBudget || res.toplamTutar) / planned
+            : 0)
+      );
+      const totalBudget =
+        Number(it.totalBudget) > 0
+          ? Number(it.totalBudget)
+          : Number(res.toplamTutar) > 0
+          ? Number(res.toplamTutar)
+          : Math.round(planned * unitPrice * 100) / 100;
+
+      if (mId) {
+        pricingByResAndMat.set(`${res.id}::${mId}`, { unitPrice, planned, totalBudget, res });
+        if (!pricingByMat.has(mId) || unitPrice > 0) {
+          pricingByMat.set(mId, { unitPrice, planned, totalBudget, res });
+        }
+      }
+    });
+  });
+
+  const TR_DAYS = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
+  const TR_MONTHS = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+  const parseDateBuckets = (dStr = '') => {
+    const clean = String(dStr || '2026-10-12').slice(0, 10);
+    const [yS, mS, dS] = clean.split('-');
+    const y = parseInt(yS, 10) || 2026;
+    const m = Math.max(1, Math.min(12, parseInt(mS, 10) || 1));
+    const d = Math.max(1, Math.min(31, parseInt(dS, 10) || 1));
+    const dt = new Date(y, m - 1, d);
+    const startOfYear = new Date(y, 0, 1);
+    const pastDays = Math.floor((dt - startOfYear) / 86400000);
+    const weekNo = Math.max(1, Math.ceil((pastDays + startOfYear.getDay() + 1) / 7));
+    return {
+      date: clean,
+      dayName: TR_DAYS[dt.getDay()] || 'Gün',
+      weekKey: `${y}-H${String(weekNo).padStart(2, '0')}`,
+      weekLabel: `${y} • ${weekNo}. Hafta`,
+      monthKey: `${y}-${String(m).padStart(2, '0')}`,
+      monthLabel: `${TR_MONTHS[m - 1]} ${y}`,
+      yearKey: String(y)
+    };
+  };
 
   const spotLogs = [];
 
@@ -709,9 +766,21 @@ export function computeAdsAnalyticsReport({
           if (!hay.includes(q)) return;
         }
 
+        const pInfo =
+          pricingByResAndMat.get(`${ad.reservationId}::${resolvedMatId}`) ||
+          pricingByMat.get(String(resolvedMatId)) ||
+          { unitPrice: 0, planned: 20, totalBudget: 0 };
+        const dBuckets = parseDateBuckets(dateStr);
+
         spotLogs.push({
           id: `${dayKey}-${blockTime}-${adIdx}-${resolvedMatId}`,
           date: dateStr,
+          dayName: dBuckets.dayName,
+          weekKey: dBuckets.weekKey,
+          weekLabel: dBuckets.weekLabel,
+          monthKey: dBuckets.monthKey,
+          monthLabel: dBuckets.monthLabel,
+          yearKey: dBuckets.yearKey,
           time: blockTime,
           hourBucket: hourStr,
           channelId: chId,
@@ -727,7 +796,11 @@ export function computeAdsAnalyticsReport({
           materialName: matName,
           clipName: clipCode,
           durationSec,
-          reservationId: ad.reservationId || null
+          unitPrice: pInfo.unitPrice || 0,
+          reservationId: ad.reservationId || null,
+          isSponsorSpot: Boolean(ad.isSponsorSpot),
+          isRamadanSpot: Boolean(ad.isRamadanSpot),
+          sponsorRoleLabel: ad.sponsorRoleLabel || ''
         });
       });
     });
@@ -737,15 +810,21 @@ export function computeAdsAnalyticsReport({
 
   const byMaterialMap = new Map();
   const byCompanyMap = new Map();
+  const byProductMap = new Map();
   const byDailyMaterialMap = new Map();
   const byTimeBlockMap = new Map();
   const byHourMap = new Map();
+  const byWeekMap = new Map();
+  const byMonthMap = new Map();
+  const byYearMap = new Map();
   const uniqueDatesSet = new Set();
 
   spotLogs.forEach(log => {
     uniqueDatesSet.add(log.date);
+    const spotCost = Number(log.unitPrice) || 0;
 
     if (!byMaterialMap.has(log.materialId)) {
+      const mPricing = pricingByMat.get(String(log.materialId)) || { unitPrice: 0, planned: 20, totalBudget: 0 };
       byMaterialMap.set(log.materialId, {
         materialId: log.materialId,
         clipId: log.clipId,
@@ -756,10 +835,18 @@ export function computeAdsAnalyticsReport({
         productId: log.productId,
         productName: log.productName,
         unitDurationSec: log.durationSec,
+        unitPrice: mPricing.unitPrice || spotCost,
+        plannedSpots: mPricing.planned || 20,
+        plannedBudget: mPricing.totalBudget || 0,
         totalSpots: 0,
         totalDurationSec: 0,
+        totalRevenue: 0,
         datesSet: new Set(),
         dailyCounts: {},
+        dayOfWeekCounts: {},
+        weeksCounts: {},
+        monthsCounts: {},
+        yearsCounts: {},
         hoursSet: new Set(),
         hoursCountMap: {},
         timeBlocksCountMap: {},
@@ -771,8 +858,13 @@ export function computeAdsAnalyticsReport({
     const mStat = byMaterialMap.get(log.materialId);
     mStat.totalSpots += 1;
     mStat.totalDurationSec += log.durationSec;
+    mStat.totalRevenue += spotCost || mStat.unitPrice || 0;
     mStat.datesSet.add(log.date);
     mStat.dailyCounts[log.date] = (mStat.dailyCounts[log.date] || 0) + 1;
+    mStat.dayOfWeekCounts[log.dayName] = (mStat.dayOfWeekCounts[log.dayName] || 0) + 1;
+    mStat.weeksCounts[log.weekLabel] = (mStat.weeksCounts[log.weekLabel] || 0) + 1;
+    mStat.monthsCounts[log.monthLabel] = (mStat.monthsCounts[log.monthLabel] || 0) + 1;
+    mStat.yearsCounts[log.yearKey] = (mStat.yearsCounts[log.yearKey] || 0) + 1;
     mStat.hoursSet.add(log.time);
     mStat.hoursCountMap[log.time] = (mStat.hoursCountMap[log.time] || 0) + 1;
     mStat.timeBlocksCountMap[log.timeBlockName] = (mStat.timeBlocksCountMap[log.timeBlockName] || 0) + 1;
@@ -780,15 +872,56 @@ export function computeAdsAnalyticsReport({
     if (log.date < mStat.firstDate) mStat.firstDate = log.date;
     if (log.date > mStat.lastDate) mStat.lastDate = log.date;
 
+    // ÜRÜN BAZLI ANALİZ
+    if (!byProductMap.has(log.productId)) {
+      byProductMap.set(log.productId, {
+        productId: log.productId,
+        productName: log.productName,
+        companyId: log.companyId,
+        companyName: log.companyName,
+        totalSpots: 0,
+        totalDurationSec: 0,
+        totalRevenue: 0,
+        materialsSet: new Set(),
+        datesSet: new Set(),
+        dayOfWeekCounts: {},
+        weeksCounts: {},
+        monthsCounts: {},
+        yearsCounts: {},
+        timeBlocksCountMap: {},
+        firstDate: log.date,
+        lastDate: log.date
+      });
+    }
+    const pStat = byProductMap.get(log.productId);
+    pStat.totalSpots += 1;
+    pStat.totalDurationSec += log.durationSec;
+    pStat.totalRevenue += spotCost;
+    pStat.materialsSet.add(log.materialId);
+    pStat.datesSet.add(log.date);
+    pStat.dayOfWeekCounts[log.dayName] = (pStat.dayOfWeekCounts[log.dayName] || 0) + 1;
+    pStat.weeksCounts[log.weekLabel] = (pStat.weeksCounts[log.weekLabel] || 0) + 1;
+    pStat.monthsCounts[log.monthLabel] = (pStat.monthsCounts[log.monthLabel] || 0) + 1;
+    pStat.yearsCounts[log.yearKey] = (pStat.yearsCounts[log.yearKey] || 0) + 1;
+    pStat.timeBlocksCountMap[log.timeBlockName] = (pStat.timeBlocksCountMap[log.timeBlockName] || 0) + 1;
+    if (log.date < pStat.firstDate) pStat.firstDate = log.date;
+    if (log.date > pStat.lastDate) pStat.lastDate = log.date;
+
+    // FİRMA BAZLI ANALİZ
     if (!byCompanyMap.has(log.companyId)) {
       byCompanyMap.set(log.companyId, {
         companyId: log.companyId,
         companyName: log.companyName,
         totalSpots: 0,
         totalDurationSec: 0,
+        totalRevenue: 0,
         materialsSet: new Set(),
         productsSet: new Set(),
         datesSet: new Set(),
+        dayOfWeekCounts: {},
+        weeksCounts: {},
+        monthsCounts: {},
+        yearsCounts: {},
         timeBlocksCountMap: {},
         hoursSet: new Set()
       });
@@ -796,11 +929,50 @@ export function computeAdsAnalyticsReport({
     const cStat = byCompanyMap.get(log.companyId);
     cStat.totalSpots += 1;
     cStat.totalDurationSec += log.durationSec;
+    cStat.totalRevenue += spotCost;
     cStat.materialsSet.add(log.materialId);
     cStat.productsSet.add(log.productId);
     cStat.datesSet.add(log.date);
+    cStat.dayOfWeekCounts[log.dayName] = (cStat.dayOfWeekCounts[log.dayName] || 0) + 1;
+    cStat.weeksCounts[log.weekLabel] = (cStat.weeksCounts[log.weekLabel] || 0) + 1;
+    cStat.monthsCounts[log.monthLabel] = (cStat.monthsCounts[log.monthLabel] || 0) + 1;
+    cStat.yearsCounts[log.yearKey] = (cStat.yearsCounts[log.yearKey] || 0) + 1;
     cStat.timeBlocksCountMap[log.timeBlockName] = (cStat.timeBlocksCountMap[log.timeBlockName] || 0) + 1;
     cStat.hoursSet.add(log.time);
+
+    // HAFTALIK / AYLIK / YILLIK DÖNEMSEL TOPLAMLAR
+    if (!byWeekMap.has(log.weekKey)) {
+      byWeekMap.set(log.weekKey, { key: log.weekKey, label: log.weekLabel, spots: 0, durationSec: 0, revenue: 0, companiesSet: new Set(), materialsSet: new Set(), daysSet: new Set() });
+    }
+    const wObj = byWeekMap.get(log.weekKey);
+    wObj.spots += 1;
+    wObj.durationSec += log.durationSec;
+    wObj.revenue += spotCost;
+    wObj.companiesSet.add(log.companyId);
+    wObj.materialsSet.add(log.materialId);
+    wObj.daysSet.add(log.date);
+
+    if (!byMonthMap.has(log.monthKey)) {
+      byMonthMap.set(log.monthKey, { key: log.monthKey, label: log.monthLabel, spots: 0, durationSec: 0, revenue: 0, companiesSet: new Set(), materialsSet: new Set(), daysSet: new Set() });
+    }
+    const moObj = byMonthMap.get(log.monthKey);
+    moObj.spots += 1;
+    moObj.durationSec += log.durationSec;
+    moObj.revenue += spotCost;
+    moObj.companiesSet.add(log.companyId);
+    moObj.materialsSet.add(log.materialId);
+    moObj.daysSet.add(log.date);
+
+    if (!byYearMap.has(log.yearKey)) {
+      byYearMap.set(log.yearKey, { key: log.yearKey, label: `${log.yearKey} Yılı`, spots: 0, durationSec: 0, revenue: 0, companiesSet: new Set(), materialsSet: new Set(), daysSet: new Set() });
+    }
+    const yObj = byYearMap.get(log.yearKey);
+    yObj.spots += 1;
+    yObj.durationSec += log.durationSec;
+    yObj.revenue += spotCost;
+    yObj.companiesSet.add(log.companyId);
+    yObj.materialsSet.add(log.materialId);
+    yObj.daysSet.add(log.date);
 
     const dailyKey = `${log.date}::${log.channelId}::${log.materialId}`;
     if (!byDailyMaterialMap.has(dailyKey)) {
@@ -864,12 +1036,26 @@ export function computeAdsAnalyticsReport({
       const dailyValues = Object.values(m.dailyCounts);
       const minDaily = dailyValues.length > 0 ? Math.min(...dailyValues) : 0;
       const maxDaily = dailyValues.length > 0 ? Math.max(...dailyValues) : 0;
+      const activeWeeksCount = Math.max(1, Object.keys(m.weeksCounts).length);
+      const avgWeeklySpots = Number((m.totalSpots / activeWeeksCount).toFixed(1));
+      const estMonthlySpots = Math.round(avgWeeklySpots * 4.3);
+      const estYearlySpots = Math.round(avgWeeklySpots * 52);
+      const spotDiff = (m.plannedSpots || 20) - m.totalSpots; // negatifse aşım (- fark)
+
       return {
         ...m,
         activeDaysCount,
         avgDailySpots: Number((m.totalSpots / activeDaysCount).toFixed(1)),
+        avgWeeklySpots,
+        estMonthlySpots,
+        estYearlySpots,
+        spotBalance: spotDiff,
         minDailySpots: minDaily,
         maxDailySpots: maxDaily,
+        dayOfWeekBreakdown: Object.entries(m.dayOfWeekCounts).map(([d, c]) => `${d}: ${c}`).join(' • '),
+        weeksBreakdown: Object.entries(m.weeksCounts).map(([w, c]) => `${w}: ${c}`).join(' • '),
+        monthsBreakdown: Object.entries(m.monthsCounts).map(([mo, c]) => `${mo}: ${c}`).join(' • '),
+        yearsBreakdown: Object.entries(m.yearsCounts).map(([y, c]) => `${y}: ${c}`).join(' • '),
         sortedHours: Array.from(m.hoursSet).sort(),
         channelsList: Array.from(m.channelsSet),
         timeBlocksBreakdown: Object.entries(m.timeBlocksCountMap).map(([name, count]) => ({
@@ -880,15 +1066,49 @@ export function computeAdsAnalyticsReport({
     })
     .sort((a, b) => b.totalSpots - a.totalSpots || b.totalDurationSec - a.totalDurationSec);
 
+  const productReports = Array.from(byProductMap.values())
+    .map(p => {
+      const activeDaysCount = p.datesSet.size || 1;
+      const activeWeeksCount = Math.max(1, Object.keys(p.weeksCounts).length);
+      const avgWeeklySpots = Number((p.totalSpots / activeWeeksCount).toFixed(1));
+      return {
+        ...p,
+        activeDaysCount,
+        materialsCount: p.materialsSet.size,
+        avgDailySpots: Number((p.totalSpots / activeDaysCount).toFixed(1)),
+        avgWeeklySpots,
+        estMonthlySpots: Math.round(avgWeeklySpots * 4.3),
+        estYearlySpots: Math.round(avgWeeklySpots * 52),
+        dayOfWeekBreakdown: Object.entries(p.dayOfWeekCounts).map(([d, c]) => `${d}: ${c}`).join(' • '),
+        weeksBreakdown: Object.entries(p.weeksCounts).map(([w, c]) => `${w}: ${c}`).join(' • '),
+        monthsBreakdown: Object.entries(p.monthsCounts).map(([mo, c]) => `${mo}: ${c}`).join(' • '),
+        yearsBreakdown: Object.entries(p.yearsCounts).map(([y, c]) => `${y}: ${c}`).join(' • '),
+        timeBlocksBreakdown: Object.entries(p.timeBlocksCountMap).map(([name, count]) => ({
+          name,
+          count
+        }))
+      };
+    })
+    .sort((a, b) => b.totalSpots - a.totalSpots || b.totalDurationSec - a.totalDurationSec);
+
   const companyReports = Array.from(byCompanyMap.values())
     .map(c => {
       const activeDaysCount = c.datesSet.size || 1;
+      const activeWeeksCount = Math.max(1, Object.keys(c.weeksCounts).length);
+      const avgWeeklySpots = Number((c.totalSpots / activeWeeksCount).toFixed(1));
       return {
         ...c,
         activeDaysCount,
         materialsCount: c.materialsSet.size,
         productsCount: c.productsSet.size,
         avgDailySpots: Number((c.totalSpots / activeDaysCount).toFixed(1)),
+        avgWeeklySpots,
+        estMonthlySpots: Math.round(avgWeeklySpots * 4.3),
+        estYearlySpots: Math.round(avgWeeklySpots * 52),
+        dayOfWeekBreakdown: Object.entries(c.dayOfWeekCounts).map(([d, cnt]) => `${d}: ${cnt}`).join(' • '),
+        weeksBreakdown: Object.entries(c.weeksCounts).map(([w, cnt]) => `${w}: ${cnt}`).join(' • '),
+        monthsBreakdown: Object.entries(c.monthsCounts).map(([mo, cnt]) => `${mo}: ${cnt}`).join(' • '),
+        yearsBreakdown: Object.entries(c.yearsCounts).map(([y, cnt]) => `${y}: ${cnt}`).join(' • '),
         sortedHours: Array.from(c.hoursSet).sort(),
         timeBlocksBreakdown: Object.entries(c.timeBlocksCountMap).map(([name, count]) => ({
           name,
@@ -897,6 +1117,76 @@ export function computeAdsAnalyticsReport({
       };
     })
     .sort((a, b) => b.totalSpots - a.totalSpots || b.totalDurationSec - a.totalDurationSec);
+
+  // YAYIN PLAN / REZERVASYON BAZLI KULLANIM VE FİYAT / AŞIM (- FARK) RAPORU
+  const placedCountByResId = {};
+  spotLogs.forEach(l => {
+    if (l.reservationId) {
+      placedCountByResId[l.reservationId] = (placedCountByResId[l.reservationId] || 0) + 1;
+    }
+  });
+
+  const planReports = (reservations || [])
+    .filter(res => {
+      if (companyId && String(res.companyId) !== String(companyId)) return false;
+      if (productId) {
+        const matchProd =
+          String(res.productId) === String(productId) ||
+          (res.items || []).some(it => String(it.productId) === String(productId));
+        if (!matchProd) return false;
+      }
+      if (materialId) {
+        const matchMat =
+          String(res.materialId) === String(materialId) ||
+          (res.items || []).some(it => String(it.materialId) === String(materialId));
+        if (!matchMat) return false;
+      }
+      return true;
+    })
+    .map(res => {
+      const comp = companyMap.get(String(res.companyId));
+      const items = Array.isArray(res.items) && res.items.length > 0 ? res.items : [res];
+      const plannedSpots = Math.max(1, Number(res.totalPlannedSpots) || items.reduce((s, i) => s + (Number(i.plannedSpots) || 0), 0) || 20);
+      const realizedSpots = Math.max(Number(res.realizedSpots) || 0, placedCountByResId[res.id] || 0);
+      const spotDiff = plannedSpots - realizedSpots; // negatifse aşım (- fark)
+      const unitPrice = Number(res.spotPrice || items[0]?.spotPrice || 0);
+      const plannedBudget = Number(res.toplamTutar) || items.reduce((s, i) => s + (Number(i.totalBudget) || 0), 0) || Math.round(plannedSpots * unitPrice);
+      const realizedBudget = unitPrice > 0 ? Math.round(realizedSpots * unitPrice) : plannedBudget;
+      const budgetDiff = plannedBudget - realizedBudget;
+
+      return {
+        id: res.id,
+        name: res.name || `${comp?.name || 'Firma'} Planı`,
+        companyId: res.companyId,
+        companyName: comp?.name || 'Firma',
+        startDate: res.startDate || items[0]?.startDate || '-',
+        endDate: res.endDate || items[0]?.endDate || '-',
+        isSponsor: Boolean(res.isSponsor),
+        isRamadanSpecial: Boolean(res.isRamadanSpecial),
+        sponsorProgramTitle: res.sponsorProgramTitle || '',
+        itemsCount: items.length,
+        plannedSpots,
+        realizedSpots,
+        spotDiff,
+        usagePct: Math.round((realizedSpots / Math.max(1, plannedSpots)) * 100),
+        unitPrice,
+        plannedBudget,
+        realizedBudget,
+        budgetDiff
+      };
+    });
+
+  const periodReports = {
+    weekly: Array.from(byWeekMap.values())
+      .map(w => ({ ...w, companiesCount: w.companiesSet.size, materialsCount: w.materialsSet.size, daysCount: w.daysSet.size }))
+      .sort((a, b) => b.key.localeCompare(a.key)),
+    monthly: Array.from(byMonthMap.values())
+      .map(m => ({ ...m, companiesCount: m.companiesSet.size, materialsCount: m.materialsSet.size, daysCount: m.daysSet.size }))
+      .sort((a, b) => b.key.localeCompare(a.key)),
+    yearly: Array.from(byYearMap.values())
+      .map(y => ({ ...y, companiesCount: y.companiesSet.size, materialsCount: y.materialsSet.size, daysCount: y.daysSet.size }))
+      .sort((a, b) => b.key.localeCompare(a.key))
+  };
 
   const dailyReports = Array.from(byDailyMaterialMap.values())
     .map(d => ({
@@ -908,6 +1198,7 @@ export function computeAdsAnalyticsReport({
 
   const totalSpotsCount = spotLogs.length;
   const totalBroadcastSec = spotLogs.reduce((acc, s) => acc + s.durationSec, 0);
+  const totalRevenue = spotLogs.reduce((acc, s) => acc + (Number(s.unitPrice) || 0), 0);
   const totalBroadcastDays = uniqueDatesSet.size;
 
   const timeBlockReports = Array.from(byTimeBlockMap.values())
@@ -931,15 +1222,20 @@ export function computeAdsAnalyticsReport({
       totalSpotsCount,
       totalBroadcastSec,
       totalBroadcastMin: Number((totalBroadcastSec / 60).toFixed(1)),
+      totalRevenue: Math.round(totalRevenue * 100) / 100,
       totalBroadcastDays,
       avgSpotsPerDay: totalBroadcastDays > 0 ? Number((totalSpotsCount / totalBroadcastDays).toFixed(1)) : 0,
       avgSecPerDay: totalBroadcastDays > 0 ? Math.round(totalBroadcastSec / totalBroadcastDays) : 0,
       activeCompaniesCount: companyReports.length,
+      activeProductsCount: productReports.length,
       activeMaterialsCount: materialReports.length,
       topTimeBlock: timeBlockReports[0] || null
     },
     materialReports,
+    productReports,
     companyReports,
+    planReports,
+    periodReports,
     dailyReports,
     timeBlockReports,
     hourlyReports,

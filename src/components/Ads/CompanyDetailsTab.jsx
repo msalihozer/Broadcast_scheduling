@@ -18,11 +18,20 @@ import {
   Calendar,
   TrendingUp,
   Layers,
-  ChevronRight
+  ChevronRight,
+  FileText,
+  FileSpreadsheet,
+  Download
 } from 'lucide-react';
 import usePlanningStore from '../../store/planningStore';
 import AdVideoPlayer from './AdVideoPlayer';
 import { computeAdsAnalyticsReport } from '../../modules/ads/utils/adsAutoSyncEngine';
+import {
+  exportToCSV,
+  exportToExcel,
+  exportToPresentationPDF,
+  formatSecondsToHoursMin
+} from '../../utils/reportExportUtils';
 
 const DONUT_COLORS = ['#0066ff', '#0d9488', '#9333ea', '#ea580c', '#eab308'];
 
@@ -78,15 +87,23 @@ const CompanyDetailsTab = ({ setActiveTab }) => {
         companies: company ? [company] : [],
         products: companyProducts,
         materials: companyMaterials,
+        reservations: companyReservations,
         adPlacements,
         channels,
         timeBlocks,
         filters: { companyId: effectiveCompanyId }
       }),
-    [company, companyProducts, companyMaterials, adPlacements, channels, timeBlocks, effectiveCompanyId]
+    [company, companyProducts, companyMaterials, companyReservations, adPlacements, channels, timeBlocks, effectiveCompanyId]
   );
 
-  const { summary, materialReports, dailyReports } = companyAnalytics;
+  const {
+    summary,
+    materialReports = [],
+    productReports = [],
+    planReports = [],
+    periodReports = { weekly: [], monthly: [], yearly: [] },
+    dailyReports = []
+  } = companyAnalytics;
 
   // Firma değiştiğinde ürün filtresini sıfırla
   useEffect(() => {
@@ -239,6 +256,158 @@ const CompanyDetailsTab = ({ setActiveTab }) => {
     return `${item.color} ${start}% ${accPct}%`;
   }).join(', ');
 
+  // FİRMA ÖZELİNDE PDF SUNUM, EXCEL VE CSV ÇIKTILARI
+  const handleExportCompanyPDF = () => {
+    exportToPresentationPDF({
+      title: `${company.name} — FİRMA ÖZEL REKLAM & MEDYA TAKİP SUNUMU`,
+      subtitle: `Ürün Sayısı: ${companyProducts.length} • Materyal Sayısı: ${companyMaterials.length} • Toplam Yayın: ${summary.totalSpotsCount} Spot (${formatSecondsToHoursMin(summary.totalBroadcastSec)})`,
+      badgeText: `${company.name} • KURUMSAL MEDYA KARNESİ`,
+      accentColor: '#0066ff',
+      kpis: [
+        { label: 'Toplam Yayınlanan Spot', value: `${summary.totalSpotsCount} Spot`, sub: `${summary.totalBroadcastDays} Yayın Günü` },
+        { label: 'Toplam Yayın Süresi', value: formatSecondsToHoursMin(summary.totalBroadcastSec), sub: `${summary.totalBroadcastSec.toLocaleString('tr-TR')} sn`, color: '#0d9488' },
+        { label: 'Tanımlı Ürün & Materyal', value: `${companyProducts.length} Ürün`, sub: `${companyMaterials.length} Reklam Klibi`, color: '#8b5cf6' },
+        { label: 'Günlük Ortalama', value: `${summary.avgSpotsPerDay} Spot/Gün`, sub: `${summary.avgSecPerDay} sn/gün`, color: '#d97706' },
+        { label: 'Toplam Yayın Tutarı', value: summary.totalRevenue > 0 ? `${summary.totalRevenue.toLocaleString('tr-TR')} ₺` : 'Spot Kotası', sub: `${companyReservations.length} Plan`, color: '#059669' }
+      ],
+      highlightCards: [
+        {
+          title: 'Dönemsel (Haftalık / Aylık / Yıllık) Yayınlanma Özeti',
+          body:
+            `Haftalık: ${periodReports.weekly.map(w => `${w.label} (${w.spots} spot)`).join(', ') || '-'} | ` +
+            `Aylık: ${periodReports.monthly.map(m => `${m.label} (${m.spots} spot)`).join(', ') || '-'} | ` +
+            `Yıllık: ${periodReports.yearly.map(y => `${y.label} (${y.spots} spot)`).join(', ') || '-'}`
+        },
+        {
+          title: 'Kuşak Dağılım Özeti',
+          body: timeBlockDistribution.map(tb => `${tb.name}: ${tb.count} Spot (%${tb.pct})`).join(' • ')
+        }
+      ],
+      sections: [
+        {
+          title: '1. Materyal (Reklam Klibi) Bazlı Günlük, Haftalık, Aylık ve Yıllık Yayın Raporu',
+          headers: ['Materyal Adı & Kodu', 'Ürün', 'Birim Süre', 'Kaç Defa Yayınlandı', 'Toplam Süre', 'Hangi Gün Kaç Defa', 'Hafta / Ay / Yıl', 'Tutar (₺)'],
+          rows: materialReports.map(m => [
+            `${m.materialName} (${m.clipName})`,
+            m.productName,
+            `${m.unitDurationSec} sn`,
+            `${m.totalSpots} Defa`,
+            formatSecondsToHoursMin(m.totalDurationSec),
+            m.dayOfWeekBreakdown,
+            `H: ${m.weeksBreakdown} | A: ${m.monthsBreakdown} | Y: ${m.yearsBreakdown}`,
+            m.totalRevenue > 0 ? `${m.totalRevenue.toLocaleString('tr-TR')} ₺` : '-'
+          ])
+        },
+        {
+          title: '2. Ürün / Kampanya Bazlı Yayın Performansı',
+          headers: ['Ürün Adı', 'Materyal Sayısı', 'Toplam Spot', 'Toplam Süre', 'Hangi Gün Kaç Defa', 'Haftalık / Aylık / Yıllık'],
+          rows: productReports.map(p => [
+            p.productName,
+            `${p.materialsCount} Materyal`,
+            `${p.totalSpots} Defa`,
+            formatSecondsToHoursMin(p.totalDurationSec),
+            p.dayOfWeekBreakdown,
+            `${p.weeksBreakdown} | ${p.monthsBreakdown} | ${p.yearsBreakdown}`
+          ])
+        },
+        {
+          title: '3. Günlük & Saatlik Detaylı Yayın Kayıtları',
+          headers: ['Tarih', 'Kanal', 'Materyal', 'Ürün', 'O Gün Kaç Defa', 'Toplam Süre', 'Kuşaklar', 'Yayın Saatleri'],
+          rows: dailyReports.map(d => [
+            d.date,
+            d.channelName,
+            d.materialName,
+            d.productName,
+            `${d.dailySpotCount} Defa`,
+            `${d.dailyTotalSec} sn`,
+            d.timeBlocksList.join(', '),
+            d.broadcastTimes.join(', ')
+          ])
+        }
+      ]
+    });
+  };
+
+  const handleExportCompanyExcel = () => {
+    exportToExcel({
+      filename: `Firma_Ozel_Reklam_Raporu_${company.name}`,
+      title: `${company.name} — FİRMA ÖZEL REKLAM & YAYIN RAPORU`,
+      subtitle: `${companyProducts.length} Ürün • ${companyMaterials.length} Materyal • ${summary.totalSpotsCount} Toplam Spot`,
+      kpis: [
+        { label: 'Firma Adı', value: company.name },
+        { label: 'Toplam Yayın (Spot)', value: `${summary.totalSpotsCount} Spot` },
+        { label: 'Toplam Süre', value: formatSecondsToHoursMin(summary.totalBroadcastSec) },
+        { label: 'Günlük Ortalama', value: `${summary.avgSpotsPerDay} Spot/Gün` },
+        { label: 'Toplam Tutar', value: summary.totalRevenue > 0 ? `${summary.totalRevenue.toLocaleString('tr-TR')} ₺` : '-' }
+      ],
+      sections: [
+        {
+          title: '1. MATERYAL BAZLI GÜNLÜK / HAFTALIK / AYLIK / YILLIK YAYINLANMA RAPORU',
+          headers: ['Materyal Adı', 'Klip Kodu', 'Ürün', 'Süre (sn)', 'Kaç Defa Yayınlandı', 'Toplam Süre', 'Hangi Gün Kaç Defa', 'Haftalık / Aylık / Yıllık', 'Tutar (₺)'],
+          rows: materialReports.map(m => [
+            m.materialName,
+            m.clipName,
+            m.productName,
+            `${m.unitDurationSec} sn`,
+            `${m.totalSpots} Defa`,
+            formatSecondsToHoursMin(m.totalDurationSec),
+            m.dayOfWeekBreakdown,
+            `H: ${m.weeksBreakdown} | A: ${m.monthsBreakdown} | Y: ${m.yearsBreakdown}`,
+            m.totalRevenue > 0 ? `${m.totalRevenue.toLocaleString('tr-TR')} ₺` : '-'
+          ])
+        },
+        {
+          title: '2. GÜNLÜK & SAATLİK YAYIN DÖKÜMÜ',
+          headers: ['Tarih', 'Kanal', 'Materyal', 'Ürün', 'Spot Sayısı', 'Süre (sn)', 'Kuşaklar', 'Saatler'],
+          rows: dailyReports.map(d => [
+            d.date,
+            d.channelName,
+            d.materialName,
+            d.productName,
+            d.dailySpotCount,
+            d.dailyTotalSec,
+            d.timeBlocksList.join(', '),
+            d.broadcastTimes.join(', ')
+          ])
+        }
+      ]
+    });
+  };
+
+  const handleExportCompanyCSV = () => {
+    exportToCSV({
+      filename: `Firma_Ozel_Rapor_${company.name}`,
+      headers: [
+        'Firma',
+        'Materyal Adı',
+        'Klip Kodu',
+        'Ürün',
+        'Birim Süre (sn)',
+        'Toplam Spot',
+        'Toplam Süre (sn)',
+        'Hangi Gün Kaç Defa',
+        'Haftalık',
+        'Aylık',
+        'Yıllık',
+        'Tutar (₺)'
+      ],
+      rows: materialReports.map(m => [
+        company.name,
+        m.materialName,
+        m.clipName,
+        m.productName,
+        m.unitDurationSec,
+        m.totalSpots,
+        m.totalDurationSec,
+        m.dayOfWeekBreakdown,
+        m.weeksBreakdown,
+        m.monthsBreakdown,
+        m.yearsBreakdown,
+        m.totalRevenue > 0 ? `${m.totalRevenue} ₺` : '-'
+      ])
+    });
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
       {/* ÜST FİRMA BAŞLIĞI VE SEKME ÇUBUĞU */}
@@ -299,8 +468,8 @@ const CompanyDetailsTab = ({ setActiveTab }) => {
           ))}
         </div>
 
-        {/* Sağ: Hızlı Firma Seçici */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        {/* Sağ: Hızlı Firma Seçici ve Firma Özel PDF / Excel / CSV Çıktı Butonları */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
           <select
             value={effectiveCompanyId || ''}
             onChange={e => {
@@ -308,7 +477,7 @@ const CompanyDetailsTab = ({ setActiveTab }) => {
               setSelectedMaterialDetailId(null);
             }}
             className="ads-saas-select"
-            style={{ maxWidth: '220px', fontWeight: '700' }}
+            style={{ maxWidth: '200px', fontWeight: '700' }}
           >
             {sortedCompanies.map(c => (
               <option key={c.id} value={c.id}>
@@ -316,6 +485,35 @@ const CompanyDetailsTab = ({ setActiveTab }) => {
               </option>
             ))}
           </select>
+
+          <button
+            type="button"
+            onClick={handleExportCompanyPDF}
+            className="ads-saas-btn ads-saas-btn-sm"
+            style={{ background: '#dc2626', color: '#fff', borderColor: '#b91c1c', fontWeight: 800 }}
+            title="Bu Firmaya Özel PDF Sunum Karnesi İndir"
+          >
+            <FileText size={13} /> PDF Sunum
+          </button>
+
+          <button
+            type="button"
+            onClick={handleExportCompanyExcel}
+            className="ads-saas-btn ads-saas-btn-sm"
+            style={{ background: '#059669', color: '#fff', borderColor: '#047857', fontWeight: 800 }}
+            title="Bu Firmaya Özel Excel (.xls) Raporu İndir"
+          >
+            <FileSpreadsheet size={13} /> Excel
+          </button>
+
+          <button
+            type="button"
+            onClick={handleExportCompanyCSV}
+            className="ads-saas-btn ads-saas-btn-sm"
+            title="Bu Firmaya Özel CSV Raporu İndir"
+          >
+            <Download size={13} /> CSV
+          </button>
 
           <button
             type="button"
@@ -776,6 +974,7 @@ const CompanyDetailsTab = ({ setActiveTab }) => {
                       <th>Süre</th>
                       <th>Yayın</th>
                       <th>Toplam Sn</th>
+                      <th>Hangi Gün / Hafta / Ay / Yıl</th>
                       <th>Kuşaklar</th>
                     </tr>
                   </thead>
@@ -821,6 +1020,18 @@ const CompanyDetailsTab = ({ setActiveTab }) => {
                           </td>
                           <td style={{ fontWeight: '800', color: 'var(--ads-orange)' }}>
                             {stat ? `${stat.totalDurationSec} sn` : '0 sn'}
+                          </td>
+                          <td style={{ fontSize: '10.5px', color: 'var(--ads-text-sub)' }}>
+                            {stat ? (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                <div><strong>Günler:</strong> {stat.dayOfWeekBreakdown || '-'}</div>
+                                <div>
+                                  <strong>Hafta:</strong> {stat.avgWeeklySpots} • <strong>Ay:</strong> ~{stat.estMonthlySpots} • <strong>Yıl:</strong> ~{stat.estYearlySpots}
+                                </div>
+                              </div>
+                            ) : (
+                              '-'
+                            )}
                           </td>
                           <td>
                             {stat ? (
@@ -929,6 +1140,14 @@ const CompanyDetailsTab = ({ setActiveTab }) => {
                             {selectedMaterialReport.avgDailySpots}/gün
                           </div>
                         </div>
+                      </div>
+
+                      <div style={{ fontSize: '11px', color: 'var(--ads-text-sub)', lineHeight: 1.45, borderTop: '1px solid var(--ads-border)', paddingTop: '6px' }}>
+                        <div><strong>Hangi Gün Kaç Defa:</strong> {selectedMaterialReport.dayOfWeekBreakdown || '-'}</div>
+                        <div><strong>Haftalık:</strong> {selectedMaterialReport.avgWeeklySpots} kez • <strong>Aylık:</strong> ~{selectedMaterialReport.estMonthlySpots} kez • <strong>Yıllık:</strong> ~{selectedMaterialReport.estYearlySpots} kez</div>
+                        {selectedMaterialReport.totalRevenue > 0 && (
+                          <div><strong>Hesaplanan Tutar:</strong> <span style={{ color: '#059669', fontWeight: 800 }}>{selectedMaterialReport.totalRevenue.toLocaleString('tr-TR')} ₺</span></div>
+                        )}
                       </div>
                     </div>
                   )}
