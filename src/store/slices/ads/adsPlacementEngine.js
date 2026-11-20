@@ -22,9 +22,192 @@
  *    Tekrar eden klip ve üst üste aynı firma kontrolü yaparak kuşağa manuel spot ekler.
  */
 import { dialog } from '../../dialogStore';
-import { normalizeAdDurationSeconds, saveAdsReservationsBackup } from './adsCatalogHelpers';
+import {
+  normalizeAdDurationSeconds,
+  saveAdsReservationsBackup,
+  DEFAULT_AD_BREAK_BUMPER_RULES
+} from './adsCatalogHelpers';
+import { getCategoryDetails } from '../../../utils/categoryColors';
 
 export const SINGULAR_SPONSOR_ROLES = ['presents', 'to_be_continued', 'continues', 'presented'];
+
+function normalizeCatKey(str = '') {
+  return String(str || '')
+    .toLocaleLowerCase('tr-TR')
+    .replace(/ğ/g, 'g')
+    .replace(/ü/g, 'u')
+    .replace(/ş/g, 's')
+    .replace(/ı/g, 'i')
+    .replace(/ö/g, 'o')
+    .replace(/ç/g, 'c')
+    .replace(/[^a-z0-9]/g, '')
+    .trim();
+}
+
+/**
+ * Bir reklam kuşağından hemen önce yayınlanan programı (`prevProg`) ve kategorisini tespit eder;
+ * seçili kanal (`channelId`) ve kategori için tanımlı RTÜK Reklam Giriş (`introBumperAd`) ve
+ * Reklam Çıkış (`outroBumperAd`) jenerik kliplerini ve sürelerini döndürür.
+ */
+export function resolveAdBreakBumpersForPrecedingProgram(state, channelId, prevProg, nextProg = null) {
+  const refProg = prevProg || nextProg || null;
+  const sourceProgramTitle =
+    refProg?.programTitle || refProg?.title || refProg?.name || refProg?.clipName || 'Genel Yayın';
+
+  let rawCatName = String(refProg?.category || refProg?.categoryName || '').trim();
+  let rawCatId = Number(refProg?.categoryId) || null;
+
+  // Eğer programda kategori adı 'Programlar', 'Genel' gibi jenerik kalmışsa kütüphaneden veya başlıktan çözümle
+  const isGenericCat =
+    !rawCatName ||
+    ['programlar', 'program', 'genel', 'genelyayin', 'yayin'].includes(normalizeCatKey(rawCatName));
+
+  if (isGenericCat && refProg) {
+    const progSearchText = `${refProg.programTitle || ''} ${refProg.title || ''} ${refProg.name || ''} ${refProg.clipName || ''}`.toLocaleLowerCase('tr-TR');
+    const libMatch = (state?.libraryPrograms || []).find(
+      lp =>
+        lp &&
+        (String(lp.id) === String(refProg.id) ||
+          (lp.title && progSearchText.includes(String(lp.title).toLocaleLowerCase('tr-TR'))))
+    );
+    if (libMatch && (libMatch.category || libMatch.categoryName || libMatch.categoryId)) {
+      rawCatName = libMatch.category || libMatch.categoryName || rawCatName;
+      rawCatId = Number(libMatch.categoryId) || rawCatId;
+    } else if (/hanım|hanim|bayan|kadın|kadin|aile|mutfak|lezzet|yemek|evimiz/i.test(progSearchText)) {
+      rawCatName = 'Kadın';
+      rawCatId = 1;
+    } else if (/çocuk|cocuk|masal|çizgi|cizgi|minik|şekerağacı|sekeragaci|mavi fidan/i.test(progSearchText)) {
+      rawCatName = 'Çocuk';
+      rawCatId = 5;
+    } else if (/haber|gündem|gundem|bülten|bulten|ajans/i.test(progSearchText)) {
+      rawCatName = 'Haber';
+      rawCatId = 2;
+    } else if (/kültür|kultur|tarih|belgesel|gezi|şehir|sehir|mimari|sanat|edebiyat|mostar/i.test(progSearchText)) {
+      rawCatName = 'Kültürel';
+      rawCatId = 8;
+    } else if (/tanıtım|tanitim|fragman/i.test(progSearchText)) {
+      rawCatName = 'Tanıtım';
+      rawCatId = 3;
+    } else if (/detay/i.test(progSearchText)) {
+      rawCatName = 'Detay';
+      rawCatId = 9;
+    } else if (/kısa|kisa/i.test(progSearchText)) {
+      rawCatName = 'Kısa Program';
+      rawCatId = 10;
+    } else {
+      rawCatName = 'Dini';
+      rawCatId = 4;
+    }
+  }
+
+  const catDetails = getCategoryDetails(rawCatId, rawCatName);
+  const detectedCategoryName =
+    catDetails?.id && catDetails?.name && catDetails.name !== 'Genel Yayın'
+      ? catDetails.name
+      : rawCatName && !isGenericCat
+      ? rawCatName
+      : 'Dini';
+  const detectedCategoryId = Number(catDetails?.id || rawCatId || 4);
+  const normDetected = normalizeCatKey(detectedCategoryName);
+
+  const allRules =
+    Array.isArray(state?.adBreakBumperRules) && state.adBreakBumperRules.length > 0
+      ? state.adBreakBumperRules
+      : DEFAULT_AD_BREAK_BUMPER_RULES;
+
+  const activeChannelRules = allRules.filter(
+    r => r && r.isActive !== false && String(r.channelId) === String(channelId)
+  );
+  const candidateRules =
+    activeChannelRules.length > 0
+      ? activeChannelRules
+      : allRules.filter(r => r && r.isActive !== false);
+
+  let matchedRule = candidateRules.find(r => {
+    const byName = (r.categories || []).some(c => {
+      const nc = normalizeCatKey(c);
+      if (!nc || !normDetected) return false;
+      return nc === normDetected || nc.includes(normDetected) || normDetected.includes(nc);
+    });
+    if (byName) return true;
+    const byId = (r.categoryIds || []).some(cid => Number(cid) === detectedCategoryId);
+    return byId;
+  });
+
+  if (!matchedRule) {
+    matchedRule =
+      candidateRules.find(r => (r.categories || []).some(c => normalizeCatKey(c) === 'dini')) ||
+      candidateRules[0] ||
+      DEFAULT_AD_BREAK_BUMPER_RULES[0];
+  }
+
+  let introBumperAd = null;
+  let outroBumperAd = null;
+
+  if (matchedRule?.introClip) {
+    const introSec = Math.max(1, Number(matchedRule.introClip.durationSec) || 9);
+    const introMs = Number(matchedRule.introClip.durationMs) || introSec * 1000;
+    const clipIdStr = String(matchedRule.introClip.clipId || matchedRule.introClip.id || '3538');
+    introBumperAd = {
+      reservationId: `rtuk-bumper-intro-${matchedRule.id}`,
+      materialId: clipIdStr,
+      clipId: clipIdStr,
+      name: matchedRule.introClip.name,
+      clipName: matchedRule.introClip.name,
+      code: matchedRule.introClip.code || `${clipIdStr}.mxf`,
+      duration: introSec,
+      durationMs: introMs,
+      companyId: 'comp-rtuk-bumper-intro',
+      companyName: `RTÜK REKLAM GİRİŞ (${detectedCategoryName.toLocaleUpperCase('tr-TR')})`,
+      productId: 'prod-rtuk-bumper-intro',
+      productName: `Önceki Program: ${sourceProgramTitle} (${detectedCategoryName})`,
+      isBumperAd: true,
+      bumperType: 'intro',
+      bumperCategoryName: detectedCategoryName,
+      bumperSourceProgram: sourceProgramTitle,
+      lockOrder: 'bumper_intro'
+    };
+  }
+
+  if (matchedRule?.outroClip) {
+    const outroSec = Math.max(1, Number(matchedRule.outroClip.durationSec) || 9);
+    const outroMs = Number(matchedRule.outroClip.durationMs) || outroSec * 1000;
+    const clipIdStr = String(matchedRule.outroClip.clipId || matchedRule.outroClip.id || '3537');
+    outroBumperAd = {
+      reservationId: `rtuk-bumper-outro-${matchedRule.id}`,
+      materialId: clipIdStr,
+      clipId: clipIdStr,
+      name: matchedRule.outroClip.name,
+      clipName: matchedRule.outroClip.name,
+      code: matchedRule.outroClip.code || `${clipIdStr}.mxf`,
+      duration: outroSec,
+      durationMs: outroMs,
+      companyId: 'comp-rtuk-bumper-outro',
+      companyName: `RTÜK REKLAM ÇIKIŞ (${detectedCategoryName.toLocaleUpperCase('tr-TR')})`,
+      productId: 'prod-rtuk-bumper-outro',
+      productName: `Önceki Program: ${sourceProgramTitle} (${detectedCategoryName})`,
+      isBumperAd: true,
+      bumperType: 'outro',
+      bumperCategoryName: detectedCategoryName,
+      bumperSourceProgram: sourceProgramTitle,
+      lockOrder: 'bumper_outro'
+    };
+  }
+
+  const totalBumperDurationSec =
+    (introBumperAd ? introBumperAd.duration : 0) +
+    (outroBumperAd ? outroBumperAd.duration : 0);
+
+  return {
+    matchedRule,
+    detectedCategoryName,
+    detectedCategoryId,
+    sourceProgramTitle,
+    introBumperAd,
+    outroBumperAd,
+    totalBumperDurationSec
+  };
+}
 
 /**
  * Aynı program (`sponsorProgramTitle`) için tekil sunum bantlarının
@@ -138,14 +321,16 @@ export function enforceSingularBumperUniqueness(reservationsList, activeReservat
  * @returns {Array} Kurallara göre sıralanmış nihai reklam listesi
  */
 export function finalizeBucketAdsOrder(bucket) {
-  const opening = [...(bucket.openingPinnedAds || [])];
-  const closing = [...(bucket.closingPinnedAds || [])];
-  const pool = [...(bucket.middleAds || [])];
+  const introBumper = bucket.introBumperAd || null;
+  const outroBumper = bucket.outroBumperAd || null;
+  const opening = [...(bucket.openingPinnedAds || [])].filter(a => !a?.isBumperAd);
+  const closing = [...(bucket.closingPinnedAds || [])].filter(a => !a?.isBumperAd);
+  const pool = [...(bucket.middleAds || [])].filter(a => !a?.isBumperAd);
 
   const result = [];
   const usedMatIds = new Set();
 
-  // 1. Açılışta ilk sıraya kilitli reklamları (Sundu / Devam Edecek) ekle
+  // 1. Açılışta ilk sıraya kilitli sponsor reklamlarını (Sundu / Devam Edecek) ekle (Reklam Giriş jeneriğinin hemen altına gelecek)
   opening.forEach(ad => {
     const matKey = String(ad.materialId);
     if (usedMatIds.has(matKey)) return;
@@ -156,7 +341,7 @@ export function finalizeBucketAdsOrder(bucket) {
     usedMatIds.add(matKey);
   });
 
-  // Kapanışta son sıraya kilitli reklamları (Sunar / Devam Ediyor) hazırla (tekil ve tekrarsız)
+  // Kapanışta son sıraya kilitli sponsor reklamlarını (Sunar / Devam Ediyor) hazırla (Reklam Çıkış jeneriğinin hemen üstüne gelecek)
   const validClosing = [];
   closing.forEach(ad => {
     const matKey = String(ad.materialId);
@@ -171,14 +356,12 @@ export function finalizeBucketAdsOrder(bucket) {
   while (remaining.length > 0) {
     const prevCompanyId = result.length > 0 ? String(result[result.length - 1].companyId) : null;
 
-    // Kalan havuzda hangi firmadan kaç reklam kaldığını say (en çok reklamı olan firmaya öncelik ver ki sıkışmasın)
     const countByComp = {};
     remaining.forEach(ad => {
       const cid = String(ad.companyId || '');
       countByComp[cid] = (countByComp[cid] || 0) + 1;
     });
 
-    // Bir önceki reklamın firmasıyla aynı OLMAYAN adayları bul
     const validIndices = [];
     for (let i = 0; i < remaining.length; i++) {
       if (String(remaining[i].companyId) !== prevCompanyId) {
@@ -187,13 +370,9 @@ export function finalizeBucketAdsOrder(bucket) {
     }
 
     if (validIndices.length === 0) {
-      // Kalan tüm reklamlar son eklenen reklamla aynı firmaya ait; üst üste gelmemesi için eklemeyi durdur
       break;
     }
 
-    // Adaylar arasından:
-    // - Önce kuşak içi sponsor reklamlarını (`isSponsorSpot`),
-    // - Sonra kalan havuzda en çok reklamı olan firmayı seç
     validIndices.sort((idxA, idxB) => {
       const a = remaining[idxA];
       const b = remaining[idxB];
@@ -213,8 +392,7 @@ export function finalizeBucketAdsOrder(bucket) {
     }
   }
 
-  // 3. Eğer son sıradaki `validClosing[0]` ile `result`ın son elemanı aynı firmaysa,
-  // `result` içinde yer değiştirilebilecek uygun bir eleman varsa takas et, yoksa son orta elemanı çıkar
+  // 3. Eğer son sıradaki `validClosing[0]` ile `result`ın son elemanı aynı firmaysa takas et veya çıkar
   if (validClosing.length > 0 && result.length > opening.length) {
     const closingCompId = String(validClosing[0].companyId);
     while (
@@ -243,13 +421,12 @@ export function finalizeBucketAdsOrder(bucket) {
         }
       }
       if (!swapped) {
-        // Kapanış sunum bandı (Sunar / Devam Ediyor) önceliklidir; çakışan son orta reklamı kaldır
         result.pop();
       }
     }
   }
 
-  // 4. Son sıra kilitli reklamları (Sunar / Devam Ediyor) en sona ekle
+  // 4. Son sıra kilitli sponsor reklamlarını (Sunar / Devam Ediyor) ekle
   validClosing.forEach(ad => {
     const matKey = String(ad.materialId);
     if (usedMatIds.has(matKey)) return;
@@ -264,7 +441,17 @@ export function finalizeBucketAdsOrder(bucket) {
     usedMatIds.add(matKey);
   });
 
-  return result;
+  // 5. RTÜK KURALI: Sponsor reklamı olsa bile EN BAŞTA (1. sıra) Reklam Giriş Jeneriği, EN SONDA Reklam Çıkış Jeneriği yer alır!
+  const finalOrdered = [];
+  if (introBumper) {
+    finalOrdered.push(introBumper);
+  }
+  finalOrdered.push(...result);
+  if (outroBumper) {
+    finalOrdered.push(outroBumper);
+  }
+
+  return finalOrdered;
 }
 
 /**
@@ -392,18 +579,30 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
     );
     const explicitRamadanTag = item.ramadanBreakTag || existingMatchedBlock?.ramadanBreakTag || '';
 
+    // RTÜK KURALI: Önceki programı ve kategorisini tespit et -> Reklam Giriş ve Reklam Çıkış jeneriğini ve süresini kuşağa ayır
+    const bumperInfo = resolveAdBreakBumpersForPrecedingProgram(
+      state,
+      channelId,
+      prevItem?.prog || null,
+      nextItem?.prog || null
+    );
+
     const bucketObj = {
       timelineIdx: idx,
       blockId: blockIdVal,
       time: item.timeStr,
       duration: item.durMin,
       capacitySec: Math.max(30, item.capacitySec || 360),
-      usedSec: 0,
+      usedSec: bumperInfo.totalBumperDurationSec, // Giriş + Çıkış süresi (örn: 9 + 9 = 18 sn) kapasiteden baştan ayrılır
       timeBlockId: matchedTimeBlock.id,
       timeBlockName: matchedTimeBlock.name,
       ramadanBreakTag: explicitRamadanTag,
       prevProgTitle: prevItem ? prevItem.fullSearchText : '',
       nextProgTitle: nextItem ? nextItem.fullSearchText : '',
+      detectedPrevCategory: bumperInfo.detectedCategoryName,
+      bumperSourceProgram: bumperInfo.sourceProgramTitle,
+      introBumperAd: bumperInfo.introBumperAd, // En başta (1. sırada - sponsor reklamın da önünde)
+      outroBumperAd: bumperInfo.outroBumperAd, // En sonda (son sırada - sponsor reklamın da arkasında)
       openingPinnedAds: [], // İlk sıra kilitli: Devam Edecek ('to_be_continued') & Sundu ('presented')
       middleAds: [],        // Kuşak içi sponsorlar ('before', 'middle', 'after') & standart reklamlar
       closingPinnedAds: [], // Son sıra kilitli: Sunar ('presents') & Devam Ediyor ('continues')
@@ -1197,15 +1396,17 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
       timeBlockId: b.timeBlockId,
       timeBlockName: b.timeBlockName,
       ramadanBreakTag: b.ramadanBreakTag || '',
+      detectedPrevCategory: b.detectedPrevCategory || 'Dini',
+      bumperSourceProgram: b.bumperSourceProgram || '',
       ads: orderedAds
     };
   });
 
-  // Gerçekleşen spot sayısını ve aşım (- eksi fark) değerlerini güncelle
+  // Gerçekleşen spot sayısını ve aşım (- eksi fark) değerlerini güncelle (RTÜK Giriş/Çıkış jenerikleri ticari spot sayısına dahil edilmez)
   const finalCountsTodayByResId = {};
   finalPlacements.forEach(fp => {
     (fp.ads || []).forEach(ad => {
-      if (ad?.reservationId) {
+      if (ad?.reservationId && !ad.isBumperAd) {
         finalCountsTodayByResId[ad.reservationId] = (finalCountsTodayByResId[ad.reservationId] || 0) + 1;
       }
     });
@@ -1257,7 +1458,7 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
 
 /**
  * Belirli bir reklam kuşağına (`breakMeta`) manuel olarak reklam/spot ekler.
- * Tekrar eden klip ve üst üste aynı firma kontrollerini uygular.
+ * Tekrar eden klip, üst üste aynı firma ve RTÜK Reklam Giriş/Çıkış jenerik kilidi kontrollerini uygular.
  */
 export function executeAddManualAdToBreak(state, channelId, date, breakMeta, adPayload) {
   const key = `ready-${channelId}-${date}`;
@@ -1275,6 +1476,56 @@ export function executeAddManualAdToBreak(state, channelId, date, breakMeta, adP
     isManualSpot: true
   };
 
+  // Kuşaktan önceki programı bularak RTÜK Reklam Giriş / Çıkış jeneriklerini hazırla
+  const resolveBumpersForThisBreak = () => {
+    const dayObj = state.days?.[key];
+    const activeVar = dayObj?.activeVariant || 'v1';
+    const progs = dayObj?.variants?.[activeVar]?.programs || [];
+    let currentMin = dayObj?.startTime || 0;
+    let targetProgIdx = -1;
+
+    progs.forEach((p, idx) => {
+      const sMin = p.startMinute !== undefined ? p.startMinute : currentMin;
+      const dMin = parseFloat(p.duration || 0);
+      currentMin = sMin + dMin;
+      const h = Math.floor(sMin / 60) % 24;
+      const m = Math.floor(sMin % 60);
+      const tStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      if (
+        (breakMeta.blockId && (p.instanceId === breakMeta.blockId || p.id === breakMeta.blockId)) ||
+        tStr === breakMeta.time
+      ) {
+        targetProgIdx = idx;
+      }
+    });
+
+    let prevProg = null;
+    let nextProg = null;
+    if (targetProgIdx > -1) {
+      for (let i = targetProgIdx - 1; i >= 0; i--) {
+        const cand = progs[i];
+        const isAd = cand.type === 'ad_break' || String(cand.id).toUpperCase() === 'TPL-3';
+        const isIntro = Boolean(cand.isIntroClip) || cand.unitType === 'intro';
+        if (isAd) break;
+        if (!isIntro) {
+          prevProg = cand;
+          break;
+        }
+      }
+      for (let i = targetProgIdx + 1; i < progs.length; i++) {
+        const cand = progs[i];
+        const isAd = cand.type === 'ad_break' || String(cand.id).toUpperCase() === 'TPL-3';
+        const isIntro = Boolean(cand.isIntroClip) || cand.unitType === 'intro';
+        if (isAd) break;
+        if (!isIntro) {
+          nextProg = cand;
+          break;
+        }
+      }
+    }
+    return resolveAdBreakBumpersForPrecedingProgram(state, channelId, prevProg, nextProg);
+  };
+
   const blockIdx = existingBlocks.findIndex(
     b => (breakMeta.blockId && b.blockId === breakMeta.blockId) || b.time === breakMeta.time
   );
@@ -1284,7 +1535,7 @@ export function executeAddManualAdToBreak(state, channelId, date, breakMeta, adP
     const currentAds = [...(targetBlock.ads || [])];
 
     // KURAL 1: Aynı reklam aynı reklam kuşağında yer alamaz
-    if (currentAds.some(a => String(a.materialId) === String(material.id))) {
+    if (currentAds.some(a => !a.isBumperAd && String(a.materialId) === String(material.id))) {
       dialog.warning(
         'Aynı Reklam Tekrar Edemez',
         `"${material.clipName || material.name}" bu reklam kuşağında (${targetBlock.time}) zaten yer alıyor. Aynı reklam aynı kuşakta birden fazla kez bulunamaz.`
@@ -1292,28 +1543,56 @@ export function executeAddManualAdToBreak(state, channelId, date, breakMeta, adP
       return state;
     }
 
-    // Eğer kullanıcı belirli bir sıra (Seçilinin Üstüne / Altına veya Sürükle-Bırak hedef sırası) seçtiyse tam o sıraya ekle
+    const existingIntroBumper = currentAds.find(a => a.isBumperAd && a.bumperType === 'intro');
+    const existingOutroBumper = currentAds.find(a => a.isBumperAd && a.bumperType === 'outro');
+    const resolvedBumpers =
+      !existingIntroBumper || !existingOutroBumper ? resolveBumpersForThisBreak() : null;
+    const introBumper = existingIntroBumper || resolvedBumpers?.introBumperAd || null;
+    const outroBumper = existingOutroBumper || resolvedBumpers?.outroBumperAd || null;
+
+    // Eğer kullanıcı belirli bir sıra (Seçilinin Üstüne / Altına veya Sürükle-Bırak hedef sırası) seçtiyse:
+    // RTÜK kuralı gereği 1. sıradaki Reklam Giriş'in üstüne ve son sıradaki Reklam Çıkış'ın altına geçemez!
     if (typeof adPayload.insertAtIndex === 'number' && !isNaN(adPayload.insertAtIndex)) {
-      const clampedIdx = Math.max(0, Math.min(currentAds.length, Math.round(adPayload.insertAtIndex)));
-      const nextAds = [...currentAds];
+      let nextAds = [...currentAds];
+      if (!existingIntroBumper && introBumper) {
+        nextAds.unshift(introBumper);
+      }
+      if (!existingOutroBumper && outroBumper) {
+        nextAds.push(outroBumper);
+      }
+      const firstIsIntro = nextAds[0]?.isBumperAd && nextAds[0]?.bumperType === 'intro';
+      const lastIsOutro =
+        nextAds.length > 0 &&
+        nextAds[nextAds.length - 1]?.isBumperAd &&
+        nextAds[nextAds.length - 1]?.bumperType === 'outro';
+
+      const minIdx = firstIsIntro ? 1 : 0;
+      const maxIdx = lastIsOutro ? nextAds.length - 1 : nextAds.length;
+      const clampedIdx = Math.max(minIdx, Math.min(maxIdx, Math.round(adPayload.insertAtIndex)));
+
       nextAds.splice(clampedIdx, 0, newAdEntry);
       existingBlocks[blockIdx] = {
         ...targetBlock,
         ads: nextAds
       };
     } else {
-      // KURAL 2: Aynı firmanın reklamları üst üste gelemez (ve son sıra kilitli Sunar/Devam Ediyor reklamlarının önüne yerleştirilir)
-      const openingPinned = currentAds.filter(a => a.lockOrder === 'first');
-      const closingPinned = currentAds.filter(a => a.lockOrder === 'last');
-      const middlePool = [...currentAds.filter(a => a.lockOrder !== 'first' && a.lockOrder !== 'last'), newAdEntry];
+      // KURAL 2: Aynı firmanın reklamları üst üste gelemez ve RTÜK Giriş/Çıkış jenerikleri en başta/en sonda korunur
+      const openingPinned = currentAds.filter(a => !a.isBumperAd && a.lockOrder === 'first');
+      const closingPinned = currentAds.filter(a => !a.isBumperAd && a.lockOrder === 'last');
+      const middlePool = [
+        ...currentAds.filter(a => !a.isBumperAd && a.lockOrder !== 'first' && a.lockOrder !== 'last'),
+        newAdEntry
+      ];
 
       const arrangedAds = finalizeBucketAdsOrder({
+        introBumperAd: introBumper,
+        outroBumperAd: outroBumper,
         openingPinnedAds: openingPinned,
         middleAds: middlePool,
         closingPinnedAds: closingPinned
       });
 
-      if (!arrangedAds.some(a => String(a.materialId) === String(material.id))) {
+      if (!arrangedAds.some(a => !a.isBumperAd && String(a.materialId) === String(material.id))) {
         dialog.warning(
           'Aynı Firmanın Reklamları Üst Üste Gelemez',
           `Bu kuşakta (${targetBlock.time}) aynı firmanın reklamlarının üst üste gelmemesi için araya başka bir firmanın reklamı gerekmektedir.`
@@ -1327,13 +1606,21 @@ export function executeAddManualAdToBreak(state, channelId, date, breakMeta, adP
       };
     }
   } else {
+    const bumperInfo = resolveBumpersForThisBreak();
+    const initialAds = [];
+    if (bumperInfo.introBumperAd) initialAds.push(bumperInfo.introBumperAd);
+    initialAds.push(newAdEntry);
+    if (bumperInfo.outroBumperAd) initialAds.push(bumperInfo.outroBumperAd);
+
     existingBlocks.push({
       blockId: breakMeta.blockId || `blk-${date}-${breakMeta.time}`,
       time: breakMeta.time,
       duration: breakMeta.duration || 6,
       timeBlockId: breakMeta.timeBlockId || 'tb-2',
       timeBlockName: breakMeta.timeBlockName || 'Reklam Kuşağı',
-      ads: [newAdEntry]
+      detectedPrevCategory: bumperInfo.detectedCategoryName,
+      bumperSourceProgram: bumperInfo.sourceProgramTitle,
+      ads: initialAds
     });
   }
 

@@ -879,14 +879,17 @@ export const createAdsSlice = (set, get) => ({
 
   /**
    * Belirli bir reklam kuşağındaki spotun sırasını yukarı (-1) veya aşağı (+1) taşır.
+   * RTÜK Reklam Giriş (1. sıra) ve Reklam Çıkış (son sıra) jenerikleri kilitlidir.
    */
   moveAdInBreak: (channelId, date, blockTimeOrId, adIndex, direction) => set(state => {
     const key = `ready-${channelId}-${date}`;
     const existingBlocks = (state.adPlacements[key] || []).map(b => {
       if (b.blockId === blockTimeOrId || b.time === blockTimeOrId) {
         const nextAds = [...(b.ads || [])];
+        if (nextAds[adIndex]?.isBumperAd) return b;
         const targetIdx = adIndex + direction;
         if (targetIdx < 0 || targetIdx >= nextAds.length) return b;
+        if (nextAds[targetIdx]?.isBumperAd) return b;
         const temp = nextAds[adIndex];
         nextAds[adIndex] = nextAds[targetIdx];
         nextAds[targetIdx] = temp;
@@ -908,6 +911,7 @@ export const createAdsSlice = (set, get) => ({
 
   /**
    * Belirli bir reklam kuşağındaki spotu sürükle-bırak ile fromIndex konumundan toIndex konumuna taşır.
+   * RTÜK Reklam Giriş (1. sıra) ve Reklam Çıkış (son sıra) jenerikleri sabit kalır.
    */
   reorderAdInBreak: (channelId, date, blockTimeOrId, fromIndex, toIndex) => set(state => {
     const key = `ready-${channelId}-${date}`;
@@ -915,8 +919,19 @@ export const createAdsSlice = (set, get) => ({
       if (b.blockId === blockTimeOrId || b.time === blockTimeOrId) {
         const nextAds = [...(b.ads || [])];
         if (fromIndex < 0 || fromIndex >= nextAds.length) return b;
+        if (nextAds[fromIndex]?.isBumperAd) return b;
         const [movedItem] = nextAds.splice(fromIndex, 1);
-        const clampedTarget = Math.max(0, Math.min(nextAds.length, toIndex));
+
+        const firstIsIntro = nextAds[0]?.isBumperAd && nextAds[0]?.bumperType === 'intro';
+        const lastIsOutro =
+          nextAds.length > 0 &&
+          nextAds[nextAds.length - 1]?.isBumperAd &&
+          nextAds[nextAds.length - 1]?.bumperType === 'outro';
+
+        const minIdx = firstIsIntro ? 1 : 0;
+        const maxIdx = lastIsOutro ? nextAds.length - 1 : nextAds.length;
+        const clampedTarget = Math.max(minIdx, Math.min(maxIdx, toIndex));
+
         nextAds.splice(clampedTarget, 0, movedItem);
         return { ...b, ads: nextAds };
       }

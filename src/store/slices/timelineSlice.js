@@ -243,11 +243,19 @@ export const createTimelineSlice = (set, get) => ({
               const material = materials.find(mat => String(mat.id) === String(ad.materialId));
               newPrograms.push({
                 ...prog,
-                id: material ? (material.clipId || material.code || material.id) : ad.materialId,
-                title: material ? (material.clipName || material.name) : (ad.materialName || 'Reklam Klibi'),
+                id: material
+                  ? (material.clipId || material.code || material.id)
+                  : (ad.clipId || ad.code || ad.materialId),
+                title: material
+                  ? (material.clipName || material.name)
+                  : (ad.clipName || ad.name || ad.materialName || 'Reklam Klibi'),
+                fileName: material?.code || ad.code || '',
                 duration: durMin, // Saniyeyi dakikaya çevir
                 instanceId: `ad-${Math.random().toString(36).substr(2, 9)}`,
                 isAdClip: true,
+                isBumperAd: Boolean(ad.isBumperAd),
+                bumperType: ad.bumperType || null,
+                bumperCategoryName: ad.bumperCategoryName || null,
                 isFromAds: true
               });
             });

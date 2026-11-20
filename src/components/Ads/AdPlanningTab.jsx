@@ -41,6 +41,7 @@ import {
 } from './planning/AdPlanningWorkspaceViews';
 import { isRamadanFeatureWindowOpen, filterAndSortPrefixFirst } from './reservation/reservationConstants';
 import AdMaterialDetailModal from './AdMaterialDetailModal';
+import { resolveAdBreakBumpersForPrecedingProgram } from '../../store/slices/ads/adsPlacementEngine';
 
 export { PRIORITY_BADGES, formatTcClock, formatSecToReadable, getMondayStr };
 
@@ -54,6 +55,8 @@ const AdPlanningTab = () => {
     products = [],
     materials = [],
     adPlacements = {},
+    adBreakBumperRules = [],
+    libraryPrograms = [],
     ramadanConfig = { enabled: true, startDate: '', endDate: '', leadDays: 14, forceShow: false },
     setRamadanConfig,
     setBreakRamadanTag,
@@ -520,9 +523,40 @@ const AdPlanningTab = () => {
 
     return withProgramSponsors.map((item, idx) => {
       if (!item.isAdBlock) return item;
-      const prevProg = idx > 0 && !withProgramSponsors[idx - 1].isAdBlock ? withProgramSponsors[idx - 1] : null;
-      const nextProg = idx < withProgramSponsors.length - 1 && !withProgramSponsors[idx + 1].isAdBlock ? withProgramSponsors[idx + 1] : null;
+      let prevProg = null;
+      for (let p = idx - 1; p >= 0; p--) {
+        if (withProgramSponsors[p].isAdBlock) break;
+        const isIntro =
+          Boolean(withProgramSponsors[p].isIntroClip) ||
+          withProgramSponsors[p].unitType === 'intro' ||
+          /^intro|jenerik/i.test(String(withProgramSponsors[p].category || ''));
+        if (!isIntro) {
+          prevProg = withProgramSponsors[p];
+          break;
+        }
+      }
+      let nextProg = null;
+      for (let n = idx + 1; n < withProgramSponsors.length; n++) {
+        if (withProgramSponsors[n].isAdBlock) break;
+        const isIntro =
+          Boolean(withProgramSponsors[n].isIntroClip) ||
+          withProgramSponsors[n].unitType === 'intro' ||
+          /^intro|jenerik/i.test(String(withProgramSponsors[n].category || ''));
+        if (!isIntro) {
+          nextProg = withProgramSponsors[n];
+          break;
+        }
+      }
+
+      const bumperInfo = resolveAdBreakBumpersForPrecedingProgram(
+        { adBreakBumperRules, libraryPrograms },
+        selectedDayInfo.channelId,
+        prevProg,
+        nextProg
+      );
+
       const hasSponsorAds = (item.placedAds || []).some(ad => {
+        if (ad.isBumperAd) return false;
         if (ad.isSponsorSpot || ad.lockOrder) return true;
         const rObj = reservations.find(r => String(r.id) === String(ad.reservationId));
         if (!rObj) return false;
@@ -540,10 +574,14 @@ const AdPlanningTab = () => {
         nextProgramIsSponsored: Boolean(nextProg?.isSponsoredProgram),
         prevProgramSponsorText: prevProg?.sponsorSummaryText || '',
         nextProgramSponsorText: nextProg?.sponsorSummaryText || '',
+        prevProgramCategoryName: bumperInfo.detectedCategoryName,
+        expectedIntroBumperName: bumperInfo.introBumperAd?.name || null,
+        expectedOutroBumperName: bumperInfo.outroBumperAd?.name || null,
+        expectedBumperTotalSec: bumperInfo.totalBumperDurationSec || 0,
         hasSponsorAds
       };
     });
-  }, [selectedDayInfo, activeListCode, selectedPlacements, timeBlocks, reservations, materials, companies]);
+  }, [selectedDayInfo, activeListCode, selectedPlacements, timeBlocks, reservations, materials, companies, adBreakBumperRules, libraryPrograms]);
 
   // Seçili günün yayın listesinden çekilen Sahur ve İftar program başlangıç saatleri
   const todayRamadanScheduleInfo = useMemo(() => {
