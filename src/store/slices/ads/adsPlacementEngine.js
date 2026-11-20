@@ -1292,29 +1292,40 @@ export function executeAddManualAdToBreak(state, channelId, date, breakMeta, adP
       return state;
     }
 
-    // KURAL 2: Aynı firmanın reklamları üst üste gelemez (ve son sıra kilitli Sunar/Devam Ediyor reklamlarının önüne yerleştirilir)
-    const openingPinned = currentAds.filter(a => a.lockOrder === 'first');
-    const closingPinned = currentAds.filter(a => a.lockOrder === 'last');
-    const middlePool = [...currentAds.filter(a => a.lockOrder !== 'first' && a.lockOrder !== 'last'), newAdEntry];
+    // Eğer kullanıcı belirli bir sıra (Seçilinin Üstüne / Altına veya Sürükle-Bırak hedef sırası) seçtiyse tam o sıraya ekle
+    if (typeof adPayload.insertAtIndex === 'number' && !isNaN(adPayload.insertAtIndex)) {
+      const clampedIdx = Math.max(0, Math.min(currentAds.length, Math.round(adPayload.insertAtIndex)));
+      const nextAds = [...currentAds];
+      nextAds.splice(clampedIdx, 0, newAdEntry);
+      existingBlocks[blockIdx] = {
+        ...targetBlock,
+        ads: nextAds
+      };
+    } else {
+      // KURAL 2: Aynı firmanın reklamları üst üste gelemez (ve son sıra kilitli Sunar/Devam Ediyor reklamlarının önüne yerleştirilir)
+      const openingPinned = currentAds.filter(a => a.lockOrder === 'first');
+      const closingPinned = currentAds.filter(a => a.lockOrder === 'last');
+      const middlePool = [...currentAds.filter(a => a.lockOrder !== 'first' && a.lockOrder !== 'last'), newAdEntry];
 
-    const arrangedAds = finalizeBucketAdsOrder({
-      openingPinnedAds: openingPinned,
-      middleAds: middlePool,
-      closingPinnedAds: closingPinned
-    });
+      const arrangedAds = finalizeBucketAdsOrder({
+        openingPinnedAds: openingPinned,
+        middleAds: middlePool,
+        closingPinnedAds: closingPinned
+      });
 
-    if (!arrangedAds.some(a => String(a.materialId) === String(material.id))) {
-      dialog.warning(
-        'Aynı Firmanın Reklamları Üst Üste Gelemez',
-        `Bu kuşakta (${targetBlock.time}) aynı firmanın reklamlarının üst üste gelmemesi için araya başka bir firmanın reklamı gerekmektedir.`
-      );
-      return state;
+      if (!arrangedAds.some(a => String(a.materialId) === String(material.id))) {
+        dialog.warning(
+          'Aynı Firmanın Reklamları Üst Üste Gelemez',
+          `Bu kuşakta (${targetBlock.time}) aynı firmanın reklamlarının üst üste gelmemesi için araya başka bir firmanın reklamı gerekmektedir.`
+        );
+        return state;
+      }
+
+      existingBlocks[blockIdx] = {
+        ...targetBlock,
+        ads: arrangedAds
+      };
     }
-
-    existingBlocks[blockIdx] = {
-      ...targetBlock,
-      ads: arrangedAds
-    };
   } else {
     existingBlocks.push({
       blockId: breakMeta.blockId || `blk-${date}-${breakMeta.time}`,

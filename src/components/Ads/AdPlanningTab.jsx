@@ -63,6 +63,7 @@ const AdPlanningTab = () => {
     addManualAdToBreak,
     removeAdFromBreak,
     moveAdInBreak,
+    reorderAdInBreak,
     clearAdBreak,
     completeAds,
     resetAds
@@ -81,6 +82,8 @@ const AdPlanningTab = () => {
   const [workspaceView, setWorkspaceView] = useState('breaks'); // 'breaks' | 'flow' | 'matrix'
 
   const [activeBreakTimeForManual, setActiveBreakTimeForManual] = useState(null);
+  const [selectedAdTarget, setSelectedAdTarget] = useState(null); // { breakTime, adIndex, adTitle } | null
+  const [insertPositionMode, setInsertPositionMode] = useState('below'); // 'above' | 'below' | 'end'
   const [manualSourceTab, setManualSourceTab] = useState('reservations'); // 'reservations' | 'catalog'
   const [manualSearch, setManualSearch] = useState('');
   const [manualCompanyFilter, setManualCompanyFilter] = useState('');
@@ -804,6 +807,20 @@ const AdPlanningTab = () => {
       if (!ok) return;
     }
 
+    // Eğer kullanıcı belirli bir reklam seçtiyse (veya sürükle-bırak ile bir sıraya bıraktıysa) eklenecek sırayı belirle
+    let effectiveInsertIndex = itemPayload.insertAtIndex;
+    if (
+      typeof effectiveInsertIndex !== 'number' &&
+      selectedAdTarget &&
+      selectedAdTarget.breakTime === targetBreak.shortTime &&
+      insertPositionMode !== 'end'
+    ) {
+      effectiveInsertIndex =
+        insertPositionMode === 'above'
+          ? selectedAdTarget.adIndex
+          : selectedAdTarget.adIndex + 1;
+    }
+
     addManualAdToBreak(
       selectedDayInfo.channelId,
       selectedDayInfo.date,
@@ -814,8 +831,23 @@ const AdPlanningTab = () => {
         timeBlockId: targetBreak.timeBlockId,
         timeBlockName: targetBreak.timeBlockName
       },
-      itemPayload
+      {
+        ...itemPayload,
+        insertAtIndex: effectiveInsertIndex
+      }
     );
+
+    if (
+      typeof effectiveInsertIndex === 'number' &&
+      selectedAdTarget &&
+      selectedAdTarget.breakTime === targetBreak.shortTime
+    ) {
+      if (effectiveInsertIndex <= selectedAdTarget.adIndex) {
+        setSelectedAdTarget(prev =>
+          prev ? { ...prev, adIndex: prev.adIndex + 1 } : null
+        );
+      }
+    }
   };
 
   const handleSetBreakRamadanTag = (brk, newTag) => {
@@ -864,34 +896,47 @@ const AdPlanningTab = () => {
         revisedListsCount={revisedListsCount}
       />
 
-      {/* 2. ANA ÇALIŞMA ALANI: SOL (GELEN/REVİZE LİSTELER) + ORTA (SEÇİLİ GÜN KUŞAKLARI) + SAĞ (HIZLI SPOT HAVUZU) */}
+      {/* 2. ANA ÇALIŞMA ALANI: SOL (HIZLI REKLAM / SPOT HAVUZU) + ORTA (REKLAM KUŞAKLARI / TAM YAYIN AKIŞI) + SAĞ (GELEN/REVİZE LİSTELER) */}
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: '285px minmax(0, 1fr) 335px',
+          gridTemplateColumns: '335px minmax(0, 1fr) 285px',
           gap: '16px',
           alignItems: 'start'
         }}
       >
-        {/* SOL PANEL: YAYIN LİSTELERİ & REVİZE TAKİBİ */}
-        <AdPlanningDaysSidebar
-          allListEntries={allListEntries}
-          todayStr={todayStr}
-          selectedDayKey={selectedDayKey}
-          selectedChannel={selectedChannel}
-          selectedDate={selectedDate}
-          activeListCode={activeListCode}
-          onSelectFullListEntry={handleSelectFullListEntry}
-          onRunAutoPlanDay={handleRunAutoPlanDay}
+        {/* SOL PANEL: SEÇİLİ KUŞAĞA / SEÇİLİ REKLAMIN ÜSTÜNE-ALTINA HIZLI REKLAM & SPOT EKLEME HAVUZU */}
+        <AdQuickSpotPoolPanel
+          manualSourceTab={manualSourceTab}
+          onChangeManualSourceTab={setManualSourceTab}
+          eligibleReservationItemsCount={eligibleReservationItems.length}
+          materialsCount={materials.length}
+          manualSearch={manualSearch}
+          onChangeManualSearch={setManualSearch}
+          manualCompanyFilter={manualCompanyFilter}
+          onChangeManualCompanyFilter={setManualCompanyFilter}
+          companies={companies}
+          materials={materials}
+          adBreaksList={adBreaksList}
+          selectedStudioBreak={selectedStudioBreak}
+          onSelectStudioBreakTime={setActiveBreakTimeForManual}
+          selectedAdTarget={selectedAdTarget}
+          onSelectAdTarget={setSelectedAdTarget}
+          insertPositionMode={insertPositionMode}
+          onChangeInsertPositionMode={setInsertPositionMode}
+          filteredPoolReservations={filteredPoolReservations}
+          filteredPoolCatalog={filteredPoolCatalog}
+          onQuickAddSpotToBreak={handleQuickAddSpotToBreak}
+          onPreviewMaterial={handlePreviewMaterial}
         />
 
-        {/* ORTA PANEL: ŞU ANDA GÜNCELLENEN LİSTE BİLGİ BARI & KUŞAKLAR */}
+        {/* ORTA PANEL: ŞU ANDA GÜNCELLENEN LİSTE BİLGİ BARI & KUŞAKLAR / TAM YAYIN AKIŞI */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', minWidth: 0 }}>
           {!selectedDayInfo ? (
             <div className="ta-card" style={{ padding: '48px', alignItems: 'center', textAlign: 'center' }}>
               <Eye size={42} color="var(--ads-text-muted)" />
               <div style={{ fontSize: '15px', fontWeight: '800', color: 'var(--ads-text-main)', marginTop: '10px' }}>
-                Planlamak veya görüntülemek için soldan bir yayın listesi seçin.
+                Planlamak veya görüntülemek için bir yayın listesi seçin.
               </div>
             </div>
           ) : (
@@ -1014,6 +1059,10 @@ const AdPlanningTab = () => {
                   selectedDayInfo={selectedDayInfo}
                   selectedStudioBreak={selectedStudioBreak}
                   onSelectStudioBreakTime={setActiveBreakTimeForManual}
+                  selectedAdTarget={selectedAdTarget}
+                  onSelectAdTarget={setSelectedAdTarget}
+                  insertPositionMode={insertPositionMode}
+                  onChangeInsertPositionMode={setInsertPositionMode}
                   companies={companies}
                   products={products}
                   materials={materials}
@@ -1021,8 +1070,10 @@ const AdPlanningTab = () => {
                   onClearAdBreak={clearAdBreak}
                   onOpenQuickModalBreak={setQuickModalBreak}
                   onMoveAdInBreak={moveAdInBreak}
+                  onReorderAdInBreak={reorderAdInBreak}
                   onRemoveAdFromBreak={removeAdFromBreak}
                   onPreviewMaterial={handlePreviewMaterial}
+                  onQuickAddSpotToBreak={handleQuickAddSpotToBreak}
                   onSetBreakRamadanTag={
                     isRamadanFeatureWindowOpen(ramadanConfig, selectedDayInfo?.date || selectedDate)
                       ? handleSetBreakRamadanTag
@@ -1036,11 +1087,22 @@ const AdPlanningTab = () => {
                   enrichedTimeline={enrichedTimeline}
                   materials={materials}
                   companies={companies}
+                  products={products}
                   reservations={reservations}
                   selectedDayInfo={selectedDayInfo}
+                  selectedStudioBreak={selectedStudioBreak}
+                  onSelectStudioBreakTime={setActiveBreakTimeForManual}
+                  selectedAdTarget={selectedAdTarget}
+                  onSelectAdTarget={setSelectedAdTarget}
+                  insertPositionMode={insertPositionMode}
+                  onChangeInsertPositionMode={setInsertPositionMode}
+                  onClearAdBreak={clearAdBreak}
                   onOpenQuickModalBreak={setQuickModalBreak}
+                  onMoveAdInBreak={moveAdInBreak}
+                  onReorderAdInBreak={reorderAdInBreak}
                   onRemoveAdFromBreak={removeAdFromBreak}
                   onPreviewMaterial={handlePreviewMaterial}
+                  onQuickAddSpotToBreak={handleQuickAddSpotToBreak}
                 />
               )}
 
@@ -1057,25 +1119,16 @@ const AdPlanningTab = () => {
           )}
         </div>
 
-        {/* SAĞ PANEL: SEÇİLİ KUŞAĞA HIZLI REKLAM / SPOT EKLEME HAVUZU */}
-        <AdQuickSpotPoolPanel
-          manualSourceTab={manualSourceTab}
-          onChangeManualSourceTab={setManualSourceTab}
-          eligibleReservationItemsCount={eligibleReservationItems.length}
-          materialsCount={materials.length}
-          manualSearch={manualSearch}
-          onChangeManualSearch={setManualSearch}
-          manualCompanyFilter={manualCompanyFilter}
-          onChangeManualCompanyFilter={setManualCompanyFilter}
-          companies={companies}
-          materials={materials}
-          adBreaksList={adBreaksList}
-          selectedStudioBreak={selectedStudioBreak}
-          onSelectStudioBreakTime={setActiveBreakTimeForManual}
-          filteredPoolReservations={filteredPoolReservations}
-          filteredPoolCatalog={filteredPoolCatalog}
-          onQuickAddSpotToBreak={handleQuickAddSpotToBreak}
-          onPreviewMaterial={handlePreviewMaterial}
+        {/* SAĞ PANEL: YAYIN LİSTELERİ & REVİZE TAKİBİ */}
+        <AdPlanningDaysSidebar
+          allListEntries={allListEntries}
+          todayStr={todayStr}
+          selectedDayKey={selectedDayKey}
+          selectedChannel={selectedChannel}
+          selectedDate={selectedDate}
+          activeListCode={activeListCode}
+          onSelectFullListEntry={handleSelectFullListEntry}
+          onRunAutoPlanDay={handleRunAutoPlanDay}
         />
       </div>
 
@@ -1084,6 +1137,7 @@ const AdPlanningTab = () => {
         quickModalBreak={quickModalBreak}
         selectedDayInfo={selectedDayInfo}
         adBreaksList={adBreaksList}
+        selectedAdTarget={selectedAdTarget}
         manualSourceTab={manualSourceTab}
         onChangeManualSourceTab={setManualSourceTab}
         eligibleReservationItemsCount={eligibleReservationItems.length}

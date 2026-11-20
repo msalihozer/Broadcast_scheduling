@@ -784,6 +784,34 @@ export const createAdsSlice = (set, get) => ({
   }),
 
   /**
+   * Belirli bir reklam kuşağındaki spotu sürükle-bırak ile fromIndex konumundan toIndex konumuna taşır.
+   */
+  reorderAdInBreak: (channelId, date, blockTimeOrId, fromIndex, toIndex) => set(state => {
+    const key = `ready-${channelId}-${date}`;
+    const existingBlocks = (state.adPlacements[key] || []).map(b => {
+      if (b.blockId === blockTimeOrId || b.time === blockTimeOrId) {
+        const nextAds = [...(b.ads || [])];
+        if (fromIndex < 0 || fromIndex >= nextAds.length) return b;
+        const [movedItem] = nextAds.splice(fromIndex, 1);
+        const clampedTarget = Math.max(0, Math.min(nextAds.length, toIndex));
+        nextAds.splice(clampedTarget, 0, movedItem);
+        return { ...b, ads: nextAds };
+      }
+      return b;
+    });
+
+    const nextAdPlacements = {
+      ...state.adPlacements,
+      [key]: existingBlocks
+    };
+    saveAdsReservationsBackup(state.reservations, nextAdPlacements);
+
+    return {
+      adPlacements: nextAdPlacements
+    };
+  }),
+
+  /**
    * Tek bir reklam kuşağının içindeki tüm spotları temizler.
    */
   clearAdBreak: (channelId, date, blockTimeOrId) => set(state => {

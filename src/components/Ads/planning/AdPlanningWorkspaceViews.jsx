@@ -1,14 +1,18 @@
 /**
  * @file src/components/Ads/planning/AdPlanningWorkspaceViews.jsx
- * @description Reklam Kuşak Planlama Çalışma Alanı Görünümleri, Sağ Sabit Hızlı Spot Havuzu (`AdQuickSpotPoolPanel`)
- * ve Hızlı Manuel Spot Ekleme Modalı (`AdManualSpotModal`).
+ * @description Reklam Kuşak Planlama Çalışma Alanı Görünümleri (`AdBreaksListView`, `AdBroadcastFlowView`, `AdHourlyMatrixView`),
+ * Sol Sabit Hızlı Spot Havuzu (`AdQuickSpotPoolPanel`) ve Hızlı Manuel Spot Ekleme Modalı (`AdManualSpotModal`).
  *
  * Özellikler:
- * 1. Eklenen tüm reklamlar ve yan paneldeki (Rezervasyon / Katalog) tüm reklamlar için tek tıkla "▶ İzle" video kontrol butonu.
- * 2. Sponsor Reklamları (Sunar, Sundu, Devam Edecek, Devam Ediyor, Program Öncesi/Arası/Sonrası) ve
- *    Sponsorlu Programlar için belirgin Mor / Altın (Purple & Gold) renklendirme ve rozetler.
+ * 1. Hem "Reklam Kuşakları" hem de "Tam Yayın Akışı" görünümlerinde reklamlar düzenli, tam genişlikli sıralı liste olarak gösterilir.
+ * 2. Seçili reklamın ÜSTÜNE (↑ Üstüne Ekle) veya ALTINA (↓ Altına Ekle) tek tıkla reklam ekleme desteği.
+ * 3. Sürükle-Bırak (Drag & Drop):
+ *    - Kuşak içindeki reklamları sürükleyip bırakarak sıralarını değiştirme.
+ *    - Sol paneldeki reklam havuzundan (Rezervasyon / Tüm Katalog) sürükleyip kuşak içine veya herhangi bir reklamın tam üstüne/altına bırakarak ekleme.
+ * 4. Tüm reklamlarda "ⓘ" (Bilgi, Firma, 25/30/50 FPS Kare Analizi ve İleri-Geri Sarılabilir Video Önizleme) butonu.
+ * 5. Sponsor Reklamları ve Sponsorlu Programlar için Mor / Altın (Purple & Gold) renklendirme.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Plus,
   Trash2,
@@ -20,10 +24,11 @@ import {
   CheckCircle2,
   X,
   Target,
-  Play,
   Award,
-  Tv,
-  Info
+  Info,
+  GripVertical,
+  CornerLeftUp,
+  CornerLeftDown
 } from 'lucide-react';
 import { PRIORITY_BADGES } from './adPlanningConstants';
 import useThemeStore, { hexToRgba } from '../../../store/themeStore';
@@ -59,11 +64,692 @@ const resolveAdSponsorInfo = (ad, resObj, brk = null) => {
   };
 };
 
+/**
+ * Hem "Reklam Kuşakları" hem de "Tam Yayın Akışı" görünümlerinde ortak kullanılan:
+ * - Düzenli Sıralı Reklam Listesi
+ * - Tıklayarak Seçme & Seçilinin Üstüne / Altına Ekleme Hedefi
+ * - Kuşak İçi Sürükle-Bırak ile Sıra Değiştirme
+ * - Sol Panelden Sürükle-Bırak ile İstediğin Sıranın Üstüne / Altına Ekleme
+ */
+const AdBreakInteractiveSpotsList = ({
+  brk,
+  selectedDayInfo,
+  companies = [],
+  products = [],
+  materials = [],
+  reservations = [],
+  selectedAdTarget,
+  onSelectAdTarget,
+  insertPositionMode = 'below',
+  onChangeInsertPositionMode,
+  onSelectStudioBreakTime,
+  onOpenQuickModalBreak,
+  onMoveAdInBreak,
+  onReorderAdInBreak,
+  onRemoveAdFromBreak,
+  onPreviewMaterial,
+  onQuickAddSpotToBreak
+}) => {
+  const [dragOverState, setDragOverState] = useState(null); // { adIndex: number, position: 'above' | 'below' } | { emptyBreak: true }
+
+  const isBreakSelectedForAd =
+    selectedAdTarget && selectedAdTarget.breakTime === brk.shortTime;
+
+  const handleRowDragStart = (e, adIdx, ad, mat) => {
+    e.stopPropagation();
+    const payload = {
+      dragType: 'break-ad-reorder',
+      breakTime: brk.shortTime,
+      fromIndex: adIdx,
+      materialId: ad.materialId,
+      title: mat?.name || 'Spot'
+    };
+    e.dataTransfer.setData('application/json', JSON.stringify(payload));
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleRowDragOver = (e, adIdx) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const offsetY = e.clientY - rect.top;
+    const position = offsetY < rect.height / 2 ? 'above' : 'below';
+    if (
+      !dragOverState ||
+      dragOverState.adIndex !== adIdx ||
+      dragOverState.position !== position
+    ) {
+      setDragOverState({ adIndex: adIdx, position });
+    }
+  };
+
+  const handleRowDrop = (e, adIdx) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const dropPos = dragOverState?.position || 'below';
+    setDragOverState(null);
+
+    let rawData = '';
+    try {
+      rawData = e.dataTransfer.getData('application/json');
+    } catch (_) {}
+    if (!rawData) return;
+
+    try {
+      const parsed = JSON.parse(rawData);
+      const targetIndex = dropPos === 'above' ? adIdx : adIdx + 1;
+
+      // 1. Kuşak içi sürükle-bırak ile sıra değiştirme
+      if (parsed.dragType === 'break-ad-reorder') {
+        if (parsed.breakTime === brk.shortTime && typeof parsed.fromIndex === 'number') {
+          let adjustedTarget = targetIndex;
+          if (parsed.fromIndex < targetIndex) {
+            adjustedTarget = Math.max(0, targetIndex - 1);
+          }
+          if (adjustedTarget !== parsed.fromIndex && onReorderAdInBreak) {
+            onReorderAdInBreak(
+              selectedDayInfo.channelId,
+              selectedDayInfo.date,
+              brk.shortTime,
+              parsed.fromIndex,
+              adjustedTarget
+            );
+          }
+          if (onSelectAdTarget) {
+            onSelectAdTarget({
+              breakTime: brk.shortTime,
+              adIndex: adjustedTarget,
+              adTitle: parsed.title || 'Spot'
+            });
+          }
+        }
+        return;
+      }
+
+      // 2. Sol panelden (havuzdan) sürükle-bırak ile seçili sıranın üstüne/altına ekleme
+      if (parsed.dragType === 'pool-ad-insert' && onQuickAddSpotToBreak) {
+        if (onSelectStudioBreakTime) onSelectStudioBreakTime(brk.shortTime);
+        onQuickAddSpotToBreak(brk, {
+          reservationId: parsed.reservationId,
+          materialId: parsed.materialId,
+          companyId: parsed.companyId,
+          productId: parsed.productId,
+          durationSec: parsed.durationSec,
+          insertAtIndex: targetIndex
+        });
+      }
+    } catch (_) {}
+  };
+
+  const handleEmptyBreakDragOver = e => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!dragOverState?.emptyBreak) {
+      setDragOverState({ emptyBreak: true });
+    }
+  };
+
+  const handleEmptyBreakDrop = e => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverState(null);
+
+    let rawData = '';
+    try {
+      rawData = e.dataTransfer.getData('application/json');
+    } catch (_) {}
+    if (!rawData) return;
+
+    try {
+      const parsed = JSON.parse(rawData);
+      if (parsed.dragType === 'pool-ad-insert' && onQuickAddSpotToBreak) {
+        if (onSelectStudioBreakTime) onSelectStudioBreakTime(brk.shortTime);
+        onQuickAddSpotToBreak(brk, {
+          reservationId: parsed.reservationId,
+          materialId: parsed.materialId,
+          companyId: parsed.companyId,
+          productId: parsed.productId,
+          durationSec: parsed.durationSec,
+          insertAtIndex: brk.placedAds.length
+        });
+      }
+    } catch (_) {}
+  };
+
+  return (
+    <div
+      style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}
+      onClick={e => e.stopPropagation()}
+      onDragLeave={e => {
+        if (!e.currentTarget.contains(e.relatedTarget)) {
+          setDragOverState(null);
+        }
+      }}
+    >
+      {/* Seçili Reklam Varsa Üstte Belirgin "Üstüne / Altına Ekleme" Kontrol Şeridi */}
+      {isBreakSelectedForAd && (
+        <div
+          style={{
+            padding: '7px 12px',
+            borderRadius: '9px',
+            background: 'linear-gradient(90deg, rgba(2, 132, 199, 0.14) 0%, rgba(37, 99, 235, 0.08) 100%)',
+            border: '1.5px solid rgba(2, 132, 199, 0.45)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '8px'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '11.5px', fontWeight: '800', color: '#0369a1' }}>
+            <Target size={14} color="#0284c7" />
+            <span>
+              Seçili Reklam: <strong>#{selectedAdTarget.adIndex + 1} {selectedAdTarget.adTitle}</strong>
+            </span>
+            <span style={{ color: 'var(--ads-text-muted)', fontWeight: '600' }}>
+              (Sol panelden eklenecek reklamın konumu:)
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={() => onChangeInsertPositionMode && onChangeInsertPositionMode('above')}
+              style={{
+                padding: '3px 9px',
+                borderRadius: '6px',
+                border: insertPositionMode === 'above' ? '1.5px solid #0284c7' : '1px solid var(--ads-border)',
+                background: insertPositionMode === 'above' ? '#0284c7' : 'var(--ads-card-bg)',
+                color: insertPositionMode === 'above' ? '#ffffff' : 'var(--ads-text-main)',
+                fontSize: '11px',
+                fontWeight: '800',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              <CornerLeftUp size={12} /> ↑ Seçilinin Üstüne Ekle (#{selectedAdTarget.adIndex + 1})
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onChangeInsertPositionMode && onChangeInsertPositionMode('below')}
+              style={{
+                padding: '3px 9px',
+                borderRadius: '6px',
+                border: insertPositionMode === 'below' ? '1.5px solid #0284c7' : '1px solid var(--ads-border)',
+                background: insertPositionMode === 'below' ? '#0284c7' : 'var(--ads-card-bg)',
+                color: insertPositionMode === 'below' ? '#ffffff' : 'var(--ads-text-main)',
+                fontSize: '11px',
+                fontWeight: '800',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              <CornerLeftDown size={12} /> ↓ Seçilinin Altına Ekle (#{selectedAdTarget.adIndex + 2})
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onChangeInsertPositionMode && onChangeInsertPositionMode('end')}
+              style={{
+                padding: '3px 9px',
+                borderRadius: '6px',
+                border: insertPositionMode === 'end' ? '1.5px solid #0284c7' : '1px solid var(--ads-border)',
+                background: insertPositionMode === 'end' ? '#0284c7' : 'var(--ads-card-bg)',
+                color: insertPositionMode === 'end' ? '#ffffff' : 'var(--ads-text-main)',
+                fontSize: '11px',
+                fontWeight: '800',
+                cursor: 'pointer'
+              }}
+            >
+              Kuşak Sonuna
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onSelectAdTarget && onSelectAdTarget(null)}
+              style={{
+                padding: '3px 7px',
+                borderRadius: '6px',
+                border: '1px solid rgba(239, 68, 68, 0.35)',
+                background: 'rgba(239, 68, 68, 0.1)',
+                color: '#ef4444',
+                fontSize: '10.5px',
+                fontWeight: '800',
+                cursor: 'pointer'
+              }}
+              title="Seçimi Kaldır"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
+      {brk.placedAds.length === 0 ? (
+        <div
+          onDragOver={handleEmptyBreakDragOver}
+          onDrop={handleEmptyBreakDrop}
+          onClick={e => {
+            e.stopPropagation();
+            if (onSelectStudioBreakTime) onSelectStudioBreakTime(brk.shortTime);
+            onOpenQuickModalBreak(brk);
+          }}
+          style={{
+            padding: '16px',
+            borderRadius: '10px',
+            border: dragOverState?.emptyBreak
+              ? '2px dashed #2563eb'
+              : '1.5px dashed var(--ads-border-strong)',
+            background: dragOverState?.emptyBreak
+              ? 'rgba(37, 99, 235, 0.1)'
+              : 'var(--ads-card-subtle)',
+            textAlign: 'center',
+            color: dragOverState?.emptyBreak ? '#2563eb' : 'var(--ads-text-muted)',
+            fontSize: '12px',
+            fontWeight: dragOverState?.emptyBreak ? '800' : '600',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          {dragOverState?.emptyBreak
+            ? '📥 Reklamı Bu Kuşağa Eklemek İçin Bırakın!'
+            : 'Bu kuşak boş. Sol paneldeki havuzdan reklam sürükleyip bırakabilir, "+ Ekle" butonuna basabilir veya buraya tıklayabilirsiniz.'}
+        </div>
+      ) : (
+        <div
+          style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}
+          onDragOver={e => e.preventDefault()}
+        >
+          {brk.placedAds.map((ad, adIdx) => {
+            const comp = companies.find(c => String(c.id) === String(ad.companyId));
+            const prod = products.find(p => String(p.id) === String(ad.productId));
+            const mat = materials.find(m => String(m.id) === String(ad.materialId));
+            const resObj = reservations.find(r => String(r.id) === String(ad.reservationId));
+            const prioBadge = PRIORITY_BADGES[resObj?.priority] || null;
+            const spInfo = resolveAdSponsorInfo(ad, resObj, brk);
+
+            const isRowSelected =
+              isBreakSelectedForAd && selectedAdTarget.adIndex === adIdx;
+
+            const isDropAbove =
+              dragOverState &&
+              dragOverState.adIndex === adIdx &&
+              dragOverState.position === 'above';
+            const isDropBelow =
+              dragOverState &&
+              dragOverState.adIndex === adIdx &&
+              dragOverState.position === 'below';
+
+            const matDisplayName = mat?.name || 'Reklam Spotu';
+
+            return (
+              <div
+                key={`${ad.materialId}-${adIdx}`}
+                style={{ position: 'relative', display: 'flex', flexDirection: 'column' }}
+              >
+                {/* Sürükle-Bırak Üstüne Ekle/Taşı Çizgisi */}
+                {isDropAbove && (
+                  <div
+                    style={{
+                      padding: '3px 10px',
+                      marginBottom: '3px',
+                      borderRadius: '6px',
+                      background: 'linear-gradient(90deg, #2563eb, #0284c7)',
+                      color: '#ffffff',
+                      fontSize: '10.5px',
+                      fontWeight: '900',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      boxShadow: '0 2px 8px rgba(37, 99, 235, 0.4)'
+                    }}
+                  >
+                    ↑ #{adIdx + 1}. Sıraya Bırak ({matDisplayName} Üstüne)
+                  </div>
+                )}
+
+                <div
+                  draggable
+                  onDragStart={e => handleRowDragStart(e, adIdx, ad, mat)}
+                  onDragOver={e => handleRowDragOver(e, adIdx)}
+                  onDrop={e => handleRowDrop(e, adIdx)}
+                  onClick={e => {
+                    e.stopPropagation();
+                    if (onSelectStudioBreakTime) onSelectStudioBreakTime(brk.shortTime);
+                    if (onSelectAdTarget) {
+                      if (isRowSelected) {
+                        onSelectAdTarget(null);
+                      } else {
+                        onSelectAdTarget({
+                          breakTime: brk.shortTime,
+                          adIndex: adIdx,
+                          adTitle: matDisplayName
+                        });
+                      }
+                    }
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '10px',
+                    padding: '8px 11px',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    background: isRowSelected
+                      ? 'linear-gradient(90deg, rgba(2, 132, 199, 0.16) 0%, rgba(37, 99, 235, 0.08) 100%)'
+                      : spInfo.isSponsor
+                      ? 'linear-gradient(90deg, rgba(147, 51, 234, 0.16) 0%, rgba(217, 119, 6, 0.08) 100%)'
+                      : 'var(--ads-card-subtle)',
+                    border: isRowSelected
+                      ? '2px solid #0284c7'
+                      : spInfo.isSponsor
+                      ? '1.5px solid #9333ea'
+                      : '1px solid var(--ads-border)',
+                    borderLeft: isRowSelected
+                      ? '6px solid #0284c7'
+                      : spInfo.isSponsor
+                      ? '5px solid #9333ea'
+                      : '3px solid var(--ads-border-strong)',
+                    boxShadow: isRowSelected
+                      ? '0 4px 12px rgba(2, 132, 199, 0.2)'
+                      : undefined,
+                    transition: 'all 0.12s ease'
+                  }}
+                  title="Seçmek (üstüne/altına reklam eklemek) için tıklayın veya sürükleyip sırasını değiştirin"
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+                    {/* Sürükle-Bırak Tutamacı */}
+                    <span
+                      style={{
+                        color: 'var(--ads-text-muted)',
+                        cursor: 'grab',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        flexShrink: 0
+                      }}
+                      title="Sürükleyerek sırasını değiştirin"
+                    >
+                      <GripVertical size={15} />
+                    </span>
+
+                    {/* Sıra Numarası */}
+                    <span
+                      style={{
+                        width: '24px',
+                        height: '24px',
+                        borderRadius: '6px',
+                        background: isRowSelected
+                          ? '#0284c7'
+                          : spInfo.isSponsor
+                          ? 'linear-gradient(135deg, #9333ea, #7e22ce)'
+                          : 'var(--ads-pill-bar-bg)',
+                        color: isRowSelected || spInfo.isSponsor ? '#ffffff' : 'var(--ads-text-main)',
+                        fontSize: '11px',
+                        fontWeight: '800',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0
+                      }}
+                    >
+                      {adIdx + 1}
+                    </span>
+
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        <span
+                          style={{
+                            fontSize: '12.5px',
+                            fontWeight: '800',
+                            color: isRowSelected
+                              ? '#0369a1'
+                              : spInfo.isSponsor
+                              ? '#7e22ce'
+                              : 'var(--ads-text-main)'
+                          }}
+                        >
+                          {matDisplayName}
+                        </span>
+
+                        {isRowSelected && (
+                          <span
+                            style={{
+                              fontSize: '10px',
+                              fontWeight: '900',
+                              padding: '2px 8px',
+                              borderRadius: '999px',
+                              background: '#0284c7',
+                              color: '#ffffff',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '3px'
+                            }}
+                          >
+                            🎯 SEÇİLİ ({insertPositionMode === 'above' ? '↑ Üstüne Eklenecek' : insertPositionMode === 'below' ? '↓ Altına Eklenecek' : 'Sona'})
+                          </span>
+                        )}
+
+                        {spInfo.isSponsor && (
+                          <span
+                            style={{
+                              fontSize: '10px',
+                              fontWeight: '900',
+                              padding: '2px 8px',
+                              borderRadius: '999px',
+                              background: ad.lockOrder
+                                ? 'linear-gradient(135deg, #e11d48, #be123c)'
+                                : 'linear-gradient(135deg, #9333ea, #7e22ce)',
+                              color: '#ffffff',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '3px'
+                            }}
+                          >
+                            🏆 SPONSOR • {spInfo.roleLabel}
+                          </span>
+                        )}
+
+                        {spInfo.isSponsor && spInfo.programTitle && (
+                          <span
+                            style={{
+                              fontSize: '10px',
+                              fontWeight: '800',
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              background: 'rgba(147, 51, 234, 0.14)',
+                              color: '#9333ea',
+                              border: '1px solid rgba(147, 51, 234, 0.35)'
+                            }}
+                          >
+                            📺 Program: {spInfo.programTitle}
+                          </span>
+                        )}
+
+                        {(ad.isRamadanSpot || resObj?.isRamadanSpecial) && (
+                          <span
+                            style={{
+                              fontSize: '10px',
+                              fontWeight: '900',
+                              padding: '1px 7px',
+                              borderRadius: '999px',
+                              background: 'linear-gradient(135deg, #d97706, #b45309)',
+                              color: '#fff'
+                            }}
+                          >
+                            🌙 Ramazan Özel
+                          </span>
+                        )}
+
+                        {prioBadge && (
+                          <span
+                            style={{
+                              fontSize: '10px',
+                              fontWeight: '800',
+                              padding: '1px 7px',
+                              borderRadius: '5px',
+                              background: prioBadge.bg,
+                              color: prioBadge.color
+                            }}
+                          >
+                            {prioBadge.label}
+                          </span>
+                        )}
+                      </div>
+
+                      <div style={{ fontSize: '11px', color: 'var(--ads-text-muted)', marginTop: '2px' }}>
+                        <strong>{comp?.name || mat?.companyName || 'Firma'}</strong> • {prod?.name || mat?.productName || 'Ürün'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Sağ Aksiyon Butonları: ⓘ Detay/Önizleme, Süre, ↑ Yukarı, ↓ Aşağı, 🗑 Sil */}
+                  <div
+                    style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}
+                    onClick={e => e.stopPropagation()}
+                  >
+                    {onPreviewMaterial && (mat || ad.materialId) && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onPreviewMaterial({
+                            ...(mat || {}),
+                            ...ad,
+                            materialId: ad.materialId || mat?.id,
+                            companyId: ad.companyId || mat?.companyId,
+                            productId: ad.productId || mat?.productId,
+                            reservationId: ad.reservationId,
+                            isSponsor: spInfo.isSponsor,
+                            sponsorProgramTitle: spInfo.programTitle,
+                            sponsorTag: spInfo.roleLabel,
+                            breakTime: brk.shortTime,
+                            breakName: brk.title,
+                            orderInBreak: adIdx + 1,
+                            prevProgramTitle: brk.prevProgramTitle,
+                            nextProgramTitle: brk.nextProgramTitle
+                          })
+                        }
+                        className="ads-saas-btn ads-saas-btn-sm"
+                        style={{
+                          width: '28px',
+                          height: '28px',
+                          padding: 0,
+                          borderRadius: '8px',
+                          background: 'rgba(37, 99, 235, 0.12)',
+                          border: '1px solid rgba(37, 99, 235, 0.35)',
+                          color: '#2563eb',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                        title="Reklam Detayları, Firma, Kare (25/30/50 FPS) ve Video Önizleme (ⓘ)"
+                      >
+                        <Info size={14} />
+                      </button>
+                    )}
+
+                    <span
+                      style={{
+                        fontFamily: 'monospace',
+                        fontSize: '11.5px',
+                        fontWeight: '800',
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        background: 'rgba(13, 148, 136, 0.12)',
+                        color: '#0d9488'
+                      }}
+                    >
+                      {ad.duration} sn
+                    </span>
+
+                    {onMoveAdInBreak && (
+                      <>
+                        <button
+                          type="button"
+                          disabled={adIdx === 0}
+                          onClick={() =>
+                            onMoveAdInBreak(selectedDayInfo.channelId, selectedDayInfo.date, brk.shortTime, adIdx, -1)
+                          }
+                          className="ads-saas-btn ads-saas-btn-sm"
+                          style={{ padding: '4px 6px', opacity: adIdx === 0 ? 0.35 : 1 }}
+                          title="Yukarı Taşı (↑)"
+                        >
+                          <ArrowUp size={12} />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={adIdx === brk.placedAds.length - 1}
+                          onClick={() =>
+                            onMoveAdInBreak(selectedDayInfo.channelId, selectedDayInfo.date, brk.shortTime, adIdx, 1)
+                          }
+                          className="ads-saas-btn ads-saas-btn-sm"
+                          style={{ padding: '4px 6px', opacity: adIdx === brk.placedAds.length - 1 ? 0.35 : 1 }}
+                          title="Aşağı Taşı (↓)"
+                        >
+                          <ArrowDown size={12} />
+                        </button>
+                      </>
+                    )}
+
+                    {onRemoveAdFromBreak && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onRemoveAdFromBreak(selectedDayInfo.channelId, selectedDayInfo.date, brk.shortTime, adIdx)
+                        }
+                        className="ads-saas-btn ads-saas-btn-danger ads-saas-btn-sm"
+                        style={{ padding: '4px 6px' }}
+                        title="Spotu Kaldır"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Sürükle-Bırak Altına Ekle/Taşı Çizgisi */}
+                {isDropBelow && (
+                  <div
+                    style={{
+                      padding: '3px 10px',
+                      marginTop: '3px',
+                      borderRadius: '6px',
+                      background: 'linear-gradient(90deg, #2563eb, #0284c7)',
+                      color: '#ffffff',
+                      fontSize: '10.5px',
+                      fontWeight: '900',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      boxShadow: '0 2px 8px rgba(37, 99, 235, 0.4)'
+                    }}
+                  >
+                    ↓ #{adIdx + 2}. Sıraya Bırak ({matDisplayName} Altına)
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const AdBreaksListView = ({
   adBreaksList = [],
   selectedDayInfo,
   selectedStudioBreak,
   onSelectStudioBreakTime,
+  selectedAdTarget,
+  onSelectAdTarget,
+  insertPositionMode = 'below',
+  onChangeInsertPositionMode,
   companies = [],
   products = [],
   materials = [],
@@ -71,8 +757,10 @@ export const AdBreaksListView = ({
   onClearAdBreak,
   onOpenQuickModalBreak,
   onMoveAdInBreak,
+  onReorderAdInBreak,
   onRemoveAdFromBreak,
   onPreviewMaterial,
+  onQuickAddSpotToBreak,
   onSetBreakRamadanTag
 }) => {
   const themeConfig = useThemeStore(state => state.config);
@@ -240,6 +928,7 @@ export const AdBreaksListView = ({
                       <option value="iftar_after" style={{ background: '#1e293b', color: '#fbbf24' }}>🕌 İFTAR SONRASI KUŞAĞI</option>
                     </select>
                   )}
+
                   {isActiveTarget && (
                     <span className="ta-badge ta-badge-brand" style={{ fontSize: '10.5px' }}>
                       <Target size={11} /> Seçili Hedef Kuşak
@@ -349,248 +1038,26 @@ export const AdBreaksListView = ({
               </div>
             </div>
 
-            {/* Yerleştirilen Reklam Spotları Listesi */}
-            {brk.placedAds.length === 0 ? (
-              <div
-                onClick={e => {
-                  e.stopPropagation();
-                  if (onSelectStudioBreakTime) onSelectStudioBreakTime(brk.shortTime);
-                  onOpenQuickModalBreak(brk);
-                }}
-                style={{
-                  padding: '14px',
-                  borderRadius: '10px',
-                  border: '1.5px dashed var(--ads-border-strong)',
-                  background: 'var(--ads-card-subtle)',
-                  textAlign: 'center',
-                  color: 'var(--ads-text-muted)',
-                  fontSize: '12px',
-                  cursor: 'pointer'
-                }}
-              >
-                Bu kuşak boş. Sağdaki havuzdan doğrudan ekleyebilir veya <strong>+ Spot Ekle</strong> butonuna tıklayabilirsiniz.
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }} onClick={e => e.stopPropagation()}>
-                {brk.placedAds.map((ad, adIdx) => {
-                  const comp = companies.find(c => String(c.id) === String(ad.companyId));
-                  const prod = products.find(p => String(p.id) === String(ad.productId));
-                  const mat = materials.find(m => String(m.id) === String(ad.materialId));
-                  const resObj = reservations.find(r => String(r.id) === String(ad.reservationId));
-                  const prioBadge = PRIORITY_BADGES[resObj?.priority] || null;
-                  const spInfo = resolveAdSponsorInfo(ad, resObj, brk);
-
-                  return (
-                    <div
-                      key={`${ad.materialId}-${adIdx}`}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: '10px',
-                        padding: '9px 12px',
-                        borderRadius: '10px',
-                        background: spInfo.isSponsor
-                          ? 'linear-gradient(90deg, rgba(147, 51, 234, 0.16) 0%, rgba(217, 119, 6, 0.08) 100%)'
-                          : 'var(--ads-card-subtle)',
-                        border: spInfo.isSponsor
-                          ? '1.5px solid #9333ea'
-                          : '1px solid var(--ads-border)',
-                        borderLeft: spInfo.isSponsor
-                          ? '5px solid #9333ea'
-                          : '1px solid var(--ads-border)'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '9px', minWidth: 0 }}>
-                        <span
-                          style={{
-                            width: '24px',
-                            height: '24px',
-                            borderRadius: '6px',
-                            background: spInfo.isSponsor
-                              ? 'linear-gradient(135deg, #9333ea, #7e22ce)'
-                              : 'var(--ads-pill-bar-bg)',
-                            color: spInfo.isSponsor ? '#ffffff' : 'var(--ads-text-main)',
-                            fontSize: '11px',
-                            fontWeight: '800',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0
-                          }}
-                        >
-                          {adIdx + 1}
-                        </span>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                            <span
-                              style={{
-                                fontSize: '12.5px',
-                                fontWeight: '800',
-                                color: spInfo.isSponsor ? '#7e22ce' : 'var(--ads-text-main)'
-                              }}
-                            >
-                              {mat?.name || 'Reklam Spotu'}
-                            </span>
-                            {spInfo.isSponsor && (
-                              <span
-                                style={{
-                                  fontSize: '10px',
-                                  fontWeight: '900',
-                                  padding: '2px 8px',
-                                  borderRadius: '999px',
-                                  background: ad.lockOrder
-                                    ? 'linear-gradient(135deg, #e11d48, #be123c)'
-                                    : 'linear-gradient(135deg, #9333ea, #7e22ce)',
-                                  color: '#ffffff',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '3px'
-                                }}
-                              >
-                                🏆 SPONSOR • {spInfo.roleLabel}
-                              </span>
-                            )}
-                            {spInfo.isSponsor && spInfo.programTitle && (
-                              <span
-                                style={{
-                                  fontSize: '10px',
-                                  fontWeight: '800',
-                                  padding: '2px 8px',
-                                  borderRadius: '6px',
-                                  background: 'rgba(147, 51, 234, 0.14)',
-                                  color: '#9333ea',
-                                  border: '1px solid rgba(147, 51, 234, 0.35)'
-                                }}
-                              >
-                                📺 Program: {spInfo.programTitle}
-                              </span>
-                            )}
-                            {(ad.isRamadanSpot || resObj?.isRamadanSpecial) && (
-                              <span
-                                style={{
-                                  fontSize: '10px',
-                                  fontWeight: '900',
-                                  padding: '1px 7px',
-                                  borderRadius: '999px',
-                                  background: 'linear-gradient(135deg, #d97706, #b45309)',
-                                  color: '#fff'
-                                }}
-                              >
-                                🌙 Ramazan Özel
-                              </span>
-                            )}
-                            {prioBadge && (
-                              <span
-                                style={{
-                                  fontSize: '10px',
-                                  fontWeight: '800',
-                                  padding: '1px 7px',
-                                  borderRadius: '5px',
-                                  background: prioBadge.bg,
-                                  color: prioBadge.color
-                                }}
-                              >
-                                {prioBadge.label}
-                              </span>
-                            )}
-                          </div>
-                          <div style={{ fontSize: '11px', color: 'var(--ads-text-muted)', marginTop: '2px' }}>
-                            <strong>{comp?.name || mat?.companyName || 'Firma'}</strong> • {prod?.name || mat?.productName || 'Ürün'}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
-                        {onPreviewMaterial && (mat || ad.materialId) && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              onPreviewMaterial({
-                                ...(mat || {}),
-                                ...ad,
-                                materialId: ad.materialId || mat?.id,
-                                companyId: ad.companyId || mat?.companyId,
-                                productId: ad.productId || mat?.productId,
-                                reservationId: ad.reservationId,
-                                isSponsor: spInfo.isSponsor,
-                                sponsorProgramTitle: spInfo.programTitle,
-                                sponsorTag: spInfo.roleLabel,
-                                breakTime: brk.shortTime,
-                                breakName: brk.title,
-                                orderInBreak: adIdx + 1,
-                                prevProgramTitle: brk.prevProgramTitle,
-                                nextProgramTitle: brk.nextProgramTitle
-                              })
-                            }
-                            className="ads-saas-btn ads-saas-btn-sm"
-                            style={{
-                              width: '28px',
-                              height: '28px',
-                              padding: 0,
-                              borderRadius: '8px',
-                              background: 'rgba(37, 99, 235, 0.12)',
-                              border: '1px solid rgba(37, 99, 235, 0.35)',
-                              color: '#2563eb',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center'
-                            }}
-                            title="Reklam Detayları, Firma, Kare (25/30/50 FPS) ve Video Önizleme (ⓘ)"
-                          >
-                            <Info size={14} />
-                          </button>
-                        )}
-
-                        <span
-                          style={{
-                            fontFamily: 'monospace',
-                            fontSize: '11.5px',
-                            fontWeight: '800',
-                            padding: '3px 8px',
-                            borderRadius: '6px',
-                            background: 'rgba(13, 148, 136, 0.12)',
-                            color: '#0d9488'
-                          }}
-                        >
-                          {ad.duration} sn
-                        </span>
-
-                        <button
-                          type="button"
-                          disabled={adIdx === 0}
-                          onClick={() => onMoveAdInBreak(selectedDayInfo.channelId, selectedDayInfo.date, brk.shortTime, adIdx, -1)}
-                          className="ads-saas-btn ads-saas-btn-sm"
-                          style={{ padding: '4px 6px', opacity: adIdx === 0 ? 0.35 : 1 }}
-                          title="Yukarı Taşı"
-                        >
-                          <ArrowUp size={12} />
-                        </button>
-                        <button
-                          type="button"
-                          disabled={adIdx === brk.placedAds.length - 1}
-                          onClick={() => onMoveAdInBreak(selectedDayInfo.channelId, selectedDayInfo.date, brk.shortTime, adIdx, 1)}
-                          className="ads-saas-btn ads-saas-btn-sm"
-                          style={{ padding: '4px 6px', opacity: adIdx === brk.placedAds.length - 1 ? 0.35 : 1 }}
-                          title="Aşağı Taşı"
-                        >
-                          <ArrowDown size={12} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onRemoveAdFromBreak(selectedDayInfo.channelId, selectedDayInfo.date, brk.shortTime, adIdx)}
-                          className="ads-saas-btn ads-saas-btn-danger ads-saas-btn-sm"
-                          style={{ padding: '4px 6px' }}
-                          title="Spotu Kaldır"
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+            {/* Ortak İnteraktif Sıralı Spot Listesi (Seçme + Üstüne/Altına Ekleme + Sürükle-Bırak) */}
+            <AdBreakInteractiveSpotsList
+              brk={brk}
+              selectedDayInfo={selectedDayInfo}
+              companies={companies}
+              products={products}
+              materials={materials}
+              reservations={reservations}
+              selectedAdTarget={selectedAdTarget}
+              onSelectAdTarget={onSelectAdTarget}
+              insertPositionMode={insertPositionMode}
+              onChangeInsertPositionMode={onChangeInsertPositionMode}
+              onSelectStudioBreakTime={onSelectStudioBreakTime}
+              onOpenQuickModalBreak={onOpenQuickModalBreak}
+              onMoveAdInBreak={onMoveAdInBreak}
+              onReorderAdInBreak={onReorderAdInBreak}
+              onRemoveAdFromBreak={onRemoveAdFromBreak}
+              onPreviewMaterial={onPreviewMaterial}
+              onQuickAddSpotToBreak={onQuickAddSpotToBreak}
+            />
           </div>
         );
       })}
@@ -599,8 +1066,9 @@ export const AdBreaksListView = ({
 };
 
 /**
- * Sağ Sabit Hızlı Reklam / Spot Ekleme Paneli:
- * Operatör ekran değiştirmeden orta listeden seçtiği kuşağa tek tıkla reklam izleyip ekleyebilir.
+ * Sol Sabit Hızlı Reklam / Spot Ekleme Paneli:
+ * Operatör sol panelden reklamı sürükleyip orta alandaki (Reklam Kuşakları veya Tam Yayın Akışı)
+ * herhangi bir reklamın üstüne/altına bırakabilir veya seçili reklamın Üstüne / Altına tek tıkla ekleyebilir.
  */
 export const AdQuickSpotPoolPanel = ({
   manualSourceTab,
@@ -615,11 +1083,29 @@ export const AdQuickSpotPoolPanel = ({
   adBreaksList = [],
   selectedStudioBreak,
   onSelectStudioBreakTime,
+  selectedAdTarget,
+  onSelectAdTarget,
+  insertPositionMode = 'below',
+  onChangeInsertPositionMode,
   filteredPoolReservations = [],
   filteredPoolCatalog = [],
   onQuickAddSpotToBreak,
   onPreviewMaterial
 }) => {
+  const isSelectedAdInActiveBreak =
+    selectedAdTarget &&
+    selectedStudioBreak &&
+    selectedAdTarget.breakTime === selectedStudioBreak.shortTime;
+
+  const handlePoolItemDragStart = (e, payload) => {
+    const dragPayload = {
+      dragType: 'pool-ad-insert',
+      ...payload
+    };
+    e.dataTransfer.setData('application/json', JSON.stringify(dragPayload));
+    e.dataTransfer.effectAllowed = 'copyMove';
+  };
+
   return (
     <div
       className="ta-card"
@@ -632,11 +1118,11 @@ export const AdQuickSpotPoolPanel = ({
         overflowY: 'auto'
       }}
     >
-      {/* 1. Hedef Kuşak Seçici */}
+      {/* 1. Hedef Kuşak & Ekleme Konumu Seçici */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontSize: '12.5px', fontWeight: '800', color: 'var(--ads-text-main)' }}>
-            Hızlı Reklam / Spot Ekleme Havuzu
+            Sol Panel • Reklam &amp; Spot Havuzu
           </span>
           {selectedStudioBreak && (
             <span className="ta-badge ta-badge-brand" style={{ fontSize: '10.5px' }}>
@@ -658,6 +1144,107 @@ export const AdQuickSpotPoolPanel = ({
               </option>
             ))}
           </select>
+        )}
+
+        {/* Seçili Reklamın Üstüne / Altına Ekleme Durum Kutusu */}
+        {isSelectedAdInActiveBreak ? (
+          <div
+            style={{
+              padding: '8px 10px',
+              borderRadius: '9px',
+              background: 'rgba(2, 132, 199, 0.12)',
+              border: '1.5px solid rgba(2, 132, 199, 0.4)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+              <span style={{ fontSize: '11px', fontWeight: '800', color: '#0369a1' }}>
+                🎯 Seçili: #{selectedAdTarget.adIndex + 1} {selectedAdTarget.adTitle}
+              </span>
+              <button
+                type="button"
+                onClick={() => onSelectAdTarget && onSelectAdTarget(null)}
+                style={{
+                  border: 'none',
+                  background: 'transparent',
+                  color: '#ef4444',
+                  fontSize: '10.5px',
+                  fontWeight: '800',
+                  cursor: 'pointer',
+                  padding: 0
+                }}
+              >
+                Seçimi Kaldır ✕
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 0.8fr', gap: '4px' }}>
+              <button
+                type="button"
+                onClick={() => onChangeInsertPositionMode && onChangeInsertPositionMode('above')}
+                style={{
+                  padding: '4px 6px',
+                  borderRadius: '6px',
+                  border: insertPositionMode === 'above' ? '1.5px solid #0284c7' : '1px solid var(--ads-border)',
+                  background: insertPositionMode === 'above' ? '#0284c7' : 'var(--ads-card-bg)',
+                  color: insertPositionMode === 'above' ? '#fff' : 'var(--ads-text-main)',
+                  fontSize: '10.5px',
+                  fontWeight: '800',
+                  cursor: 'pointer'
+                }}
+              >
+                ↑ Üstüne (#{selectedAdTarget.adIndex + 1})
+              </button>
+              <button
+                type="button"
+                onClick={() => onChangeInsertPositionMode && onChangeInsertPositionMode('below')}
+                style={{
+                  padding: '4px 6px',
+                  borderRadius: '6px',
+                  border: insertPositionMode === 'below' ? '1.5px solid #0284c7' : '1px solid var(--ads-border)',
+                  background: insertPositionMode === 'below' ? '#0284c7' : 'var(--ads-card-bg)',
+                  color: insertPositionMode === 'below' ? '#fff' : 'var(--ads-text-main)',
+                  fontSize: '10.5px',
+                  fontWeight: '800',
+                  cursor: 'pointer'
+                }}
+              >
+                ↓ Altına (#{selectedAdTarget.adIndex + 2})
+              </button>
+              <button
+                type="button"
+                onClick={() => onChangeInsertPositionMode && onChangeInsertPositionMode('end')}
+                style={{
+                  padding: '4px 6px',
+                  borderRadius: '6px',
+                  border: insertPositionMode === 'end' ? '1.5px solid #0284c7' : '1px solid var(--ads-border)',
+                  background: insertPositionMode === 'end' ? '#0284c7' : 'var(--ads-card-bg)',
+                  color: insertPositionMode === 'end' ? '#fff' : 'var(--ads-text-main)',
+                  fontSize: '10.5px',
+                  fontWeight: '800',
+                  cursor: 'pointer'
+                }}
+              >
+                Sona
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div
+            style={{
+              padding: '7px 10px',
+              borderRadius: '8px',
+              background: 'var(--ads-card-subtle)',
+              border: '1px dashed var(--ads-border-strong)',
+              fontSize: '10.5px',
+              color: 'var(--ads-text-muted)',
+              lineHeight: 1.35
+            }}
+          >
+            💡 Reklamı fareyle <strong>sürükleyip kuşağa bırakabilir</strong> veya kuşak içinden bir reklama tıklayarak <strong>üstüne / altına</strong> ekleyebilirsiniz.
+          </div>
         )}
       </div>
 
@@ -708,7 +1295,7 @@ export const AdQuickSpotPoolPanel = ({
         </select>
       </div>
 
-      {/* 4. Spot Listesi (Her Kartta ▶ İzle ve + Ekle Butonu + Sponsor Renklendirmesi) */}
+      {/* 4. Spot Listesi (Sürükle-Bırak + ⓘ Detay + ↑ Üstüne / ↓ Altına / + Ekle) */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
         {manualSourceTab === 'reservations' ? (
           filteredPoolReservations.length === 0 ? (
@@ -721,8 +1308,19 @@ export const AdQuickSpotPoolPanel = ({
               return (
                 <div
                   key={item.uniqueKey}
+                  draggable
+                  onDragStart={e =>
+                    handlePoolItemDragStart(e, {
+                      reservationId: item.reservationId,
+                      materialId: item.materialId,
+                      companyId: item.companyId,
+                      productId: item.productId,
+                      durationSec: item.durationSec,
+                      materialName: item.materialName
+                    })
+                  }
                   style={{
-                    padding: '9px 11px',
+                    padding: '9px 10px',
                     borderRadius: '10px',
                     border: item.isSponsor ? '1.5px solid #9333ea' : '1px solid var(--ads-border)',
                     borderLeft: item.isSponsor ? '4px solid #9333ea' : undefined,
@@ -730,96 +1328,157 @@ export const AdQuickSpotPoolPanel = ({
                       ? 'linear-gradient(90deg, rgba(147, 51, 234, 0.14) 0%, rgba(217, 119, 6, 0.06) 100%)'
                       : 'var(--ads-card-subtle)',
                     display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: '8px'
+                    flexDirection: 'column',
+                    gap: '6px',
+                    cursor: 'grab'
                   }}
+                  title="Kuşağa sürükleyip bırakabilir veya Ekle butonlarını kullanabilirsiniz"
                 >
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
-                      <span
-                        style={{
-                          fontSize: '12px',
-                          fontWeight: '800',
-                          color: item.isSponsor ? '#7e22ce' : 'var(--ads-text-main)',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          maxWidth: '180px'
-                        }}
-                      >
-                        {item.materialName}
-                      </span>
-                      {item.isSponsor && (
-                        <span
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0, flex: 1 }}>
+                      <GripVertical size={13} color="var(--ads-text-muted)" style={{ flexShrink: 0 }} />
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+                          <span
+                            style={{
+                              fontSize: '12px',
+                              fontWeight: '800',
+                              color: item.isSponsor ? '#7e22ce' : 'var(--ads-text-main)',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              maxWidth: '175px'
+                            }}
+                          >
+                            {item.materialName}
+                          </span>
+                          {item.isSponsor && (
+                            <span
+                              style={{
+                                fontSize: '9.5px',
+                                fontWeight: '900',
+                                padding: '1px 6px',
+                                borderRadius: '999px',
+                                background: '#9333ea',
+                                color: '#fff'
+                              }}
+                            >
+                              🏆 SPONSOR
+                            </span>
+                          )}
+                        </div>
+                        {item.isSponsor && item.sponsorProgramTitle && (
+                          <div style={{ fontSize: '10px', fontWeight: '800', color: '#9333ea', marginTop: '1px' }}>
+                            📺 Program: {item.sponsorProgramTitle}
+                          </div>
+                        )}
+                        <div style={{ fontSize: '10.5px', color: 'var(--ads-text-muted)', marginTop: '1px' }}>
+                          <strong>{item.companyName}</strong> • {item.durationSec} sn
+                        </div>
+                        <div style={{ fontSize: '10px', color: isMaxReached ? '#d97706' : '#0d9488', fontWeight: '700', marginTop: '1px' }}>
+                          Bugün: {item.todayPlaced} (Min:{item.dailyMinSpots}/Max:{item.dailyMaxSpots})
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                      {onPreviewMaterial && (
+                        <button
+                          type="button"
+                          onClick={() => onPreviewMaterial(item)}
+                          className="ads-saas-btn ads-saas-btn-sm"
                           style={{
-                            fontSize: '9.5px',
-                            fontWeight: '900',
-                            padding: '1px 6px',
-                            borderRadius: '999px',
-                            background: '#9333ea',
-                            color: '#fff'
+                            width: '28px',
+                            height: '28px',
+                            padding: 0,
+                            borderRadius: '8px',
+                            background: 'rgba(37, 99, 235, 0.12)',
+                            border: '1px solid rgba(37, 99, 235, 0.35)',
+                            color: '#2563eb',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
                           }}
+                          title="Reklam Detayları, Firma, Kare (25/30/50 FPS) ve Video Önizleme (ⓘ)"
                         >
-                          🏆 SPONSOR
-                        </span>
+                          <Info size={14} />
+                        </button>
+                      )}
+
+                      {!isSelectedAdInActiveBreak && (
+                        <button
+                          type="button"
+                          disabled={!selectedStudioBreak}
+                          onClick={() =>
+                            selectedStudioBreak &&
+                            onQuickAddSpotToBreak(selectedStudioBreak, {
+                              reservationId: item.reservationId,
+                              materialId: item.materialId,
+                              companyId: item.companyId,
+                              productId: item.productId
+                            })
+                          }
+                          className="ads-saas-btn ads-saas-btn-primary ads-saas-btn-sm"
+                          style={{ padding: '5px 8px', fontSize: '11px' }}
+                        >
+                          <Plus size={12} /> Ekle
+                        </button>
                       )}
                     </div>
-                    {item.isSponsor && item.sponsorProgramTitle && (
-                      <div style={{ fontSize: '10px', fontWeight: '800', color: '#9333ea', marginTop: '1px' }}>
-                        📺 Program: {item.sponsorProgramTitle}
-                      </div>
-                    )}
-                    <div style={{ fontSize: '10.5px', color: 'var(--ads-text-muted)', marginTop: '1px' }}>
-                      <strong>{item.companyName}</strong> • {item.durationSec} sn
-                    </div>
-                    <div style={{ fontSize: '10px', color: isMaxReached ? '#d97706' : '#0d9488', fontWeight: '700', marginTop: '2px' }}>
-                      Bugün: {item.todayPlaced} (Min:{item.dailyMinSpots}/Max:{item.dailyMaxSpots})
-                    </div>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-                    {onPreviewMaterial && (
+                  {/* Seçili reklam varsa doğrudan Üstüne / Altına hızlı ekleme butonları */}
+                  {isSelectedAdInActiveBreak && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px', paddingTop: '4px', borderTop: '1px dashed var(--ads-border)' }}>
                       <button
                         type="button"
-                        onClick={() => onPreviewMaterial(item)}
+                        onClick={() =>
+                          selectedStudioBreak &&
+                          onQuickAddSpotToBreak(selectedStudioBreak, {
+                            reservationId: item.reservationId,
+                            materialId: item.materialId,
+                            companyId: item.companyId,
+                            productId: item.productId,
+                            insertAtIndex: selectedAdTarget.adIndex
+                          })
+                        }
                         className="ads-saas-btn ads-saas-btn-sm"
                         style={{
-                          width: '28px',
-                          height: '28px',
-                          padding: 0,
-                          borderRadius: '8px',
-                          background: 'rgba(37, 99, 235, 0.12)',
-                          border: '1px solid rgba(37, 99, 235, 0.35)',
-                          color: '#2563eb',
-                          display: 'inline-flex',
-                          alignItems: 'center',
+                          padding: '4px 6px',
+                          fontSize: '10.5px',
+                          fontWeight: '800',
+                          justifyContent: 'center',
+                          background: 'rgba(2, 132, 199, 0.12)',
+                          border: '1px solid rgba(2, 132, 199, 0.35)',
+                          color: '#0284c7'
+                        }}
+                      >
+                        ↑ Seçilinin Üstüne Ekle
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          selectedStudioBreak &&
+                          onQuickAddSpotToBreak(selectedStudioBreak, {
+                            reservationId: item.reservationId,
+                            materialId: item.materialId,
+                            companyId: item.companyId,
+                            productId: item.productId,
+                            insertAtIndex: selectedAdTarget.adIndex + 1
+                          })
+                        }
+                        className="ads-saas-btn ads-saas-btn-primary ads-saas-btn-sm"
+                        style={{
+                          padding: '4px 6px',
+                          fontSize: '10.5px',
+                          fontWeight: '800',
                           justifyContent: 'center'
                         }}
-                        title="Reklam Detayları, Firma, Kare (25/30/50 FPS) ve Video Önizleme (ⓘ)"
                       >
-                        <Info size={14} />
+                        ↓ Seçilinin Altına Ekle
                       </button>
-                    )}
-
-                    <button
-                      type="button"
-                      disabled={!selectedStudioBreak}
-                      onClick={() =>
-                        selectedStudioBreak &&
-                        onQuickAddSpotToBreak(selectedStudioBreak, {
-                          reservationId: item.reservationId,
-                          materialId: item.materialId,
-                          companyId: item.companyId,
-                          productId: item.productId
-                        })
-                      }
-                      className="ads-saas-btn ads-saas-btn-primary ads-saas-btn-sm"
-                      style={{ padding: '5px 8px', fontSize: '11px' }}
-                    >
-                      <Plus size={12} /> Ekle
-                    </button>
-                  </div>
+                    </div>
+                  )}
                 </div>
               );
             })
@@ -828,67 +1487,135 @@ export const AdQuickSpotPoolPanel = ({
           filteredPoolCatalog.map(mat => (
             <div
               key={mat.id}
+              draggable
+              onDragStart={e =>
+                handlePoolItemDragStart(e, {
+                  materialId: mat.id,
+                  companyId: mat.companyId,
+                  productId: mat.productId,
+                  durationSec: mat.duration,
+                  materialName: mat.name
+                })
+              }
               style={{
-                padding: '9px 11px',
+                padding: '9px 10px',
                 borderRadius: '10px',
                 border: '1px solid var(--ads-border)',
                 background: 'var(--ads-card-subtle)',
                 display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '8px'
+                flexDirection: 'column',
+                gap: '6px',
+                cursor: 'grab'
               }}
+              title="Kuşağa sürükleyip bırakabilir veya Ekle butonlarını kullanabilirsiniz"
             >
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontSize: '12px', fontWeight: '800', color: 'var(--ads-text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {mat.name}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0, flex: 1 }}>
+                  <GripVertical size={13} color="var(--ads-text-muted)" style={{ flexShrink: 0 }} />
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontSize: '12px', fontWeight: '800', color: 'var(--ads-text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {mat.name}
+                    </div>
+                    <div style={{ fontSize: '10.5px', color: 'var(--ads-text-muted)', marginTop: '1px' }}>
+                      <strong>{mat.companyName}</strong> • {mat.duration} sn
+                    </div>
+                  </div>
                 </div>
-                <div style={{ fontSize: '10.5px', color: 'var(--ads-text-muted)', marginTop: '1px' }}>
-                  <strong>{mat.companyName}</strong> • {mat.duration} sn
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                  {onPreviewMaterial && (
+                    <button
+                      type="button"
+                      onClick={() => onPreviewMaterial(mat)}
+                      className="ads-saas-btn ads-saas-btn-sm"
+                      style={{
+                        width: '28px',
+                        height: '28px',
+                        padding: 0,
+                        borderRadius: '8px',
+                        background: 'rgba(37, 99, 235, 0.12)',
+                        border: '1px solid rgba(37, 99, 235, 0.35)',
+                        color: '#2563eb',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      title="Reklam Detayları, Firma, Kare (25/30/50 FPS) ve Video Önizleme (ⓘ)"
+                    >
+                      <Info size={14} />
+                    </button>
+                  )}
+
+                  {!isSelectedAdInActiveBreak && (
+                    <button
+                      type="button"
+                      disabled={!selectedStudioBreak}
+                      onClick={() =>
+                        selectedStudioBreak &&
+                        onQuickAddSpotToBreak(selectedStudioBreak, {
+                          materialId: mat.id,
+                          companyId: mat.companyId,
+                          productId: mat.productId
+                        })
+                      }
+                      className="ads-saas-btn ads-saas-btn-primary ads-saas-btn-sm"
+                      style={{ padding: '5px 8px', fontSize: '11px' }}
+                    >
+                      <Plus size={12} /> Ekle
+                    </button>
+                  )}
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-                {onPreviewMaterial && (
+              {isSelectedAdInActiveBreak && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px', paddingTop: '4px', borderTop: '1px dashed var(--ads-border)' }}>
                   <button
                     type="button"
-                    onClick={() => onPreviewMaterial(mat)}
+                    onClick={() =>
+                      selectedStudioBreak &&
+                      onQuickAddSpotToBreak(selectedStudioBreak, {
+                        materialId: mat.id,
+                        companyId: mat.companyId,
+                        productId: mat.productId,
+                        insertAtIndex: selectedAdTarget.adIndex
+                      })
+                    }
                     className="ads-saas-btn ads-saas-btn-sm"
                     style={{
-                      width: '28px',
-                      height: '28px',
-                      padding: 0,
-                      borderRadius: '8px',
-                      background: 'rgba(37, 99, 235, 0.12)',
-                      border: '1px solid rgba(37, 99, 235, 0.35)',
-                      color: '#2563eb',
-                      display: 'inline-flex',
-                      alignItems: 'center',
+                      padding: '4px 6px',
+                      fontSize: '10.5px',
+                      fontWeight: '800',
+                      justifyContent: 'center',
+                      background: 'rgba(2, 132, 199, 0.12)',
+                      border: '1px solid rgba(2, 132, 199, 0.35)',
+                      color: '#0284c7'
+                    }}
+                  >
+                    ↑ Seçilinin Üstüne Ekle
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      selectedStudioBreak &&
+                      onQuickAddSpotToBreak(selectedStudioBreak, {
+                        materialId: mat.id,
+                        companyId: mat.companyId,
+                        productId: mat.productId,
+                        insertAtIndex: selectedAdTarget.adIndex + 1
+                      })
+                    }
+                    className="ads-saas-btn ads-saas-btn-primary ads-saas-btn-sm"
+                    style={{
+                      padding: '4px 6px',
+                      fontSize: '10.5px',
+                      fontWeight: '800',
                       justifyContent: 'center'
                     }}
-                    title="Reklam Detayları, Firma, Kare (25/30/50 FPS) ve Video Önizleme (ⓘ)"
                   >
-                    <Info size={14} />
+                    ↓ Seçilinin Altına Ekle
                   </button>
-                )}
-
-                <button
-                  type="button"
-                  disabled={!selectedStudioBreak}
-                  onClick={() =>
-                    selectedStudioBreak &&
-                    onQuickAddSpotToBreak(selectedStudioBreak, {
-                      materialId: mat.id,
-                      companyId: mat.companyId,
-                      productId: mat.productId
-                    })
-                  }
-                  className="ads-saas-btn ads-saas-btn-primary ads-saas-btn-sm"
-                  style={{ padding: '5px 8px', fontSize: '11px' }}
-                >
-                  <Plus size={12} /> Ekle
-                </button>
-              </div>
+                </div>
+              )}
             </div>
           ))
         )}
@@ -901,35 +1628,58 @@ export const AdBroadcastFlowView = ({
   enrichedTimeline = [],
   materials = [],
   companies = [],
+  products = [],
   reservations = [],
   selectedDayInfo,
+  selectedStudioBreak,
+  onSelectStudioBreakTime,
+  selectedAdTarget,
+  onSelectAdTarget,
+  insertPositionMode = 'below',
+  onChangeInsertPositionMode,
+  onClearAdBreak,
   onOpenQuickModalBreak,
+  onMoveAdInBreak,
+  onReorderAdInBreak,
   onRemoveAdFromBreak,
-  onPreviewMaterial
+  onPreviewMaterial,
+  onQuickAddSpotToBreak
 }) => {
   const themeConfig = useThemeStore(state => state.config);
   const emptyBreakColor = themeConfig?.modules?.ads?.emptyBreakColor || themeConfig?.specialColors?.adBreakEmptyColor || '#ea580c';
   const filledBreakColor = themeConfig?.modules?.ads?.filledBreakColor || themeConfig?.specialColors?.adBreakFilledColor || '#0d9488';
 
   return (
-    <div className="ta-card" style={{ padding: '16px', gap: '8px' }}>
+    <div className="ta-card" style={{ padding: '16px', gap: '10px' }}>
       {enrichedTimeline.map(item => {
         const isSponsoredProg = !item.isAdBlock && Boolean(item.isSponsoredProgram);
         const isSponsorBreak = item.isAdBlock && Boolean(item.hasSponsorAds);
+        const isActiveTargetBreak =
+          item.isAdBlock && selectedStudioBreak && selectedStudioBreak.shortTime === item.shortTime;
 
         return (
           <div
             key={item.instanceId || item.idx}
+            onClick={() => {
+              if (item.isAdBlock && onSelectStudioBreakTime) {
+                onSelectStudioBreakTime(item.shortTime);
+              }
+            }}
             style={{
               display: 'flex',
-              border: isSponsoredProg
+              cursor: item.isAdBlock ? 'pointer' : 'default',
+              border: isActiveTargetBreak
+                ? '2px solid var(--ads-brand)'
+                : isSponsoredProg
                 ? '2px solid #9333ea'
                 : isSponsorBreak
                 ? '1.5px solid rgba(147, 51, 234, 0.55)'
                 : '1px solid var(--ads-border)',
               borderLeft: item.isAdBlock
                 ? `6px solid ${
-                    isSponsorBreak
+                    isActiveTargetBreak
+                      ? 'var(--ads-brand)'
+                      : isSponsorBreak
                       ? '#9333ea'
                       : item.placedAds.length > 0
                       ? filledBreakColor
@@ -938,22 +1688,31 @@ export const AdBroadcastFlowView = ({
                 : isSponsoredProg
                 ? '6px solid #9333ea'
                 : '4px solid var(--ads-brand)',
-              borderRadius: '10px',
+              borderRadius: '12px',
               background: isSponsoredProg
                 ? 'linear-gradient(90deg, rgba(147, 51, 234, 0.16) 0%, rgba(217, 119, 6, 0.06) 100%)'
                 : item.isAdBlock
                 ? item.placedAds.length > 0
-                  ? hexToRgba(filledBreakColor, 0.06)
-                  : hexToRgba(emptyBreakColor, 0.07)
+                  ? hexToRgba(filledBreakColor, 0.05)
+                  : hexToRgba(emptyBreakColor, 0.06)
                 : 'var(--ads-card-bg)',
-              overflow: 'hidden'
+              boxShadow: isActiveTargetBreak
+                ? '0 8px 22px -6px rgba(70, 95, 255, 0.2)'
+                : undefined,
+              overflow: 'hidden',
+              transition: 'all 0.15s ease'
             }}
           >
+            {/* Sol Saat Sütunu */}
             <div
               style={{
                 width: '125px',
                 padding: '10px 12px',
-                background: isSponsoredProg ? 'rgba(147, 51, 234, 0.12)' : 'var(--ads-card-subtle)',
+                background: isSponsoredProg
+                  ? 'rgba(147, 51, 234, 0.12)'
+                  : isActiveTargetBreak
+                  ? 'var(--ads-brand-soft)'
+                  : 'var(--ads-card-subtle)',
                 borderRight: '1px solid var(--ads-border)',
                 display: 'flex',
                 flexDirection: 'column',
@@ -963,7 +1722,17 @@ export const AdBroadcastFlowView = ({
                 flexShrink: 0
               }}
             >
-              <span style={{ fontSize: '13px', fontWeight: '900', color: isSponsoredProg ? '#7e22ce' : 'var(--ads-text-main)' }}>
+              <span
+                style={{
+                  fontSize: '13px',
+                  fontWeight: '900',
+                  color: isSponsoredProg
+                    ? '#7e22ce'
+                    : isActiveTargetBreak
+                    ? 'var(--ads-brand)'
+                    : 'var(--ads-text-main)'
+                }}
+              >
                 {item.exactStartClock}
               </span>
               <span style={{ fontSize: '11px', color: 'var(--ads-text-muted)' }}>
@@ -971,10 +1740,11 @@ export const AdBroadcastFlowView = ({
               </span>
             </div>
 
-            <div style={{ flex: 1, padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {/* Sağ İçerik Sütunu */}
+            <div style={{ flex: 1, padding: '12px 15px', display: 'flex', flexDirection: 'column', gap: '10px', minWidth: 0 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '11px', fontFamily: 'monospace', color: 'var(--ads-text-muted)' }}>
+                  <span style={{ fontSize: '11px', fontFamily: 'monospace', color: 'var(--ads-text-muted)', fontWeight: '700' }}>
                     #{item.orderNo}
                   </span>
                   {item.isAdBlock ? (
@@ -1035,6 +1805,12 @@ export const AdBroadcastFlowView = ({
                     </span>
                   )}
 
+                  {isActiveTargetBreak && (
+                    <span className="ta-badge ta-badge-brand" style={{ fontSize: '10.5px' }}>
+                      <Target size={11} /> Seçili Hedef Kuşak
+                    </span>
+                  )}
+
                   {item.partNo && (
                     <span className="ta-badge ta-badge-info" style={{ fontSize: '10px' }}>
                       Part {item.partNo}
@@ -1046,13 +1822,40 @@ export const AdBroadcastFlowView = ({
                 </div>
 
                 {item.isAdBlock && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '11.5px', fontWeight: '700', color: 'var(--ads-text-sub)' }}>
+                  <div
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                    onClick={e => e.stopPropagation()}
+                  >
+                    <span
+                      style={{
+                        fontSize: '11.5px',
+                        fontWeight: '800',
+                        padding: '3px 9px',
+                        borderRadius: '7px',
+                        background: 'rgba(13, 148, 136, 0.12)',
+                        color: '#0d9488'
+                      }}
+                    >
                       {item.placedAds.length} Spot • {item.filledSec} / {item.capacitySec} sn
                     </span>
+
+                    {item.placedAds.length > 0 && onClearAdBreak && (
+                      <button
+                        type="button"
+                        onClick={() => onClearAdBreak(selectedDayInfo.channelId, selectedDayInfo.date, item.shortTime)}
+                        className="ads-saas-btn ads-saas-btn-danger ads-saas-btn-sm"
+                        title="Bu kuşağı temizle"
+                      >
+                        <Trash2 size={12} /> Temizle
+                      </button>
+                    )}
+
                     <button
                       type="button"
-                      onClick={() => onOpenQuickModalBreak(item)}
+                      onClick={() => {
+                        if (onSelectStudioBreakTime) onSelectStudioBreakTime(item.shortTime);
+                        onOpenQuickModalBreak(item);
+                      }}
                       className="ads-saas-btn ads-saas-btn-primary ads-saas-btn-sm"
                     >
                       <Plus size={12} /> Spot Ekle
@@ -1061,105 +1864,27 @@ export const AdBroadcastFlowView = ({
                 )}
               </div>
 
-              {item.isAdBlock && item.placedAds.length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '4px' }}>
-                  {item.placedAds.map((ad, i) => {
-                    const mat = materials.find(m => String(m.id) === String(ad.materialId));
-                    const comp = companies.find(c => String(c.id) === String(ad.companyId));
-                    const resObj = reservations.find(r => String(r.id) === String(ad.reservationId));
-                    const spInfo = resolveAdSponsorInfo(ad, resObj, item);
-
-                    return (
-                      <span
-                        key={i}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          padding: '5px 10px',
-                          borderRadius: '8px',
-                          background: spInfo.isSponsor
-                            ? 'linear-gradient(90deg, rgba(147, 51, 234, 0.18) 0%, rgba(217, 119, 6, 0.1) 100%)'
-                            : 'var(--ads-card-bg)',
-                          border: spInfo.isSponsor
-                            ? '1.5px solid #9333ea'
-                            : '1px solid var(--ads-border)',
-                          fontSize: '11.5px',
-                          fontWeight: '700'
-                        }}
-                      >
-                        <span style={{ color: spInfo.isSponsor ? '#9333ea' : 'var(--ads-brand)', fontWeight: '900' }}>
-                          {i + 1}.
-                        </span>
-                        {spInfo.isSponsor && (
-                          <span
-                            style={{
-                              fontSize: '9.5px',
-                              fontWeight: '900',
-                              padding: '1px 6px',
-                              borderRadius: '999px',
-                              background: '#9333ea',
-                              color: '#fff'
-                            }}
-                          >
-                            🏆 {spInfo.roleLabel}
-                          </span>
-                        )}
-                        <span style={{ color: spInfo.isSponsor ? '#7e22ce' : 'var(--ads-text-main)', fontWeight: '800' }}>
-                          {mat?.name || 'Spot'}
-                        </span>
-                        <span style={{ color: 'var(--ads-text-muted)', fontWeight: '500' }}>
-                          ({comp?.name} • {ad.duration}sn)
-                        </span>
-                        {onPreviewMaterial && (mat || ad.materialId) && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              onPreviewMaterial({
-                                ...(mat || {}),
-                                ...ad,
-                                materialId: ad.materialId || mat?.id,
-                                companyId: ad.companyId || mat?.companyId,
-                                productId: ad.productId || mat?.productId,
-                                reservationId: ad.reservationId,
-                                isSponsor: spInfo.isSponsor,
-                                sponsorProgramTitle: spInfo.programTitle,
-                                sponsorTag: spInfo.roleLabel,
-                                breakTime: item.shortTime,
-                                breakName: item.title,
-                                orderInBreak: i + 1
-                              })
-                            }
-                            style={{
-                              background: 'rgba(37, 99, 235, 0.14)',
-                              border: '1px solid rgba(37, 99, 235, 0.35)',
-                              color: '#2563eb',
-                              borderRadius: '6px',
-                              width: '22px',
-                              height: '22px',
-                              padding: 0,
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center'
-                            }}
-                            title="Reklam Detayları, Firma, Kare (25/30/50 FPS) ve Video Önizleme (ⓘ)"
-                          >
-                            <Info size={12} />
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => onRemoveAdFromBreak(selectedDayInfo.channelId, selectedDayInfo.date, item.shortTime, i)}
-                          style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: 0, display: 'inline-flex' }}
-                          title="Kaldır"
-                        >
-                          <X size={12} />
-                        </button>
-                      </span>
-                    );
-                  })}
-                </div>
+              {/* Tam Yayın Akışında Kuşak İçi Reklamlar: Düzenli Sıralı Liste + Seçilinin Üstüne/Altına Ekleme + Sürükle-Bırak */}
+              {item.isAdBlock && (
+                <AdBreakInteractiveSpotsList
+                  brk={item}
+                  selectedDayInfo={selectedDayInfo}
+                  companies={companies}
+                  products={products}
+                  materials={materials}
+                  reservations={reservations}
+                  selectedAdTarget={selectedAdTarget}
+                  onSelectAdTarget={onSelectAdTarget}
+                  insertPositionMode={insertPositionMode}
+                  onChangeInsertPositionMode={onChangeInsertPositionMode}
+                  onSelectStudioBreakTime={onSelectStudioBreakTime}
+                  onOpenQuickModalBreak={onOpenQuickModalBreak}
+                  onMoveAdInBreak={onMoveAdInBreak}
+                  onReorderAdInBreak={onReorderAdInBreak}
+                  onRemoveAdFromBreak={onRemoveAdFromBreak}
+                  onPreviewMaterial={onPreviewMaterial}
+                  onQuickAddSpotToBreak={onQuickAddSpotToBreak}
+                />
               )}
             </div>
           </div>
@@ -1312,6 +2037,7 @@ export const AdManualSpotModal = ({
   quickModalBreak,
   selectedDayInfo,
   adBreaksList = [],
+  selectedAdTarget,
   manualSourceTab,
   onChangeManualSourceTab,
   eligibleReservationItemsCount = 0,
@@ -1325,6 +2051,9 @@ export const AdManualSpotModal = ({
   onClose
 }) => {
   if (!quickModalBreak || !selectedDayInfo) return null;
+
+  const isSelectedAdInModalBreak =
+    selectedAdTarget && selectedAdTarget.breakTime === quickModalBreak.shortTime;
 
   return (
     <div
@@ -1346,7 +2075,7 @@ export const AdManualSpotModal = ({
         style={{
           position: 'relative',
           width: '100%',
-          maxWidth: '820px',
+          maxWidth: '860px',
           maxHeight: '85vh',
           background: 'var(--ads-canvas-bg)',
           border: '1px solid var(--ads-border-strong)',
@@ -1392,6 +2121,21 @@ export const AdManualSpotModal = ({
               <h3 style={{ margin: 0, fontSize: '16.5px', fontWeight: '800', color: 'var(--ads-text-main)' }}>
                 Manuel Reklam Spotu Ekle &amp; Önizle
               </h3>
+              {isSelectedAdInModalBreak && (
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: '800',
+                    padding: '3px 9px',
+                    borderRadius: '999px',
+                    background: 'rgba(2, 132, 199, 0.14)',
+                    color: '#0284c7',
+                    border: '1px solid rgba(2, 132, 199, 0.4)'
+                  }}
+                >
+                  🎯 Seçili Reklam: #{selectedAdTarget.adIndex + 1} {selectedAdTarget.adTitle}
+                </span>
+              )}
             </div>
             <div style={{ fontSize: '12px', color: 'var(--ads-text-muted)', marginTop: '4px' }}>
               {quickModalBreak.title} ({quickModalBreak.timeBlockName}) • Kalan Boş Süre:{' '}
@@ -1457,7 +2201,8 @@ export const AdManualSpotModal = ({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    gap: '10px'
+                    gap: '10px',
+                    flexWrap: 'wrap'
                   }}
                 >
                   <div>
@@ -1507,6 +2252,48 @@ export const AdManualSpotModal = ({
                         <Info size={15} />
                       </button>
                     )}
+
+                    {isSelectedAdInModalBreak && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onQuickAddSpotToBreak(quickModalBreak, {
+                              reservationId: item.reservationId,
+                              materialId: item.materialId,
+                              companyId: item.companyId,
+                              productId: item.productId,
+                              insertAtIndex: selectedAdTarget.adIndex
+                            })
+                          }
+                          className="ads-saas-btn ads-saas-btn-sm"
+                          style={{
+                            background: 'rgba(2, 132, 199, 0.12)',
+                            border: '1px solid rgba(2, 132, 199, 0.35)',
+                            color: '#0284c7',
+                            fontWeight: '800'
+                          }}
+                        >
+                          ↑ Seçilinin Üstüne
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onQuickAddSpotToBreak(quickModalBreak, {
+                              reservationId: item.reservationId,
+                              materialId: item.materialId,
+                              companyId: item.companyId,
+                              productId: item.productId,
+                              insertAtIndex: selectedAdTarget.adIndex + 1
+                            })
+                          }
+                          className="ads-saas-btn ads-saas-btn-primary ads-saas-btn-sm"
+                        >
+                          ↓ Seçilinin Altına
+                        </button>
+                      </>
+                    )}
+
                     <button
                       type="button"
                       onClick={() =>
@@ -1519,7 +2306,7 @@ export const AdManualSpotModal = ({
                       }
                       className="ads-saas-btn ads-saas-btn-primary ads-saas-btn-sm"
                     >
-                      <Plus size={13} /> Bu Kuşağa Ekle
+                      <Plus size={13} /> {isSelectedAdInModalBreak ? 'Kuşak Sonuna' : 'Bu Kuşağa Ekle'}
                     </button>
                   </div>
                 </div>
@@ -1535,7 +2322,8 @@ export const AdManualSpotModal = ({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    gap: '10px'
+                    gap: '10px',
+                    flexWrap: 'wrap'
                   }}
                 >
                   <div>
@@ -1569,6 +2357,46 @@ export const AdManualSpotModal = ({
                         <Info size={15} />
                       </button>
                     )}
+
+                    {isSelectedAdInModalBreak && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onQuickAddSpotToBreak(quickModalBreak, {
+                              materialId: mat.id,
+                              companyId: mat.companyId,
+                              productId: mat.productId,
+                              insertAtIndex: selectedAdTarget.adIndex
+                            })
+                          }
+                          className="ads-saas-btn ads-saas-btn-sm"
+                          style={{
+                            background: 'rgba(2, 132, 199, 0.12)',
+                            border: '1px solid rgba(2, 132, 199, 0.35)',
+                            color: '#0284c7',
+                            fontWeight: '800'
+                          }}
+                        >
+                          ↑ Seçilinin Üstüne
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onQuickAddSpotToBreak(quickModalBreak, {
+                              materialId: mat.id,
+                              companyId: mat.companyId,
+                              productId: mat.productId,
+                              insertAtIndex: selectedAdTarget.adIndex + 1
+                            })
+                          }
+                          className="ads-saas-btn ads-saas-btn-primary ads-saas-btn-sm"
+                        >
+                          ↓ Seçilinin Altına
+                        </button>
+                      </>
+                    )}
+
                     <button
                       type="button"
                       onClick={() =>
@@ -1580,7 +2408,7 @@ export const AdManualSpotModal = ({
                       }
                       className="ads-saas-btn ads-saas-btn-primary ads-saas-btn-sm"
                     >
-                      <Plus size={13} /> Bu Kuşağa Ekle
+                      <Plus size={13} /> {isSelectedAdInModalBreak ? 'Kuşak Sonuna' : 'Bu Kuşağa Ekle'}
                     </button>
                   </div>
                 </div>
