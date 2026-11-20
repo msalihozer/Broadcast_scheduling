@@ -137,7 +137,17 @@ const BroadcastPlanningLayout = () => {
       />
 
       {/* Ana Görünüm Alanı */}
-      <div style={{ flex: 1, height: '100%', overflow: 'hidden', display: 'flex' }}>
+      <div
+        style={{
+          flex: 1,
+          minHeight: 0,
+          height: '100%',
+          overflowY: viewMode === 'reports' ? 'auto' : 'hidden',
+          overflowX: 'hidden',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+      >
         {viewMode === 'daily' && (
           <BroadcastDayView
             onOpenAddModal={() => setIsAddModalOpen(true)}
