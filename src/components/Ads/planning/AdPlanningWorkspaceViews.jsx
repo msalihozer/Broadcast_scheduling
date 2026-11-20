@@ -22,7 +22,8 @@ import {
   Target,
   Play,
   Award,
-  Tv
+  Tv,
+  Info
 } from 'lucide-react';
 import { PRIORITY_BADGES } from './adPlanningConstants';
 import useThemeStore, { hexToRgba } from '../../../store/themeStore';
@@ -504,12 +505,40 @@ export const AdBreaksListView = ({
                         {onPreviewMaterial && (mat || ad.materialId) && (
                           <button
                             type="button"
-                            onClick={() => onPreviewMaterial(mat || ad.materialId)}
-                            className="ads-saas-btn ads-saas-btn-teal ads-saas-btn-sm"
-                            style={{ padding: '4px 9px', fontSize: '11px', fontWeight: '800' }}
-                            title="Bu reklam klibini izle (kontrol et)"
+                            onClick={() =>
+                              onPreviewMaterial({
+                                ...(mat || {}),
+                                ...ad,
+                                materialId: ad.materialId || mat?.id,
+                                companyId: ad.companyId || mat?.companyId,
+                                productId: ad.productId || mat?.productId,
+                                reservationId: ad.reservationId,
+                                isSponsor: spInfo.isSponsor,
+                                sponsorProgramTitle: spInfo.programTitle,
+                                sponsorTag: spInfo.roleLabel,
+                                breakTime: brk.shortTime,
+                                breakName: brk.title,
+                                orderInBreak: adIdx + 1,
+                                prevProgramTitle: brk.prevProgramTitle,
+                                nextProgramTitle: brk.nextProgramTitle
+                              })
+                            }
+                            className="ads-saas-btn ads-saas-btn-sm"
+                            style={{
+                              width: '28px',
+                              height: '28px',
+                              padding: 0,
+                              borderRadius: '8px',
+                              background: 'rgba(37, 99, 235, 0.12)',
+                              border: '1px solid rgba(37, 99, 235, 0.35)',
+                              color: '#2563eb',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                            title="Reklam Detayları, Firma, Kare (25/30/50 FPS) ve Video Önizleme (ⓘ)"
                           >
-                            <Play size={11} fill="currentColor" /> İzle
+                            <Info size={14} />
                           </button>
                         )}
 
@@ -753,12 +782,23 @@ export const AdQuickSpotPoolPanel = ({
                     {onPreviewMaterial && (
                       <button
                         type="button"
-                        onClick={() => onPreviewMaterial(item.materialId)}
-                        className="ads-saas-btn ads-saas-btn-teal ads-saas-btn-sm"
-                        style={{ padding: '5px 7px', fontSize: '10.5px' }}
-                        title="Bu reklam klibini izle"
+                        onClick={() => onPreviewMaterial(item)}
+                        className="ads-saas-btn ads-saas-btn-sm"
+                        style={{
+                          width: '28px',
+                          height: '28px',
+                          padding: 0,
+                          borderRadius: '8px',
+                          background: 'rgba(37, 99, 235, 0.12)',
+                          border: '1px solid rgba(37, 99, 235, 0.35)',
+                          color: '#2563eb',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                        title="Reklam Detayları, Firma, Kare (25/30/50 FPS) ve Video Önizleme (ⓘ)"
                       >
-                        <Play size={11} fill="currentColor" /> İzle
+                        <Info size={14} />
                       </button>
                     )}
 
@@ -813,11 +853,22 @@ export const AdQuickSpotPoolPanel = ({
                   <button
                     type="button"
                     onClick={() => onPreviewMaterial(mat)}
-                    className="ads-saas-btn ads-saas-btn-teal ads-saas-btn-sm"
-                    style={{ padding: '5px 7px', fontSize: '10.5px' }}
-                    title="Bu reklam klibini izle"
+                    className="ads-saas-btn ads-saas-btn-sm"
+                    style={{
+                      width: '28px',
+                      height: '28px',
+                      padding: 0,
+                      borderRadius: '8px',
+                      background: 'rgba(37, 99, 235, 0.12)',
+                      border: '1px solid rgba(37, 99, 235, 0.35)',
+                      color: '#2563eb',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                    title="Reklam Detayları, Firma, Kare (25/30/50 FPS) ve Video Önizleme (ⓘ)"
                   >
-                    <Play size={11} fill="currentColor" /> İzle
+                    <Info size={14} />
                   </button>
                 )}
 
@@ -1063,23 +1114,38 @@ export const AdBroadcastFlowView = ({
                         {onPreviewMaterial && (mat || ad.materialId) && (
                           <button
                             type="button"
-                            onClick={() => onPreviewMaterial(mat || ad.materialId)}
+                            onClick={() =>
+                              onPreviewMaterial({
+                                ...(mat || {}),
+                                ...ad,
+                                materialId: ad.materialId || mat?.id,
+                                companyId: ad.companyId || mat?.companyId,
+                                productId: ad.productId || mat?.productId,
+                                reservationId: ad.reservationId,
+                                isSponsor: spInfo.isSponsor,
+                                sponsorProgramTitle: spInfo.programTitle,
+                                sponsorTag: spInfo.roleLabel,
+                                breakTime: item.shortTime,
+                                breakName: item.title,
+                                orderInBreak: i + 1
+                              })
+                            }
                             style={{
-                              background: 'rgba(13, 148, 136, 0.15)',
-                              border: '1px solid rgba(13, 148, 136, 0.35)',
-                              color: '#0d9488',
-                              borderRadius: '5px',
-                              padding: '1px 6px',
-                              fontSize: '10px',
-                              fontWeight: '800',
+                              background: 'rgba(37, 99, 235, 0.14)',
+                              border: '1px solid rgba(37, 99, 235, 0.35)',
+                              color: '#2563eb',
+                              borderRadius: '6px',
+                              width: '22px',
+                              height: '22px',
+                              padding: 0,
                               cursor: 'pointer',
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: '3px'
+                              justifyContent: 'center'
                             }}
-                            title="Reklamı İzle"
+                            title="Reklam Detayları, Firma, Kare (25/30/50 FPS) ve Video Önizleme (ⓘ)"
                           >
-                            <Play size={10} fill="currentColor" /> İzle
+                            <Info size={12} />
                           </button>
                         )}
                         <button
@@ -1121,7 +1187,7 @@ export const AdHourlyMatrixView = ({
               <th>Yayın Kuşağı</th>
               <th>Spot Adedi</th>
               <th>Doldurulan / Kapasite</th>
-              <th>Yerleştirilen Reklamlar (Tıklayarak İzleyin)</th>
+              <th>Yerleştirilen Reklamlar (ⓘ Detay &amp; Önizleme)</th>
               <th style={{ textAlign: 'right' }}>İşlem</th>
             </tr>
           </thead>
@@ -1179,8 +1245,26 @@ export const AdHourlyMatrixView = ({
                       return (
                         <span
                           key={idx}
-                          onClick={() => onPreviewMaterial && onPreviewMaterial(mat || ad.materialId)}
-                          title="Reklamı izlemek için tıklayın"
+                          onClick={() =>
+                            onPreviewMaterial &&
+                            onPreviewMaterial({
+                              ...(mat || {}),
+                              ...ad,
+                              materialId: ad.materialId || mat?.id,
+                              companyId: ad.companyId || mat?.companyId,
+                              productId: ad.productId || mat?.productId,
+                              reservationId: ad.reservationId,
+                              isSponsor: spInfo.isSponsor,
+                              sponsorProgramTitle: spInfo.programTitle,
+                              sponsorTag: spInfo.roleLabel,
+                              breakTime: brk.shortTime,
+                              breakName: brk.title,
+                              orderInBreak: idx + 1,
+                              prevProgramTitle: brk.prevProgramTitle,
+                              nextProgramTitle: brk.nextProgramTitle
+                            })
+                          }
+                          title="Reklam detayları ve video önizleme için tıklayın (ⓘ)"
                           style={{
                             fontSize: '10.5px',
                             fontWeight: '800',
@@ -1197,7 +1281,7 @@ export const AdHourlyMatrixView = ({
                         >
                           {spInfo.isSponsor && <span>🏆</span>}
                           <span>{mat?.name || 'Spot'} ({ad.duration}sn)</span>
-                          {onPreviewMaterial && <Play size={10} fill="currentColor" />}
+                          {onPreviewMaterial && <Info size={11} />}
                         </span>
                       );
                     })}
@@ -1404,10 +1488,23 @@ export const AdManualSpotModal = ({
                     {onPreviewMaterial && (
                       <button
                         type="button"
-                        onClick={() => onPreviewMaterial(item.materialId)}
-                        className="ads-saas-btn ads-saas-btn-teal ads-saas-btn-sm"
+                        onClick={() => onPreviewMaterial(item)}
+                        className="ads-saas-btn ads-saas-btn-sm"
+                        style={{
+                          width: '30px',
+                          height: '30px',
+                          padding: 0,
+                          borderRadius: '8px',
+                          background: 'rgba(37, 99, 235, 0.12)',
+                          border: '1px solid rgba(37, 99, 235, 0.35)',
+                          color: '#2563eb',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                        title="Reklam Detayları, Firma, Kare (25/30/50 FPS) ve Video Önizleme (ⓘ)"
                       >
-                        <Play size={12} fill="currentColor" /> İzle
+                        <Info size={15} />
                       </button>
                     )}
                     <button
@@ -1454,9 +1551,22 @@ export const AdManualSpotModal = ({
                       <button
                         type="button"
                         onClick={() => onPreviewMaterial(mat)}
-                        className="ads-saas-btn ads-saas-btn-teal ads-saas-btn-sm"
+                        className="ads-saas-btn ads-saas-btn-sm"
+                        style={{
+                          width: '30px',
+                          height: '30px',
+                          padding: 0,
+                          borderRadius: '8px',
+                          background: 'rgba(37, 99, 235, 0.12)',
+                          border: '1px solid rgba(37, 99, 235, 0.35)',
+                          color: '#2563eb',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                        title="Reklam Detayları, Firma, Kare (25/30/50 FPS) ve Video Önizleme (ⓘ)"
                       >
-                        <Play size={12} fill="currentColor" /> İzle
+                        <Info size={15} />
                       </button>
                     )}
                     <button

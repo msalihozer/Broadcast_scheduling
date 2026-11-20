@@ -88,6 +88,20 @@ export function normalizeAdDurationSeconds(rawDuration, clipName = '') {
 }
 
 /**
+ * Milisaniye veya saniye olarak gelen süreyi hassas milisaniye (ms) olarak döndürür (Frame/Kare hesabı için).
+ */
+export function normalizeAdDurationMs(rawDuration, fallbackSec = 30) {
+  const num = Number(rawDuration) || 0;
+  if (num > 600) {
+    return Math.round(num);
+  }
+  if (num > 0) {
+    return Math.round(num * 1000);
+  }
+  return Math.round((Number(fallbackSec) || 30) * 1000);
+}
+
+/**
  * "kullanma", "sil", "silll", "cln", "clean" gibi yayına uygun olmayan reklam kayıtlarını tespit eder.
  */
 export function isExcludedAdItem(name = '', clipName = '', description = '') {
@@ -426,6 +440,7 @@ export function buildAutoSyncedAdsCatalog({
 
     const clipIdStr = m.clipId ? String(m.clipId) : String(m.id);
     const durSec = normalizeAdDurationSeconds(m.duration, clipName);
+    const durMs = normalizeAdDurationMs(m.durationMs ?? m.duration, durSec);
     const uploadDate = m.uploadDate || extractUploadDateFromClip(clipName, m.fileCreateTime);
     const uploadTimestamp = m.uploadTimestamp || extractUploadTimestamp(clipName, m.fileCreateTime, uploadDate);
 
@@ -462,6 +477,7 @@ export function buildAutoSyncedAdsCatalog({
       productId: prodId,
       productName: prodObj?.name || 'Genel Kampanya',
       duration: durSec,
+      durationMs: durMs,
       uploadDate,
       uploadTimestamp,
       description: m.description || '',
@@ -497,6 +513,7 @@ export function buildAutoSyncedAdsCatalog({
     if (/^reklam_(?:bayan|erkek|giris|cikis|jenerik)/i.test(rawClipName)) return;
 
     const durSec = normalizeAdDurationSeconds(item.durationSec ?? item.duration, rawClipName);
+    const durMs = normalizeAdDurationMs(item.durationMs ?? item.duration ?? item.durationSec, durSec);
     const uploadDate = extractUploadDateFromClip(rawClipName, item.fileCreateTime || item.uploadDate);
     const uploadTimestamp = extractUploadTimestamp(rawClipName, item.fileCreateTime, uploadDate);
 
@@ -513,6 +530,7 @@ export function buildAutoSyncedAdsCatalog({
         code: rawCode || existing.code,
         clipName: rawClipName || existing.clipName,
         duration: durSec || existing.duration,
+        durationMs: (Number(item.duration) > 600 ? Number(item.duration) : 0) || existing.durationMs || durMs,
         uploadDate: item.fileCreateTime ? uploadDate : existing.uploadDate,
         uploadTimestamp: item.fileCreateTime ? uploadTimestamp : existing.uploadTimestamp,
         companyId: existing.isManual ? existing.companyId : compObj.id,
@@ -534,6 +552,7 @@ export function buildAutoSyncedAdsCatalog({
       productId: prodObj.id,
       productName: prodObj.name,
       duration: durSec,
+      durationMs: durMs,
       uploadDate,
       uploadTimestamp,
       description: item.campaign || '',

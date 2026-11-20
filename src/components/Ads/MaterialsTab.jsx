@@ -15,11 +15,13 @@ import {
   Package,
   Calendar,
   FileBarChart2,
-  FilterX
+  FilterX,
+  Info
 } from 'lucide-react';
 import usePlanningStore from '../../store/planningStore';
 import MaterialForm from './MaterialForm';
 import AdVideoPlayer from './AdVideoPlayer';
+import AdMaterialDetailModal from './AdMaterialDetailModal';
 import AdsPaginationBar from './AdsPaginationBar';
 import useDialogStore from '../../store/dialogStore';
 import { filterAndSortPrefixFirst } from './reservation/reservationConstants';
@@ -44,9 +46,11 @@ const MaterialsTab = ({ setActiveTab }) => {
   const setSelectedCompanyDetailId = usePlanningStore(state => state.setSelectedCompanyDetailId);
   const setSelectedMaterialDetailId = usePlanningStore(state => state.setSelectedMaterialDetailId);
 
+  const reservations = usePlanningStore(state => state.reservations || []);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState(null);
   const [selectedMaterialId, setSelectedMaterialId] = useState(null);
+  const [detailModalMaterial, setDetailModalMaterial] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDuration, setFilterDuration] = useState('all'); // 'all' | 'short' | 'medium' | 'long'
   const [sortBy, setSortBy] = useState('uploadDateDesc');
@@ -475,10 +479,28 @@ const MaterialsTab = ({ setActiveTab }) => {
                             type="button"
                             onClick={e => {
                               e.stopPropagation();
+                              setDetailModalMaterial(m);
+                            }}
+                            className="ads-saas-btn ads-saas-btn-sm"
+                            style={{
+                              padding: '5px 7px',
+                              background: 'rgba(37, 99, 235, 0.12)',
+                              border: '1px solid rgba(37, 99, 235, 0.35)',
+                              color: '#2563eb'
+                            }}
+                            title="Reklam Detayları, Firma, Kare (25/30/50 FPS) ve Video Önizleme (ⓘ)"
+                          >
+                            <Info size={13} />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={e => {
+                              e.stopPropagation();
                               setSelectedMaterialId(m.id);
                             }}
                             className="ads-saas-btn ads-saas-btn-primary ads-saas-btn-sm"
-                            title="Klibi Oynat"
+                            title="Yan Panelde Oynat"
                           >
                             <PlayCircle size={12} /> Oynat
                           </button>
@@ -644,6 +666,18 @@ const MaterialsTab = ({ setActiveTab }) => {
           existingData={editingMaterial}
           defaultCompanyId={filterCompanyId}
           defaultProductId={filterProductId}
+        />
+      )}
+
+      {detailModalMaterial && (
+        <AdMaterialDetailModal
+          material={detailModalMaterial}
+          onClose={() => setDetailModalMaterial(null)}
+          companies={companies}
+          products={products}
+          materials={materials}
+          reservations={reservations}
+          adPlacements={adPlacements}
         />
       )}
     </div>

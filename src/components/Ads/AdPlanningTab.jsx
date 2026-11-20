@@ -40,7 +40,7 @@ import {
   AdManualSpotModal
 } from './planning/AdPlanningWorkspaceViews';
 import { isRamadanFeatureWindowOpen, filterAndSortPrefixFirst } from './reservation/reservationConstants';
-import AdVideoPlayer from './AdVideoPlayer';
+import AdMaterialDetailModal from './AdMaterialDetailModal';
 
 export { PRIORITY_BADGES, formatTcClock, formatSecToReadable, getMondayStr };
 
@@ -89,9 +89,12 @@ const AdPlanningTab = () => {
 
   const handlePreviewMaterial = (matOrId) => {
     if (!matOrId) return;
-    if (typeof matOrId === 'object' && (matOrId.id || matOrId.clipId || matOrId.code)) {
-      const found = materials.find(m => String(m.id) === String(matOrId.id || matOrId.materialId));
-      setPreviewMaterial(found || matOrId);
+    if (typeof matOrId === 'object') {
+      const targetId = matOrId.materialId || matOrId.id || matOrId.clipId;
+      const found = materials.find(
+        m => String(m.id) === String(targetId) || String(m.clipId) === String(targetId)
+      );
+      setPreviewMaterial(found ? { ...found, ...matOrId } : matOrId);
       return;
     }
     const found = materials.find(m => String(m.id) === String(matOrId) || String(m.clipId) === String(matOrId));
@@ -1094,11 +1097,17 @@ const AdPlanningTab = () => {
         onClose={() => setQuickModalBreak(null)}
       />
 
-      {/* VİDEO ÖNİZLEME / İZLEME MODALI */}
+      {/* REKLAM DETAY, TEKNİK KÜNYE (25/30/50 FPS & KARE) VE İLERİ-GERİ SARILABİLİR VİDEO ÖNİZLEME MODALI (ⓘ) */}
       {previewMaterial && (
-        <AdVideoPlayer
+        <AdMaterialDetailModal
           material={previewMaterial}
           onClose={() => setPreviewMaterial(null)}
+          companies={companies}
+          products={products}
+          materials={materials}
+          reservations={reservations}
+          adPlacements={adPlacements}
+          selectedDayInfo={selectedDayInfo}
         />
       )}
     </div>

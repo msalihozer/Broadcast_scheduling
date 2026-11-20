@@ -17,6 +17,8 @@ import NodeCache from 'node-cache';
 import { spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
+import crypto from 'crypto';
 import {
     syncAllClipsMetadataFromMssql,
     syncDeltaUpdatesFromMam,
@@ -56,8 +58,39 @@ const MAM_SMB_USER = process.env.MAM_SMB_USER || '';
 const MAM_SMB_PASSWORD = process.env.MAM_SMB_PASSWORD || '';
 const MAM_SMB_SHARE_HIGHRES = process.env.MAM_SMB_SHARE_HIGHRES || 'media_highres';
 const MAM_SMB_SHARE_ARCHIVE = process.env.MAM_SMB_SHARE_ARCHIVE || 'media_archive';
-const MAM_HIGHRES_ROOT = process.env.MAM_HIGHRES_PATH || (IS_WINDOWS ? `\\\\${MAM_SMB_HOST}\\${MAM_SMB_SHARE_HIGHRES}` : '/mnt/media_highres');
-const YAYIN_ARSIV_ROOT = process.env.YAYIN_ARSIV_PATH || (IS_WINDOWS ? `\\\\${MAM_SMB_HOST}\\${MAM_SMB_SHARE_ARCHIVE}` : '/mnt/media_archive');
+
+function resolveEffectiveMediaRoot(envPath, winUncPath, linuxCandidates = []) {
+    if (IS_WINDOWS) {
+        if (envPath && !envPath.startsWith('/')) return envPath;
+        return winUncPath;
+    }
+    const candidates = [envPath, ...linuxCandidates].filter(Boolean);
+    for (const c of candidates) {
+        try {
+            if (fs.existsSync(c)) {
+                const items = fs.readdirSync(c);
+                if (items && items.length > 0) return c;
+            }
+        } catch (_) {}
+    }
+    for (const c of candidates) {
+        try {
+            if (fs.existsSync(c)) return c;
+        } catch (_) {}
+    }
+    return envPath || linuxCandidates[0] || '/mnt/tv_mam/HighRes';
+}
+
+let MAM_HIGHRES_ROOT = resolveEffectiveMediaRoot(
+    process.env.MAM_HIGHRES_PATH,
+    `\\\\${MAM_SMB_HOST}\\${MAM_SMB_SHARE_HIGHRES}`,
+    ['/mnt/tv_mam/HighRes', '/mnt/media_highres', '/mnt/tv_mam']
+);
+let YAYIN_ARSIV_ROOT = resolveEffectiveMediaRoot(
+    process.env.YAYIN_ARSIV_PATH,
+    `\\\\${MAM_SMB_HOST}\\${MAM_SMB_SHARE_ARCHIVE}`,
+    ['/mnt/tv_yayin_arsiv', '/mnt/media_archive']
+);
 
 /**
  * Ortak alan SMB kimlik doğrulamasını (.env üzerindeki bilgilerle) başlatır.
@@ -137,12 +170,39 @@ function rebuildFastFileLookupMaps() {
     arsivByStemMap = newArsivMap;
 }
 
+// Başlangıçta diskteki önbelleği (backend_cache.json) anında senkron yükle ki ağ taraması sürerken stream bekletmesin
+try {
+    if (fs.existsSync(CACHE_FILE)) {
+        const initialSaved = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf-8'));
+        tvMamCache = initialSaved.tvMamCache || [];
+        tvYayinArsivCache = initialSaved.tvYayinArsivCache || [];
+        rebuildFastFileLookupMaps();
+        console.log(`[CACHE INIT] Önbellek yüklendi -> HighRes: ${tvMamCache.length} (${MAM_HIGHRES_ROOT}), Archive: ${tvYayinArsivCache.length} (${YAYIN_ARSIV_ROOT})`);
+    }
+} catch (_) {}
+
 async function buildFileCaches() {
     try {
         await ensureSmbAuthenticated();
+        MAM_HIGHRES_ROOT = resolveEffectiveMediaRoot(
+            process.env.MAM_HIGHRES_PATH,
+            `\\\\${MAM_SMB_HOST}\\${MAM_SMB_SHARE_HIGHRES}`,
+            ['/mnt/tv_mam/HighRes', '/mnt/media_highres', '/mnt/tv_mam']
+        );
+        YAYIN_ARSIV_ROOT = resolveEffectiveMediaRoot(
+            process.env.YAYIN_ARSIV_PATH,
+            `\\\\${MAM_SMB_HOST}\\${MAM_SMB_SHARE_ARCHIVE}`,
+            ['/mnt/tv_yayin_arsiv', '/mnt/media_archive']
+        );
+
         let savedCache = null;
         if (fs.existsSync(CACHE_FILE)) {
             savedCache = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf-8'));
+            if (tvMamCache.length === 0 && tvYayinArsivCache.length === 0) {
+                tvMamCache = savedCache.tvMamCache || [];
+                tvYayinArsivCache = savedCache.tvYayinArsivCache || [];
+                rebuildFastFileLookupMaps();
+            }
         }
 
         const mamPath = MAM_HIGHRES_ROOT;
@@ -578,6 +638,16 @@ function lookupCachedVideoPath(candidates = []) {
         if (base && mamByStemMap.has(base)) return mamByStemMap.get(base);
         if (stem && arsivByStemMap.has(stem)) return arsivByStemMap.get(stem);
         if (base && arsivByStemMap.has(base)) return arsivByStemMap.get(base);
+
+        // Doğrudan kök dizinlerde dosya var mı kontrol et (önbellek taraması bitmemiş olsa bile bulur)
+        const directNames = base.includes('.') ? [base, String(raw).trim().split(/[\\/]/).pop()] : [`${stem}.mxf`, `${stem}.MXF`, `${stem}.mp4`, `${stem}.MP4`];
+        for (const dName of directNames) {
+            if (!dName) continue;
+            const p1 = resolveOsMediaPath(MAM_HIGHRES_ROOT, dName);
+            if (fs.existsSync(p1)) return p1;
+            const p2 = resolveOsMediaPath(YAYIN_ARSIV_ROOT, dName);
+            if (fs.existsSync(p2)) return p2;
+        }
     }
     return null;
 }
@@ -587,41 +657,84 @@ function isSafeReachableUncPath(p) {
     return MEDIA_EXT_REGEX.test(p);
 }
 
-// Stream endpoint'i: ffmpeg ile mxf dosyasını mp4'e (yuv420p H.264) anlık dönüştürüp gönderir
-app.get('/api/stream', async (req, res) => {
-    const { id, fileName, clipName, code, publicAddress } = req.query;
-
-    if (cacheReadyPromise) await cacheReadyPromise;
+async function resolveFinalVideoAndDbRecord({ id, fileName, clipName, code, publicAddress }) {
+    if (mamByStemMap.size === 0 && arsivByStemMap.size === 0 && cacheReadyPromise) {
+        await Promise.race([
+            cacheReadyPromise,
+            new Promise(resolve => setTimeout(resolve, 2500))
+        ]);
+    }
 
     const cleanNumericId = id ? String(id).replace(/\D+/g, '') : '';
     let finalVideoPath = lookupCachedVideoPath([cleanNumericId, id, code, fileName, clipName]);
+    let dbRecord = null;
 
     const normalizedPublicAddr = normalizeUncPathForCurrentOs(publicAddress);
     if (!finalVideoPath && isSafeReachableUncPath(normalizedPublicAddr) && fs.existsSync(normalizedPublicAddr)) {
         finalVideoPath = normalizedPublicAddr;
     }
 
-    if (!finalVideoPath && cleanNumericId) {
+    // 1. PostgreSQL archive_clips kontrolü
+    if (cleanNumericId && isPostgresReady()) {
+        try {
+            const pgRes = await pgQuery(`
+                SELECT file_id as "fileId", name, file_name as "fileName", duration_sec as "durationSec", file_create_time as "fileCreateTime"
+                FROM archive_clips
+                WHERE file_id = $1
+                LIMIT 1
+            `, [parseInt(cleanNumericId, 10)]);
+            const pgRow = pgRes.rows?.[0];
+            if (pgRow) {
+                dbRecord = {
+                    fileId: pgRow.fileId,
+                    name: pgRow.name,
+                    fileName: pgRow.fileName,
+                    durationMs: (Number(pgRow.durationSec) || 0) * 1000,
+                    fileCreateTime: pgRow.fileCreateTime
+                };
+                if (!finalVideoPath) {
+                    finalVideoPath = lookupCachedVideoPath([pgRow.fileName, pgRow.name]);
+                }
+            }
+        } catch (_) {}
+    }
+
+    // 2. MSSQL Files kontrolü
+    if (cleanNumericId && (!finalVideoPath || !dbRecord)) {
         try {
             const pool = await poolPromise;
             if (pool) {
                 const dbRes = await pool.request()
                     .input('fileId', sql.Int, parseInt(cleanNumericId, 10))
                     .query(`
-                        SELECT TOP 1 name, fileName, publicFileAddress
+                        SELECT TOP 1 fileId, name, fileName, extension, duration, fileCreateTime, publicFileAddress, fileServerPath, trimIn, trimOut
                         FROM Files
                         WHERE fileId = @fileId
                     `);
                 const row = dbRes.recordset?.[0];
                 if (row) {
-                    const rowAddr = normalizeUncPathForCurrentOs(row.publicFileAddress);
-                    finalVideoPath = lookupCachedVideoPath([
-                        row.fileName,
-                        row.name,
-                        rowAddr
-                    ]);
-                    if (!finalVideoPath && isSafeReachableUncPath(rowAddr) && fs.existsSync(rowAddr)) {
-                        finalVideoPath = rowAddr;
+                    dbRecord = {
+                        fileId: row.fileId,
+                        name: row.name,
+                        fileName: row.fileName,
+                        extension: row.extension,
+                        durationMs: Number(row.duration) || dbRecord?.durationMs || 0,
+                        fileCreateTime: row.fileCreateTime || dbRecord?.fileCreateTime,
+                        publicFileAddress: row.publicFileAddress,
+                        fileServerPath: row.fileServerPath,
+                        trimIn: row.trimIn,
+                        trimOut: row.trimOut
+                    };
+                    if (!finalVideoPath) {
+                        const rowAddr = normalizeUncPathForCurrentOs(row.publicFileAddress);
+                        finalVideoPath = lookupCachedVideoPath([
+                            row.fileName,
+                            row.name,
+                            rowAddr
+                        ]);
+                        if (!finalVideoPath && isSafeReachableUncPath(rowAddr) && fs.existsSync(rowAddr)) {
+                            finalVideoPath = rowAddr;
+                        }
                     }
                 }
             }
@@ -630,9 +743,9 @@ app.get('/api/stream', async (req, res) => {
         }
     }
 
+    // 3. Kısmi isim eşleşmesi (son çare)
     if (!finalVideoPath) {
-        // Kısmi isim eşleşmesi (son çare)
-        const searchTerms = [code, fileName, clipName]
+        const searchTerms = [code, fileName, clipName, dbRecord?.fileName, dbRecord?.name]
             .filter(Boolean)
             .map(s => String(s).trim().toLowerCase().replace(/\.[^.]+$/, ''))
             .filter(s => s.length >= 4);
@@ -651,19 +764,325 @@ app.get('/api/stream', async (req, res) => {
         }
     }
 
-    if (!finalVideoPath || !fs.existsSync(finalVideoPath)) {
-        return res.status(404).json({ error: 'Video dosyası arşiv sunucusunda bulunamadı', id, fileName });
+    const exists = Boolean(finalVideoPath && fs.existsSync(finalVideoPath));
+    return {
+        finalVideoPath: exists ? finalVideoPath : null,
+        dbRecord
+    };
+}
+
+function parseFrameRateString(rateStr) {
+    if (!rateStr || typeof rateStr !== 'string') return 25;
+    if (rateStr.includes('/')) {
+        const [num, den] = rateStr.split('/').map(Number);
+        if (num > 0 && den > 0) {
+            const raw = num / den;
+            if (Math.abs(raw - 25) < 0.5) return 25;
+            if (Math.abs(raw - 50) < 0.5) return 50;
+            if (Math.abs(raw - 30) < 0.6) return Number(raw.toFixed(2));
+            if (Math.abs(raw - 24) < 0.5) return Number(raw.toFixed(2));
+            if (Math.abs(raw - 60) < 0.6) return Number(raw.toFixed(2));
+            return Number(raw.toFixed(2));
+        }
+    }
+    const parsed = parseFloat(rateStr);
+    return parsed > 0 ? Number(parsed.toFixed(2)) : 25;
+}
+
+function formatSmpteTimecode(durationMs, fps = 25) {
+    const safeFps = Math.round(Number(fps) || 25);
+    const totalSecFloat = Math.max(0, (Number(durationMs) || 0) / 1000);
+    const totalFrames = Math.round(totalSecFloat * safeFps);
+    const frames = totalFrames % safeFps;
+    const totalWholeSeconds = Math.floor(totalFrames / safeFps);
+    const secs = totalWholeSeconds % 60;
+    const mins = Math.floor(totalWholeSeconds / 60) % 60;
+    const hours = Math.floor(totalWholeSeconds / 3600);
+    const pad = (n) => String(n).padStart(2, '0');
+    return {
+        timecode: `${pad(hours)}:${pad(mins)}:${pad(secs)}:${pad(frames)}`,
+        totalFrames,
+        wholeSeconds: totalWholeSeconds,
+        extraFrames: frames
+    };
+}
+
+function probeMediaFileWithFfprobe(filePath) {
+    return new Promise((resolve) => {
+        if (!filePath) return resolve(null);
+        const cacheKey = `ffprobe_${filePath}`;
+        if (cache.has(cacheKey)) return resolve(cache.get(cacheKey));
+
+        const proc = spawn('ffprobe', [
+            '-v', 'quiet',
+            '-print_format', 'json',
+            '-show_format',
+            '-show_streams',
+            filePath
+        ]);
+        let stdout = '';
+        const timer = setTimeout(() => {
+            try { proc.kill('SIGKILL'); } catch (_) {}
+            resolve(null);
+        }, 6000);
+
+        proc.stdout.on('data', d => { stdout += d.toString(); });
+        proc.on('error', () => {
+            clearTimeout(timer);
+            resolve(null);
+        });
+        proc.on('close', () => {
+            clearTimeout(timer);
+            try {
+                const parsed = JSON.parse(stdout);
+                cache.set(cacheKey, parsed, 600);
+                resolve(parsed);
+            } catch (_) {
+                resolve(null);
+            }
+        });
+    });
+}
+
+// Medya Teknik Künye & Frame / FPS (25, 30, 50 Kare) Analiz Uç Noktası
+app.get('/api/media-info', async (req, res) => {
+    try {
+        const { id, fileName, clipName, code, publicAddress, durationMs: queryDurationMs } = req.query;
+        const { finalVideoPath, dbRecord } = await resolveFinalVideoAndDbRecord({ id, fileName, clipName, code, publicAddress });
+
+        let probeData = null;
+        if (finalVideoPath) {
+            probeData = await probeMediaFileWithFfprobe(finalVideoPath);
+        }
+
+        const streams = Array.isArray(probeData?.streams) ? probeData.streams : [];
+        const videoStream = streams.find(s => s.codec_type === 'video') || null;
+        const audioStream = streams.find(s => s.codec_type === 'audio') || null;
+        const formatObj = probeData?.format || {};
+
+        const fps = videoStream
+            ? parseFrameRateString(videoStream.avg_frame_rate && videoStream.avg_frame_rate !== '0/0' ? videoStream.avg_frame_rate : videoStream.r_frame_rate)
+            : 25;
+
+        const probeDurationSec = parseFloat(formatObj.duration || videoStream?.duration || '0');
+        let durationMs = 0;
+        if (probeDurationSec > 0) {
+            durationMs = Math.round(probeDurationSec * 1000);
+        } else if (dbRecord?.durationMs > 0) {
+            durationMs = Math.round(dbRecord.durationMs);
+        } else if (Number(queryDurationMs) > 0) {
+            const qNum = Number(queryDurationMs);
+            durationMs = qNum > 600 ? Math.round(qNum) : Math.round(qNum * 1000);
+        }
+
+        const durationSecExact = Number((durationMs / 1000).toFixed(3));
+        const tcMain = formatSmpteTimecode(durationMs, fps);
+        const nbFramesFromStream = parseInt(videoStream?.nb_frames, 10);
+        const totalFrames = nbFramesFromStream > 0 ? nbFramesFromStream : tcMain.totalFrames;
+
+        const tc25 = formatSmpteTimecode(durationMs, 25);
+        const tc30 = formatSmpteTimecode(durationMs, 30);
+        const tc50 = formatSmpteTimecode(durationMs, 50);
+
+        const roundedFps = Math.round(fps);
+        const fpsStandardLabel =
+            roundedFps === 25
+                ? '25 Kare/sn (25 FPS • PAL TV Yayın Standardı)'
+                : roundedFps === 50
+                ? '50 Kare/sn (50 FPS • PAL Progressive)'
+                : roundedFps === 30
+                ? `${fps} Kare/sn (30 FPS • NTSC)`
+                : `${fps} Kare/sn (${fps} FPS)`;
+
+        res.json({
+            success: true,
+            fileFoundOnServer: Boolean(finalVideoPath),
+            probedLive: Boolean(probeData && videoStream),
+            filePath: finalVideoPath ? path.basename(finalVideoPath) : (code || fileName || dbRecord?.fileName || null),
+            fps,
+            roundedFps,
+            fpsStandardLabel,
+            durationMs,
+            durationSecExact,
+            wholeSeconds: tcMain.wholeSeconds,
+            extraFrames: tcMain.extraFrames,
+            totalFrames,
+            timecode: tcMain.timecode,
+            fpsEquivalents: {
+                fps25: { fps: 25, totalFrames: tc25.totalFrames, wholeSeconds: tc25.wholeSeconds, extraFrames: tc25.extraFrames, timecode: tc25.timecode },
+                fps30: { fps: 30, totalFrames: tc30.totalFrames, wholeSeconds: tc30.wholeSeconds, extraFrames: tc30.extraFrames, timecode: tc30.timecode },
+                fps50: { fps: 50, totalFrames: tc50.totalFrames, wholeSeconds: tc50.wholeSeconds, extraFrames: tc50.extraFrames, timecode: tc50.timecode }
+            },
+            video: {
+                width: videoStream?.width || 1920,
+                height: videoStream?.height || 1080,
+                resolution: videoStream?.width && videoStream?.height ? `${videoStream.width}x${videoStream.height}` : '1920x1080 (Full HD)',
+                aspectRatio: videoStream?.display_aspect_ratio || '16:9',
+                codec: (videoStream?.codec_name || 'mxf / mpeg2video').toUpperCase(),
+                pixFmt: videoStream?.pix_fmt || 'yuv422p',
+                fieldOrder: videoStream?.field_order || 'tt',
+                bitRateKbps: Math.round((parseInt(formatObj.bit_rate || videoStream?.bit_rate || '0', 10) || 0) / 1000) || null
+            },
+            audio: {
+                codec: audioStream ? (audioStream.codec_name || 'pcm_s16le').toUpperCase() : 'PCM / AAC',
+                sampleRate: audioStream?.sample_rate ? `${audioStream.sample_rate} Hz` : '48000 Hz',
+                channels: audioStream?.channels || 2
+            },
+            dbRecord
+        });
+    } catch (err) {
+        console.error('[MEDIA INFO ERROR]:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+const STREAM_CACHE_DIR = path.join(os.tmpdir(), 'yayin_video_stream_cache');
+try {
+    if (!fs.existsSync(STREAM_CACHE_DIR)) {
+        fs.mkdirSync(STREAM_CACHE_DIR, { recursive: true });
+    }
+} catch (_) {}
+
+const activeTranscodeMap = new Map();
+
+function ensureSeekableMp4Transcoded(sourcePath) {
+    let statKey = sourcePath;
+    try {
+        const st = fs.statSync(sourcePath);
+        statKey = `${sourcePath}_${st.size}_${st.mtimeMs}`;
+    } catch (_) {}
+
+    const hash = crypto.createHash('md5').update(statKey).digest('hex');
+    const cachedMp4Path = path.join(STREAM_CACHE_DIR, `${hash}.mp4`);
+
+    try {
+        if (fs.existsSync(cachedMp4Path) && fs.statSync(cachedMp4Path).size > 2048) {
+            return Promise.resolve(cachedMp4Path);
+        }
+    } catch (_) {}
+
+    if (activeTranscodeMap.has(cachedMp4Path)) {
+        return activeTranscodeMap.get(cachedMp4Path);
     }
 
+    const tempOutPath = `${cachedMp4Path}.tmp.${process.pid}.mp4`;
+    const promise = new Promise((resolve, reject) => {
+        const ff = spawn('ffmpeg', [
+            '-hide_banner',
+            '-loglevel', 'error',
+            '-y',
+            '-i', sourcePath,
+            '-map', '0:v:0',
+            '-map', '0:a:0?',
+            '-c:v', 'libx264',
+            '-pix_fmt', 'yuv420p',
+            '-profile:v', 'baseline',
+            '-level', '3.1',
+            '-preset', 'ultrafast',
+            '-crf', '24',
+            '-vf', 'scale=640:-2',
+            '-g', '25',
+            '-c:a', 'aac',
+            '-ac', '2',
+            '-b:a', '128k',
+            '-movflags', '+faststart',
+            tempOutPath
+        ]);
+
+        ff.on('error', (err) => {
+            try { if (fs.existsSync(tempOutPath)) fs.unlinkSync(tempOutPath); } catch (_) {}
+            reject(err);
+        });
+
+        ff.on('close', (exitCode) => {
+            try {
+                if (exitCode === 0 && fs.existsSync(tempOutPath) && fs.statSync(tempOutPath).size > 1024) {
+                    fs.renameSync(tempOutPath, cachedMp4Path);
+                    resolve(cachedMp4Path);
+                } else {
+                    if (fs.existsSync(tempOutPath)) fs.unlinkSync(tempOutPath);
+                    reject(new Error(`FFmpeg exited with code ${exitCode}`));
+                }
+            } catch (e) {
+                reject(e);
+            }
+        });
+    }).finally(() => {
+        activeTranscodeMap.delete(cachedMp4Path);
+    });
+
+    activeTranscodeMap.set(cachedMp4Path, promise);
+    return promise;
+}
+
+function serveMp4WithByteRanges(req, res, mp4FilePath) {
+    const stat = fs.statSync(mp4FilePath);
+    const fileSize = stat.size;
+    const range = req.headers.range;
+
+    res.setHeader('Accept-Ranges', 'bytes');
+    res.setHeader('Content-Type', 'video/mp4');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+
+    if (range) {
+        const parts = range.replace(/bytes=/, '').split('-');
+        const start = parseInt(parts[0], 10) || 0;
+        const end = parts[1] ? Math.min(parseInt(parts[1], 10), fileSize - 1) : fileSize - 1;
+
+        if (start >= fileSize || start > end) {
+            res.status(416).setHeader('Content-Range', `bytes */${fileSize}`);
+            return res.end();
+        }
+
+        const chunkSize = (end - start) + 1;
+        res.status(206);
+        res.setHeader('Content-Range', `bytes ${start}-${end}/${fileSize}`);
+        res.setHeader('Content-Length', chunkSize);
+        const stream = fs.createReadStream(mp4FilePath, { start, end });
+        stream.on('error', () => res.end());
+        stream.pipe(res);
+    } else {
+        res.status(200);
+        res.setHeader('Content-Length', fileSize);
+        const stream = fs.createReadStream(mp4FilePath);
+        stream.on('error', () => res.end());
+        stream.pipe(res);
+    }
+}
+
+// Stream endpoint'i: İleri-Geri Sarılabilir (HTTP 206 Byte-Range destekli) H.264 MP4 Video Akışı
+app.get('/api/stream', async (req, res) => {
+    const { id, fileName, clipName, code, publicAddress, start } = req.query;
+    const { finalVideoPath } = await resolveFinalVideoAndDbRecord({ id, fileName, clipName, code, publicAddress });
+
+    if (!finalVideoPath) {
+        return res.status(404).json({ error: 'Video dosyası arşiv sunucusunda bulunamadı', id, fileName, code });
+    }
+
+    // 1. Eğer dosya zaten doğrudan .mp4 ise veya boyutu <= 350 MB ise (tüm reklamlar ve standart klipler),
+    // önbellekteki seekable MP4 üzerinden HTTP 206 Byte-Range ile ileri-geri sarılabilir olarak sun!
+    try {
+        const sourceStat = fs.statSync(finalVideoPath);
+        const isSmallOrMediumClip = sourceStat.size <= 350 * 1024 * 1024;
+        if (isSmallOrMediumClip && !start) {
+            const seekableMp4 = await ensureSeekableMp4Transcoded(finalVideoPath);
+            return serveMp4WithByteRanges(req, res, seekableMp4);
+        }
+    } catch (transcodeErr) {
+        console.warn('[STREAM SEEKABLE CACHE FALLBACK]:', transcodeErr.message);
+    }
+
+    // 2. Çok büyük dosyalar (>350 MB) veya anlık pipe fallback için canlı FFmpeg akışı (-ss start destekli)
     res.setHeader('Content-Type', 'video/mp4');
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('Accept-Ranges', 'none');
 
-    console.log(`[STREAM] FFmpeg başlatılıyor (yuv420p): ${finalVideoPath}`);
-
-    const ffmpeg = spawn('ffmpeg', [
-        '-hide_banner',
-        '-loglevel', 'error',
+    const ffArgs = ['-hide_banner', '-loglevel', 'error'];
+    const startSec = parseFloat(start || '0');
+    if (startSec > 0) {
+        ffArgs.push('-ss', String(startSec));
+    }
+    ffArgs.push(
         '-i', finalVideoPath,
         '-map', '0:v:0',
         '-map', '0:a:0?',
@@ -682,17 +1101,14 @@ app.get('/api/stream', async (req, res) => {
         '-ac', '2',
         '-b:a', '128k',
         'pipe:1'
-    ]);
+    );
 
+    const ffmpeg = spawn('ffmpeg', ffArgs);
     ffmpeg.stdout.pipe(res);
 
     ffmpeg.stderr.on('data', (data) => {
         const msg = data.toString().trim();
         if (msg) console.warn(`[FFMPEG WARN]: ${msg}`);
-    });
-
-    ffmpeg.on('close', (code) => {
-        console.log(`[STREAM] FFmpeg tamamlandı. Kod: ${code}`);
     });
 
     req.on('close', () => {
