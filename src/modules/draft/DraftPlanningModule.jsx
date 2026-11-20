@@ -147,10 +147,28 @@ const DraftPlanningModule = () => {
     setIsSendModalOpen(true);
   }, []);
 
+  // Raporları ayrı pencerede (/draft-reports) aç; tarayıcı popup engellerse modal olarak aç
+  const handleOpenReportsWindow = useCallback(() => {
+    try {
+      const weekParam = allDaysKeys?.[0] || '';
+      const url = `/draft-reports?channel=${encodeURIComponent(selectedChannel)}&week=${encodeURIComponent(weekParam)}`;
+      const win = window.open(
+        url,
+        'TaslakRaporlarPenceresi',
+        'width=1540,height=940,menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes'
+      );
+      if (win) {
+        win.focus();
+        return;
+      }
+    } catch (e) {}
+    setIsReportsOpen(true);
+  }, [selectedChannel, allDaysKeys]);
+
   // Üst Header (TopNavbar) içindeki Kısayollar ve Raporlar butonlarını dinle
   useEffect(() => {
     const onOpenShortcutsEvent = () => setIsShortcutsOpen(true);
-    const onOpenReportsEvent = () => setIsReportsOpen(true);
+    const onOpenReportsEvent = () => handleOpenReportsWindow();
     const onToggleLibraryEvent = () => setIsLibraryOpen(prev => !prev);
     window.addEventListener('draft:open-shortcuts', onOpenShortcutsEvent);
     window.addEventListener('draft:open-reports', onOpenReportsEvent);
@@ -160,7 +178,7 @@ const DraftPlanningModule = () => {
       window.removeEventListener('draft:open-reports', onOpenReportsEvent);
       window.removeEventListener('draft:toggle-library', onToggleLibraryEvent);
     };
-  }, []);
+  }, [handleOpenReportsWindow]);
 
   // 4. Excel İçe Aktarma Yönetimi (Hook)
   const {
@@ -386,7 +404,7 @@ const DraftPlanningModule = () => {
           isLibraryOpen={isLibraryOpen}
           onToggleLibrary={() => setIsLibraryOpen(prev => !prev)}
           onOpenSendModal={() => handleOpenSendModal(selectedDayKey !== 'all' ? selectedDayKey : null, null)}
-          onOpenReports={() => setIsReportsOpen(true)}
+          onOpenReports={handleOpenReportsWindow}
         />
 
         <DraftDayFilter
@@ -603,8 +621,11 @@ const DraftPlanningModule = () => {
         scheduleData={scheduleData}
         allChannelSchedule={schedulesByChannel?.[selectedChannel] || scheduleData}
         selectedChannel={selectedChannel}
+        onSelectChannel={setSelectedChannel}
+        channels={channels}
         currentChannel={currentChannel}
         dateRangeLabel={dateRangeLabel}
+        activeWeekDates={allDaysKeys}
       />
 
       {/* 9. KAYDETME & BİLGİLENDİRME TOAST BİLDİRİMİ */}

@@ -19,6 +19,7 @@ import ModuleSelection from './pages/ModuleSelection';
 import AdsReservation from './pages/AdsReservation';
 import AdminPanel from './pages/AdminPanel';
 import DraftPreviewPopout from './pages/DraftPreviewPopout';
+import DraftReportsPopout from './pages/DraftReportsPopout';
 import ListControlLayout from './components/Layout/ListControlLayout';
 import usePlanningStore from './store/planningStore';
 import useAuthStore from './store/authStore';
@@ -208,6 +209,7 @@ function App() {
           <Route path="/login" element={session ? <Navigate to="/" /> : <Login />} />
           <Route path="/library-popout" element={session ? <LibraryPopout /> : <Navigate to="/login" />} />
           <Route path="/draft-preview" element={session ? <DraftPreviewPopout /> : <Navigate to="/login" />} />
+          <Route path="/draft-reports" element={session ? <DraftReportsPopout /> : <Navigate to="/login" />} />
           <Route path="/" element={session ? <ModuleSelection /> : <Navigate to="/login" />} />
           <Route path="/draft" element={session ? <ModeWrapper mode="draft"><DraftLayout /></ModeWrapper> : <Navigate to="/login" />} />
           <Route path="/ready" element={session ? <BroadcastPlanningLayout /> : <Navigate to="/login" />} />

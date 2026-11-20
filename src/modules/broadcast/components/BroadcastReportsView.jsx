@@ -3,30 +3,25 @@
  * @description Yayın Planlama (Yayına Hazır) Modülü İçin Özel Detaylı Raporlar Sayfası.
  *
  * Kapsam:
- * 1. Hangi Program / Klip Hangi Gün Kaç Defa, Haftalık / Aylık / Yıllık Yayınlanma Sayıları ve Kaç Saat Yayınlandığı.
- * 2. Kategori Bazlı Yayın Dağılımı (Hangi kategoride kaç program, kaç defa ve kaç saat yayınlandı).
- * 3. Taslak Dışında Yayın Planlamada Eklenen Programlar ve Taslak-Yayın Fark Analizi.
- * 4. Reklam Rezervasyona İletilen Liste vs Reklam Rezervasyondan Sonra (Spotlar Yerleştirilmiş Yayına Gidecek Final Liste) Karşılaştırma Raporu.
- * 5. Tüm raporlar için Kurumsal PDF (Sunum), Excel (.xls) ve CSV (.csv) çıktısı.
+ * 1. Program Bazlı Günlük, Haftalık, Aylık ve Yıllık Yayınlanma Sayıları ve Kaç Saat Yayınlandığı.
+ * 2. Tarih Aralığı Seçimi (Başlangıç - Bitiş Tarihi) ve Program Bazlı Filtreleme + Seçili Program Karnesi.
+ * 3. Kategori Bazlı Yayın Dağılımı (Hangi kategoride kaç program, kaç defa ve kaç saat yayınlandı).
+ * 4. Taslak Dışında Yayın Planlamada Eklenen Programlar ve Taslak-Yayın Fark Analizi.
+ * 5. Reklam Rezervasyona İletilen Liste vs Reklam Rezervasyondan Sonra (Spotlar Yerleştirilmiş Yayına Gidecek Final Liste) Karşılaştırma Raporu.
+ * 6. Tüm raporlar ve filtreler için Kurumsal PDF (Sunum), Excel (.xls) ve CSV (.csv) çıktısı.
  */
 import React, { useMemo, useState } from 'react';
 import {
   BarChart3,
   Calendar,
-  Clock,
-  Tv,
-  Film,
-  Megaphone,
-  Sparkles,
   FileText,
   FileSpreadsheet,
   Download,
-  GitCompare,
-  PlusCircle,
-  CheckCircle2,
   Search,
-  Layers,
-  Radio
+  Filter,
+  RotateCcw,
+  Eye,
+  X
 } from 'lucide-react';
 import useBroadcastStore, { BROADCAST_CHANNELS } from '../store/broadcastStore';
 import usePlanningStore from '../../../store/planningStore';
@@ -38,6 +33,8 @@ import {
   formatSecondsToHoursMin,
   getDatePeriodBuckets
 } from '../../../utils/reportExportUtils';
+
+const TR_DAY_ORDER = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
 
 const normalizeTitleKey = (str = '') =>
   String(str || '')
@@ -74,16 +71,20 @@ const BroadcastReportsView = () => {
     days: readyDays = {},
     adPlacements = {},
     companies = [],
-    products = [],
     materials = []
   } = usePlanningStore();
 
-  // 'programs' | 'periods' | 'categories' | 'ads_comparison' | 'draft_added'
+  // 'programs' | 'ads_comparison' | 'periods' | 'categories' | 'draft_added'
   const [activeTab, setActiveTab] = useState('programs');
   // 'all' | 'month' | 'week' | 'day'
   const [periodFilter, setPeriodFilter] = useState('all');
+  const [startDateFilter, setStartDateFilter] = useState('');
+  const [endDateFilter, setEndDateFilter] = useState('');
+  const [selectedProgramFilter, setSelectedProgramFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [selectedDayNameFilter, setSelectedDayNameFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [expandedProgramKey, setExpandedProgramKey] = useState(null);
 
   const currentChannelObj =
     BROADCAST_CHANNELS.find(c => c.id === selectedChannel) || BROADCAST_CHANNELS[0];
@@ -94,7 +95,6 @@ const BroadcastReportsView = () => {
     const draftScheduleForChannel = getChannelDraftScheduleMap(selectedChannel) || {};
     const prefix = `${selectedChannel}-`;
 
-    // Seçili kanala ait tüm günleri topla (hem broadcastStore hem de planningStore.days ready-* birleşimi)
     const allDateSet = new Set();
     Object.keys(broadcastDays || {}).forEach(k => {
       if (k.startsWith(prefix)) {
@@ -132,19 +132,24 @@ const BroadcastReportsView = () => {
       yearly: {}
     };
 
-    // Reklam Rezervasyona İletilen Liste vs Reklam Rezervasyondan Sonra (Yayına Gidecek Final Liste)
     const preVsPostAdsByDay = [];
     const postAdsBreakDetails = [];
-    // Taslak dışında Yayın Planlama'da eklenen programlar
     const addedOutsideDraftList = [];
 
     sortedDates.forEach(dateStr => {
       const pBuckets = getDatePeriodBuckets(dateStr);
 
-      // Dönem filtresi kontrolü
-      if (periodFilter === 'day' && dateStr !== selectedDate) return;
-      if (periodFilter === 'week' && pBuckets.weekKey !== selectedPeriodBuckets.weekKey) return;
-      if (periodFilter === 'month' && pBuckets.monthKey !== selectedPeriodBuckets.monthKey) return;
+      // Tarih aralığı filtresi varsa öncelikle onu uygula
+      if (startDateFilter && dateStr < startDateFilter) return;
+      if (endDateFilter && dateStr > endDateFilter) return;
+
+      if (!startDateFilter && !endDateFilter) {
+        if (periodFilter === 'day' && dateStr !== selectedDate) return;
+        if (periodFilter === 'week' && pBuckets.weekKey !== selectedPeriodBuckets.weekKey) return;
+        if (periodFilter === 'month' && pBuckets.monthKey !== selectedPeriodBuckets.monthKey) return;
+      }
+
+      if (selectedDayNameFilter !== 'all' && pBuckets.dayName !== selectedDayNameFilter) return;
 
       const bDay = broadcastDays[`${selectedChannel}-${dateStr}`];
       const rKey = `ready-${selectedChannel}-${dateStr}`;
@@ -157,13 +162,11 @@ const BroadcastReportsView = () => {
 
       if (effectiveProgs.length === 0 && dateStr !== selectedDate) return;
 
-      // Taslaktaki o günün program anahtarları
       const draftDayProgs = draftScheduleForChannel?.[dateStr]?.programs || [];
       const draftTitleKeys = new Set(
         draftDayProgs.map(dp => normalizeTitleKey(dp.customTitle || dp.title || '')).filter(Boolean)
       );
 
-      // Dönemsel kovalar
       if (!periodStats.weekly[pBuckets.weekKey]) {
         periodStats.weekly[pBuckets.weekKey] = {
           key: pBuckets.weekKey,
@@ -212,7 +215,7 @@ const BroadcastReportsView = () => {
       let dayAdBreakCount = 0;
       let dayPlannedAdBreakSec = 0;
 
-      effectiveProgs.forEach((prog, idx) => {
+      effectiveProgs.forEach(prog => {
         const isAd =
           prog.type === 'ad_break' ||
           String(prog.id || '').toUpperCase() === 'TPL-3' ||
@@ -269,13 +272,13 @@ const BroadcastReportsView = () => {
         periodStats.yearly[pBuckets.yearKey].programSec += durSec;
 
         const cleanTitle = extractCleanProgramTitle(prog);
+        const normKey = normalizeTitleKey(cleanTitle) || cleanTitle;
         const catName = isLive
           ? 'Canlı Yayın'
           : isFiller
           ? 'Dolgu Kuşağı'
           : prog.category || 'Genel Program';
 
-        // Kategori istatistiği
         if (!categoryStatsMap[catName]) {
           categoryStatsMap[catName] = {
             name: catName,
@@ -290,39 +293,62 @@ const BroadcastReportsView = () => {
         categoryStatsMap[catName].uniquePrograms.add(cleanTitle);
         categoryStatsMap[catName].daysSet.add(dateStr);
 
-        // Program istatistiği
-        if (!programStatsMap[cleanTitle]) {
-          programStatsMap[cleanTitle] = {
+        if (!programStatsMap[normKey]) {
+          programStatsMap[normKey] = {
+            key: normKey,
             title: cleanTitle,
             category: catName,
             isLive,
             isFromDraft: Boolean(prog.isFromDraft || prog.draftId),
             count: 0,
             seconds: 0,
-            dayOfWeekMap: {},
-            datesMap: {},
+            dayOfWeekMap: {}, // dayName -> { count, seconds }
+            daysMap: {}, // dateStr -> { dateKey, dayName, count, seconds, slots: [] }
             weeksMap: {},
             monthsMap: {},
             yearsMap: {},
             episodesSet: new Set()
           };
         }
-        const ps = programStatsMap[cleanTitle];
+        const ps = programStatsMap[normKey];
         ps.count += 1;
         ps.seconds += durSec;
-        ps.dayOfWeekMap[pBuckets.dayName] = (ps.dayOfWeekMap[pBuckets.dayName] || 0) + 1;
-        ps.datesMap[dateStr] = (ps.datesMap[dateStr] || 0) + 1;
+        if (isLive) ps.isLive = true;
+
+        if (!ps.dayOfWeekMap[pBuckets.dayName]) {
+          ps.dayOfWeekMap[pBuckets.dayName] = { count: 0, seconds: 0 };
+        }
+        ps.dayOfWeekMap[pBuckets.dayName].count += 1;
+        ps.dayOfWeekMap[pBuckets.dayName].seconds += durSec;
+
+        if (!ps.daysMap[dateStr]) {
+          ps.daysMap[dateStr] = {
+            dateKey: dateStr,
+            dayName: pBuckets.dayName,
+            count: 0,
+            seconds: 0,
+            slots: []
+          };
+        }
+        ps.daysMap[dateStr].count += 1;
+        ps.daysMap[dateStr].seconds += durSec;
+        ps.daysMap[dateStr].slots.push({
+          startTime: prog.startTime || prog.exactStartClock || '--:--',
+          endTime: prog.endTime || prog.exactEndClock || '--:--',
+          episode: prog.episodeNo || prog.episode || '',
+          clipName: prog.clipName || '',
+          seconds: durSec
+        });
+
         ps.weeksMap[pBuckets.weekKey] = (ps.weeksMap[pBuckets.weekKey] || 0) + 1;
         ps.monthsMap[pBuckets.monthKey] = (ps.monthsMap[pBuckets.monthKey] || 0) + 1;
         ps.yearsMap[pBuckets.yearKey] = (ps.yearsMap[pBuckets.yearKey] || 0) + 1;
         if (prog.episodeNo) ps.episodesSet.add(`Bölüm ${prog.episodeNo}`);
 
-        // Taslak dışında Yayın Planlama'da eklenen program kontrolü
-        const normProg = normalizeTitleKey(cleanTitle);
         const isNotInDraft =
           !prog.isFromDraft &&
           !prog.draftId &&
-          (draftTitleKeys.size === 0 || !draftTitleKeys.has(normProg));
+          (draftTitleKeys.size === 0 || !draftTitleKeys.has(normKey));
         if (isNotInDraft) {
           addedOutsideDraftList.push({
             date: dateStr,
@@ -337,7 +363,6 @@ const BroadcastReportsView = () => {
         }
       });
 
-      // Reklam Rezervasyondan Sonra Yerleşen Reklam Spotları (adPlacements[ready-channel-date])
       const dayAdBlocks = adPlacements[rKey] || [];
       let dayRealizedSpots = 0;
       let dayRealizedAdSec = 0;
@@ -387,7 +412,6 @@ const BroadcastReportsView = () => {
         null;
       const adsStatus = rDay?.adsStatus || (dayRealizedSpots > 0 ? 'planned' : 'pending');
 
-      // Reklam Rezervasyona İletilen ListeToplam Süresi vs Reklam Sonrası Final Yayın Süresi
       const preAdsTotalBroadcastSec = dayProgSec + dayPlannedAdBreakSec;
       const postAdsFinalBroadcastSec = dayProgSec + dayRealizedAdSec;
       const netBroadcastDeltaSec = postAdsFinalBroadcastSec - preAdsTotalBroadcastSec;
@@ -423,24 +447,61 @@ const BroadcastReportsView = () => {
 
     const programsList = Object.values(programStatsMap)
       .map(p => {
-        const dayBreakdown = Object.entries(p.dayOfWeekMap)
-          .map(([d, cnt]) => `${d}: ${cnt} kez`)
+        const sortedDaysOfWeek = Object.entries(p.dayOfWeekMap).sort(
+          ([a], [b]) => TR_DAY_ORDER.indexOf(a) - TR_DAY_ORDER.indexOf(b)
+        );
+        const dayBreakdown = sortedDaysOfWeek
+          .map(([d, obj]) => `${d}: ${obj.count} kez (${formatSecondsToHoursMin(obj.seconds)})`)
           .join(' • ');
+
+        const detailedDates = Object.values(p.daysMap).sort((a, b) => a.dateKey.localeCompare(b.dateKey));
+        const activeDaysCount = Math.max(1, detailedDates.length);
         const activeWeeks = Math.max(1, Object.keys(p.weeksMap).length);
+        const activeMonths = Math.max(1, Object.keys(p.monthsMap).length);
+        const activeYears = Math.max(1, Object.keys(p.yearsMap).length);
+
+        // 1. Günde Ne Kadar
+        const dailyAvgCount = Number((p.count / activeDaysCount).toFixed(1));
+        const dailyAvgSeconds = Math.round(p.seconds / activeDaysCount);
+        const dailyAvgHoursFormatted = formatSecondsToHoursMin(dailyAvgSeconds);
+        const singleBroadcastFormatted = formatSecondsToHoursMin(Math.round(p.seconds / Math.max(1, p.count)));
+
+        // 2. Haftada Ne Kadar
         const avgWeeklyCount = Number((p.count / activeWeeks).toFixed(1));
-        const estMonthlyCount = Math.round(avgWeeklyCount * 4.3);
+        const weeklyAvgSeconds = Math.round(p.seconds / activeWeeks);
+        const weeklyHoursFormatted = formatSecondsToHoursMin(weeklyAvgSeconds);
+
+        // 3. Ayda Ne Kadar
+        const monthlyRecordedCount = Number((p.count / activeMonths).toFixed(1));
+        const monthlyRecordedHours = formatSecondsToHoursMin(Math.round(p.seconds / activeMonths));
+        const estMonthlyCount = Math.round(avgWeeklyCount * 4.33);
+        const estMonthlyHours = formatSecondsToHoursMin(weeklyAvgSeconds * 4.33);
+
+        // 4. Yılda Ne Kadar
+        const yearlyRecordedCount = Number((p.count / activeYears).toFixed(1));
+        const yearlyRecordedHours = formatSecondsToHoursMin(Math.round(p.seconds / activeYears));
         const estYearlyCount = Math.round(avgWeeklyCount * 52);
-        const estMonthlyHours = formatSecondsToHoursMin((p.seconds / activeWeeks) * 4.3);
-        const estYearlyHours = formatSecondsToHoursMin((p.seconds / activeWeeks) * 52);
+        const estYearlyHours = formatSecondsToHoursMin(weeklyAvgSeconds * 52);
 
         return {
           ...p,
-          activeDaysCount: Object.keys(p.datesMap).length,
+          activeDaysCount: detailedDates.length,
+          sortedDaysOfWeek,
           dayBreakdown,
+          detailedDates,
+          dailyAvgCount,
+          dailyAvgHoursFormatted,
+          singleBroadcastFormatted,
+          activeWeeks,
           avgWeeklyCount,
+          weeklyHoursFormatted,
+          monthlyRecordedCount,
+          monthlyRecordedHours,
           estMonthlyCount,
-          estYearlyCount,
           estMonthlyHours,
+          yearlyRecordedCount,
+          yearlyRecordedHours,
+          estYearlyCount,
           estYearlyHours,
           hoursFormatted: formatSecondsToHoursMin(p.seconds),
           episodesList: Array.from(p.episodesSet)
@@ -480,6 +541,9 @@ const BroadcastReportsView = () => {
     selectedDate,
     activeList,
     periodFilter,
+    startDateFilter,
+    endDateFilter,
+    selectedDayNameFilter,
     selectedPeriodBuckets,
     materials,
     companies
@@ -487,6 +551,7 @@ const BroadcastReportsView = () => {
 
   const filteredPrograms = useMemo(() => {
     return reportData.programsList.filter(p => {
+      if (selectedProgramFilter !== 'all' && p.key !== selectedProgramFilter) return false;
       if (categoryFilter !== 'all' && p.category !== categoryFilter) return false;
       if (searchQuery.trim()) {
         const q = searchQuery.toLocaleLowerCase('tr-TR');
@@ -500,10 +565,22 @@ const BroadcastReportsView = () => {
       }
       return true;
     });
-  }, [reportData.programsList, categoryFilter, searchQuery]);
+  }, [reportData.programsList, selectedProgramFilter, categoryFilter, searchQuery]);
+
+  const focusedProgram = useMemo(() => {
+    if (selectedProgramFilter !== 'all') {
+      return reportData.programsList.find(p => p.key === selectedProgramFilter) || null;
+    }
+    if (expandedProgramKey) {
+      return reportData.programsList.find(p => p.key === expandedProgramKey) || null;
+    }
+    return null;
+  }, [selectedProgramFilter, expandedProgramKey, reportData.programsList]);
 
   const periodScopeLabel =
-    periodFilter === 'day'
+    startDateFilter || endDateFilter
+      ? `Tarih Aralığı: ${startDateFilter || 'Başlangıç'} — ${endDateFilter || 'Bitiş'}`
+      : periodFilter === 'day'
       ? `Seçili Gün (${selectedDate})`
       : periodFilter === 'week'
       ? `Seçili Hafta (${selectedPeriodBuckets.weekLabel})`
@@ -511,11 +588,118 @@ const BroadcastReportsView = () => {
       ? `Seçili Ay (${selectedPeriodBuckets.monthLabel})`
       : 'Tüm Kayıtlı Yayın Dönemleri (Haftalık / Aylık / Yıllık)';
 
+  const handleResetFilters = () => {
+    setStartDateFilter('');
+    setEndDateFilter('');
+    setSelectedProgramFilter('all');
+    setCategoryFilter('all');
+    setSelectedDayNameFilter('all');
+    setSearchQuery('');
+    setPeriodFilter('all');
+  };
+
   // EXCEL ÇIKTISI
   const handleExportExcel = () => {
+    const sections = [
+      {
+        title: '1. PROGRAM BAZLI GÜNLÜK, HAFTALIK, AYLIK VE YILLIK YAYINLANMA RAPORU',
+        headers: [
+          'Program Adı',
+          'Kategori',
+          'Seçili Dönem Toplam Yayın',
+          'Seçili Dönem Toplam Saat',
+          'Günde Ne Kadar (Günlük Adet & Süre)',
+          'Haftada Ne Kadar (Haftalık Adet & Süre)',
+          'Ayda Ne Kadar (Aylık Adet & Saat)',
+          'Yılda Ne Kadar (Yıllık Adet & Saat)',
+          'Hangi Gün Kaç Defa & Kaç Saat Yayınlandı'
+        ],
+        rows: filteredPrograms.map(p => [
+          p.title,
+          p.category,
+          `${p.count} Defa (${p.activeDaysCount} Gün)`,
+          p.hoursFormatted,
+          `Günde ${p.dailyAvgCount} Kez (${p.dailyAvgHoursFormatted}/gün)`,
+          `Haftada ${p.avgWeeklyCount} Kez (${p.weeklyHoursFormatted}/hafta)`,
+          `~${p.estMonthlyCount} Kez (${p.estMonthlyHours})`,
+          `~${p.estYearlyCount} Kez (${p.estYearlyHours})`,
+          p.dayBreakdown
+        ])
+      }
+    ];
+
+    if (focusedProgram) {
+      sections.push({
+        title: `2. "${focusedProgram.title}" — GÜN GÜN VE SAAT SAAT YAYIN DÖKÜMÜ`,
+        headers: ['Tarih', 'Gün', 'O Gün Kaç Defa', 'O Gün Toplam Süre', 'Yayın Saatleri ve Klipler'],
+        rows: focusedProgram.detailedDates.map(d => [
+          d.dateKey,
+          d.dayName,
+          `${d.count} Kez`,
+          formatSecondsToHoursMin(d.seconds),
+          d.slots.map(s => `${s.startTime}-${s.endTime}${s.episode ? ` (Bölüm ${s.episode})` : ''}`).join(', ')
+        ])
+      });
+    }
+
+    sections.push(
+      {
+        title: '3. REKLAM REZERVASYONA İLETİLEN LİSTE vs REKLAM SONRASI YAYINA GİDECEK FİNAL LİSTE KARŞILAŞTIRMASI',
+        headers: [
+          'Tarih',
+          'Gün',
+          'Program Sayısı & Süresi',
+          'İletilen Reklam Kuşağı & Süresi',
+          'Reklam Sonrası Yerleşen Spot & Süre',
+          'İletilen Toplam Süre',
+          'Reklam Sonrası Final Yayın Süresi',
+          'Net Süre Farkı',
+          'Durum'
+        ],
+        rows: reportData.preVsPostAdsByDay.map(d => [
+          d.date,
+          d.dayName,
+          `${d.programCount} Program (${formatSecondsToHoursMin(d.programSec)})`,
+          `${d.adBreakCount} Kuşak (${formatSecondsToHoursMin(d.preAdsPlannedAdSec)})`,
+          `${d.postAdsRealizedSpots} Spot / ${d.filledBreaksCount} Dolu Kuşak (${formatSecondsToHoursMin(d.postAdsRealizedAdSec)})`,
+          formatSecondsToHoursMin(d.preAdsTotalBroadcastSec),
+          formatSecondsToHoursMin(d.postAdsFinalBroadcastSec),
+          `${d.netBroadcastDeltaSec >= 0 ? '+' : '-'}${formatSecondsToHoursMin(Math.abs(d.netBroadcastDeltaSec))}`,
+          d.adsStatus === 'completed' ? 'Onaylandı (Yayına Hazır)' : d.postAdsRealizedSpots > 0 ? 'Reklamlar Yerleşti' : 'Reklam Bekliyor'
+        ])
+      },
+      {
+        title: '4. KATEGORİ BAZLI YAYINLANMA RAPORU',
+        headers: ['Kategori', 'Farklı Program Sayısı', 'Kaç Defa Yayınlandı', 'Toplam Saat', 'Oran (%)'],
+        rows: reportData.categoriesList.map(c => [
+          c.name,
+          `${c.uniqueProgramsCount} Program`,
+          `${c.count} Defa`,
+          c.hoursFormatted,
+          `%${c.sharePct}`
+        ])
+      },
+      {
+        title: '5. TASLAK DIŞINDA YAYIN PLANLAMADA EKLENEN PROGRAMLAR',
+        headers: ['Tarih', 'Gün', 'Program Adı', 'Klip Adı', 'Kategori', 'Süre'],
+        rows: reportData.addedOutsideDraftList.map(a => [
+          a.date,
+          a.dayName,
+          a.title,
+          a.clipName,
+          a.category,
+          a.durationFormatted
+        ])
+      }
+    );
+
     exportToExcel({
-      filename: `Yayin_Planlama_Detayli_Rapor_${currentChannelObj.name}_Liste_${activeList}`,
-      title: `YAYIN PLANLAMA & REKLAM SONRASI FİNAL YAYIN RAPORU (${currentChannelObj.name} - Liste ${activeList})`,
+      filename: focusedProgram
+        ? `Yayin_Program_Raporu_${focusedProgram.title}_${currentChannelObj.name}`
+        : `Yayin_Planlama_Detayli_Rapor_${currentChannelObj.name}_Liste_${activeList}`,
+      title: focusedProgram
+        ? `YAYIN PLANLAMA PROGRAM BAZLI RAPOR: ${focusedProgram.title} (${currentChannelObj.name})`
+        : `YAYIN PLANLAMA & REKLAM SONRASI FİNAL YAYIN RAPORU (${currentChannelObj.name} - Liste ${activeList})`,
       subtitle: `Dönem Kapsamı: ${periodScopeLabel}`,
       kpis: [
         { label: 'Toplam Program / Klip', value: `${reportData.totalItemsCount} Yayın` },
@@ -524,79 +708,7 @@ const BroadcastReportsView = () => {
         { label: 'Reklam Sonrası Yerleşen Spot', value: `${reportData.totalRealizedAdSpots} Spot (${reportData.totalRealizedAdHours})` },
         { label: 'Final Yayına Gidecek Süre', value: reportData.totalFinalBroadcastHours }
       ],
-      sections: [
-        {
-          title: '1. PROGRAM BAZLI GÜNLÜK, HAFTALIK, AYLIK VE YILLIK YAYINLANMA RAPORU',
-          headers: [
-            'Program Adı',
-            'Kategori',
-            'Kaç Defa Yayınlandı',
-            'Toplam Saat',
-            'Hangi Gün Kaç Defa Yayınlandı',
-            'Haftalık Ort.',
-            'Aylık Yayın & Saat',
-            'Yıllık Yayın & Saat'
-          ],
-          rows: filteredPrograms.map(p => [
-            p.title,
-            p.category,
-            `${p.count} Defa`,
-            p.hoursFormatted,
-            p.dayBreakdown,
-            `${p.avgWeeklyCount} Kez`,
-            `${p.estMonthlyCount} Kez (${p.estMonthlyHours})`,
-            `${p.estYearlyCount} Kez (${p.estYearlyHours})`
-          ])
-        },
-        {
-          title: '2. REKLAM REZERVASYONA İLETİLEN LİSTE vs REKLAM SONRASI YAYINA GİDECEK FİNAL LİSTE KARŞILAŞTIRMASI',
-          headers: [
-            'Tarih',
-            'Gün',
-            'Program Sayısı & Süresi',
-            'İletilen Reklam Kuşağı & Süresi',
-            'Reklam Sonrası Yerleşen Spot & Süre',
-            'İletilen Toplam Süre',
-            'Reklam Sonrası Final Yayın Süresi',
-            'Net Süre Farkı',
-            'Durum'
-          ],
-          rows: reportData.preVsPostAdsByDay.map(d => [
-            d.date,
-            d.dayName,
-            `${d.programCount} Program (${formatSecondsToHoursMin(d.programSec)})`,
-            `${d.adBreakCount} Kuşak (${formatSecondsToHoursMin(d.preAdsPlannedAdSec)})`,
-            `${d.postAdsRealizedSpots} Spot / ${d.filledBreaksCount} Dolu Kuşak (${formatSecondsToHoursMin(d.postAdsRealizedAdSec)})`,
-            formatSecondsToHoursMin(d.preAdsTotalBroadcastSec),
-            formatSecondsToHoursMin(d.postAdsFinalBroadcastSec),
-            `${d.netBroadcastDeltaSec >= 0 ? '+' : '-'}${formatSecondsToHoursMin(Math.abs(d.netBroadcastDeltaSec))}`,
-            d.adsStatus === 'completed' ? 'Onaylandı (Yayına Hazır)' : d.postAdsRealizedSpots > 0 ? 'Reklamlar Yerleşti' : 'Reklam Bekliyor'
-          ])
-        },
-        {
-          title: '3. KATEGORİ BAZLI YAYINLANMA RAPORU',
-          headers: ['Kategori', 'Farklı Program Sayısı', 'Kaç Defa Yayınlandı', 'Toplam Saat', 'Oran (%)'],
-          rows: reportData.categoriesList.map(c => [
-            c.name,
-            `${c.uniqueProgramsCount} Program`,
-            `${c.count} Defa`,
-            c.hoursFormatted,
-            `%${c.sharePct}`
-          ])
-        },
-        {
-          title: '4. TASLAK DIŞINDA YAYIN PLANLAMADA EKLENEN PROGRAMLAR',
-          headers: ['Tarih', 'Gün', 'Program Adı', 'Klip Adı', 'Kategori', 'Süre'],
-          rows: reportData.addedOutsideDraftList.map(a => [
-            a.date,
-            a.dayName,
-            a.title,
-            a.clipName,
-            a.category,
-            a.durationFormatted
-          ])
-        }
-      ]
+      sections
     });
   };
 
@@ -632,44 +744,131 @@ const BroadcastReportsView = () => {
     }
 
     exportToCSV({
-      filename: `Yayin_Planlama_Program_Raporu_${currentChannelObj.name}`,
+      filename: focusedProgram
+        ? `Yayin_Program_${focusedProgram.title}_${currentChannelObj.name}`
+        : `Yayin_Planlama_Program_Raporu_${currentChannelObj.name}`,
       headers: [
         'Program Adı',
         'Kategori',
-        'Kaç Defa Yayınlandı',
-        'Toplam Saat',
-        'Hangi Gün Kaç Defa',
-        'Haftalık Ort.',
-        'Aylık Yayın & Saat',
-        'Yıllık Yayın & Saat'
+        'Seçili Dönem Toplam Yayın',
+        'Seçili Dönem Toplam Saat',
+        'Günde Ne Kadar (Adet)',
+        'Günde Ne Kadar (Saat)',
+        'Haftada Ne Kadar (Adet)',
+        'Haftada Ne Kadar (Saat)',
+        'Ayda Ne Kadar (Adet & Saat)',
+        'Yılda Ne Kadar (Adet & Saat)',
+        'Hangi Gün Kaç Defa & Kaç Saat'
       ],
       rows: filteredPrograms.map(p => [
         p.title,
         p.category,
         p.count,
         p.hoursFormatted,
-        p.dayBreakdown,
-        p.avgWeeklyCount,
+        `${p.dailyAvgCount} Kez/Gün`,
+        p.dailyAvgHoursFormatted,
+        `${p.avgWeeklyCount} Kez/Hafta`,
+        p.weeklyHoursFormatted,
         `${p.estMonthlyCount} Kez (${p.estMonthlyHours})`,
-        `${p.estYearlyCount} Kez (${p.estYearlyHours})`
+        `${p.estYearlyCount} Kez (${p.estYearlyHours})`,
+        p.dayBreakdown
       ])
     });
   };
 
   // PDF SUNUM ÇIKTISI
   const handleExportPDF = () => {
+    const sections = [
+      {
+        title: '1. Program Bazlı Günlük, Haftalık, Aylık ve Yıllık Yayınlanma Raporu',
+        description: 'Yayına giden listede hangi programın günde, haftada, ayda ve yılda kaç defa ve kaç saat yayınlandığı.',
+        headers: [
+          'Program Adı',
+          'Kategori',
+          'Dönem Toplamı',
+          'Günde Ne Kadar',
+          'Haftada Ne Kadar',
+          'Ayda Ne Kadar',
+          'Yılda Ne Kadar',
+          'Hangi Günler Yayınlandı'
+        ],
+        rows: filteredPrograms.map(p => [
+          p.title,
+          p.category,
+          `${p.count} Kez (${p.hoursFormatted})`,
+          `${p.dailyAvgCount} Kez/Gün (${p.dailyAvgHoursFormatted})`,
+          `${p.avgWeeklyCount} Kez/Hf (${p.weeklyHoursFormatted})`,
+          `~${p.estMonthlyCount} Kez (${p.estMonthlyHours})`,
+          `~${p.estYearlyCount} Kez (${p.estYearlyHours})`,
+          p.dayBreakdown
+        ])
+      }
+    ];
+
+    if (focusedProgram) {
+      sections.push({
+        title: `2. "${focusedProgram.title}" — Gün Gün & Saat Saat Yayın Dökümü`,
+        headers: ['Tarih', 'Gün', 'O Gün Kaç Defa', 'Toplam Süre', 'Yayın Saatleri'],
+        rows: focusedProgram.detailedDates.map(d => [
+          d.dateKey,
+          d.dayName,
+          `${d.count} Kez`,
+          formatSecondsToHoursMin(d.seconds),
+          d.slots.map(s => `${s.startTime}-${s.endTime}${s.episode ? ` (Bölüm ${s.episode})` : ''}`).join(', ')
+        ])
+      });
+    }
+
+    sections.push(
+      {
+        title: '3. Reklam Rezervasyona İletilen Liste vs Reklam Rezervasyondan Sonra Yayına Gidecek Liste Raporu',
+        description: 'Reklam öncesi iletilen kuşak kapasitesi ile reklam yerleştirildikten sonraki final yayın listesi karşılaştırması.',
+        headers: ['Tarih / Gün', 'Program Sayısı & Süresi', 'İletilen Kuşak & Süre', 'Reklam Sonrası Spot & Süre', 'İletilen Toplam', 'Yayına Gidecek Final Süre', 'Durum'],
+        rows: reportData.preVsPostAdsByDay.map(d => [
+          `${d.date} (${d.dayName})`,
+          `${d.programCount} Prog (${formatSecondsToHoursMin(d.programSec)})`,
+          `${d.adBreakCount} Kuşak (${formatSecondsToHoursMin(d.preAdsPlannedAdSec)})`,
+          `${d.postAdsRealizedSpots} Spot (${formatSecondsToHoursMin(d.postAdsRealizedAdSec)})`,
+          formatSecondsToHoursMin(d.preAdsTotalBroadcastSec),
+          formatSecondsToHoursMin(d.postAdsFinalBroadcastSec),
+          d.adsStatus === 'completed' ? 'Onaylandı (Yayına Hazır)' : d.postAdsRealizedSpots > 0 ? 'Reklamlar Yerleşti' : 'Bekliyor'
+        ])
+      },
+      {
+        title: '4. Kategori Bazlı Yayın Dağılımı',
+        headers: ['Kategori', 'Farklı Program Sayısı', 'Kaç Defa Yayınlandı', 'Toplam Saat', 'Oran (%)'],
+        rows: reportData.categoriesList.map(c => [
+          c.name,
+          `${c.uniqueProgramsCount} Program`,
+          `${c.count} Defa`,
+          c.hoursFormatted,
+          `%${c.sharePct}`
+        ])
+      }
+    );
+
     exportToPresentationPDF({
-      title: `YAYIN PLANLAMA & REKLAM SONRASI FİNAL YAYIN ANALİZ SUNUMU`,
+      title: focusedProgram
+        ? `YAYIN PLANLAMA PROGRAM BAZLI ANALİZ SUNUMU: ${focusedProgram.title}`
+        : `YAYIN PLANLAMA & REKLAM SONRASI FİNAL YAYIN ANALİZ SUNUMU`,
       subtitle: `Kanal: ${currentChannelObj.name} • Aktif Liste: Liste ${activeList} • Kapsam: ${periodScopeLabel}`,
       badgeText: 'YAYIN PLANLAMA STÜDYOSU • RESMİ YAYIN VE REKLAM RAPORU',
       accentColor: '#059669',
-      kpis: [
-        { label: 'Program Yayın Süresi', value: reportData.totalProgramHoursFormatted, sub: `${reportData.totalItemsCount} Program / Klip` },
-        { label: 'Reklama İletilen Kuşak', value: `${reportData.totalAdBreakCount} Kuşak`, sub: `Planlanan: ${reportData.totalPlannedAdBreakHours}`, color: '#d97706' },
-        { label: 'Reklam Sonrası Spotlar', value: `${reportData.totalRealizedAdSpots} Spot`, sub: `Gerçekleşen: ${reportData.totalRealizedAdHours}`, color: '#2563eb' },
-        { label: 'Yayına Gidecek Final Süre', value: reportData.totalFinalBroadcastHours, sub: 'Program + Yerleşen Reklamlar', color: '#059669' },
-        { label: 'Taslak Dışı Eklenen', value: `${reportData.addedOutsideDraftList.length} Program`, sub: 'Yayın Planlamada eklenen', color: '#9333ea' }
-      ],
+      kpis: focusedProgram
+        ? [
+            { label: 'Program Adı', value: focusedProgram.title, sub: focusedProgram.category },
+            { label: 'Günde Ne Kadar', value: `${focusedProgram.dailyAvgCount} Kez / Gün`, sub: focusedProgram.dailyAvgHoursFormatted },
+            { label: 'Haftada Ne Kadar', value: `${focusedProgram.avgWeeklyCount} Kez / Hafta`, sub: focusedProgram.weeklyHoursFormatted },
+            { label: 'Ayda Ne Kadar', value: `~${focusedProgram.estMonthlyCount} Kez / Ay`, sub: focusedProgram.estMonthlyHours, color: '#059669' },
+            { label: 'Yılda Ne Kadar', value: `~${focusedProgram.estYearlyCount} Kez / Yıl`, sub: focusedProgram.estYearlyHours, color: '#d97706' }
+          ]
+        : [
+            { label: 'Program Yayın Süresi', value: reportData.totalProgramHoursFormatted, sub: `${reportData.totalItemsCount} Program / Klip` },
+            { label: 'Reklama İletilen Kuşak', value: `${reportData.totalAdBreakCount} Kuşak`, sub: `Planlanan: ${reportData.totalPlannedAdBreakHours}`, color: '#d97706' },
+            { label: 'Reklam Sonrası Spotlar', value: `${reportData.totalRealizedAdSpots} Spot`, sub: `Gerçekleşen: ${reportData.totalRealizedAdHours}`, color: '#2563eb' },
+            { label: 'Yayına Gidecek Final Süre', value: reportData.totalFinalBroadcastHours, sub: 'Program + Yerleşen Reklamlar', color: '#059669' },
+            { label: 'Taslak Dışı Eklenen', value: `${reportData.addedOutsideDraftList.length} Program`, sub: 'Yayın Planlamada eklenen', color: '#9333ea' }
+          ],
       highlightCards: [
         {
           title: 'Reklam Rezervasyona İletilen Liste vs Reklam Sonrası Final Liste',
@@ -680,47 +879,7 @@ const BroadcastReportsView = () => {
           body: reportData.categoriesList.slice(0, 4).map(c => `${c.name}: ${c.count} kez (${c.hoursFormatted}, %${c.sharePct})`).join(' | ') || '-'
         }
       ],
-      sections: [
-        {
-          title: '1. Program Bazlı Günlük, Haftalık, Aylık ve Yıllık Yayınlanma Raporu',
-          description: 'Yayına giden listede hangi programın hangi gün kaç defa ve toplam kaç saat yayınlandığı.',
-          headers: ['Program Adı', 'Kategori', 'Kaç Defa', 'Toplam Saat', 'Hangi Gün Kaç Defa', 'Aylık (Adet / Saat)', 'Yıllık (Adet / Saat)'],
-          rows: filteredPrograms.map(p => [
-            p.title,
-            p.category,
-            `${p.count} Defa`,
-            p.hoursFormatted,
-            p.dayBreakdown,
-            `${p.estMonthlyCount} Kez (${p.estMonthlyHours})`,
-            `${p.estYearlyCount} Kez (${p.estYearlyHours})`
-          ])
-        },
-        {
-          title: '2. Reklam Rezervasyona İletilen Liste vs Reklam Rezervasyondan Sonra Yayına Gidecek Liste Raporu',
-          description: 'Reklam öncesi iletilen kuşak kapasitesi ile reklam yerleştirildikten sonraki final yayın listesi karşılaştırması.',
-          headers: ['Tarih / Gün', 'Program Sayısı & Süresi', 'İletilen Kuşak & Süre', 'Reklam Sonrası Spot & Süre', 'İletilen Toplam', 'Yayına Gidecek Final Süre', 'Durum'],
-          rows: reportData.preVsPostAdsByDay.map(d => [
-            `${d.date} (${d.dayName})`,
-            `${d.programCount} Prog (${formatSecondsToHoursMin(d.programSec)})`,
-            `${d.adBreakCount} Kuşak (${formatSecondsToHoursMin(d.preAdsPlannedAdSec)})`,
-            `${d.postAdsRealizedSpots} Spot (${formatSecondsToHoursMin(d.postAdsRealizedAdSec)})`,
-            formatSecondsToHoursMin(d.preAdsTotalBroadcastSec),
-            formatSecondsToHoursMin(d.postAdsFinalBroadcastSec),
-            d.adsStatus === 'completed' ? 'Onaylandı (Yayına Hazır)' : d.postAdsRealizedSpots > 0 ? 'Reklamlar Yerleşti' : 'Bekliyor'
-          ])
-        },
-        {
-          title: '3. Kategori Bazlı Yayın Dağılımı',
-          headers: ['Kategori', 'Farklı Program Sayısı', 'Kaç Defa Yayınlandı', 'Toplam Saat', 'Oran (%)'],
-          rows: reportData.categoriesList.map(c => [
-            c.name,
-            `${c.uniqueProgramsCount} Program`,
-            `${c.count} Defa`,
-            c.hoursFormatted,
-            `%${c.sharePct}`
-          ])
-        }
-      ]
+      sections
     });
   };
 
@@ -734,7 +893,7 @@ const BroadcastReportsView = () => {
         background: 'var(--bg-primary)',
         display: 'flex',
         flexDirection: 'column',
-        gap: '16px'
+        gap: '14px'
       }}
     >
       {/* 1. ÜST BAŞLIK, DÖNEM FİLTRESİ VE PDF / EXCEL / CSV ÇIKTI BUTONLARI */}
@@ -743,7 +902,7 @@ const BroadcastReportsView = () => {
           background: 'var(--bg-secondary)',
           border: '1px solid var(--border-color)',
           borderRadius: '14px',
-          padding: '16px 20px',
+          padding: '14px 20px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -769,7 +928,7 @@ const BroadcastReportsView = () => {
           </div>
           <div>
             <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 900, color: 'var(--text-primary)' }}>
-              Yayın Planlama &amp; Reklam Sonrası Final Yayın Raporları
+              Yayın Planlama — Program Bazlı (Gün / Hafta / Ay / Yıl) &amp; Final Yayın Raporları
             </h2>
             <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
               Kanal: <strong style={{ color: 'var(--accent-primary)' }}>{currentChannelObj.name}</strong> • Aktif Liste:{' '}
@@ -778,43 +937,8 @@ const BroadcastReportsView = () => {
           </div>
         </div>
 
-        {/* Dönem Seçici + Çıktı Butonları */}
+        {/* Çıktı Butonları */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <div
-            style={{
-              display: 'inline-flex',
-              background: 'var(--bg-primary)',
-              padding: '3px',
-              borderRadius: '9px',
-              border: '1px solid var(--border-color)'
-            }}
-          >
-            {[
-              { id: 'day', label: 'Seçili Gün' },
-              { id: 'week', label: 'Haftalık' },
-              { id: 'month', label: 'Aylık' },
-              { id: 'all', label: 'Tüm Dönemler (Yıllık)' }
-            ].map(p => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => setPeriodFilter(p.id)}
-                style={{
-                  padding: '6px 11px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  background: periodFilter === p.id ? 'var(--accent-primary)' : 'transparent',
-                  color: periodFilter === p.id ? '#fff' : 'var(--text-secondary)',
-                  fontSize: '11.5px',
-                  fontWeight: 800,
-                  cursor: 'pointer'
-                }}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-
           <button
             type="button"
             onClick={handleExportPDF}
@@ -880,21 +1004,254 @@ const BroadcastReportsView = () => {
         </div>
       </div>
 
-      {/* 2. 5 ÖZET KPI KARTI */}
+      {/* 2. TARİH ARALIĞI VE PROGRAM BAZLI FİLTRELEME ŞERİDİ */}
+      <div
+        style={{
+          background: 'var(--bg-secondary)',
+          border: '1px solid var(--border-color)',
+          borderRadius: '12px',
+          padding: '10px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '10px'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: 800, color: 'var(--text-primary)' }}>
+            <Calendar size={14} color="#059669" />
+            <span>Dönem / Tarih Aralığı:</span>
+          </div>
+
+          <div
+            style={{
+              display: 'inline-flex',
+              background: 'var(--bg-primary)',
+              padding: '3px',
+              borderRadius: '8px',
+              border: '1px solid var(--border-color)'
+            }}
+          >
+            {[
+              { id: 'all', label: 'Tüm Dönemler' },
+              { id: 'month', label: 'Aylık' },
+              { id: 'week', label: 'Haftalık' },
+              { id: 'day', label: 'Seçili Gün' }
+            ].map(p => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => {
+                  setPeriodFilter(p.id);
+                  setStartDateFilter('');
+                  setEndDateFilter('');
+                }}
+                style={{
+                  padding: '5px 10px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: periodFilter === p.id && !startDateFilter && !endDateFilter ? 'var(--accent-primary)' : 'transparent',
+                  color: periodFilter === p.id && !startDateFilter && !endDateFilter ? '#fff' : 'var(--text-secondary)',
+                  fontSize: '11.5px',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+
+          <input
+            type="date"
+            value={startDateFilter}
+            onChange={e => setStartDateFilter(e.target.value)}
+            title="Başlangıç Tarihi"
+            style={{
+              padding: '5px 9px',
+              borderRadius: '8px',
+              border: startDateFilter ? '1.5px solid #059669' : '1px solid var(--border-color)',
+              background: 'var(--bg-primary)',
+              color: 'var(--text-primary)',
+              fontSize: '12px',
+              fontWeight: 700
+            }}
+          />
+          <span style={{ color: 'var(--text-muted)', fontWeight: 700 }}>—</span>
+          <input
+            type="date"
+            value={endDateFilter}
+            onChange={e => setEndDateFilter(e.target.value)}
+            title="Bitiş Tarihi"
+            style={{
+              padding: '5px 9px',
+              borderRadius: '8px',
+              border: endDateFilter ? '1.5px solid #059669' : '1px solid var(--border-color)',
+              background: 'var(--bg-primary)',
+              color: 'var(--text-primary)',
+              fontSize: '12px',
+              fontWeight: 700
+            }}
+          />
+
+          <select
+            value={selectedDayNameFilter}
+            onChange={e => setSelectedDayNameFilter(e.target.value)}
+            style={{
+              padding: '6px 10px',
+              borderRadius: '8px',
+              border: selectedDayNameFilter !== 'all' ? '1.5px solid #059669' : '1px solid var(--border-color)',
+              background: 'var(--bg-primary)',
+              color: 'var(--text-primary)',
+              fontSize: '12px',
+              fontWeight: 700
+            }}
+          >
+            <option value="all">Tüm Günler (Pzt - Paz)</option>
+            {TR_DAY_ORDER.map(dName => (
+              <option key={dName} value={dName}>
+                Sadece {dName}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Sağ: Program Bazlı Seçici, Kategori ve Arama */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: 800, color: 'var(--text-primary)' }}>
+            <Filter size={13} color="#059669" />
+            <span>Program:</span>
+          </div>
+
+          <select
+            value={selectedProgramFilter}
+            onChange={e => {
+              setSelectedProgramFilter(e.target.value);
+              if (e.target.value !== 'all') setActiveTab('programs');
+            }}
+            style={{
+              padding: '6px 12px',
+              borderRadius: '8px',
+              border: selectedProgramFilter !== 'all' ? '1.5px solid #059669' : '1px solid var(--border-color)',
+              background: 'var(--bg-primary)',
+              color: 'var(--text-primary)',
+              fontSize: '12px',
+              fontWeight: 800,
+              maxWidth: '240px'
+            }}
+          >
+            <option value="all">Tüm Programlar ({reportData.programsList.length} Program)</option>
+            {reportData.programsList.map(p => (
+              <option key={p.key} value={p.key}>
+                {p.title} ({p.count} Kez • {p.hoursFormatted})
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={categoryFilter}
+            onChange={e => setCategoryFilter(e.target.value)}
+            style={{
+              padding: '6px 10px',
+              borderRadius: '8px',
+              border: '1px solid var(--border-color)',
+              background: 'var(--bg-primary)',
+              color: 'var(--text-primary)',
+              fontSize: '12px',
+              fontWeight: 700
+            }}
+          >
+            <option value="all">Tüm Kategoriler</option>
+            {reportData.categoriesList.map(c => (
+              <option key={c.name} value={c.name}>
+                {c.name} ({c.count})
+              </option>
+            ))}
+          </select>
+
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '5px 10px',
+              borderRadius: '8px',
+              border: '1px solid var(--border-color)',
+              background: 'var(--bg-primary)'
+            }}
+          >
+            <Search size={13} color="var(--text-muted)" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Program veya gün ara..."
+              style={{
+                border: 'none',
+                outline: 'none',
+                background: 'transparent',
+                color: 'var(--text-primary)',
+                fontSize: '12px',
+                width: '165px'
+              }}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, color: 'var(--text-muted)' }}
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
+
+          {(startDateFilter ||
+            endDateFilter ||
+            selectedProgramFilter !== 'all' ||
+            categoryFilter !== 'all' ||
+            selectedDayNameFilter !== 'all' ||
+            searchQuery) && (
+            <button
+              type="button"
+              onClick={handleResetFilters}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '6px 10px',
+                borderRadius: '8px',
+                border: '1px solid rgba(239, 68, 68, 0.35)',
+                background: 'rgba(239, 68, 68, 0.08)',
+                color: '#ef4444',
+                fontSize: '11.5px',
+                fontWeight: 800,
+                cursor: 'pointer'
+              }}
+            >
+              <RotateCcw size={12} />
+              <span>Sıfırla</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* 3. 5 ÖZET KPI KARTI */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px' }}>
-        <div style={{ background: 'var(--bg-secondary)', padding: '14px 16px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+        <div style={{ background: 'var(--bg-secondary)', padding: '13px 15px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
           <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)' }}>TOPLAM PROGRAM YAYIN SAATİ</div>
-          <div style={{ fontSize: '21px', fontWeight: 900, color: '#2563eb', marginTop: '4px' }}>
+          <div style={{ fontSize: '20px', fontWeight: 900, color: '#2563eb', marginTop: '4px' }}>
             {reportData.totalProgramHoursFormatted}
           </div>
           <div style={{ fontSize: '11.5px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-            <strong>{reportData.totalItemsCount}</strong> Yayın • <strong>{reportData.programsList.length}</strong> Tekil Program
+            <strong>{reportData.totalItemsCount}</strong> Yayın • <strong>{filteredPrograms.length}</strong> Tekil Program
           </div>
         </div>
 
-        <div style={{ background: 'var(--bg-secondary)', padding: '14px 16px', borderRadius: '12px', border: '1px solid rgba(245, 158, 11, 0.35)' }}>
+        <div style={{ background: 'var(--bg-secondary)', padding: '13px 15px', borderRadius: '12px', border: '1px solid rgba(245, 158, 11, 0.35)' }}>
           <div style={{ fontSize: '11px', fontWeight: 800, color: '#d97706' }}>REKLAMA İLETİLEN KUŞAK</div>
-          <div style={{ fontSize: '21px', fontWeight: 900, color: '#d97706', marginTop: '4px' }}>
+          <div style={{ fontSize: '20px', fontWeight: 900, color: '#d97706', marginTop: '4px' }}>
             {reportData.totalAdBreakCount} Kuşak
           </div>
           <div style={{ fontSize: '11.5px', color: 'var(--text-secondary)', marginTop: '2px' }}>
@@ -902,9 +1259,9 @@ const BroadcastReportsView = () => {
           </div>
         </div>
 
-        <div style={{ background: 'var(--bg-secondary)', padding: '14px 16px', borderRadius: '12px', border: '1px solid rgba(5, 150, 105, 0.35)' }}>
+        <div style={{ background: 'var(--bg-secondary)', padding: '13px 15px', borderRadius: '12px', border: '1px solid rgba(5, 150, 105, 0.35)' }}>
           <div style={{ fontSize: '11px', fontWeight: 800, color: '#059669' }}>REKLAM SONRASI YERLEŞEN SPOT</div>
-          <div style={{ fontSize: '21px', fontWeight: 900, color: '#059669', marginTop: '4px' }}>
+          <div style={{ fontSize: '20px', fontWeight: 900, color: '#059669', marginTop: '4px' }}>
             {reportData.totalRealizedAdSpots} Spot
           </div>
           <div style={{ fontSize: '11.5px', color: 'var(--text-secondary)', marginTop: '2px' }}>
@@ -912,9 +1269,9 @@ const BroadcastReportsView = () => {
           </div>
         </div>
 
-        <div style={{ background: 'var(--bg-secondary)', padding: '14px 16px', borderRadius: '12px', border: '1px solid rgba(139, 92, 246, 0.35)' }}>
+        <div style={{ background: 'var(--bg-secondary)', padding: '13px 15px', borderRadius: '12px', border: '1px solid rgba(139, 92, 246, 0.35)' }}>
           <div style={{ fontSize: '11px', fontWeight: 800, color: '#8b5cf6' }}>YAYINA GİDECEK FİNAL SÜRE</div>
-          <div style={{ fontSize: '21px', fontWeight: 900, color: '#8b5cf6', marginTop: '4px' }}>
+          <div style={{ fontSize: '20px', fontWeight: 900, color: '#8b5cf6', marginTop: '4px' }}>
             {reportData.totalFinalBroadcastHours}
           </div>
           <div style={{ fontSize: '11.5px', color: 'var(--text-secondary)', marginTop: '2px' }}>
@@ -926,14 +1283,14 @@ const BroadcastReportsView = () => {
           onClick={() => setActiveTab('draft_added')}
           style={{
             background: 'var(--bg-secondary)',
-            padding: '14px 16px',
+            padding: '13px 15px',
             borderRadius: '12px',
             border: '1px solid rgba(225, 29, 72, 0.35)',
             cursor: 'pointer'
           }}
         >
           <div style={{ fontSize: '11px', fontWeight: 800, color: '#e11d48' }}>TASLAK DIŞI YAYINDA EKLENEN</div>
-          <div style={{ fontSize: '21px', fontWeight: 900, color: '#e11d48', marginTop: '4px' }}>
+          <div style={{ fontSize: '20px', fontWeight: 900, color: '#e11d48', marginTop: '4px' }}>
             +{reportData.addedOutsideDraftList.length} Program
           </div>
           <div style={{ fontSize: '11.5px', color: 'var(--text-secondary)', marginTop: '2px' }}>
@@ -942,7 +1299,7 @@ const BroadcastReportsView = () => {
         </div>
       </div>
 
-      {/* 3. RAPOR SEKMELERİ VE ARAMA */}
+      {/* 4. RAPOR SEKMELERİ */}
       <div
         style={{
           background: 'var(--bg-secondary)',
@@ -958,7 +1315,7 @@ const BroadcastReportsView = () => {
       >
         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
           {[
-            { id: 'programs', label: `1. Programlar (Gün / Hafta / Ay / Yıl & Saat) (${reportData.programsList.length})` },
+            { id: 'programs', label: `1. Program Bazlı (Gün / Hafta / Ay / Yıl & Saat) (${filteredPrograms.length})` },
             { id: 'ads_comparison', label: `2. Reklama İletilen vs Reklam Sonrası Final Liste (${reportData.preVsPostAdsByDay.length} Gün)` },
             { id: 'periods', label: '3. Haftalık / Aylık / Yıllık Dönem Tablosu' },
             { id: 'categories', label: `4. Kategori Dağılımı (${reportData.categoriesList.length})` },
@@ -983,62 +1340,9 @@ const BroadcastReportsView = () => {
             </button>
           ))}
         </div>
-
-        {activeTab === 'programs' && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <select
-              value={categoryFilter}
-              onChange={e => setCategoryFilter(e.target.value)}
-              style={{
-                padding: '6px 10px',
-                borderRadius: '8px',
-                border: '1px solid var(--border-color)',
-                background: 'var(--bg-primary)',
-                color: 'var(--text-primary)',
-                fontSize: '12px',
-                fontWeight: 700
-              }}
-            >
-              <option value="all">Tüm Kategoriler</option>
-              {reportData.categoriesList.map(c => (
-                <option key={c.name} value={c.name}>
-                  {c.name} ({c.count})
-                </option>
-              ))}
-            </select>
-
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '5px 10px',
-                borderRadius: '8px',
-                border: '1px solid var(--border-color)',
-                background: 'var(--bg-primary)'
-              }}
-            >
-              <Search size={13} color="var(--text-muted)" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Program veya gün ara..."
-                style={{
-                  border: 'none',
-                  outline: 'none',
-                  background: 'transparent',
-                  color: 'var(--text-primary)',
-                  fontSize: '12px',
-                  width: '180px'
-                }}
-              />
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* 4. SEKME İÇERİKLERİ */}
+      {/* 5. SEKME İÇERİKLERİ */}
       <div
         style={{
           background: 'var(--bg-secondary)',
@@ -1047,77 +1351,212 @@ const BroadcastReportsView = () => {
           overflow: 'hidden'
         }}
       >
-        {/* SEKME 1: PROGRAMLAR TABLOSU */}
+        {/* SEKME 1: PROGRAMLAR TABLOSU & SEÇİLİ PROGRAM KARNESİ */}
         {activeTab === 'programs' && (
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px' }}>
-            <thead>
-              <tr style={{ background: 'var(--bg-tertiary)', textAlign: 'left', color: 'var(--text-secondary)' }}>
-                <th style={{ padding: '11px 14px' }}>Program Adı</th>
-                <th style={{ padding: '11px 14px' }}>Kategori</th>
-                <th style={{ padding: '11px 14px', textAlign: 'center' }}>Kaç Defa Yayınlandı</th>
-                <th style={{ padding: '11px 14px', textAlign: 'center' }}>Toplam Yayın Saati</th>
-                <th style={{ padding: '11px 14px' }}>Hangi Gün Kaç Defa Yayınlandı</th>
-                <th style={{ padding: '11px 14px', textAlign: 'center' }}>Haftalık / Aylık / Yıllık Yayınlanma</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredPrograms.length === 0 ? (
-                <tr>
-                  <td colSpan="6" style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                    Seçili filtreye uygun yayınlanmış program kaydı bulunamadı.
-                  </td>
-                </tr>
-              ) : (
-                filteredPrograms.map(p => (
-                  <tr key={p.title} style={{ borderTop: '1px solid var(--border-color)' }}>
-                    <td style={{ padding: '10px 14px', fontWeight: 800, color: 'var(--text-primary)' }}>
-                      {p.title}
-                      {p.isLive && (
-                        <span style={{ marginLeft: '6px', fontSize: '10px', background: 'rgba(239,68,68,0.14)', color: '#ef4444', padding: '2px 6px', borderRadius: '4px', fontWeight: 800 }}>
-                          CANLI
-                        </span>
-                      )}
-                    </td>
-                    <td style={{ padding: '10px 14px' }}>
-                      <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
-                        {p.category}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', padding: focusedProgram ? '16px' : '0px' }}>
+            {focusedProgram && (
+              <div
+                style={{
+                  border: '2px solid #059669',
+                  borderRadius: '12px',
+                  background: 'var(--bg-primary)',
+                  padding: '16px 18px'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '12px' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span style={{ padding: '3px 9px', borderRadius: '6px', background: '#059669', color: '#fff', fontSize: '11px', fontWeight: 800 }}>
+                        SEÇİLİ PROGRAM KARNESİ
                       </span>
-                    </td>
-                    <td style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 900, color: '#2563eb', fontSize: '13.5px' }}>
-                      {p.count} Defa
-                    </td>
-                    <td style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 800, color: '#059669' }}>
-                      {p.hoursFormatted}
-                    </td>
-                    <td style={{ padding: '10px 14px' }}>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                        {Object.entries(p.dayOfWeekMap).map(([dName, cnt]) => (
-                          <span
-                            key={dName}
-                            style={{
-                              fontSize: '11px',
-                              fontWeight: 700,
-                              padding: '2px 7px',
-                              borderRadius: '5px',
-                              background: 'rgba(37, 99, 235, 0.1)',
-                              color: '#2563eb'
-                            }}
-                          >
-                            {dName}: <strong>{cnt} kez</strong>
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td style={{ padding: '10px 14px', textAlign: 'center', fontSize: '11.5px', color: 'var(--text-secondary)' }}>
-                      <div>Haftalık: <strong>{p.avgWeeklyCount} kez</strong></div>
-                      <div>Aylık: <strong>~{p.estMonthlyCount} kez ({p.estMonthlyHours})</strong></div>
-                      <div>Yıllık: <strong>~{p.estYearlyCount} kez ({p.estYearlyHours})</strong></div>
-                    </td>
+                      <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 900, color: 'var(--text-primary)' }}>
+                        {focusedProgram.title}
+                      </h3>
+                      <span style={{ padding: '3px 9px', borderRadius: '6px', background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', fontSize: '11.5px', fontWeight: 700 }}>
+                        {focusedProgram.category}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedProgramFilter('all');
+                      setExpandedProgramKey(null);
+                    }}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-secondary)',
+                      color: 'var(--text-secondary)',
+                      fontSize: '11.5px',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Detayı Kapat
+                  </button>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginBottom: '12px' }}>
+                  <div style={{ padding: '10px 12px', borderRadius: '9px', background: 'var(--bg-secondary)', border: '1px solid rgba(37,99,235,0.3)' }}>
+                    <div style={{ fontSize: '10.5px', fontWeight: 800, color: '#2563eb' }}>1. GÜNDE NE KADAR</div>
+                    <div style={{ fontSize: '17px', fontWeight: 900, marginTop: '3px' }}>Günde {focusedProgram.dailyAvgCount} Defa</div>
+                    <div style={{ fontSize: '12px', fontWeight: 800, color: '#059669' }}>{focusedProgram.dailyAvgHoursFormatted} / gün</div>
+                  </div>
+                  <div style={{ padding: '10px 12px', borderRadius: '9px', background: 'var(--bg-secondary)', border: '1px solid rgba(8,145,178,0.3)' }}>
+                    <div style={{ fontSize: '10.5px', fontWeight: 800, color: '#0891b2' }}>2. HAFTADA NE KADAR</div>
+                    <div style={{ fontSize: '17px', fontWeight: 900, marginTop: '3px' }}>Haftada {focusedProgram.avgWeeklyCount} Defa</div>
+                    <div style={{ fontSize: '12px', fontWeight: 800, color: '#059669' }}>{focusedProgram.weeklyHoursFormatted} / hafta</div>
+                  </div>
+                  <div style={{ padding: '10px 12px', borderRadius: '9px', background: 'var(--bg-secondary)', border: '1px solid rgba(5,150,105,0.3)' }}>
+                    <div style={{ fontSize: '10.5px', fontWeight: 800, color: '#059669' }}>3. AYDA NE KADAR</div>
+                    <div style={{ fontSize: '17px', fontWeight: 900, marginTop: '3px' }}>Ayda ~{focusedProgram.estMonthlyCount} Defa</div>
+                    <div style={{ fontSize: '12px', fontWeight: 800, color: '#059669' }}>{focusedProgram.estMonthlyHours} / ay</div>
+                  </div>
+                  <div style={{ padding: '10px 12px', borderRadius: '9px', background: 'var(--bg-secondary)', border: '1px solid rgba(217,119,6,0.35)' }}>
+                    <div style={{ fontSize: '10.5px', fontWeight: 800, color: '#d97706' }}>4. YILDA NE KADAR</div>
+                    <div style={{ fontSize: '17px', fontWeight: 900, marginTop: '3px' }}>Yılda ~{focusedProgram.estYearlyCount} Defa</div>
+                    <div style={{ fontSize: '12px', fontWeight: 800, color: '#d97706' }}>{focusedProgram.estYearlyHours} / yıl</div>
+                  </div>
+                </div>
+
+                <div style={{ maxHeight: '220px', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11.5px' }}>
+                    <thead>
+                      <tr style={{ background: 'var(--bg-tertiary)', textAlign: 'left', color: 'var(--text-secondary)' }}>
+                        <th style={{ padding: '7px 10px' }}>Tarih</th>
+                        <th style={{ padding: '7px 10px' }}>Gün</th>
+                        <th style={{ padding: '7px 10px', textAlign: 'center' }}>O Gün Kaç Defa</th>
+                        <th style={{ padding: '7px 10px', textAlign: 'center' }}>Toplam Süre</th>
+                        <th style={{ padding: '7px 10px' }}>Yayın Kuşakları</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {focusedProgram.detailedDates.map(d => (
+                        <tr key={d.dateKey} style={{ borderTop: '1px solid var(--border-color)' }}>
+                          <td style={{ padding: '6px 10px', fontWeight: 800 }}>{d.dateKey}</td>
+                          <td style={{ padding: '6px 10px', fontWeight: 700 }}>{d.dayName}</td>
+                          <td style={{ padding: '6px 10px', textAlign: 'center', fontWeight: 800, color: '#2563eb' }}>{d.count} Kez</td>
+                          <td style={{ padding: '6px 10px', textAlign: 'center', fontWeight: 800, color: '#059669' }}>{formatSecondsToHoursMin(d.seconds)}</td>
+                          <td style={{ padding: '6px 10px' }}>
+                            {d.slots.map((s, i) => `${s.startTime}-${s.endTime}${s.episode ? ` (Bölüm ${s.episode})` : ''}`).join(' • ')}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', minWidth: '1100px', borderCollapse: 'collapse', fontSize: '12px' }}>
+                <thead>
+                  <tr style={{ background: 'var(--bg-tertiary)', textAlign: 'left', color: 'var(--text-secondary)' }}>
+                    <th style={{ padding: '11px 14px', width: '22%' }}>Program Adı &amp; Kategori</th>
+                    <th style={{ padding: '11px 10px', textAlign: 'center', width: '11%' }}>Seçili Dönem Toplamı</th>
+                    <th style={{ padding: '11px 10px', textAlign: 'center', width: '13%', background: 'rgba(37,99,235,0.06)', color: '#1d4ed8' }}>
+                      Günde Ne Kadar
+                    </th>
+                    <th style={{ padding: '11px 10px', textAlign: 'center', width: '13%', background: 'rgba(8,145,178,0.06)', color: '#0e7490' }}>
+                      Haftada Ne Kadar
+                    </th>
+                    <th style={{ padding: '11px 10px', textAlign: 'center', width: '13%', background: 'rgba(5,150,105,0.06)', color: '#047857' }}>
+                      Ayda Ne Kadar
+                    </th>
+                    <th style={{ padding: '11px 10px', textAlign: 'center', width: '13%', background: 'rgba(217,119,6,0.06)', color: '#b45309' }}>
+                      Yılda Ne Kadar
+                    </th>
+                    <th style={{ padding: '11px 14px', width: '15%' }}>Hangi Gün Kaç Defa Yayınlandı</th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                </thead>
+                <tbody>
+                  {filteredPrograms.length === 0 ? (
+                    <tr>
+                      <td colSpan="7" style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        Seçili filtreye uygun yayınlanmış program kaydı bulunamadı.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredPrograms.map(p => {
+                      const isFocused = focusedProgram?.key === p.key;
+                      return (
+                        <tr
+                          key={p.key}
+                          onClick={() => setExpandedProgramKey(prev => (prev === p.key ? null : p.key))}
+                          style={{
+                            borderTop: '1px solid var(--border-color)',
+                            background: isFocused ? 'rgba(5, 150, 105, 0.06)' : 'transparent',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <td style={{ padding: '10px 14px' }}>
+                            <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '13px' }}>
+                              {p.title}
+                              {p.isLive && (
+                                <span style={{ marginLeft: '6px', fontSize: '10px', background: 'rgba(239,68,68,0.14)', color: '#ef4444', padding: '2px 6px', borderRadius: '4px', fontWeight: 800 }}>
+                                  CANLI
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px', flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: '10.5px', fontWeight: 700, padding: '2px 8px', borderRadius: '5px', background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
+                                {p.category}
+                              </span>
+                              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>• {p.activeDaysCount} gün</span>
+                              <span style={{ fontSize: '10.5px', color: '#059669', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                                <Eye size={11} /> Detay
+                              </span>
+                            </div>
+                          </td>
+                          <td style={{ padding: '10px 10px', textAlign: 'center' }}>
+                            <div style={{ fontWeight: 900, color: '#2563eb', fontSize: '13.5px' }}>{p.count} Defa</div>
+                            <div style={{ fontWeight: 800, color: '#059669', fontSize: '12px' }}>{p.hoursFormatted}</div>
+                          </td>
+                          <td style={{ padding: '10px 10px', textAlign: 'center', background: 'rgba(37,99,235,0.03)' }}>
+                            <div style={{ fontWeight: 900, color: '#2563eb' }}>Günde {p.dailyAvgCount} Kez</div>
+                            <div style={{ fontWeight: 800, fontSize: '11.5px' }}>{p.dailyAvgHoursFormatted} / gün</div>
+                          </td>
+                          <td style={{ padding: '10px 10px', textAlign: 'center', background: 'rgba(8,145,178,0.03)' }}>
+                            <div style={{ fontWeight: 900, color: '#0891b2' }}>Haftada {p.avgWeeklyCount} Kez</div>
+                            <div style={{ fontWeight: 800, fontSize: '11.5px' }}>{p.weeklyHoursFormatted} / hafta</div>
+                          </td>
+                          <td style={{ padding: '10px 10px', textAlign: 'center', background: 'rgba(5,150,105,0.03)' }}>
+                            <div style={{ fontWeight: 900, color: '#059669' }}>Ayda ~{p.estMonthlyCount} Kez</div>
+                            <div style={{ fontWeight: 800, fontSize: '11.5px' }}>{p.estMonthlyHours} / ay</div>
+                          </td>
+                          <td style={{ padding: '10px 10px', textAlign: 'center', background: 'rgba(217,119,6,0.03)' }}>
+                            <div style={{ fontWeight: 900, color: '#d97706' }}>Yılda ~{p.estYearlyCount} Kez</div>
+                            <div style={{ fontWeight: 800, fontSize: '11.5px' }}>{p.estYearlyHours} / yıl</div>
+                          </td>
+                          <td style={{ padding: '10px 14px' }}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                              {p.sortedDaysOfWeek.map(([dName, obj]) => (
+                                <span
+                                  key={dName}
+                                  style={{
+                                    fontSize: '10.5px',
+                                    fontWeight: 700,
+                                    padding: '2px 7px',
+                                    borderRadius: '5px',
+                                    background: 'rgba(37, 99, 235, 0.1)',
+                                    color: '#2563eb'
+                                  }}
+                                >
+                                  {dName}: <strong>{obj.count} kez</strong> ({formatSecondsToHoursMin(obj.seconds)})
+                                </span>
+                              ))}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         )}
 
         {/* SEKME 2: REKLAM REZERVASYONA İLETİLEN LİSTE vs REKLAM SONRASI FİNAL LİSTE */}
@@ -1194,7 +1633,6 @@ const BroadcastReportsView = () => {
               </table>
             </div>
 
-            {/* Kuşak Bazlı Detaylı Spot Yerleşimi */}
             {reportData.postAdsBreakDetails.length > 0 && (
               <div>
                 <h3 style={{ margin: '8px 0', fontSize: '14px', fontWeight: 800, color: 'var(--text-primary)' }}>
