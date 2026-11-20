@@ -21,6 +21,177 @@ export const ADS_CATALOG_VERSION = 8;
 
 const USER_RESERVATIONS_STORAGE_KEY = 'yayin_ads_reservations_v1';
 const USER_PLACEMENTS_STORAGE_KEY = 'yayin_ads_placements_v1';
+const USER_BUMPER_RULES_STORAGE_KEY = 'yayin_ads_bumper_rules_v1';
+
+/**
+ * Kanal ve Kategori Bazlı Varsayılan Reklam Giriş / Çıkış Jenerik Kuralları.
+ * Bir kural birden fazla kategoriye (`categories: ['Dini', ...]`) bağlanabilir ve her kanal (`ch_hd`, `ch_way`) için ayrı tanımlanabilir.
+ */
+export function buildDefaultAdBreakBumperRules() {
+  const baseTemplates = [
+    {
+      key: 'dini',
+      ruleName: 'Dini Programlar Reklam Giriş & Çıkışı',
+      categories: ['Dini'],
+      categoryIds: [4],
+      introClip: {
+        clipId: '3538',
+        name: 'reklam_dini_giris_2014',
+        code: '42N6CUHF.mxf',
+        durationSec: 9,
+        durationMs: 9040
+      },
+      outroClip: {
+        clipId: '3537',
+        name: 'reklam_dini_cikis_2014',
+        code: '42N6CUIL.mxf',
+        durationSec: 9,
+        durationMs: 9040
+      }
+    },
+    {
+      key: 'kadin',
+      ruleName: 'Kadın & Aile Programları Reklam Giriş & Çıkışı',
+      categories: ['Kadın'],
+      categoryIds: [1],
+      introClip: {
+        clipId: '3534',
+        name: 'reklam_bayan_giris_2014',
+        code: '42N6CUAK.mxf',
+        durationSec: 9,
+        durationMs: 9040
+      },
+      outroClip: {
+        clipId: '3533',
+        name: 'reklam_bayan_cikis_2014',
+        code: '42N6CUCG.mxf',
+        durationSec: 9,
+        durationMs: 9040
+      }
+    },
+    {
+      key: 'cocuk',
+      ruleName: 'Çocuk & Gençlik Programları Reklam Giriş & Çıkışı',
+      categories: ['Çocuk'],
+      categoryIds: [5],
+      introClip: {
+        clipId: '3536',
+        name: 'reklam_cocuk_giris_2014',
+        code: '42N6CU34.mxf',
+        durationSec: 9,
+        durationMs: 9040
+      },
+      outroClip: {
+        clipId: '3535',
+        name: 'reklam_cocuk_cikis_2014',
+        code: '42N6CU62.mxf',
+        durationSec: 9,
+        durationMs: 9040
+      }
+    },
+    {
+      key: 'kulturel_genel',
+      ruleName: 'Kültürel, Haber, Detay ve Kısa Programlar Reklam Giriş & Çıkışı',
+      categories: ['Kültürel', 'Haber', 'Tanıtım', 'Detay', 'Kısa Program'],
+      categoryIds: [8, 2, 3, 9, 10],
+      introClip: {
+        clipId: '3540',
+        name: 'reklam_kulturel_giris_2014',
+        code: '42N6CU52.mxf',
+        durationSec: 9,
+        durationMs: 9040
+      },
+      outroClip: {
+        clipId: '3539',
+        name: 'reklam_kulturel_cikis_2014',
+        code: '42N6CU1L.mxf',
+        durationSec: 9,
+        durationMs: 9040
+      }
+    }
+  ];
+
+  const channels = ['ch_hd', 'ch_way'];
+  const rules = [];
+  channels.forEach(chId => {
+    baseTemplates.forEach(tpl => {
+      rules.push({
+        id: `bumper-${chId}-${tpl.key}`,
+        channelId: chId,
+        ruleName: tpl.ruleName,
+        categories: [...tpl.categories],
+        categoryIds: [...tpl.categoryIds],
+        introClip: { ...tpl.introClip },
+        outroClip: { ...tpl.outroClip },
+        isActive: true,
+        updatedAt: new Date().toISOString()
+      });
+    });
+  });
+
+  return rules;
+}
+
+export const DEFAULT_AD_BREAK_BUMPER_RULES = buildDefaultAdBreakBumperRules();
+
+/**
+ * `adsMedia.json` içindeki tüm `reklam_*_giris*` ve `reklam_*_cikis*` jenerik kliplerini döndürür.
+ */
+export function getBumperJingleClipsFromAdsMedia() {
+  return (adsMedia || [])
+    .filter(item => {
+      const n = String(item?.name || '').toLowerCase();
+      return (
+        n.includes('giris') ||
+        n.includes('giriş') ||
+        n.includes('cikis') ||
+        n.includes('çıkış') ||
+        n.includes('jenerik') ||
+        /^reklam_/i.test(n)
+      );
+    })
+    .map(item => {
+      const durMs = Number(item.duration) > 600 ? Number(item.duration) : (Number(item.duration) || 9) * 1000;
+      const durSec = Math.max(1, Math.round(durMs / 1000));
+      return {
+        id: String(item.id),
+        clipId: String(item.id),
+        name: item.name,
+        clipName: item.name,
+        code: item.code || `${item.id}.mxf`,
+        duration: durSec,
+        durationSec: durSec,
+        durationMs: durMs,
+        categoryName: 'Reklam Jeneriği (Giriş / Çıkış)',
+        companyName: 'SEMERKAND TV JENERİK',
+        productName: 'Reklam Giriş / Çıkış Jeneriği',
+        isBumperJingle: true
+      };
+    });
+}
+
+export function saveAdBreakBumperRulesBackup(rules) {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage && Array.isArray(rules)) {
+      window.localStorage.setItem(USER_BUMPER_RULES_STORAGE_KEY, JSON.stringify(rules));
+    }
+  } catch (e) {}
+}
+
+export function loadAdBreakBumperRulesBackup() {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const raw = window.localStorage.getItem(USER_BUMPER_RULES_STORAGE_KEY);
+      if (raw !== null) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    }
+  } catch (e) {}
+  return null;
+}
 
 /**
  * Verilen tarih dizgesinin (`YYYY-MM-DD`) içinde bulunduğu haftanın

@@ -28,7 +28,12 @@ import {
   normalizeAdDurationSeconds,
   buildInitialReservationsAndPlacements,
   saveAdsReservationsBackup,
-  loadAdsReservationsBackup
+  loadAdsReservationsBackup,
+  DEFAULT_AD_BREAK_BUMPER_RULES,
+  buildDefaultAdBreakBumperRules,
+  getBumperJingleClipsFromAdsMedia,
+  saveAdBreakBumperRulesBackup,
+  loadAdBreakBumperRulesBackup
 } from './ads/adsCatalogHelpers';
 
 import {
@@ -82,7 +87,125 @@ export const createAdsSlice = (set, get) => ({
   materials: initialSyncedCatalog.materials,
   reservations: Array.isArray(initialBackup.reservations) ? initialBackup.reservations : [],
   timeBlocks: DEFAULT_TIME_BLOCKS,
+  adBreakBumperRules: loadAdBreakBumperRulesBackup() || DEFAULT_AD_BREAK_BUMPER_RULES,
   ramadanConfig: loadSavedRamadanConfig(),
+
+  /**
+   * Kanal ve kategori bazlı Reklam Giriş / Çıkış Jenerik kuralı ekler veya günceller.
+   * applyToBothChannels=true ise kuralı hem Semerkand HD (ch_hd) hem de Semerkand WAY (ch_way) için kaydeder.
+   * Seçilen kategoriler aynı kanalda başka bir kuralda varsa çakışmayı önlemek için eski kuraldan otomatik düşülür.
+   */
+  saveAdBreakBumperRule: (rulePayload) => set(state => {
+    const currentRules = Array.isArray(state.adBreakBumperRules) ? [...state.adBreakBumperRules] : [];
+    const targetChannels = rulePayload.applyToBothChannels
+      ? ['ch_hd', 'ch_way']
+      : [rulePayload.channelId || 'ch_hd'];
+
+    const selectedCategories = Array.from(
+      new Set((rulePayload.categories || []).map(c => String(c || '').trim()).filter(Boolean))
+    );
+    const selectedCategoryIds = Array.from(
+      new Set((rulePayload.categoryIds || []).map(Number).filter(n => !isNaN(n) && n > 0))
+    );
+
+    if (selectedCategories.length === 0) return state;
+
+    let updatedRules = [...currentRules];
+
+    targetChannels.forEach((chId, chIdx) => {
+      const editingId =
+        !rulePayload.applyToBothChannels && rulePayload.id
+          ? String(rulePayload.id)
+          : chIdx === 0 && rulePayload.id && String(rulePayload.channelId) === String(chId)
+          ? String(rulePayload.id)
+          : null;
+
+      // Aynı kanaldaki diğer kurallardan bu kategorileri çıkar (tekillik koruması)
+      updatedRules = updatedRules
+        .map(r => {
+          if (String(r.channelId) !== String(chId)) return r;
+          if (editingId && String(r.id) === editingId) return r;
+
+          const remainingCats = (r.categories || []).filter(
+            catName => !selectedCategories.some(sc => sc.toLocaleLowerCase('tr-TR') === String(catName).toLocaleLowerCase('tr-TR'))
+          );
+          const remainingCatIds = (r.categoryIds || []).filter(
+            cId => !selectedCategoryIds.includes(Number(cId))
+          );
+
+          if (remainingCats.length === 0) return null;
+          return {
+            ...r,
+            categories: remainingCats,
+            categoryIds: remainingCatIds
+          };
+        })
+        .filter(Boolean);
+
+      const ruleObj = {
+        id: editingId || `bumper-${chId}-${Date.now()}-${chIdx}`,
+        channelId: chId,
+        ruleName:
+          String(rulePayload.ruleName || '').trim() ||
+          `${selectedCategories.join(', ')} Reklam Giriş & Çıkışı`,
+        categories: selectedCategories,
+        categoryIds: selectedCategoryIds,
+        introClip: rulePayload.introClip || null,
+        outroClip: rulePayload.outroClip || null,
+        isActive: rulePayload.isActive !== false,
+        updatedAt: new Date().toISOString()
+      };
+
+      const existingIdx = editingId
+        ? updatedRules.findIndex(r => String(r.id) === editingId)
+        : -1;
+
+      if (existingIdx > -1) {
+        updatedRules[existingIdx] = ruleObj;
+      } else {
+        updatedRules.push(ruleObj);
+      }
+    });
+
+    saveAdBreakBumperRulesBackup(updatedRules);
+    return { adBreakBumperRules: updatedRules };
+  }),
+
+  deleteAdBreakBumperRule: (ruleId) => set(state => {
+    const nextRules = (state.adBreakBumperRules || []).filter(r => String(r.id) !== String(ruleId));
+    saveAdBreakBumperRulesBackup(nextRules);
+    return { adBreakBumperRules: nextRules };
+  }),
+
+  toggleAdBreakBumperRuleActive: (ruleId) => set(state => {
+    const nextRules = (state.adBreakBumperRules || []).map(r =>
+      String(r.id) === String(ruleId) ? { ...r, isActive: !r.isActive, updatedAt: new Date().toISOString() } : r
+    );
+    saveAdBreakBumperRulesBackup(nextRules);
+    return { adBreakBumperRules: nextRules };
+  }),
+
+  copyAdBreakBumperRulesBetweenChannels: (sourceChannelId, targetChannelId) => set(state => {
+    if (!sourceChannelId || !targetChannelId || sourceChannelId === targetChannelId) return state;
+    const currentRules = state.adBreakBumperRules || [];
+    const sourceRules = currentRules.filter(r => String(r.channelId) === String(sourceChannelId));
+    const otherRules = currentRules.filter(r => String(r.channelId) !== String(targetChannelId));
+    const clonedForTarget = sourceRules.map((r, idx) => ({
+      ...r,
+      id: `bumper-${targetChannelId}-copy-${Date.now()}-${idx}`,
+      channelId: targetChannelId,
+      updatedAt: new Date().toISOString()
+    }));
+    const nextRules = [...otherRules, ...clonedForTarget];
+    saveAdBreakBumperRulesBackup(nextRules);
+    return { adBreakBumperRules: nextRules };
+  }),
+
+  resetAdBreakBumperRulesToDefault: () => set(() => {
+    const defaults = buildDefaultAdBreakBumperRules();
+    saveAdBreakBumperRulesBackup(defaults);
+    return { adBreakBumperRules: defaults };
+  }),
 
   setRamadanConfig: (updates) => set(state => {
     const nextConfig = { ...(state.ramadanConfig || {}), ...updates };

@@ -25,7 +25,8 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Award,
-  BarChart3
+  BarChart3,
+  Sparkles
 } from 'lucide-react';
 import usePlanningStore from '../../store/planningStore';
 
@@ -36,6 +37,7 @@ const AdsSidebar = ({ activeTab, setActiveTab }) => {
   const products = usePlanningStore(state => state.products || []);
   const materials = usePlanningStore(state => state.materials || []);
   const reservations = usePlanningStore(state => state.reservations || []);
+  const adBreakBumperRules = usePlanningStore(state => state.adBreakBumperRules || []);
   const adsSyncInfo = usePlanningStore(state => state.adsSyncInfo || {});
   const syncAdsCatalogFromArchive = usePlanningStore(state => state.syncAdsCatalogFromArchive);
   const setAdFilters = usePlanningStore(state => state.setAdFilters);
@@ -54,7 +56,8 @@ const AdsSidebar = ({ activeTab, setActiveTab }) => {
         { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} />, badge: 'Canlı' },
         { id: 'reservations', label: 'Rezervasyonlar', icon: <Megaphone size={18} />, count: reservations.length },
         { id: 'sponsorships', label: 'Sponsorluklar', icon: <Award size={18} />, count: reservations.filter(r => r.isSponsor).length },
-        { id: 'planning', label: 'Yayın Planlama', icon: <CalendarCheck size={18} /> }
+        { id: 'planning', label: 'Yayın Planlama', icon: <CalendarCheck size={18} /> },
+        { id: 'ad-bumpers', label: 'Reklam Giriş & Çıkışları', icon: <Sparkles size={18} />, count: adBreakBumperRules.length }
       ]
     },
     {
