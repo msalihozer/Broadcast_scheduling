@@ -19,6 +19,7 @@ import usePlanningStore from '../../store/planningStore';
 import ProductForm from './ProductForm';
 import AdsPaginationBar from './AdsPaginationBar';
 import useDialogStore from '../../store/dialogStore';
+import { filterAndSortPrefixFirst } from './reservation/reservationConstants';
 
 function formatTurkishDate(dateStr = '') {
   if (!dateStr) return '-';
@@ -113,12 +114,11 @@ const ProductsTab = ({ setActiveTab }) => {
     }
 
     if (searchTerm.trim()) {
-      const q = searchTerm.toLocaleLowerCase('tr-TR').trim();
-      list = list.filter(
-        p =>
-          (p.name || '').toLocaleLowerCase('tr-TR').includes(q) ||
-          (p.companyName || '').toLocaleLowerCase('tr-TR').includes(q) ||
-          (p.latestClipName || '').toLocaleLowerCase('tr-TR').includes(q)
+      return filterAndSortPrefixFirst(
+        list,
+        searchTerm,
+        p => p?.name || '',
+        p => `${p?.companyName || ''} ${p?.latestClipName || ''}`
       );
     }
 

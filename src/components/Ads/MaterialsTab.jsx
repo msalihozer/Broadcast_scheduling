@@ -22,6 +22,7 @@ import MaterialForm from './MaterialForm';
 import AdVideoPlayer from './AdVideoPlayer';
 import AdsPaginationBar from './AdsPaginationBar';
 import useDialogStore from '../../store/dialogStore';
+import { filterAndSortPrefixFirst } from './reservation/reservationConstants';
 
 function formatTurkishDate(dateStr = '') {
   if (!dateStr) return '-';
@@ -145,11 +146,12 @@ const MaterialsTab = ({ setActiveTab }) => {
     }
 
     if (searchTerm.trim()) {
-      const q = searchTerm.toLocaleLowerCase('tr-TR').trim();
-      list = list.filter(m => {
-        const hay = `${m.name} ${m.clipName} ${m.code} ${m.clipId} ${m.companyName} ${m.productName} ${m.uploadDate}`.toLocaleLowerCase('tr-TR');
-        return hay.includes(q);
-      });
+      return filterAndSortPrefixFirst(
+        list,
+        searchTerm,
+        m => m?.name || m?.clipName || '',
+        m => `${m?.companyName || ''} ${m?.productName || ''} ${m?.clipName || ''} ${m?.code || ''}`
+      );
     }
 
     const sorted = [...list];

@@ -17,7 +17,7 @@ import { buildAutoSyncedAdsCatalog, normalizeAdDurationSeconds } from '../../../
 
 export { buildAutoSyncedAdsCatalog, normalizeAdDurationSeconds };
 
-export const ADS_CATALOG_VERSION = 6;
+export const ADS_CATALOG_VERSION = 7;
 
 const USER_RESERVATIONS_STORAGE_KEY = 'yayin_ads_reservations_v1';
 const USER_PLACEMENTS_STORAGE_KEY = 'yayin_ads_placements_v1';

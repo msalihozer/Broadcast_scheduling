@@ -19,6 +19,7 @@ import usePlanningStore from '../../store/planningStore';
 import CompanyForm from './CompanyForm';
 import AdsPaginationBar from './AdsPaginationBar';
 import useDialogStore from '../../store/dialogStore';
+import { filterAndSortPrefixFirst } from './reservation/reservationConstants';
 
 function formatTurkishDate(dateStr = '') {
   if (!dateStr) return '-';
@@ -154,13 +155,11 @@ const CompaniesTab = ({ setActiveTab }) => {
     }
 
     if (searchTerm.trim()) {
-      const q = searchTerm.toLocaleLowerCase('tr-TR').trim();
-      list = list.filter(
-        c =>
-          (c.name || '').toLocaleLowerCase('tr-TR').includes(q) ||
-          (c.shortName || '').toLocaleLowerCase('tr-TR').includes(q) ||
-          (c.productNamesPreview || '').toLocaleLowerCase('tr-TR').includes(q) ||
-          (c.latestClipName || '').toLocaleLowerCase('tr-TR').includes(q)
+      return filterAndSortPrefixFirst(
+        list,
+        searchTerm,
+        c => c?.name || '',
+        c => `${c?.shortName || ''} ${c?.productNamesPreview || ''} ${c?.latestClipName || ''}`
       );
     }
 

@@ -12,7 +12,7 @@
  *    - 1. Kısım: `Program Öncesi`, `Program Arası`, `Program Sonrası` (Çoklu Olabilir)
  *    - 2. Kısım: `Program Öncesi (Sunar)`, `Program Arası (Devam Edecek)`, `Program Arası (Devam Ediyor)`, `Program Sonrası (Sundu)` (Tekil & İlk/Son Sıra Kilitli)
  */
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Trash2,
   Clock,
@@ -22,7 +22,8 @@ import {
   Wallet,
   Check,
   Play,
-  Film
+  Film,
+  X
 } from 'lucide-react';
 import {
   SPONSOR_FLOW_POSITIONS,
@@ -34,7 +35,8 @@ import {
   getBlockTheme,
   calculateRowPricing,
   calculateItemOverageMetrics,
-  isRamadanFeatureWindowOpen
+  isRamadanFeatureWindowOpen,
+  filterAndSortPrefixFirst
 } from './reservationConstants';
 
 const ClipReservationCard = ({
@@ -59,21 +61,48 @@ const ClipReservationCard = ({
   onRemoveRow,
   onPreviewMaterial
 }) => {
-  const rowMaterials = item.productId
-    ? materials.filter(m => String(m.productId) === String(item.productId))
-    : materials.filter(m => String(m.companyId) === String(selectedCompanyObj?.id || item.companyId));
+  const [materialSearchQuery, setMaterialSearchQuery] = useState('');
+
+  const companyAllMaterials = useMemo(
+    () => materials.filter(m => String(m.companyId) === String(selectedCompanyObj?.id || item.companyId)),
+    [materials, selectedCompanyObj, item.companyId]
+  );
+
+  const baseRowMaterials = useMemo(() => {
+    if (item.productId) {
+      const byProd = materials.filter(m => String(m.productId) === String(item.productId));
+      if (byProd.length > 0) return byProd;
+    }
+    return companyAllMaterials;
+  }, [materials, item.productId, companyAllMaterials]);
+
+  const rowMaterials = useMemo(() => {
+    const q = String(materialSearchQuery || '').trim();
+    if (!q) return baseRowMaterials;
+    // Arama yapıldığında seçili firmanın tüm klipleri (veya bulunamazsa tüm katalog) içinde ilk harften başlayarak ara
+    const matchedInCompany = filterAndSortPrefixFirst(
+      companyAllMaterials.length > 0 ? companyAllMaterials : materials,
+      q,
+      m => m?.name || m?.clipName || '',
+      m => `${m?.clipName || ''} ${m?.code || ''}`
+    );
+    return matchedInCompany;
+  }, [baseRowMaterials, companyAllMaterials, materials, materialSearchQuery]);
+
   const selectedMatObj = materials.find(m => String(m.id) === String(item.materialId));
   const rowCalc = calculateRowPricing(item);
   const overageMetrics = calculateItemOverageMetrics(item, null, ramadanConfig);
   const mode = item.pricingMode || 'spots_only';
-  const rowProgramSearch = String(item.programSearch || '').trim().toLocaleLowerCase('tr-TR');
-  const rowFilteredPrograms = rowProgramSearch
-    ? usedPrograms.filter(
-        p =>
-          (p.title || '').toLocaleLowerCase('tr-TR').includes(rowProgramSearch) ||
-          (p.categoryName || '').toLocaleLowerCase('tr-TR').includes(rowProgramSearch)
-      )
-    : usedPrograms;
+  const rowProgramSearch = String(item.programSearch || '').trim();
+  const rowFilteredPrograms = useMemo(() => {
+    if (!rowProgramSearch) return usedPrograms;
+    return filterAndSortPrefixFirst(
+      usedPrograms,
+      rowProgramSearch,
+      p => p?.title || '',
+      p => p?.categoryName || ''
+    );
+  }, [usedPrograms, rowProgramSearch]);
 
   return (
     <div
@@ -230,9 +259,51 @@ const ClipReservationCard = ({
         </div>
 
         <div>
-          <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: 'var(--ads-text-sub)', marginBottom: '5px' }}>
-            Reklam Materyali (Spot Klip — Tam İsim) *
-          </label>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '5px', gap: '8px' }}>
+            <label style={{ fontSize: '11px', fontWeight: '700', color: 'var(--ads-text-sub)' }}>
+              Reklam Materyali (Spot Klip — Tam İsim) * ({rowMaterials.length} Klip)
+            </label>
+            {companyAllMaterials.length > 2 && (
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <Search size={11} style={{ position: 'absolute', left: '7px', color: 'var(--ads-text-muted)' }} />
+                <input
+                  type="text"
+                  value={materialSearchQuery}
+                  onChange={e => setMaterialSearchQuery(e.target.value)}
+                  placeholder="Klip ara (ilk harften)..."
+                  style={{
+                    height: '22px',
+                    fontSize: '11px',
+                    paddingLeft: '22px',
+                    paddingRight: materialSearchQuery ? '20px' : '8px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--ads-border)',
+                    background: 'var(--ads-card-bg)',
+                    color: 'var(--ads-text-main)',
+                    width: '155px'
+                  }}
+                />
+                {materialSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setMaterialSearchQuery('')}
+                    style={{
+                      position: 'absolute',
+                      right: '4px',
+                      border: 'none',
+                      background: 'transparent',
+                      cursor: 'pointer',
+                      padding: 0,
+                      color: 'var(--ads-text-muted)',
+                      display: 'flex'
+                    }}
+                  >
+                    <X size={11} />
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
           <select
             value={item.materialId}
             onChange={e => onItemChange(index, 'materialId', e.target.value)}

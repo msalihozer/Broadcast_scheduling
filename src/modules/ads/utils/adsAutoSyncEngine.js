@@ -108,6 +108,7 @@ export function isExcludedAdItem(name = '', clipName = '', description = '') {
  * Bilinen marka/firma anahtar kelimelerine göre temiz Firma Adı ve Ürün/Kampanya Adı çıkarır.
  */
 const BRAND_DICTIONARY = [
+  { rx: /ucuncu[\s_-]*binyil|üçüncü[\s_-]*binyıl|├╝c├╝nc├╝[\s_-]*binyil/i, company: 'ÜÇÜNCÜ BİNYIL AKADEMİ', product: 'Üçüncü Binyıl Eğitim & Akademi' },
   { rx: /aile[\s_-]*dergi|abone[\s_-]*\d*[\s_-]*aile/i, company: 'SEMERKAND YAYINLARI', product: 'Semerkand Aile Dergisi' },
   { rx: /mostar/i, company: 'SEMERKAND YAYINLARI', product: 'Mostar Dergisi' },
   { rx: /genc[\s_-]*okur|gencokur/i, company: 'SEMERKAND YAYINLARI', product: 'Genç Okur Dergisi' },
@@ -163,8 +164,36 @@ const NOISE_WORDS_SET = new Set([
   'rmz', 'way', 'hd', 'tr', 'avrupa'
 ]);
 
-export function formatCleanTitle(str = '') {
+export function sanitizeTurkishEncoding(str = '') {
   return String(str || '')
+    .replace(/├╝/g, 'ü')
+    .replace(/╠£/g, 'Ü')
+    .replace(/├§/g, 'ç')
+    .replace(/╠ğ/g, 'Ç')
+    .replace(/├╢/g, 'ö')
+    .replace(/╠û/g, 'Ö')
+    .replace(/─▒/g, 'ı')
+    .replace(/─░/g, 'İ')
+    .replace(/┼ş/g, 'ş')
+    .replace(/┼İ/g, 'Ş')
+    .replace(/─ş/g, 'ğ')
+    .replace(/─Ю/g, 'Ğ')
+    .replace(/Ä°/g, 'İ')
+    .replace(/Ä±/g, 'ı')
+    .replace(/Ãœ/g, 'Ü')
+    .replace(/Ã¼/g, 'ü')
+    .replace(/Ã‡/g, 'Ç')
+    .replace(/Ã§/g, 'ç')
+    .replace(/Ã–/g, 'Ö')
+    .replace(/Ã¶/g, 'ö')
+    .replace(/Åž/g, 'Ş')
+    .replace(/ÅŸ/g, 'ş')
+    .replace(/Äž/g, 'Ğ')
+    .replace(/ÄŸ/g, 'ğ');
+}
+
+export function formatCleanTitle(str = '') {
+  return sanitizeTurkishEncoding(str)
     .replace(/^r[_-]/i, '')
     .replace(/\.mxf$/i, '')
     .replace(/[_-]\d{6,8}$/i, '')
@@ -182,12 +211,14 @@ export function formatCleanTitle(str = '') {
  * Bir reklam klibinin adından Firma, Ürün ve Materyal başlığını akıllı olarak çözümler.
  */
 export function resolveClipCompanyAndProduct(clipName = '', metaCompany = '', fallbackTitle = '') {
-  const raw = String(clipName || fallbackTitle || '').trim();
-  const cleanMaterialTitle = formatCleanTitle(raw) || formatCleanTitle(fallbackTitle) || raw;
+  const raw = sanitizeTurkishEncoding(String(clipName || fallbackTitle || '').trim());
+  const cleanFallback = sanitizeTurkishEncoding(fallbackTitle);
+  const cleanMetaCompany = sanitizeTurkishEncoding(metaCompany);
+  const cleanMaterialTitle = formatCleanTitle(raw) || formatCleanTitle(cleanFallback) || raw;
 
   // 1. Önce bilinen kurumsal marka sözlüğüne bak
   for (const rule of BRAND_DICTIONARY) {
-    if (rule.rx.test(raw) || (fallbackTitle && rule.rx.test(fallbackTitle))) {
+    if (rule.rx.test(raw) || (cleanFallback && rule.rx.test(cleanFallback))) {
       return {
         companyName: rule.company,
         productName: rule.product,
@@ -197,8 +228,8 @@ export function resolveClipCompanyAndProduct(clipName = '', metaCompany = '', fa
   }
 
   // 2. Eğer veritabanı FileMetadata'sından açık şirket/marka adı geldiyse kullan
-  if (metaCompany && String(metaCompany).trim().length >= 2) {
-    const compUpper = String(metaCompany).trim().toLocaleUpperCase('tr-TR');
+  if (cleanMetaCompany && String(cleanMetaCompany).trim().length >= 2) {
+    const compUpper = String(cleanMetaCompany).trim().toLocaleUpperCase('tr-TR');
     return {
       companyName: compUpper,
       productName: cleanMaterialTitle || `${formatCleanTitle(compUpper)} Kampanyası`,
@@ -281,15 +312,15 @@ export function buildAutoSyncedAdsCatalog({
       .replace(/[^a-z0-9]/g, '')
       .trim();
 
-  // Torba / jenerik firma isimleri (bunları firma olarak tutmayıp içindeki klipleri gerçek firmalarına dağıtıyoruz)
-  const BUCKET_COMPANY_IDS = new Set(['154', '171', '174']);
-  const BUCKET_COMPANY_NAMES = new Set(['pozitif', 'avrupa', 'ramazan2020', 'sil', 'test']);
+  // Torba / jenerik firma isimleri (yalnızca geçersiz test/sil kayıtlarını hariç tut)
+  const BUCKET_COMPANY_IDS = new Set(['154', '174']);
+  const BUCKET_COMPANY_NAMES = new Set(['ramazan2020', 'sil', 'test']);
 
-  // 1. Mevcut Firmaları Yükle
+  // 1. Mevcut Firmaları Yükle (Tüm kayıtlı firmaları eksiksiz koru)
   baseCompanies.forEach(c => {
     if (!c || !c.name) return;
     const idStr = String(c.id);
-    const cleanName = String(c.name).trim();
+    const cleanName = sanitizeTurkishEncoding(String(c.name).trim());
     const norm = normalizeKey(cleanName);
     if (!norm || BUCKET_COMPANY_IDS.has(idStr) || BUCKET_COMPANY_NAMES.has(norm)) return;
     if (isExcludedAdItem(cleanName)) return;
@@ -312,19 +343,12 @@ export function buildAutoSyncedAdsCatalog({
   });
 
   const getOrCreateCompany = (companyName) => {
-    const clean = String(companyName || 'GENEL REKLAMVEREN').trim().toLocaleUpperCase('tr-TR');
+    const clean = sanitizeTurkishEncoding(String(companyName || 'GENEL REKLAMVEREN').trim()).toLocaleUpperCase('tr-TR');
     const norm = normalizeKey(clean);
     if (!norm) return getOrCreateCompany('GENEL REKLAMVEREN');
 
     if (companyIdByNormName.has(norm)) {
       return companiesMap.get(companyIdByNormName.get(norm));
-    }
-
-    // Kısmi eşleşme kontrolü (en az 7 karakterli anahtar kelimeler için)
-    for (const [existingNorm, existingId] of companyIdByNormName.entries()) {
-      if (existingNorm.length >= 7 && norm.length >= 7 && (existingNorm.startsWith(norm) || norm.startsWith(existingNorm))) {
-        return companiesMap.get(existingId);
-      }
     }
 
     const newId = `comp-${norm}`;
@@ -408,13 +432,19 @@ export function buildAutoSyncedAdsCatalog({
     let compId = String(m.companyId || '');
     let prodId = String(m.productId || '');
 
-    // Eğer kullanıcı manuel düzenlediyse veya geçerli bir firmaya bağlıysa koru; torba firmadaysa klip adından gerçek firmasını çöz
-    if (!m.isManual && (!companiesMap.has(compId) || BUCKET_COMPANY_IDS.has(compId) || !productsMap.has(prodId))) {
-      const resolved = resolveClipCompanyAndProduct(clipName, '', m.name);
-      const realComp = getOrCreateCompany(resolved.companyName);
-      const realProd = getOrCreateProduct(realComp.id, resolved.productName);
-      compId = realComp.id;
-      prodId = realProd.id;
+    // Eğer geçerli bir firmaya bağlıysa o firmayı koru; sadece firma geçersizse klip adından çöz
+    if (!m.isManual) {
+      if (!companiesMap.has(compId) || BUCKET_COMPANY_IDS.has(compId)) {
+        const resolved = resolveClipCompanyAndProduct(clipName, '', m.name);
+        const realComp = getOrCreateCompany(resolved.companyName);
+        const realProd = getOrCreateProduct(realComp.id, resolved.productName);
+        compId = realComp.id;
+        prodId = realProd.id;
+      } else if (!productsMap.has(prodId)) {
+        const resolved = resolveClipCompanyAndProduct(clipName, '', m.name);
+        const realProd = getOrCreateProduct(compId, resolved.productName);
+        prodId = realProd.id;
+      }
     }
 
     const compObj = companiesMap.get(compId);
@@ -555,8 +585,15 @@ export function buildAutoSyncedAdsCatalog({
     matStatsByComp.set(m.companyId, cStat);
   });
 
+  // Her firmanın en az 1 ürünü olmasını garanti et (hiç ürünü olmayan firmalar için genel ürün oluştur)
+  companiesMap.forEach(c => {
+    const hasAnyProd = Array.from(productsMap.values()).some(p => String(p.companyId) === String(c.id));
+    if (!hasAnyProd) {
+      getOrCreateProduct(c.id, `${formatCleanTitle(c.name)} Genel Kampanya`);
+    }
+  });
+
   const finalProducts = Array.from(productsMap.values())
-    .filter(p => p.isManual || (matCountByProd.get(p.id)?.count || 0) > 0)
     .map(p => {
       const st = matCountByProd.get(p.id) || { count: 0, totalSec: 0, lastUploadDate: '2024-01-01', lastUploadTimestamp: '' };
       const comp = companiesMap.get(p.companyId);
@@ -576,8 +613,8 @@ export function buildAutoSyncedAdsCatalog({
     prodCountByComp.set(p.companyId, (prodCountByComp.get(p.companyId) || 0) + 1);
   });
 
+  // Hiçbir firmayı eleme — tüm firmaları eksiksiz döndür
   const finalCompanies = Array.from(companiesMap.values())
-    .filter(c => c.isManual || (matStatsByComp.get(c.id)?.materialCount || 0) > 0 || (prodCountByComp.get(c.id) || 0) > 0)
     .map(c => {
       const st = matStatsByComp.get(c.id) || { materialCount: 0, totalSec: 0, lastUploadDate: '2024-01-01', lastUploadTimestamp: '' };
       return {
@@ -589,7 +626,7 @@ export function buildAutoSyncedAdsCatalog({
         lastUploadTimestamp: st.lastUploadTimestamp
       };
     })
-    .sort((a, b) => (b.lastUploadTimestamp || '').localeCompare(a.lastUploadTimestamp || '') || b.materialCount - a.materialCount);
+    .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'tr'));
 
   return {
     companies: finalCompanies,

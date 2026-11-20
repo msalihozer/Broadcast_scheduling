@@ -443,3 +443,121 @@ export const calculateItemOverageMetrics = (item, realizedSpotsInput = null, ram
     hasAnyOverage
   };
 };
+
+/**
+ * Türkçe ve ASCII karakter duyarlı arama normalizasyon yardımcıları.
+ */
+export const normalizeTrSearchText = (str = '') =>
+  String(str || '')
+    .toLocaleLowerCase('tr-TR')
+    .replace(/^r[_-]/i, '')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+export const normalizeAsciiSearchText = (str = '') =>
+  normalizeTrSearchText(str)
+    .replace(/ğ/g, 'g')
+    .replace(/ü/g, 'u')
+    .replace(/ş/g, 's')
+    .replace(/ı/g, 'i')
+    .replace(/i̇/g, 'i')
+    .replace(/ö/g, 'o')
+    .replace(/ç/g, 'c')
+    .replace(/â/g, 'a')
+    .replace(/î/g, 'i')
+    .replace(/û/g, 'u');
+
+/**
+ * İlk Harften Başlayan Öncelikli (Prefix-First) Arama ve Sıralama Algoritması.
+ * - Herhangi bir adet sınırı (limit) koymaz, tüm eşleşenleri döndürür.
+ * - Tek harf yazıldığında (örn: "S") yalnızca o harfle başlayanları getirir (içinde geçenleri karıştırmaz).
+ * - 2+ harf yazıldığında önce yazdığınız harflerle başlayanları (Tier 1), ardından alt kelimesi o harflerle başlayanları (Tier 2),
+ *   en son (3+ harfte) kelime ortasında geçenleri (Tier 3) A-Z sırasıyla listeler.
+ */
+export const filterAndSortPrefixFirst = (
+  items = [],
+  rawQuery = '',
+  getPrimaryText = (x) => x?.name || x?.title || '',
+  getSecondaryText = null
+) => {
+  const list = Array.isArray(items) ? items : [];
+  const qTr = normalizeTrSearchText(rawQuery);
+  const qAscii = normalizeAsciiSearchText(rawQuery);
+
+  if (!qTr) {
+    return [...list].sort((a, b) =>
+      String(getPrimaryText(a) || '').localeCompare(String(getPrimaryText(b) || ''), 'tr')
+    );
+  }
+
+  const isSingleChar = qTr.length === 1;
+  const tier1 = []; // Doğrudan yazılan ilk harf/kelime ile başlayanlar
+  const tier2 = []; // İçindeki ikinci/üçüncü kelime yazılan harf/kelime ile başlayanlar
+  const tier3 = []; // Kelime ortasında veya ikincil alanda geçenler (3+ harf)
+
+  list.forEach(item => {
+    const rawPrimary = String(getPrimaryText(item) || '').trim();
+    if (!rawPrimary) return;
+    const pTr = normalizeTrSearchText(rawPrimary);
+    const pAscii = normalizeAsciiSearchText(rawPrimary);
+
+    // 1. ÖNCELİK: Doğrudan yazılan ilk harf / kelime ile başlıyor mu?
+    if (pTr.startsWith(qTr) || pAscii.startsWith(qAscii)) {
+      const exactBonus = pTr === qTr || pAscii === qAscii ? 0 : 1;
+      tier1.push({ item, rawPrimary, subRank: exactBonus });
+      return;
+    }
+
+    // Tek harf aramasında yalnızca ilk harfi eşleşenleri istiyoruz; eğer hiç bulunamazsa yedek olarak kelime başlangıcına bakılır
+    const wordsTr = pTr.split(' ').filter(Boolean);
+    const wordsAscii = pAscii.split(' ').filter(Boolean);
+
+    // 2. ÖNCELİK: İkinci veya sonraki kelimelerden biri yazılan ifadeyle başlıyor mu?
+    const wordIdxTr = wordsTr.findIndex((w, idx) => idx > 0 && w.startsWith(qTr));
+    const wordIdxAscii = wordsAscii.findIndex((w, idx) => idx > 0 && w.startsWith(qAscii));
+    const matchedWordIdx = wordIdxTr !== -1 ? wordIdxTr : wordIdxAscii;
+
+    if (matchedWordIdx !== -1) {
+      tier2.push({ item, rawPrimary, subRank: matchedWordIdx });
+      return;
+    }
+
+    if (isSingleChar) return;
+
+    // 3. ÖNCELİK (3+ harf için): Kelime ortasında veya ikincil alanda (kod, dosya adı, kategori) geçiyor mu?
+    if (qTr.length >= 2) {
+      const idxTr = pTr.indexOf(qTr);
+      const idxAscii = pAscii.indexOf(qAscii);
+      const pos = idxTr !== -1 ? idxTr : idxAscii;
+      if (pos !== -1) {
+        tier3.push({ item, rawPrimary, subRank: pos });
+        return;
+      }
+
+      if (typeof getSecondaryText === 'function') {
+        const rawSec = String(getSecondaryText(item) || '').trim();
+        if (rawSec) {
+          const sTr = normalizeTrSearchText(rawSec);
+          const sAscii = normalizeAsciiSearchText(rawSec);
+          if (sTr.includes(qTr) || sAscii.includes(qAscii)) {
+            tier3.push({ item, rawPrimary, subRank: 500 });
+          }
+        }
+      }
+    }
+  });
+
+  const sortBucket = (bucket) =>
+    bucket
+      .sort((a, b) => a.subRank - b.subRank || a.rawPrimary.localeCompare(b.rawPrimary, 'tr'))
+      .map(entry => entry.item);
+
+  // Tek harf yazıldığında (örn: "S") ilk harfi "S" olan firmalar varsa sadece onları döndür
+  if (isSingleChar) {
+    if (tier1.length > 0) return sortBucket(tier1);
+    return sortBucket(tier2);
+  }
+
+  return [...sortBucket(tier1), ...sortBucket(tier2), ...sortBucket(tier3)];
+};

@@ -1,12 +1,17 @@
 /**
  * @file src/components/Ads/reservation/CompanySelectorCard.jsx
- * @description Reklam Rezervasyon Formu 1. Bölümü: Yazılabilir & Aranabilir Reklamveren Firma Seçici (Combobox) ve Kampanya Başlığı Kartı.
- *
- * Kullanıcı bu kart üzerinden 800+ reklamveren firma arasında anlık metin araması yaparak firma seçebilir
- * ve isteğe bağlı genel bir kampanya/plan başlığı tanımlayabilir.
+ * @description Reklam Rezervasyon Formu 1. Bölümü: İlk Harften Başlayan Öncelikli (Prefix-First)
+ * ve Sınırsız Liste Destekli Reklamveren Firma Seçici (Combobox) & Kampanya Başlığı Kartı.
  */
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Building2, Search, X, ChevronDown } from 'lucide-react';
+import { Building2, Search, X, ChevronDown, Check } from 'lucide-react';
+import { filterAndSortPrefixFirst } from './reservationConstants';
+
+const TR_ALPHABET_LETTERS = [
+  'A', 'B', 'C', 'Ç', 'D', 'E', 'F', 'G', 'H', 'I', 'İ',
+  'J', 'K', 'L', 'M', 'N', 'O', 'Ö', 'P', 'R', 'S', 'Ş',
+  'T', 'U', 'Ü', 'V', 'Y', 'Z'
+];
 
 const CompanySelectorCard = ({
   companies = [],
@@ -23,53 +28,58 @@ const CompanySelectorCard = ({
     [companies]
   );
 
-  const [companySearchQuery, setCompanySearchQuery] = useState(
-    () => selectedCompanyObj?.name || ''
-  );
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedLetter, setSelectedLetter] = useState('ALL');
   const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false);
   const companyComboboxRef = useRef(null);
+  const searchInputRef = useRef(null);
 
-  useEffect(() => {
-    if (selectedCompanyObj && !isCompanyDropdownOpen) {
-      setCompanySearchQuery(selectedCompanyObj.name);
-    }
-  }, [selectedCompanyObj, isCompanyDropdownOpen]);
-
-  // Dışarı tıklandığında firma arama listesini kapat
+  // Dışarı tıklandığında firma arama listesini kapat ve arama metnini sıfırla
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (companyComboboxRef.current && !companyComboboxRef.current.contains(e.target)) {
         setIsCompanyDropdownOpen(false);
-        if (selectedCompanyObj) {
-          setCompanySearchQuery(selectedCompanyObj.name);
-        }
+        setSearchQuery('');
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [selectedCompanyObj]);
+  }, []);
 
+  // İlk harften başlayan öncelikli ve sınırsız firma filtreleme algoritması
   const filteredCompaniesForCombobox = useMemo(() => {
-    const q = String(companySearchQuery || '').trim().toLocaleLowerCase('tr-TR');
-    if (
-      !q ||
-      (selectedCompanyObj && q === String(selectedCompanyObj.name || '').toLocaleLowerCase('tr-TR'))
-    ) {
-      return sortedCompanies.slice(0, 120);
+    const q = String(searchQuery || '').trim();
+
+    if (q) {
+      return filterAndSortPrefixFirst(
+        sortedCompanies,
+        q,
+        c => c?.name || '',
+        c => c?.contactPerson || ''
+      );
     }
-    return sortedCompanies
-      .filter(c => (c.name || '').toLocaleLowerCase('tr-TR').includes(q))
-      .slice(0, 120);
-  }, [sortedCompanies, companySearchQuery, selectedCompanyObj]);
+
+    if (selectedLetter !== 'ALL') {
+      return filterAndSortPrefixFirst(
+        sortedCompanies,
+        selectedLetter,
+        c => c?.name || ''
+      );
+    }
+
+    return sortedCompanies;
+  }, [sortedCompanies, searchQuery, selectedLetter]);
 
   const handleChoose = (companyId) => {
-    const chosen = companies.find(c => String(c.id) === String(companyId));
-    if (chosen) {
-      setCompanySearchQuery(chosen.name);
-    }
+    setSearchQuery('');
+    setSelectedLetter('ALL');
     setIsCompanyDropdownOpen(false);
     onSelectCompany(companyId);
   };
+
+  const displayInputValue = isCompanyDropdownOpen
+    ? searchQuery
+    : (selectedCompanyObj?.name || '');
 
   return (
     <div className="ads-saas-card" style={{ padding: '18px', gap: '14px', overflow: 'visible' }}>
@@ -79,19 +89,31 @@ const CompanySelectorCard = ({
           <span style={{ fontSize: '14px', fontWeight: '800', color: 'var(--ads-text-main)' }}>
             1. Reklamveren Firma &amp; Öncelik Bilgisi
           </span>
+          <span
+            style={{
+              fontSize: '11px',
+              fontWeight: '700',
+              color: 'var(--ads-text-muted)',
+              background: 'var(--ads-pill-bar-bg)',
+              padding: '2px 8px',
+              borderRadius: '999px'
+            }}
+          >
+            Toplam {sortedCompanies.length} Kayıtlı Firma
+          </span>
         </div>
         {selectedCompanyObj && (
           <span className="ads-saas-chip active" style={{ cursor: 'default' }}>
-            {companyProductsCount} Kayıtlı Ürün • {companyMaterialsCount} Klip Bulundu
+            Seçili: {selectedCompanyObj.name} • {companyProductsCount} Kayıtlı Ürün • {companyMaterialsCount} Klip Bulundu
           </span>
         )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.25fr 1fr', gap: '14px' }}>
-        {/* YAZILABİLİR / ARANABİLİR FİRMA SEÇİM ALANI (COMBOBOX) */}
+        {/* YAZILABİLİR / ARANABİLİR FİRMA SEÇİM ALANI (İLK HARFTEN BAŞLAYAN ÖNCELİKLİ COMBOBOX) */}
         <div ref={companyComboboxRef} style={{ position: 'relative' }}>
           <label style={{ display: 'block', fontSize: '11.5px', fontWeight: '700', color: 'var(--ads-text-sub)', marginBottom: '6px' }}>
-            Reklamveren Firma Seçimi (Yazarak Arayın veya Seçin) *
+            Reklamveren Firma Seçimi (İlk Harften Yazarak Arayın veya Listeden Seçin) *
           </label>
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
             <Search
@@ -100,14 +122,32 @@ const CompanySelectorCard = ({
               style={{ position: 'absolute', left: '12px', pointerEvents: 'none' }}
             />
             <input
+              ref={searchInputRef}
               type="text"
-              value={companySearchQuery}
-              onFocus={() => setIsCompanyDropdownOpen(true)}
+              value={displayInputValue}
+              onFocus={() => {
+                setIsCompanyDropdownOpen(true);
+                setSearchQuery('');
+              }}
               onChange={e => {
-                setCompanySearchQuery(e.target.value);
+                setSearchQuery(e.target.value);
+                setSelectedLetter('ALL');
                 setIsCompanyDropdownOpen(true);
               }}
-              placeholder="Firma adı yazarak arayın (Örn: Kavaköy, Semerkand, Montex...)"
+              onKeyDown={e => {
+                if (e.key === 'Escape') {
+                  setIsCompanyDropdownOpen(false);
+                  setSearchQuery('');
+                } else if (e.key === 'Enter' && isCompanyDropdownOpen && filteredCompaniesForCombobox.length > 0) {
+                  e.preventDefault();
+                  handleChoose(filteredCompaniesForCombobox[0].id);
+                }
+              }}
+              placeholder={
+                selectedCompanyObj
+                  ? `${selectedCompanyObj.name} (İlk harften yazarak arayın: S, Semerkand, Beşir...)`
+                  : 'Firma adını ilk harften yazarak arayın (Örn: S, Semerkand, Beşir, Nakış...)'
+              }
               className="ads-saas-input"
               style={{
                 width: '100%',
@@ -129,12 +169,14 @@ const CompanySelectorCard = ({
                 gap: '4px'
               }}
             >
-              {companySearchQuery && (
+              {(searchQuery || isCompanyDropdownOpen) && (
                 <button
                   type="button"
                   onClick={() => {
-                    setCompanySearchQuery('');
+                    setSearchQuery('');
+                    setSelectedLetter('ALL');
                     setIsCompanyDropdownOpen(true);
+                    searchInputRef.current?.focus();
                   }}
                   title="Aramayı Temizle ve Tüm Firmaları Gör"
                   style={{
@@ -155,7 +197,16 @@ const CompanySelectorCard = ({
               )}
               <button
                 type="button"
-                onClick={() => setIsCompanyDropdownOpen(prev => !prev)}
+                onClick={() => {
+                  setIsCompanyDropdownOpen(prev => {
+                    const next = !prev;
+                    if (next) {
+                      setSearchQuery('');
+                      setTimeout(() => searchInputRef.current?.focus(), 10);
+                    }
+                    return next;
+                  });
+                }}
                 title="Firma Listesini Aç / Kapat"
                 style={{
                   background: 'transparent',
@@ -181,79 +232,163 @@ const CompanySelectorCard = ({
                 top: 'calc(100% + 6px)',
                 left: 0,
                 right: 0,
-                maxHeight: '280px',
-                overflowY: 'auto',
+                maxHeight: '380px',
                 background: 'var(--ads-card-bg)',
                 border: '1.5px solid var(--ads-brand)',
                 borderRadius: '12px',
-                boxShadow: '0 16px 36px rgba(15, 23, 42, 0.22)',
-                zIndex: 50,
-                padding: '6px',
+                boxShadow: '0 16px 36px rgba(15, 23, 42, 0.25)',
+                zIndex: 80,
+                padding: '8px',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '3px'
+                gap: '6px'
               }}
             >
+              {/* Üst Bilgi ve Eşleşen Firma Sayısı */}
               <div
                 style={{
-                  padding: '4px 10px 6px 10px',
-                  fontSize: '10.5px',
-                  fontWeight: '700',
+                  padding: '2px 8px 6px 8px',
+                  fontSize: '11px',
+                  fontWeight: '800',
                   color: 'var(--ads-text-muted)',
                   borderBottom: '1px solid var(--ads-border)',
                   display: 'flex',
-                  justifyContent: 'space-between'
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '6px'
                 }}
               >
-                <span>FİRMA SEÇİN ({sortedCompanies.length} Toplam Firma)</span>
-                <span>Yazarak filtreleyebilirsiniz</span>
+                <span style={{ color: 'var(--ads-brand)' }}>
+                  {searchQuery
+                    ? `"${searchQuery}" İLE BAŞLAYAN / EŞLEŞEN: ${filteredCompaniesForCombobox.length} FİRMA`
+                    : selectedLetter !== 'ALL'
+                    ? `"${selectedLetter}" HARFİ İLE BAŞLAYAN: ${filteredCompaniesForCombobox.length} FİRMA`
+                    : `TÜM FİRMALAR LİSTELENİYOR (${sortedCompanies.length} FİRMA — SINIRSIZ)`}
+                </span>
+                <span>İlk harften yazın veya harf seçin</span>
               </div>
 
-              {filteredCompaniesForCombobox.length === 0 ? (
-                <div style={{ padding: '18px 12px', textAlign: 'center', fontSize: '12px', color: 'var(--ads-text-muted)' }}>
-                  &quot;{companySearchQuery}&quot; aramasına uygun firma bulunamadı.
-                </div>
-              ) : (
-                filteredCompaniesForCombobox.map(c => {
-                  const isCurrent = String(c.id) === String(selectedCompanyId);
+              {/* A-Z Hızlı Harf Filtresi */}
+              <div
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '3px',
+                  padding: '2px 4px 6px 4px',
+                  borderBottom: '1px solid var(--ads-border)'
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedLetter('ALL');
+                    setSearchQuery('');
+                  }}
+                  style={{
+                    padding: '2px 7px',
+                    borderRadius: '5px',
+                    border: 'none',
+                    fontSize: '10.5px',
+                    fontWeight: '800',
+                    cursor: 'pointer',
+                    background: selectedLetter === 'ALL' && !searchQuery ? 'var(--ads-brand)' : 'var(--ads-pill-bar-bg)',
+                    color: selectedLetter === 'ALL' && !searchQuery ? '#fff' : 'var(--ads-text-sub)'
+                  }}
+                >
+                  Tümü ({sortedCompanies.length})
+                </button>
+                {TR_ALPHABET_LETTERS.map(letter => {
+                  const isActive =
+                    (selectedLetter === letter && !searchQuery) ||
+                    (searchQuery.trim().toLocaleUpperCase('tr-TR') === letter);
                   return (
                     <button
-                      key={c.id}
+                      key={letter}
                       type="button"
-                      onClick={() => handleChoose(c.id)}
+                      onClick={() => {
+                        setSelectedLetter(letter);
+                        setSearchQuery('');
+                      }}
                       style={{
-                        width: '100%',
-                        padding: '8px 10px',
-                        borderRadius: '8px',
+                        padding: '2px 6px',
+                        borderRadius: '5px',
                         border: 'none',
-                        background: isCurrent ? 'var(--ads-brand-soft)' : 'transparent',
-                        color: isCurrent ? 'var(--ads-brand)' : 'var(--ads-text-main)',
+                        fontSize: '10.5px',
+                        fontWeight: '800',
                         cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        textAlign: 'left',
-                        fontSize: '12.5px',
-                        fontWeight: isCurrent ? '800' : '600'
+                        background: isActive ? 'var(--ads-brand)' : 'var(--ads-pill-bar-bg)',
+                        color: isActive ? '#fff' : 'var(--ads-text-sub)'
                       }}
                     >
-                      <span>{c.name}</span>
-                      <span
-                        style={{
-                          fontSize: '10.5px',
-                          fontWeight: '700',
-                          color: isCurrent ? 'var(--ads-brand)' : 'var(--ads-text-muted)',
-                          background: 'var(--ads-pill-bar-bg)',
-                          padding: '2px 7px',
-                          borderRadius: '999px'
-                        }}
-                      >
-                        {c.productCount || 1} Ürün • {c.materialCount || 1} Klip
-                      </span>
+                      {letter}
                     </button>
                   );
-                })
-              )}
+                })}
+              </div>
+
+              {/* Kaydırılabilir Tam Firma Listesi (Hiçbir Sınır Yok) */}
+              <div
+                style={{
+                  overflowY: 'auto',
+                  maxHeight: '275px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '2px',
+                  paddingRight: '2px'
+                }}
+              >
+                {filteredCompaniesForCombobox.length === 0 ? (
+                  <div style={{ padding: '20px 12px', textAlign: 'center', fontSize: '12px', color: 'var(--ads-text-muted)' }}>
+                    &quot;{searchQuery || selectedLetter}&quot; ile başlayan veya eşleşen firma bulunamadı.
+                  </div>
+                ) : (
+                  filteredCompaniesForCombobox.map(c => {
+                    const isCurrent = String(c.id) === String(selectedCompanyId);
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => handleChoose(c.id)}
+                        style={{
+                          width: '100%',
+                          padding: '8px 10px',
+                          borderRadius: '8px',
+                          border: 'none',
+                          background: isCurrent ? 'var(--ads-brand-soft)' : 'transparent',
+                          color: isCurrent ? 'var(--ads-brand)' : 'var(--ads-text-main)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          textAlign: 'left',
+                          fontSize: '12.5px',
+                          fontWeight: isCurrent ? '800' : '600',
+                          flexShrink: 0
+                        }}
+                      >
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {isCurrent && <Check size={13} color="var(--ads-brand)" />}
+                          <span>{c.name}</span>
+                        </span>
+                        <span
+                          style={{
+                            fontSize: '10.5px',
+                            fontWeight: '700',
+                            color: isCurrent ? 'var(--ads-brand)' : 'var(--ads-text-muted)',
+                            background: 'var(--ads-pill-bar-bg)',
+                            padding: '2px 7px',
+                            borderRadius: '999px',
+                            flexShrink: 0
+                          }}
+                        >
+                          {c.productCount || 1} Ürün • {c.materialCount || 0} Klip
+                        </span>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -277,4 +412,3 @@ const CompanySelectorCard = ({
 };
 
 export default CompanySelectorCard;
-
