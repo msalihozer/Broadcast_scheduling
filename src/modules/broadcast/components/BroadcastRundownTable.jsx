@@ -16,6 +16,8 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { format, parseISO, addDays } from 'date-fns';
 import { dialog } from '../../../store/dialogStore';
 import useBroadcastStore from '../store/broadcastStore';
+import usePlanningStore from '../../../store/planningStore';
+import { isRamadanFeatureWindowOpen } from '../../../components/Ads/reservation/reservationConstants';
 import { getDraftProgramsForDay } from '../utils/draftDataLoader';
 import { normalizeProgramText } from '../utils/draftSlotMatcher';
 import { filterAndSortBySearchPriority } from '../../../utils/searchRanker';
@@ -90,6 +92,12 @@ export default function BroadcastRundownTable({
     historyFuture,
     clearList
   } = useBroadcastStore();
+
+  const ramadanConfig = usePlanningStore(state => state.ramadanConfig);
+  const showRamadanControls = useMemo(
+    () => isRamadanFeatureWindowOpen(ramadanConfig, selectedDate),
+    [ramadanConfig, selectedDate]
+  );
 
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
@@ -893,6 +901,7 @@ export default function BroadcastRundownTable({
                       onOpenFillerModal={(fillerRow) => openFillerInSidebar(fillerRow)}
                       onInspectClip={handleInspectClip}
                       onUnpinProgram={handleUnpinProgram}
+                      showRamadanControls={showRamadanControls}
                       onUpdateRamadanMeta={(instanceId, metaUpdates) => {
                         updateProgram(selectedChannel, selectedDate, activeList, instanceId, metaUpdates);
                       }}

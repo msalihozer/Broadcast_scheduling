@@ -250,6 +250,39 @@ export const getBlockTheme = (tbName = '') => {
 
 export const getTodayIso = () => new Date().toISOString().split('T')[0];
 
+/**
+ * Admin Panelde girilen Ramazan başlangıç (`startDate`) ve bitiş (`endDate`) tarihine göre
+ * seçili günün (veya bugünün) "Ramazan Özel" penceresinde olup olmadığını kontrol eder.
+ *
+ * KURAL:
+ * - Admin panelde Ramazan Başlangıç ve Bitiş tarihi girilmemişse veya `enabled === false` ise: `false` (Görünmez).
+ * - Ramazan başlangıç tarihinden `leadDays` (varsayılan 14 gün = 2 hafta) öncesinden başlayıp
+ *   Ramazan bitiş tarihine kadar: `true` (Görünür).
+ * - `forceShow` açıksa test/ön hazırlık için her zaman `true` döner.
+ */
+export const isRamadanFeatureWindowOpen = (ramadanConfig = null, referenceDateStr = null) => {
+  const cfg = ramadanConfig;
+  if (!cfg || !cfg.enabled) return false;
+  if (cfg.forceShow) return true;
+  if (!cfg.startDate || !cfg.endDate) return false;
+
+  const start = new Date(`${cfg.startDate}T00:00:00`);
+  const end = new Date(`${cfg.endDate}T23:59:59`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return false;
+
+  const leadDays = Number(cfg.leadDays) > 0 ? Number(cfg.leadDays) : 14;
+  const openWindowStart = new Date(start.getTime() - leadDays * 24 * 60 * 60 * 1000);
+
+  const checkDates = [];
+  if (referenceDateStr && typeof referenceDateStr === 'string' && referenceDateStr.length >= 10) {
+    const refD = new Date(`${referenceDateStr.slice(0, 10)}T12:00:00`);
+    if (!Number.isNaN(refD.getTime())) checkDates.push(refD);
+  }
+  checkDates.push(new Date());
+
+  return checkDates.some(d => d >= openWindowStart && d <= end);
+};
+
 export const getPlusDaysIso = (days = 6) => {
   const d = new Date();
   d.setDate(d.getDate() + days);

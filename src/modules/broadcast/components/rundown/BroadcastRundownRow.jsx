@@ -72,7 +72,8 @@ const BroadcastRundownRow = memo(function BroadcastRundownRow({
   onOpenFillerModal,
   onInspectClip,
   onUnpinProgram,
-  onUpdateRamadanMeta
+  onUpdateRamadanMeta,
+  showRamadanControls = false
 }) {
   const isAd = item.type === 'ad_break';
   const isFiller = isFillerRundownItem(item);
@@ -585,8 +586,8 @@ const BroadcastRundownRow = memo(function BroadcastRundownRow({
               </span>
             )}
 
-            {/* Ramazan Sahur / İftar Program Rozeti ve Hızlı Seçici */}
-            {!isAd && !isFiller && !isIntroClip && (effectiveRamadanProgType || isLive) && (
+            {/* Ramazan Sahur / İftar Program Rozeti ve Hızlı Seçici (Sadece Ramazan tarihine 2 hafta kala veya Ramazan döneminde görünür) */}
+            {showRamadanControls && !isAd && !isFiller && !isIntroClip && (effectiveRamadanProgType || isLive) && (
               <select
                 value={effectiveRamadanProgType}
                 onClick={(e) => e.stopPropagation()}
@@ -619,8 +620,8 @@ const BroadcastRundownRow = memo(function BroadcastRundownRow({
               </select>
             )}
 
-            {/* Reklam Kuşağı Üzerinde Doğrudan Ramazan Özel İşaretleme Seçicisi */}
-            {isAd && (
+            {/* Reklam Kuşağı Üzerinde Doğrudan Ramazan Özel İşaretleme Seçicisi (Sadece Ramazan tarihine 2 hafta kala veya Ramazan döneminde görünür) */}
+            {showRamadanControls && isAd && (
               <select
                 value={effectiveRamadanBreakTag}
                 onClick={(e) => e.stopPropagation()}

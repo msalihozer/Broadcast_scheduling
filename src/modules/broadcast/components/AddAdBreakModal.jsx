@@ -7,6 +7,8 @@
 import React, { useState, useEffect } from 'react';
 import { X, Megaphone, Clock, Plus, Settings, Check, FileText } from 'lucide-react';
 import useBroadcastStore from '../store/broadcastStore';
+import usePlanningStore from '../../../store/planningStore';
+import { isRamadanFeatureWindowOpen } from '../../../components/Ads/reservation/reservationConstants';
 import { normalizeTimecode } from '../utils/timecodeUtils';
 
 const MAIN_PRESETS = [
@@ -49,6 +51,8 @@ export default function AddAdBreakModal({ isOpen, onClose }) {
   const [manualSeconds, setManualSeconds] = useState(adBreakDefaultSettings?.durationSeconds ?? 0);
   const [note, setNote] = useState(adBreakDefaultSettings?.note ?? 'Ticari Reklam Bloğu');
   const [ramadanBreakTag, setRamadanBreakTag] = useState(adBreakDefaultSettings?.ramadanBreakTag ?? '');
+  const ramadanConfig = usePlanningStore(state => state.ramadanConfig);
+  const showRamadanControls = isRamadanFeatureWindowOpen(ramadanConfig, selectedDate);
 
   useEffect(() => {
     if (isOpen && adBreakDefaultSettings) {
@@ -423,40 +427,42 @@ export default function AddAdBreakModal({ isOpen, onClose }) {
             />
           </div>
 
-          {/* 3. Ramazan Özel Reklam Kuşağı İşareti */}
-          <div style={{
-            padding: '10px 12px',
-            borderRadius: '10px',
-            background: ramadanBreakTag ? 'rgba(217, 119, 6, 0.12)' : 'var(--bg-primary)',
-            border: ramadanBreakTag ? '1.5px solid #d97706' : '1px solid var(--border-color)'
-          }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', fontWeight: '800', color: ramadanBreakTag ? '#d97706' : 'var(--text-primary)', marginBottom: '6px' }}>
-              <span>🌙 Ramazan Özel Kuşak İşaretlemesi (Opsiyonel):</span>
-            </label>
-            <select
-              value={ramadanBreakTag}
-              onChange={e => setRamadanBreakTag(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '9px 10px',
-                borderRadius: '8px',
-                border: '1px solid var(--border-color)',
-                background: 'var(--bg-secondary)',
-                color: 'var(--text-primary)',
-                fontSize: '12.5px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                outline: 'none'
-              }}
-            >
-              {RAMADAN_BREAK_TAG_OPTIONS.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-            <div style={{ fontSize: '10.5px', color: 'var(--text-secondary)', marginTop: '5px', lineHeight: 1.35 }}>
-              Kuşağı eklerken veya eklendikten sonra doğrudan listeden <strong>Sahur / İftar (Öncesi, Arası, Sonrası)</strong> olarak işaretleyebilirsiniz.
+          {/* 3. Ramazan Özel Reklam Kuşağı İşareti (Yalnızca Ramazan tarihine 2 hafta kala veya Ramazan döneminde gösterilir) */}
+          {showRamadanControls && (
+            <div style={{
+              padding: '10px 12px',
+              borderRadius: '10px',
+              background: ramadanBreakTag ? 'rgba(217, 119, 6, 0.12)' : 'var(--bg-primary)',
+              border: ramadanBreakTag ? '1.5px solid #d97706' : '1px solid var(--border-color)'
+            }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', fontWeight: '800', color: ramadanBreakTag ? '#d97706' : 'var(--text-primary)', marginBottom: '6px' }}>
+                <span>🌙 Ramazan Özel Kuşak İşaretlemesi (Opsiyonel):</span>
+              </label>
+              <select
+                value={ramadanBreakTag}
+                onChange={e => setRamadanBreakTag(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 10px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-secondary)',
+                  color: 'var(--text-primary)',
+                  fontSize: '12.5px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  outline: 'none'
+                }}
+              >
+                {RAMADAN_BREAK_TAG_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+              <div style={{ fontSize: '10.5px', color: 'var(--text-secondary)', marginTop: '5px', lineHeight: 1.35 }}>
+                Kuşağı eklerken veya eklendikten sonra doğrudan listeden <strong>Sahur / İftar (Öncesi, Arası, Sonrası)</strong> olarak işaretleyebilirsiniz.
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Aksiyon Butonları */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginTop: '6px', flexWrap: 'wrap' }}>

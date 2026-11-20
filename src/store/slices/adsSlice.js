@@ -57,7 +57,7 @@ const initialBackup = loadAdsReservationsBackup();
 
 const loadSavedRamadanConfig = () => {
   try {
-    const raw = localStorage.getItem('yayin_ramadan_config_v1');
+    const raw = localStorage.getItem('yayin_ramadan_config_v2');
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === 'object') return parsed;
@@ -67,8 +67,10 @@ const loadSavedRamadanConfig = () => {
   }
   return {
     enabled: true,
-    startDate: '2026-02-18',
-    endDate: '2026-03-19',
+    startDate: '',
+    endDate: '',
+    leadDays: 14,
+    forceShow: false,
     allowStandardAdsInRamadanBreaks: true
   };
 };
@@ -85,7 +87,7 @@ export const createAdsSlice = (set, get) => ({
   setRamadanConfig: (updates) => set(state => {
     const nextConfig = { ...(state.ramadanConfig || {}), ...updates };
     try {
-      localStorage.setItem('yayin_ramadan_config_v1', JSON.stringify(nextConfig));
+      localStorage.setItem('yayin_ramadan_config_v2', JSON.stringify(nextConfig));
     } catch (e) {
       // ignore
     }

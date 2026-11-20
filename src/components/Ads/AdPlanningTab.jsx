@@ -39,6 +39,7 @@ import {
   AdHourlyMatrixView,
   AdManualSpotModal
 } from './planning/AdPlanningWorkspaceViews';
+import { isRamadanFeatureWindowOpen } from './reservation/reservationConstants';
 
 export { PRIORITY_BADGES, formatTcClock, formatSecToReadable, getMondayStr };
 
@@ -52,7 +53,7 @@ const AdPlanningTab = () => {
     products = [],
     materials = [],
     adPlacements = {},
-    ramadanConfig = { enabled: true, startDate: '2026-02-18', endDate: '2026-03-19' },
+    ramadanConfig = { enabled: true, startDate: '', endDate: '', leadDays: 14, forceShow: false },
     setRamadanConfig,
     setBreakRamadanTag,
     ensureAdsBroadcastWeek,
@@ -811,100 +812,102 @@ const AdPlanningTab = () => {
                 onCompleteAds={completeAds}
               />
 
-              {/* 🌙 RAMAZAN ÖZEL KONTROL ŞERİDİ: SAHUR & İFTAR PROGRAM BAŞLANGIÇ SAATİ VE TARİH ARALIĞI */}
-              <div
-                className="ta-card"
-                style={{
-                  padding: '12px 16px',
-                  border: '1.5px solid rgba(217, 119, 6, 0.45)',
-                  background: 'rgba(217, 119, 6, 0.05)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap',
-                  gap: '12px'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                  <span
-                    style={{
-                      padding: '4px 10px',
-                      borderRadius: '8px',
-                      background: 'linear-gradient(135deg, #d97706, #b45309)',
-                      color: '#fff',
-                      fontSize: '11.5px',
-                      fontWeight: '900'
-                    }}
-                  >
-                    🌙 Ramazan Özel Planlama
-                  </span>
+              {/* 🌙 RAMAZAN ÖZEL KONTROL ŞERİDİ: SADECE RAMAZAN BAŞLANGICINA 2 HAFTA KALA VEYA RAMAZAN AYINDA GÖSTERİLİR */}
+              {isRamadanFeatureWindowOpen(ramadanConfig, selectedDayInfo?.date || selectedDate) && (
+                <div
+                  className="ta-card"
+                  style={{
+                    padding: '12px 16px',
+                    border: '1.5px solid rgba(217, 119, 6, 0.45)',
+                    background: 'rgba(217, 119, 6, 0.05)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '12px'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    <span
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '8px',
+                        background: 'linear-gradient(135deg, #d97706, #b45309)',
+                        color: '#fff',
+                        fontSize: '11.5px',
+                        fontWeight: '900'
+                      }}
+                    >
+                      🌙 Ramazan Özel Planlama
+                    </span>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', fontWeight: '700', color: 'var(--ads-text-main)' }}>
-                    <span>Ramazan Ayı Aralığı:</span>
-                    <input
-                      type="date"
-                      value={ramadanConfig?.startDate || '2026-02-18'}
-                      onChange={e => setRamadanConfig && setRamadanConfig({ startDate: e.target.value })}
-                      className="ads-saas-input"
-                      style={{ padding: '3px 7px', fontSize: '11px', height: '28px' }}
-                    />
-                    <span>–</span>
-                    <input
-                      type="date"
-                      value={ramadanConfig?.endDate || '2026-03-19'}
-                      onChange={e => setRamadanConfig && setRamadanConfig({ endDate: e.target.value })}
-                      className="ads-saas-input"
-                      style={{ padding: '3px 7px', fontSize: '11px', height: '28px' }}
-                    />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', fontWeight: '700', color: 'var(--ads-text-main)' }}>
+                      <span>Ramazan Ayı Aralığı:</span>
+                      <input
+                        type="date"
+                        value={ramadanConfig?.startDate || ''}
+                        onChange={e => setRamadanConfig && setRamadanConfig({ startDate: e.target.value })}
+                        className="ads-saas-input"
+                        style={{ padding: '3px 7px', fontSize: '11px', height: '28px' }}
+                      />
+                      <span>–</span>
+                      <input
+                        type="date"
+                        value={ramadanConfig?.endDate || ''}
+                        onChange={e => setRamadanConfig && setRamadanConfig({ endDate: e.target.value })}
+                        className="ads-saas-input"
+                        style={{ padding: '3px 7px', fontSize: '11px', height: '28px' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', fontSize: '11.5px' }}>
+                    <span
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '7px',
+                        background: todayRamadanScheduleInfo.sahurProg ? 'rgba(2, 132, 199, 0.14)' : 'var(--ads-card-subtle)',
+                        color: todayRamadanScheduleInfo.sahurProg ? '#0284c7' : 'var(--ads-text-muted)',
+                        border: '1px solid rgba(2, 132, 199, 0.3)',
+                        fontWeight: '800'
+                      }}
+                    >
+                      🌙 Sahur Programı Başlangıç:{' '}
+                      {todayRamadanScheduleInfo.sahurProg
+                        ? `${todayRamadanScheduleInfo.sahurProg.exactStartClock} (${todayRamadanScheduleInfo.sahurProg.title})`
+                        : 'Kuşak üzerinden işaretleyebilirsiniz'}
+                    </span>
+
+                    <span
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '7px',
+                        background: todayRamadanScheduleInfo.iftarProg ? 'rgba(217, 119, 6, 0.16)' : 'var(--ads-card-subtle)',
+                        color: todayRamadanScheduleInfo.iftarProg ? '#d97706' : 'var(--ads-text-muted)',
+                        border: '1px solid rgba(217, 119, 6, 0.35)',
+                        fontWeight: '800'
+                      }}
+                    >
+                      🕌 İftar Programı Başlangıç:{' '}
+                      {todayRamadanScheduleInfo.iftarProg
+                        ? `${todayRamadanScheduleInfo.iftarProg.exactStartClock} (${todayRamadanScheduleInfo.iftarProg.title})`
+                        : 'Kuşak üzerinden işaretleyebilirsiniz'}
+                    </span>
+
+                    <span
+                      style={{
+                        padding: '4px 9px',
+                        borderRadius: '7px',
+                        background: 'rgba(5, 150, 105, 0.14)',
+                        color: '#059669',
+                        fontWeight: '800'
+                      }}
+                    >
+                      İşaretli Ramazan Kuşağı: {todayRamadanScheduleInfo.ramadanBreaksCount} Kuşak
+                    </span>
                   </div>
                 </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', fontSize: '11.5px' }}>
-                  <span
-                    style={{
-                      padding: '4px 10px',
-                      borderRadius: '7px',
-                      background: todayRamadanScheduleInfo.sahurProg ? 'rgba(2, 132, 199, 0.14)' : 'var(--ads-card-subtle)',
-                      color: todayRamadanScheduleInfo.sahurProg ? '#0284c7' : 'var(--ads-text-muted)',
-                      border: '1px solid rgba(2, 132, 199, 0.3)',
-                      fontWeight: '800'
-                    }}
-                  >
-                    🌙 Sahur Programı Başlangıç:{' '}
-                    {todayRamadanScheduleInfo.sahurProg
-                      ? `${todayRamadanScheduleInfo.sahurProg.exactStartClock} (${todayRamadanScheduleInfo.sahurProg.title})`
-                      : 'Kuşak üzerinden işaretleyebilirsiniz'}
-                  </span>
-
-                  <span
-                    style={{
-                      padding: '4px 10px',
-                      borderRadius: '7px',
-                      background: todayRamadanScheduleInfo.iftarProg ? 'rgba(217, 119, 6, 0.16)' : 'var(--ads-card-subtle)',
-                      color: todayRamadanScheduleInfo.iftarProg ? '#d97706' : 'var(--ads-text-muted)',
-                      border: '1px solid rgba(217, 119, 6, 0.35)',
-                      fontWeight: '800'
-                    }}
-                  >
-                    🕌 İftar Programı Başlangıç:{' '}
-                    {todayRamadanScheduleInfo.iftarProg
-                      ? `${todayRamadanScheduleInfo.iftarProg.exactStartClock} (${todayRamadanScheduleInfo.iftarProg.title})`
-                      : 'Kuşak üzerinden işaretleyebilirsiniz'}
-                  </span>
-
-                  <span
-                    style={{
-                      padding: '4px 9px',
-                      borderRadius: '7px',
-                      background: 'rgba(5, 150, 105, 0.14)',
-                      color: '#059669',
-                      fontWeight: '800'
-                    }}
-                  >
-                    İşaretli Ramazan Kuşağı: {todayRamadanScheduleInfo.ramadanBreaksCount} Kuşak
-                  </span>
-                </div>
-              </div>
+              )}
 
               {workspaceView === 'breaks' && (
                 <AdBreaksListView
@@ -920,7 +923,11 @@ const AdPlanningTab = () => {
                   onOpenQuickModalBreak={setQuickModalBreak}
                   onMoveAdInBreak={moveAdInBreak}
                   onRemoveAdFromBreak={removeAdFromBreak}
-                  onSetBreakRamadanTag={handleSetBreakRamadanTag}
+                  onSetBreakRamadanTag={
+                    isRamadanFeatureWindowOpen(ramadanConfig, selectedDayInfo?.date || selectedDate)
+                      ? handleSetBreakRamadanTag
+                      : null
+                  }
                 />
               )}
 

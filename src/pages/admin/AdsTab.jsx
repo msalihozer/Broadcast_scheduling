@@ -10,8 +10,13 @@ import {
   FileVideo, ChevronDown, ChevronUp, Hash, Calendar, ShieldCheck, X 
 } from 'lucide-react';
 import { formatTimecode } from '../../utils/formatTimecode';
+import usePlanningStore from '../../store/planningStore';
+import { isRamadanFeatureWindowOpen } from '../../components/Ads/reservation/reservationConstants';
 
 const AdsTab = () => {
+  const ramadanConfig = usePlanningStore(state => state.ramadanConfig);
+  const setRamadanConfig = usePlanningStore(state => state.setRamadanConfig);
+  const isRamadanActiveNow = isRamadanFeatureWindowOpen(ramadanConfig);
   const [adsData, setAdsData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -120,6 +125,140 @@ const AdsTab = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      {/* 🌙 RAMAZAN ÖZEL PLANLAMA TARİHLERİ & OTOMATİK 2 HAFTA ÖNCEDEN GÖSTERİM AYARI */}
+      <div
+        style={{
+          background: 'var(--bg-secondary)',
+          padding: '20px 24px',
+          borderRadius: '16px',
+          border: '1.5px solid rgba(217, 119, 6, 0.4)',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '14px'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div
+              style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '10px',
+                background: 'rgba(217, 119, 6, 0.16)',
+                color: '#d97706',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '18px'
+              }}
+            >
+              🌙
+            </div>
+            <div>
+              <div style={{ fontSize: '15px', fontWeight: '800', color: 'var(--text-primary)' }}>
+                🌙 Ramazan Özel Planlama Tarihleri (Başlangıçtan {ramadanConfig?.leadDays ?? 14} Gün / 2 Hafta Önce Otomatik Açılır)
+              </div>
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                Tarih girilmediğinde veya Ramazan başlangıcına 2 haftadan fazla süre varken Yayın Planlama ve Reklam ekranlarında <strong>&ldquo;Ramazan Özel&rdquo;</strong> işaretleri gizlenir.
+              </div>
+            </div>
+          </div>
+
+          <span
+            style={{
+              padding: '5px 12px',
+              borderRadius: '999px',
+              fontSize: '11.5px',
+              fontWeight: '800',
+              background: isRamadanActiveNow ? 'rgba(16, 185, 129, 0.14)' : 'rgba(100, 116, 139, 0.15)',
+              color: isRamadanActiveNow ? '#10b981' : 'var(--text-secondary)',
+              border: `1px solid ${isRamadanActiveNow ? 'rgba(16, 185, 129, 0.35)' : 'var(--border-color)'}`
+            }}
+          >
+            {isRamadanActiveNow ? '● Şu An Yayın & Reklamlarda Aktif' : '○ Şu An Gizli (2 Hafta Kala Açılır)'}
+          </span>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '14px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', minWidth: '175px' }}>
+            <label style={{ fontSize: '11.5px', fontWeight: '700', color: 'var(--text-secondary)' }}>Ramazan Başlangıç Tarihi</label>
+            <input
+              type="date"
+              value={ramadanConfig?.startDate || ''}
+              onChange={e => setRamadanConfig({ startDate: e.target.value })}
+              style={{
+                padding: '8px 11px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)',
+                background: 'var(--bg-tertiary)',
+                color: 'var(--text-primary)',
+                fontSize: '12.5px',
+                fontWeight: '700'
+              }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', minWidth: '175px' }}>
+            <label style={{ fontSize: '11.5px', fontWeight: '700', color: 'var(--text-secondary)' }}>Ramazan Bitiş Tarihi</label>
+            <input
+              type="date"
+              value={ramadanConfig?.endDate || ''}
+              onChange={e => setRamadanConfig({ endDate: e.target.value })}
+              style={{
+                padding: '8px 11px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)',
+                background: 'var(--bg-tertiary)',
+                color: 'var(--text-primary)',
+                fontSize: '12.5px',
+                fontWeight: '700'
+              }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', width: '165px' }}>
+            <label style={{ fontSize: '11.5px', fontWeight: '700', color: 'var(--text-secondary)' }}>Önceden Gösterim (Gün)</label>
+            <input
+              type="number"
+              min="1"
+              max="60"
+              value={ramadanConfig?.leadDays ?? 14}
+              onChange={e => setRamadanConfig({ leadDays: Math.max(1, parseInt(e.target.value, 10) || 14) })}
+              style={{
+                padding: '8px 11px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)',
+                background: 'var(--bg-tertiary)',
+                color: 'var(--text-primary)',
+                fontSize: '12.5px',
+                fontWeight: '700'
+              }}
+            />
+          </div>
+
+          {(ramadanConfig?.startDate || ramadanConfig?.endDate) && (
+            <button
+              type="button"
+              onClick={() => setRamadanConfig({ startDate: '', endDate: '', forceShow: false })}
+              style={{
+                padding: '8px 13px',
+                borderRadius: '8px',
+                border: '1px solid rgba(239, 68, 68, 0.35)',
+                background: 'rgba(239, 68, 68, 0.1)',
+                color: '#ef4444',
+                fontSize: '12px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                height: '36px'
+              }}
+            >
+              Tarihleri Temizle (Gizle)
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Üst Başlık ve Kategori Bilgisi */}
       <div style={{
         display: 'flex',

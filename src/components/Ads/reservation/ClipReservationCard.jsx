@@ -33,7 +33,8 @@ import {
   getFullMaterialDisplayName,
   getBlockTheme,
   calculateRowPricing,
-  calculateItemOverageMetrics
+  calculateItemOverageMetrics,
+  isRamadanFeatureWindowOpen
 } from './reservationConstants';
 
 const ClipReservationCard = ({
@@ -1141,7 +1142,8 @@ const ClipReservationCard = ({
         )}
       </div>
 
-      {/* 5. SATIR: 🌙 RAMAZAN ÖZEL (SAHUR & İFTAR PROGRAM BAŞLANGIÇ SAATİ VE KUŞAK PLANLAMASI) */}
+      {/* 5. SATIR: 🌙 RAMAZAN ÖZEL (SAHUR & İFTAR PROGRAM BAŞLANGIÇ SAATİ VE KUŞAK PLANLAMASI) - SADECE RAMAZAN'A 2 HAFTA KALA VEYA RAMAZAN ÖZEL AKTİFSE GÖRÜNÜR */}
+      {(isRamadanFeatureWindowOpen(ramadanConfig, item.startDate) || Boolean(item.isRamadanSpecial)) && (
       <div
         style={{
           padding: '14px 16px',
@@ -1343,6 +1345,7 @@ const ClipReservationCard = ({
           </div>
         )}
       </div>
+      )}
     </div>
   );
 };

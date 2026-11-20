@@ -7,13 +7,18 @@ import React, { useState, useEffect, useMemo } from 'react';
 import usePlanningStore from '../../store/planningStore';
 import useAdminLogStore, { LOG_CATEGORIES } from '../../store/adminLogStore';
 import { BROADCAST_CATEGORIES } from '../../utils/categoryColors';
-import { Filter, Sun, Moon, Clock, Terminal, Plus, Trash2, CheckSquare, Square, Eye, EyeOff } from 'lucide-react';
+import { isRamadanFeatureWindowOpen } from '../../components/Ads/reservation/reservationConstants';
+import { Filter, Sun, Moon, Clock, Terminal, Plus, Trash2, CheckSquare, Square, Eye, EyeOff, Calendar, CheckCircle2, AlertCircle } from 'lucide-react';
 
 const SettingsTab = () => {
   const hiddenCategoryIds = usePlanningStore(state => state.hiddenCategoryIds || []);
   const setHiddenCategoryIds = usePlanningStore(state => state.setHiddenCategoryIds);
   const theme = usePlanningStore(state => state.theme);
   const setTheme = usePlanningStore(state => state.setTheme);
+  const ramadanConfig = usePlanningStore(state => state.ramadanConfig || {
+    enabled: true, startDate: '', endDate: '', leadDays: 14, forceShow: false
+  });
+  const setRamadanConfig = usePlanningStore(state => state.setRamadanConfig);
   const adSettings = usePlanningStore(state => state.adSettings || {
     ch_hd: { bumpers: [] }, ch_way: { bumpers: [] }
   });
@@ -148,6 +153,214 @@ const SettingsTab = () => {
               <Moon size={16} /> Koyu
             </button>
           </div>
+        </div>
+      </section>
+
+      {/* 🌙 Ramazan Ayı Takvimi ve 2 Hafta Öncesi Otomatik Gösterim Ayarı */}
+      <section>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Calendar size={20} color="#d97706" />
+            <h3 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0 }}>
+              🌙 Ramazan Özel Planlama Tarihleri &amp; Otomatik Gösterim Ayarları
+            </h3>
+          </div>
+          {isRamadanFeatureWindowOpen(ramadanConfig) ? (
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '4px 12px',
+              borderRadius: '999px',
+              background: 'rgba(16, 185, 129, 0.14)',
+              color: '#10b981',
+              border: '1px solid rgba(16, 185, 129, 0.35)',
+              fontSize: '12px',
+              fontWeight: '800'
+            }}>
+              <CheckCircle2 size={14} /> Şu An Yayın Planlama &amp; Reklamlarda Aktif (Görünür)
+            </span>
+          ) : (
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '4px 12px',
+              borderRadius: '999px',
+              background: 'rgba(148, 163, 184, 0.14)',
+              color: 'var(--text-secondary)',
+              border: '1px solid var(--border-color)',
+              fontSize: '12px',
+              fontWeight: '800'
+            }}>
+              <AlertCircle size={14} /> Şu An Gizli (Ramazan Başlangıcına {ramadanConfig?.leadDays || 14} Gün Kala Otomatik Açılır)
+            </span>
+          )}
+        </div>
+
+        <div className="glass" style={{ padding: '24px', borderRadius: '16px', border: '1.5px solid rgba(217, 119, 6, 0.35)', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+          <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '13.5px', lineHeight: 1.5 }}>
+            Burada girdiğiniz <strong>Ramazan Başlangıç ve Bitiş Tarihi</strong> baz alınarak; Yayın Planlama ve Reklam Rezervasyon ekranlarındaki{' '}
+            <strong>&quot;🌙 Ramazan Özel (Sahur / İftar)&quot;</strong> işaretleme alanları normal zamanda gizli tutulur ve{' '}
+            <strong>Ramazan başlamadan 2 hafta ({ramadanConfig?.leadDays || 14} gün) öncesinde</strong> otomatik olarak aktif hale gelir.
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '16px', alignItems: 'end' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '6px' }}>
+                Ramazan Başlangıç Tarihi:
+              </label>
+              <input
+                type="date"
+                value={ramadanConfig?.startDate || ''}
+                onChange={e => {
+                  const val = e.target.value;
+                  setRamadanConfig({ startDate: val, enabled: true });
+                  addLog({
+                    category: 'system',
+                    panel: 'system',
+                    module: 'Sistem Ayarları',
+                    action: 'Ramazan Başlangıç Tarihi Güncellendi',
+                    details: `Ramazan başlangıç tarihi ${val || 'Boş'} olarak ayarlandı.`,
+                    status: 'success'
+                  });
+                }}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  borderRadius: '10px',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-primary)',
+                  color: 'var(--text-primary)',
+                  fontSize: '13.5px',
+                  fontWeight: '700'
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '6px' }}>
+                Ramazan Bitiş Tarihi:
+              </label>
+              <input
+                type="date"
+                value={ramadanConfig?.endDate || ''}
+                onChange={e => {
+                  const val = e.target.value;
+                  setRamadanConfig({ endDate: val, enabled: true });
+                  addLog({
+                    category: 'system',
+                    panel: 'system',
+                    module: 'Sistem Ayarları',
+                    action: 'Ramazan Bitiş Tarihi Güncellendi',
+                    details: `Ramazan bitiş tarihi ${val || 'Boş'} olarak ayarlandı.`,
+                    status: 'success'
+                  });
+                }}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  borderRadius: '10px',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-primary)',
+                  color: 'var(--text-primary)',
+                  fontSize: '13.5px',
+                  fontWeight: '700'
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '6px' }}>
+                Kaç Gün Önceden Gösterilsin? (Varsayılan: 14 Gün / 2 Hafta):
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="90"
+                value={ramadanConfig?.leadDays ?? 14}
+                onChange={e => setRamadanConfig({ leadDays: Math.max(1, parseInt(e.target.value, 10) || 14) })}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  borderRadius: '10px',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-primary)',
+                  color: '#d97706',
+                  fontSize: '13.5px',
+                  fontWeight: '800'
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {(ramadanConfig?.startDate || ramadanConfig?.endDate) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRamadanConfig({ startDate: '', endDate: '', forceShow: false });
+                    addLog({
+                      category: 'system',
+                      panel: 'system',
+                      module: 'Sistem Ayarları',
+                      action: 'Ramazan Tarihleri Temizlendi',
+                      details: 'Ramazan Özel işaretleme alanları gizlendi.',
+                      status: 'warning'
+                    });
+                  }}
+                  style={{
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    border: '1px solid rgba(239, 68, 68, 0.35)',
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    color: '#ef4444',
+                    fontSize: '12.5px',
+                    fontWeight: '800',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Tarihleri Temizle (Gizle)
+                </button>
+              )}
+            </div>
+          </div>
+
+          {ramadanConfig?.startDate && ramadanConfig?.endDate && (
+            <div style={{
+              padding: '12px 14px',
+              borderRadius: '10px',
+              background: 'rgba(217, 119, 6, 0.08)',
+              border: '1px solid rgba(217, 119, 6, 0.3)',
+              fontSize: '12.5px',
+              color: 'var(--text-primary)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '10px'
+            }}>
+              <div>
+                📅 <strong>Ramazan Dönemi:</strong> {ramadanConfig.startDate} – {ramadanConfig.endDate} •{' '}
+                <strong>Otomatik Açılış Tarihi ({ramadanConfig.leadDays || 14} gün önce):</strong>{' '}
+                <span style={{ color: '#d97706', fontWeight: '800' }}>
+                  {(() => {
+                    const s = new Date(`${ramadanConfig.startDate}T00:00:00`);
+                    if (Number.isNaN(s.getTime())) return '-';
+                    const openD = new Date(s.getTime() - (Number(ramadanConfig.leadDays) || 14) * 86400000);
+                    return openD.toISOString().split('T')[0];
+                  })()}
+                </span>
+              </div>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '700', color: '#d97706' }}>
+                <input
+                  type="checkbox"
+                  checked={Boolean(ramadanConfig?.forceShow)}
+                  onChange={e => setRamadanConfig({ forceShow: e.target.checked })}
+                />
+                <span>Tarihi Beklemeden Şimdi Test İçin Göster</span>
+              </label>
+            </div>
+          )}
         </div>
       </section>
 

@@ -12,6 +12,7 @@ import { MSSQL_CATEGORIES, BROADCAST_CATEGORIES } from '../../../utils/categoryC
 import { formatTimecode } from '../../../utils/formatTimecode';
 import { dialog } from '../../../store/dialogStore';
 import usePlanningStore from '../../../store/planningStore';
+import { isRamadanFeatureWindowOpen } from '../../../components/Ads/reservation/reservationConstants';
 import useBroadcastStore from '../store/broadcastStore';
 
 const AddBroadcastProgramModal = ({ isOpen, onClose }) => {
@@ -41,6 +42,8 @@ const AddBroadcastProgramModal = ({ isOpen, onClose }) => {
   const [manualEpisode, setManualEpisode] = useState('');
   const [manualNote, setManualNote] = useState('');
   const [ramadanProgramType, setRamadanProgramType] = useState('');
+  const ramadanConfig = usePlanningStore(state => state.ramadanConfig);
+  const showRamadanControls = isRamadanFeatureWindowOpen(ramadanConfig, selectedDate);
 
   useEffect(() => {
     if (!isOpen) {
@@ -578,40 +581,42 @@ const AddBroadcastProgramModal = ({ isOpen, onClose }) => {
                 </div>
               </div>
 
-              {/* Ramazan Özel Program İşareti */}
-              <div style={{
-                marginBottom: '16px',
-                padding: '10px 12px',
-                borderRadius: '10px',
-                background: ramadanProgramType ? 'rgba(217, 119, 6, 0.12)' : 'var(--bg-primary)',
-                border: ramadanProgramType ? '1.5px solid #d97706' : '1px solid var(--border-color)'
-              }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', color: ramadanProgramType ? '#d97706' : 'var(--text-primary)', marginBottom: '6px' }}>
-                  🌙 Ramazan Özel Programı mı? (Sahur / İftar Başlangıç Saati Tespiti İçin):
-                </label>
-                <select
-                  value={ramadanProgramType}
-                  onChange={(e) => setRamadanProgramType(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '9px 10px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--border-color)',
-                    background: 'var(--bg-secondary)',
-                    color: 'var(--text-primary)',
-                    fontSize: '12.5px',
-                    fontWeight: '700',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <option value="">Normal Program (Ramazan Özel Değil)</option>
-                  <option value="sahur">🌙 Ramazan Sahur Programı (Canlı / Özel)</option>
-                  <option value="iftar">🕌 Ramazan İftar Programı (Canlı / Özel)</option>
-                </select>
-                <div style={{ fontSize: '10.5px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                  Seçildiğinde bu programın yayın listesindeki <strong>başlangıç saati</strong> otomatik olarak Sahur/İftar başlangıç saati olarak çekilir ve komşu reklam kuşakları Ramazan Özel olarak değerlendirilir.
+              {/* Ramazan Özel Program İşareti (Yalnızca Ramazan tarihine 2 hafta kala veya Ramazan döneminde gösterilir) */}
+              {showRamadanControls && (
+                <div style={{
+                  marginBottom: '16px',
+                  padding: '10px 12px',
+                  borderRadius: '10px',
+                  background: ramadanProgramType ? 'rgba(217, 119, 6, 0.12)' : 'var(--bg-primary)',
+                  border: ramadanProgramType ? '1.5px solid #d97706' : '1px solid var(--border-color)'
+                }}>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', color: ramadanProgramType ? '#d97706' : 'var(--text-primary)', marginBottom: '6px' }}>
+                    🌙 Ramazan Özel Programı mı? (Sahur / İftar Başlangıç Saati Tespiti İçin):
+                  </label>
+                  <select
+                    value={ramadanProgramType}
+                    onChange={(e) => setRamadanProgramType(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '9px 10px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-secondary)',
+                      color: 'var(--text-primary)',
+                      fontSize: '12.5px',
+                      fontWeight: '700',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="">Normal Program (Ramazan Özel Değil)</option>
+                    <option value="sahur">🌙 Ramazan Sahur Programı (Canlı / Özel)</option>
+                    <option value="iftar">🕌 Ramazan İftar Programı (Canlı / Özel)</option>
+                  </select>
+                  <div style={{ fontSize: '10.5px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                    Seçildiğinde bu programın yayın listesindeki <strong>başlangıç saati</strong> otomatik olarak Sahur/İftar başlangıç saati olarak çekilir ve komşu reklam kuşakları Ramazan Özel olarak değerlendirilir.
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                 <button
