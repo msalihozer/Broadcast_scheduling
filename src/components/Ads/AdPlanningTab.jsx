@@ -57,6 +57,8 @@ const AdPlanningTab = () => {
     adPlacements = {},
     adBreakBumperRules = [],
     libraryPrograms = [],
+    usedArchivePrograms = [],
+    syncUsedArchiveProgramsForAds,
     ramadanConfig = { enabled: true, startDate: '', endDate: '', leadDays: 14, forceShow: false },
     setRamadanConfig,
     setBreakRamadanTag,
@@ -108,6 +110,13 @@ const AdPlanningTab = () => {
   };
 
   const selectedDayKey = `ready-${selectedChannel}-${selectedDate}`;
+
+  // MAM Arşiv program listesini çek (Canlı yayınların önceki bölümlerini ve kategorilerini tespit etmek için)
+  useEffect(() => {
+    if (typeof syncUsedArchiveProgramsForAds === 'function') {
+      syncUsedArchiveProgramsForAds();
+    }
+  }, [syncUsedArchiveProgramsForAds]);
 
   // Seçili günün bulunduğu haftayı hazırla ve eğer Yayın Planlama (broadcastStore) içinde kayıtlı liste varsa senkronize et
   useEffect(() => {
@@ -549,7 +558,7 @@ const AdPlanningTab = () => {
       }
 
       const bumperInfo = resolveAdBreakBumpersForPrecedingProgram(
-        { adBreakBumperRules, libraryPrograms },
+        { adBreakBumperRules, libraryPrograms, usedArchivePrograms, days },
         selectedDayInfo.channelId,
         prevProg,
         nextProg
@@ -575,13 +584,14 @@ const AdPlanningTab = () => {
         prevProgramSponsorText: prevProg?.sponsorSummaryText || '',
         nextProgramSponsorText: nextProg?.sponsorSummaryText || '',
         prevProgramCategoryName: bumperInfo.detectedCategoryName,
+        prevProgramBumperResolutionMethod: bumperInfo.resolutionMethod,
         expectedIntroBumperName: bumperInfo.introBumperAd?.name || null,
         expectedOutroBumperName: bumperInfo.outroBumperAd?.name || null,
         expectedBumperTotalSec: bumperInfo.totalBumperDurationSec || 0,
         hasSponsorAds
       };
     });
-  }, [selectedDayInfo, activeListCode, selectedPlacements, timeBlocks, reservations, materials, companies, adBreakBumperRules, libraryPrograms]);
+  }, [selectedDayInfo, activeListCode, selectedPlacements, timeBlocks, reservations, materials, companies, adBreakBumperRules, libraryPrograms, usedArchivePrograms, days]);
 
   // Seçili günün yayın listesinden çekilen Sahur ve İftar program başlangıç saatleri
   const todayRamadanScheduleInfo = useMemo(() => {

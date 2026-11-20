@@ -31,7 +31,13 @@ import {
   Check
 } from 'lucide-react';
 import usePlanningStore from '../../store/planningStore';
+import useBroadcastStore from '../../modules/broadcast/store/broadcastStore';
 import { getBumperJingleClipsFromAdsMedia } from '../../store/slices/ads/adsCatalogHelpers';
+import {
+  extractBaseProgramTitle,
+  detectPreviousEpisodeCategoryForLiveProgram,
+  resolveAdBreakBumpersForPrecedingProgram
+} from '../../store/slices/ads/adsPlacementEngine';
 import { BROADCAST_CATEGORIES, getCategoryDetails } from '../../utils/categoryColors';
 import { filterAndSortPrefixFirst } from './reservation/reservationConstants';
 import { dialog } from '../../store/dialogStore';
@@ -55,6 +61,11 @@ const AdBreakBumpersTab = () => {
   const products = usePlanningStore(state => state.products || []);
   const reservations = usePlanningStore(state => state.reservations || []);
   const adPlacements = usePlanningStore(state => state.adPlacements || {});
+  const planningDays = usePlanningStore(state => state.days || {});
+  const libraryPrograms = usePlanningStore(state => state.libraryPrograms || []);
+  const usedArchivePrograms = usePlanningStore(state => state.usedArchivePrograms || []);
+  const syncUsedArchiveProgramsForAds = usePlanningStore(state => state.syncUsedArchiveProgramsForAds);
+  const broadcastDays = useBroadcastStore(state => state.days || {});
 
   const adBreakBumperRules = usePlanningStore(state => state.adBreakBumperRules || []);
   const saveAdBreakBumperRule = usePlanningStore(state => state.saveAdBreakBumperRule);
@@ -67,6 +78,7 @@ const AdBreakBumpersTab = () => {
   const [tableSearch, setTableSearch] = useState('');
   const [ourCategories, setOurCategories] = useState([]);
   const [previewMaterial, setPreviewMaterial] = useState(null);
+  const [quickLiveProgramInput, setQuickLiveProgramInput] = useState('');
 
   // Kural Ekleme / Düzenleme Modalı State
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -74,6 +86,9 @@ const AdBreakBumpersTab = () => {
   const [formChannelMode, setFormChannelMode] = useState('ch_hd'); // 'ch_hd' | 'ch_way' | 'both'
   const [formRuleName, setFormRuleName] = useState('');
   const [formCategories, setFormCategories] = useState([]); // ['Dini', ...]
+  const [formLiveProgramNames, setFormLiveProgramNames] = useState([]); // ['Hasbihal', 'Çerçeve', ...]
+  const [formLiveProgramInput, setFormLiveProgramInput] = useState('');
+  const [formIsChannelDefault, setFormIsChannelDefault] = useState(false);
   const [formIntroClip, setFormIntroClip] = useState(null);
   const [formOutroClip, setFormOutroClip] = useState(null);
 
@@ -84,9 +99,12 @@ const AdBreakBumpersTab = () => {
   const [archiveClips, setArchiveClips] = useState([]);
   const [isSearchingArchive, setIsSearchingArchive] = useState(false);
 
-  // Bizim Kategorileri (/api/archive/our-categories) yükle ve standart kategorilerle birleştir
+  // Bizim Kategorileri (/api/archive/our-categories) ve Arşiv Programlarını (/api/archive/used-programs) yükle
   useEffect(() => {
     let isMounted = true;
+    if (typeof syncUsedArchiveProgramsForAds === 'function') {
+      syncUsedArchiveProgramsForAds();
+    }
     fetch('/api/archive/our-categories')
       .then(r => (r.ok ? r.json() : null))
       .then(data => {
@@ -98,7 +116,141 @@ const AdBreakBumpersTab = () => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [syncUsedArchiveProgramsForAds]);
+
+  // Yayın Planlama, Taslak Planlama ve Reklam Planlama listelerindeki "Canlı" etiketli tüm programları otomatik çek
+  // (Kaç part olduğu önemli değil, baz program adına göre birleştirilir ve her part için geçerli olur)
+  const detectedLiveProgramsFromSchedules = useMemo(() => {
+    const liveMap = new Map();
+
+    const registerLiveItem = (rawProg, channelIdHint = 'ch_hd', sourceLabel = 'Yayın Listesi') => {
+      if (!rawProg || rawProg.type === 'ad_break' || rawProg.isIntroClip) return;
+      const isLiveTagged = Boolean(
+        rawProg.isLive ||
+          rawProg.type === 'live' ||
+          (Array.isArray(rawProg.selectedOptions) &&
+            rawProg.selectedOptions.some(o => /canl[ıi]/i.test(String(o)))) ||
+          /canl[ıi]/i.test(String(rawProg.category || '')) ||
+          /canl[ıi]/i.test(String(rawProg.categoryBadge || '')) ||
+          /\bcanl[ıi]\b/i.test(String(rawProg.title || rawProg.name || ''))
+      );
+      if (!isLiveTagged) return;
+
+      const baseTitle = extractBaseProgramTitle(rawProg);
+      if (!baseTitle || baseTitle.length < 2) return;
+      const key = baseTitle.toLocaleLowerCase('tr-TR');
+
+      if (!liveMap.has(key)) {
+        liveMap.set(key, {
+          baseTitle,
+          channelId: channelIdHint || 'ch_hd',
+          partAndSlotCount: 1,
+          sourceLabel,
+          rawCategory: rawProg.category || rawProg.categoryName || 'Canlı Yayın'
+        });
+      } else {
+        const entry = liveMap.get(key);
+        entry.partAndSlotCount += 1;
+      }
+    };
+
+    // 1. planningStore.days (Reklam Rezervasyona Gelen ve Taslak Listeler)
+    Object.entries(planningDays || {}).forEach(([dayKey, dayObj]) => {
+      const chId = dayKey.includes('ch_way') ? 'ch_way' : 'ch_hd';
+      const variants = dayObj?.variants || {};
+      Object.values(variants).forEach(vObj => {
+        (vObj?.programs || []).forEach(p => registerLiveItem(p, chId, 'Yayın Planlama'));
+      });
+    });
+
+    // 2. broadcastStore.days (Yayın Planlama Liste A / Liste B)
+    Object.entries(broadcastDays || {}).forEach(([bKey, dayObj]) => {
+      const chId = bKey.includes('ch_way') ? 'ch_way' : 'ch_hd';
+      const variants = dayObj?.variants || {};
+      Object.values(variants).forEach(vObj => {
+        (vObj?.programs || []).forEach(p => registerLiveItem(p, chId, 'Yayın Planlama'));
+      });
+    });
+
+    // 3. Taslak Planlama localStorage kayıtları
+    if (typeof window !== 'undefined' && window.localStorage) {
+      ['ch_hd', 'ch_way'].forEach(chId => {
+        ['draft_schedule_v5_', 'yayin_taslak_schedule_'].forEach(prefix => {
+          try {
+            const raw = window.localStorage.getItem(`${prefix}${chId}`);
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              Object.values(parsed || {}).forEach(dObj => {
+                (dObj?.programs || []).forEach(p => registerLiveItem(p, chId, 'Taslak Planlama'));
+              });
+            }
+          } catch (_) {}
+        });
+      });
+    }
+
+    // 4. Mevcut kurallarda kayıtlı olan canlı yayın program isimleri
+    (adBreakBumperRules || []).forEach(r => {
+      (r.liveProgramNames || []).forEach(lpName => {
+        const baseTitle = extractBaseProgramTitle(lpName);
+        if (!baseTitle) return;
+        const key = baseTitle.toLocaleLowerCase('tr-TR');
+        if (!liveMap.has(key)) {
+          liveMap.set(key, {
+            baseTitle,
+            channelId: r.channelId || 'ch_hd',
+            partAndSlotCount: 1,
+            sourceLabel: 'Kural Listesi',
+            rawCategory: 'Canlı Yayın'
+          });
+        }
+      });
+    });
+
+    const activeCh = selectedChannelFilter === 'all' ? 'ch_hd' : selectedChannelFilter;
+    const stateSnapshot = {
+      adBreakBumperRules,
+      libraryPrograms,
+      usedArchivePrograms,
+      days: planningDays
+    };
+
+    return Array.from(liveMap.values()).map(item => {
+      const prevEpInfo = detectPreviousEpisodeCategoryForLiveProgram(stateSnapshot, {
+        title: item.baseTitle,
+        category: 'Canlı Yayın',
+        isLive: true
+      });
+      const resolved = resolveAdBreakBumpersForPrecedingProgram(
+        stateSnapshot,
+        activeCh,
+        {
+          title: item.baseTitle,
+          programTitle: item.baseTitle,
+          category: 'Canlı Yayın',
+          isLive: true
+        },
+        null
+      );
+
+      return {
+        ...item,
+        previousEpisodeCategory: prevEpInfo?.categoryName || null,
+        resolutionMethod: resolved.resolutionMethod, // 'live_rule' | 'previous_episodes' | 'channel_default'
+        resolvedCategoryLabel: resolved.detectedCategoryName,
+        resolvedIntroName: resolved.introBumperAd?.name || 'reklam_kulturel_giris_2014',
+        resolvedOutroName: resolved.outroBumperAd?.name || 'reklam_kulturel_cikis_2014',
+        matchedRule: resolved.matchedRule
+      };
+    });
+  }, [
+    planningDays,
+    broadcastDays,
+    adBreakBumperRules,
+    libraryPrograms,
+    usedArchivePrograms,
+    selectedChannelFilter
+  ]);
 
   const allAvailableCategories = useMemo(() => {
     const map = new Map();
@@ -229,14 +381,19 @@ const AdBreakBumpersTab = () => {
       list = filterAndSortPrefixFirst(
         list,
         tableSearch,
-        r => `${(r.categories || []).join(' ')} ${r.ruleName || ''}`,
+        r => `${(r.categories || []).join(' ')} ${(r.liveProgramNames || []).join(' ')} ${r.ruleName || ''}`,
         r => `${r.introClip?.name || ''} ${r.outroClip?.name || ''} ${r.introClip?.code || ''} ${r.outroClip?.code || ''}`
       );
     }
     return list;
   }, [adBreakBumperRules, selectedChannelFilter, tableSearch]);
 
-  const openNewRuleModal = (preselectChannelId = null, preselectCategoryName = null) => {
+  const openNewRuleModal = (
+    preselectChannelId = null,
+    preselectCategoryName = null,
+    preselectLiveProgramName = null,
+    isDefaultRuleMode = false
+  ) => {
     setEditingRule(null);
     setFormChannelMode(
       preselectChannelId
@@ -245,8 +402,19 @@ const AdBreakBumpersTab = () => {
         ? selectedChannelFilter
         : 'ch_hd'
     );
-    setFormRuleName(preselectCategoryName ? `${preselectCategoryName} Programları Reklam Giriş & Çıkışı` : '');
+    setFormIsChannelDefault(Boolean(isDefaultRuleMode));
+    setFormRuleName(
+      isDefaultRuleMode
+        ? 'Canlı Yayın & Kategorisiz Programlar Varsayılan (Default) Giriş & Çıkışı'
+        : preselectLiveProgramName
+        ? `Canlı Yayın: ${preselectLiveProgramName} (Tüm Partlar) Reklam Giriş & Çıkışı`
+        : preselectCategoryName
+        ? `${preselectCategoryName} Programları Reklam Giriş & Çıkışı`
+        : ''
+    );
     setFormCategories(preselectCategoryName ? [preselectCategoryName] : []);
+    setFormLiveProgramNames(preselectLiveProgramName ? [extractBaseProgramTitle(preselectLiveProgramName)] : []);
+    setFormLiveProgramInput('');
     setFormIntroClip(null);
     setFormOutroClip(null);
     setActivePickerSlot('intro');
@@ -258,8 +426,17 @@ const AdBreakBumpersTab = () => {
   const openEditRuleModal = rule => {
     setEditingRule(rule);
     setFormChannelMode(rule.channelId || 'ch_hd');
+    setFormIsChannelDefault(Boolean(rule.isChannelDefault));
     setFormRuleName(rule.ruleName || '');
-    setFormCategories(Array.isArray(rule.categories) ? [...rule.categories] : []);
+    setFormCategories(
+      rule.isChannelDefault
+        ? []
+        : Array.isArray(rule.categories)
+        ? [...rule.categories]
+        : []
+    );
+    setFormLiveProgramNames(Array.isArray(rule.liveProgramNames) ? [...rule.liveProgramNames] : []);
+    setFormLiveProgramInput('');
     setFormIntroClip(rule.introClip ? { ...rule.introClip } : null);
     setFormOutroClip(rule.outroClip ? { ...rule.outroClip } : null);
     setActivePickerSlot('intro');
@@ -276,6 +453,30 @@ const AdBreakBumpersTab = () => {
       }
       return [...prev, catName];
     });
+  };
+
+  const toggleFormLiveProgram = progName => {
+    const clean = extractBaseProgramTitle(progName);
+    if (!clean) return;
+    setFormLiveProgramNames(prev => {
+      const exists = prev.some(p => p.toLocaleLowerCase('tr-TR') === clean.toLocaleLowerCase('tr-TR'));
+      if (exists) {
+        return prev.filter(p => p.toLocaleLowerCase('tr-TR') !== clean.toLocaleLowerCase('tr-TR'));
+      }
+      return [...prev, clean];
+    });
+  };
+
+  const handleAddCustomLiveProgramToForm = () => {
+    const clean = extractBaseProgramTitle(formLiveProgramInput);
+    if (!clean) return;
+    setFormLiveProgramNames(prev => {
+      if (prev.some(p => p.toLocaleLowerCase('tr-TR') === clean.toLocaleLowerCase('tr-TR'))) {
+        return prev;
+      }
+      return [...prev, clean];
+    });
+    setFormLiveProgramInput('');
   };
 
   const handleSelectClipForSlot = clip => {
@@ -317,10 +518,10 @@ const AdBreakBumpersTab = () => {
 
   const handleSaveRuleSubmit = e => {
     e.preventDefault();
-    if (formCategories.length === 0) {
+    if (!formIsChannelDefault && formCategories.length === 0 && formLiveProgramNames.length === 0) {
       dialog.warning(
-        'Kategori Seçilmedi',
-        'Lütfen bu Reklam Giriş / Çıkış kuralının geçerli olacağı en az 1 program kategorisi seçin (Birden fazla kategori seçebilirsiniz).'
+        'Kategori veya Canlı Yayın Programı Seçilmedi',
+        'Lütfen en az 1 program kategorisi seçin VEYA canlı yayın program ismi ekleyin.'
       );
       return;
     }
@@ -341,15 +542,22 @@ const AdBreakBumpersTab = () => {
       })
       .filter(Boolean);
 
+    const ruleTitleFallback = formIsChannelDefault
+      ? 'Canlı Yayın & Kategorisiz Programlar Varsayılan (Default) Giriş & Çıkışı'
+      : [
+          ...(formCategories.length > 0 ? [formCategories.join(', ')] : []),
+          ...(formLiveProgramNames.length > 0 ? [`Canlı: ${formLiveProgramNames.join(', ')}`] : [])
+        ].join(' • ') + ' Reklam Giriş & Çıkışı';
+
     saveAdBreakBumperRule({
       id: editingRule?.id || null,
       channelId: formChannelMode === 'both' ? 'ch_hd' : formChannelMode,
       applyToBothChannels: formChannelMode === 'both',
-      ruleName:
-        formRuleName.trim() ||
-        `${formCategories.join(', ')} Programları Reklam Giriş & Çıkışı`,
-      categories: formCategories,
+      ruleName: formRuleName.trim() || ruleTitleFallback,
+      categories: formIsChannelDefault ? ['Canlı Yayın (Varsayılan)'] : formCategories,
       categoryIds: matchedCategoryIds,
+      liveProgramNames: formIsChannelDefault ? [] : formLiveProgramNames,
+      isChannelDefault: formIsChannelDefault,
       introClip: formIntroClip,
       outroClip: formOutroClip,
       isActive: editingRule ? editingRule.isActive !== false : true
@@ -546,6 +754,7 @@ const AdBreakBumpersTab = () => {
             const targetCh = selectedChannelFilter === 'all' ? 'ch_hd' : selectedChannelFilter;
             const matchedRule = adBreakBumperRules.find(
               r =>
+                !r.isChannelDefault &&
                 String(r.channelId) === String(targetCh) &&
                 (r.categories || []).some(c => c.toLocaleLowerCase('tr-TR') === cat.name.toLocaleLowerCase('tr-TR'))
             );
@@ -617,6 +826,301 @@ const AdBreakBumpersTab = () => {
         </div>
       </div>
 
+      {/* 2B. CANLI YAYINLAR & KANAL BAZLI VARSAYILAN (DEFAULT) GİRİŞ / ÇIKIŞ YÖNETİMİ */}
+      <div
+        className="ta-card"
+        style={{
+          padding: '16px 20px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '14px',
+          border: '1.5px solid rgba(225, 29, 72, 0.35)',
+          background: 'linear-gradient(135deg, rgba(225, 29, 72, 0.04) 0%, rgba(37, 99, 235, 0.03) 100%)'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span
+              style={{
+                padding: '4px 10px',
+                borderRadius: '999px',
+                background: 'linear-gradient(135deg, #e11d48, #be123c)',
+                color: '#ffffff',
+                fontSize: '11px',
+                fontWeight: '900',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}
+            >
+              🔴 CANLI YAYINLAR &amp; DEFAULT GİRİŞ / ÇIKIŞ
+            </span>
+            <span style={{ fontSize: '13.5px', fontWeight: '900', color: 'var(--ads-text-main)' }}>
+              Canlı Yayın Programları Otomatik Kategori &amp; Kanal Bazlı Varsayılan (Default) Ayarı
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+            <input
+              type="text"
+              value={quickLiveProgramInput}
+              onChange={e => setQuickLiveProgramInput(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && quickLiveProgramInput.trim()) {
+                  e.preventDefault();
+                  const clean = extractBaseProgramTitle(quickLiveProgramInput);
+                  setQuickLiveProgramInput('');
+                  openNewRuleModal(
+                    selectedChannelFilter === 'all' ? 'ch_hd' : selectedChannelFilter,
+                    null,
+                    clean
+                  );
+                }
+              }}
+              placeholder="Canlı yayın program adı girin (Örn: Çerçeve, Hasbihal, Özel Yayın)..."
+              className="ads-saas-input"
+              style={{ minWidth: '280px', height: '33px', fontSize: '12px' }}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                const clean = extractBaseProgramTitle(quickLiveProgramInput);
+                setQuickLiveProgramInput('');
+                openNewRuleModal(
+                  selectedChannelFilter === 'all' ? 'ch_hd' : selectedChannelFilter,
+                  null,
+                  clean || null
+                );
+              }}
+              className="ads-saas-btn ads-saas-btn-primary ads-saas-btn-sm"
+              style={{ background: 'linear-gradient(135deg, #e11d48, #be123c)', border: 'none' }}
+            >
+              <Plus size={13} /> Canlı Yayın Kuralı Ekle (Tüm Partlar)
+            </button>
+          </div>
+        </div>
+
+        {/* 3 Adımlı Canlı Yayın Çözümleme Açıklaması */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+            gap: '8px',
+            fontSize: '11.5px',
+            color: 'var(--ads-text-sub)'
+          }}
+        >
+          <div style={{ padding: '8px 11px', borderRadius: '8px', background: 'var(--ads-card-bg)', border: '1px solid var(--ads-border)' }}>
+            <strong style={{ color: '#e11d48' }}>1. Listeden Canlı Etiketli Program:</strong> Yayın listesindeki canlı program buraya eklendiyse (kaç part olduğu önemli değil, her part için) doğrudan seçilen giriş/çıkış yerleşir.
+          </div>
+          <div style={{ padding: '8px 11px', borderRadius: '8px', background: 'var(--ads-card-bg)', border: '1px solid var(--ads-border)' }}>
+            <strong style={{ color: '#2563eb' }}>2. Önceki Bölümlerden Kategori Kontrolü:</strong> Özel kural yoksa programın (örn: <em>Çerçeve</em>, <em>Hasbihal</em>) önceki bölümleri var mı kontrol edilir ve kategorisine göre otomatik yerleşir.
+          </div>
+          <div style={{ padding: '8px 11px', borderRadius: '8px', background: 'var(--ads-card-bg)', border: '1px solid var(--ads-border)' }}>
+            <strong style={{ color: '#0d9488' }}>3. Kanal Varsayılanı (Default = reklam_kulturel):</strong> Kurala eklenmemiş ve önceki bölümü de yoksa kanalın aşağıdaki <strong>Default</strong> giriş ve çıkışı yerleşir (HD ve WAY için ayrı ayrı değiştirilebilir).
+          </div>
+        </div>
+
+        {/* KANAL BAZLI VARSAYILAN (DEFAULT) GİRİŞ & ÇIKIŞ KARTLARI (SEMERKAND HD & SEMERKAND WAY) */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '10px' }}>
+          {channels.map(ch => {
+            const isWay = String(ch.id) === 'ch_way';
+            const defRule = adBreakBumperRules.find(
+              r => String(r.channelId) === String(ch.id) && Boolean(r.isChannelDefault)
+            );
+            const introName = defRule?.introClip?.name || 'reklam_kulturel_giris_2014';
+            const outroName = defRule?.outroClip?.name || 'reklam_kulturel_cikis_2014';
+            const introSec = Number(defRule?.introClip?.durationSec) || 9;
+            const outroSec = Number(defRule?.outroClip?.durationSec) || 9;
+
+            return (
+              <div
+                key={`default-card-${ch.id}`}
+                style={{
+                  padding: '11px 14px',
+                  borderRadius: '11px',
+                  background: 'var(--ads-card-bg)',
+                  border: isWay ? '1.5px solid rgba(13, 148, 136, 0.45)' : '1.5px solid rgba(70, 95, 255, 0.45)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '10px',
+                  flexWrap: 'wrap'
+                }}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0, flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '7px', flexWrap: 'wrap' }}>
+                    <span
+                      style={{
+                        padding: '2px 8px',
+                        borderRadius: '6px',
+                        fontSize: '11px',
+                        fontWeight: '800',
+                        background: isWay ? 'rgba(13, 148, 136, 0.14)' : 'rgba(70, 95, 255, 0.14)',
+                        color: isWay ? '#0d9488' : '#465fff'
+                      }}
+                    >
+                      {ch.name} • Varsayılan (Default) Ayar
+                    </span>
+                    <span style={{ fontSize: '10.5px', color: 'var(--ads-text-muted)', fontWeight: '700' }}>
+                      (Kategorisiz &amp; Önceki Bölümü Olmayan Canlı Yayınlar İçin)
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '11.5px', fontFamily: 'monospace', color: 'var(--ads-text-main)', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    <span>
+                      <strong style={{ color: '#059669' }}>🟢 Giriş:</strong> {introName} ({introSec}sn)
+                    </span>
+                    <span>
+                      <strong style={{ color: '#d97706' }}>🟠 Çıkış:</strong> {outroName} ({outroSec}sn)
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (defRule) {
+                      openEditRuleModal(defRule);
+                    } else {
+                      openNewRuleModal(ch.id, null, null, true);
+                    }
+                  }}
+                  className="ads-saas-btn ads-saas-btn-sm"
+                  style={{
+                    border: isWay ? '1px solid #0d9488' : '1px solid #465fff',
+                    color: isWay ? '#0d9488' : '#465fff',
+                    fontWeight: '800'
+                  }}
+                >
+                  <Edit2 size={12} /> Default Değiştir
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* YAYIN LİSTESİNDEN OTOMATİK ÇEKİLEN CANLI YAYINLAR LİSTESİ */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+            <span style={{ fontSize: '12px', fontWeight: '800', color: 'var(--ads-text-main)' }}>
+              Yayın &amp; Taslak Listelerinden Otomatik Çekilen Canlı Yayınlar ({detectedLiveProgramsFromSchedules.length})
+            </span>
+            <span style={{ fontSize: '11px', color: 'var(--ads-text-muted)' }}>
+              Program kaç part olursa olsun (Part 1, Part 2, Part 3...) seçilen giriş ve çıkış tüm partlar için otomatik uygulanır.
+            </span>
+          </div>
+
+          {detectedLiveProgramsFromSchedules.length === 0 ? (
+            <div
+              style={{
+                padding: '12px 14px',
+                borderRadius: '10px',
+                background: 'var(--ads-card-bg)',
+                border: '1px dashed var(--ads-border-strong)',
+                fontSize: '12px',
+                color: 'var(--ads-text-muted)'
+              }}
+            >
+              Şu an aktif yayın listelerinde &quot;Canlı&quot; olarak etiketlenmiş program bulunamadı. Yayın listesine canlı yayın eklendiğinde otomatik olarak burada listelenir; veya yukarıdaki kutudan program adını (örn: <strong>Çerçeve</strong>, <strong>Hasbihal</strong>) yazarak kural ekleyebilirsiniz.
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(310px, 1fr))', gap: '8px' }}>
+              {detectedLiveProgramsFromSchedules.map(liveItem => {
+                const isCustomLiveRule = liveItem.resolutionMethod === 'live_rule';
+                const isFromPrevEpisodes = liveItem.resolutionMethod === 'previous_episodes';
+
+                return (
+                  <div
+                    key={liveItem.baseTitle}
+                    style={{
+                      padding: '10px 12px',
+                      borderRadius: '10px',
+                      background: 'var(--ads-card-bg)',
+                      border: isCustomLiveRule
+                        ? '1.5px solid #e11d48'
+                        : isFromPrevEpisodes
+                        ? '1.5px solid #2563eb'
+                        : '1px solid var(--ads-border-strong)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                        <span
+                          style={{
+                            padding: '2px 7px',
+                            borderRadius: '5px',
+                            background: '#e11d48',
+                            color: '#ffffff',
+                            fontSize: '10px',
+                            fontWeight: '900'
+                          }}
+                        >
+                          🔴 CANLI
+                        </span>
+                        <span style={{ fontSize: '12.5px', fontWeight: '900', color: 'var(--ads-text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {liveItem.baseTitle}
+                        </span>
+                        <span style={{ fontSize: '10px', color: 'var(--ads-text-muted)', fontWeight: '700' }}>
+                          (Tüm Partlar)
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (isCustomLiveRule && liveItem.matchedRule) {
+                            openEditRuleModal(liveItem.matchedRule);
+                          } else {
+                            openNewRuleModal(
+                              selectedChannelFilter === 'all' ? liveItem.channelId : selectedChannelFilter,
+                              null,
+                              liveItem.baseTitle
+                            );
+                          }
+                        }}
+                        className="ads-saas-btn ads-saas-btn-sm"
+                        style={{
+                          padding: '3px 8px',
+                          fontSize: '10.5px',
+                          fontWeight: '800',
+                          color: isCustomLiveRule ? '#e11d48' : '#2563eb'
+                        }}
+                      >
+                        {isCustomLiveRule ? 'Kuralı Düzenle' : '+ Özel Giriş/Çıkış Seç'}
+                      </button>
+                    </div>
+
+                    <div style={{ fontSize: '11px', color: 'var(--ads-text-sub)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <div>
+                        {isCustomLiveRule ? (
+                          <span style={{ color: '#e11d48', fontWeight: '800' }}>
+                            ✓ 1. Yöntem: Canlı Yayın Özel Kuralı Tanımlı
+                          </span>
+                        ) : isFromPrevEpisodes ? (
+                          <span style={{ color: '#2563eb', fontWeight: '800' }}>
+                            ✓ Önceki Bölümlerden Kategori Tespit Edildi: {liveItem.previousEpisodeCategory}
+                          </span>
+                        ) : (
+                          <span style={{ color: '#0d9488', fontWeight: '800' }}>
+                            ⚙️ 2. Yöntem: Önceki Bölümü Yok &rarr; Kanal Default ({liveItem.resolvedIntroName})
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontFamily: 'monospace', fontSize: '10.5px', color: 'var(--ads-text-muted)' }}>
+                        🟢 {liveItem.resolvedIntroName} • 🟠 {liveItem.resolvedOutroName}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* 3. KAYITLI REKLAM GİRİŞ & ÇIKIŞ KURALLARI TABLOSU */}
       <div className="ta-card" style={{ padding: 0, overflow: 'hidden' }}>
         <div style={{ overflowX: 'auto' }}>
@@ -668,27 +1172,58 @@ const AdBreakBumpersTab = () => {
                         </span>
                       </td>
 
-                      {/* Bağlı Kategoriler (Çoklu Kategori Rozetleri) */}
+                      {/* Bağlı Kategoriler & Canlı Yayın Programları */}
                       <td>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
-                          {(rule.categories || []).map(catName => {
-                            const catMeta = getCategoryDetails(null, catName);
-                            return (
-                              <span
-                                key={catName}
-                                style={{
-                                  padding: '3px 9px',
-                                  borderRadius: '6px',
-                                  background: catMeta.bg,
-                                  color: '#ffffff',
-                                  fontSize: '11px',
-                                  fontWeight: '800'
-                                }}
-                              >
-                                {catName}
-                              </span>
-                            );
-                          })}
+                          {rule.isChannelDefault && (
+                            <span
+                              style={{
+                                padding: '3px 9px',
+                                borderRadius: '6px',
+                                background: 'linear-gradient(135deg, #0d9488, #0284c7)',
+                                color: '#ffffff',
+                                fontSize: '11px',
+                                fontWeight: '900'
+                              }}
+                            >
+                              ⚙️ KANAL VARSAYILANI (DEFAULT)
+                            </span>
+                          )}
+                          {!rule.isChannelDefault &&
+                            (rule.categories || []).map(catName => {
+                              const catMeta = getCategoryDetails(null, catName);
+                              return (
+                                <span
+                                  key={catName}
+                                  style={{
+                                    padding: '3px 9px',
+                                    borderRadius: '6px',
+                                    background: catMeta.bg,
+                                    color: '#ffffff',
+                                    fontSize: '11px',
+                                    fontWeight: '800'
+                                  }}
+                                >
+                                  {catName}
+                                </span>
+                              );
+                            })}
+                          {(rule.liveProgramNames || []).map(lpName => (
+                            <span
+                              key={`live-${lpName}`}
+                              style={{
+                                padding: '3px 9px',
+                                borderRadius: '6px',
+                                background: 'linear-gradient(135deg, #e11d48, #be123c)',
+                                color: '#ffffff',
+                                fontSize: '11px',
+                                fontWeight: '800'
+                              }}
+                              title="Bu canlı yayın kaç part olursa olsun tüm partları için geçerlidir"
+                            >
+                              🔴 Canlı: {lpName} (Tüm Partlar)
+                            </span>
+                          ))}
                         </div>
                         {rule.ruleName && (
                           <div style={{ fontSize: '11px', color: 'var(--ads-text-muted)', marginTop: '4px', fontWeight: '600' }}>
@@ -878,22 +1413,24 @@ const AdBreakBumpersTab = () => {
                           >
                             <Edit2 size={12} /> Düzenle
                           </button>
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              const ok = await dialog.confirm(
-                                'Kuralı Sil',
-                                `"${rule.ruleName}" kuralını silmek istediğinize emin misiniz?`,
-                                { confirmText: 'Sil', cancelText: 'Vazgeç' }
-                              );
-                              if (ok) deleteAdBreakBumperRule(rule.id);
-                            }}
-                            className="ads-saas-btn ads-saas-btn-danger ads-saas-btn-sm"
-                            style={{ padding: '5px 7px' }}
-                            title="Kuralı Sil"
-                          >
-                            <Trash2 size={12} />
-                          </button>
+                          {!rule.isChannelDefault && (
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                const ok = await dialog.confirm(
+                                  'Kuralı Sil',
+                                  `"${rule.ruleName}" kuralını silmek istediğinize emin misiniz?`,
+                                  { confirmText: 'Sil', cancelText: 'Vazgeç' }
+                                );
+                                if (ok) deleteAdBreakBumperRule(rule.id);
+                              }}
+                              className="ads-saas-btn ads-saas-btn-danger ads-saas-btn-sm"
+                              style={{ padding: '5px 7px' }}
+                              title="Kuralı Sil"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -1068,96 +1605,258 @@ const AdBreakBumpersTab = () => {
                 </div>
               </div>
 
-              {/* ADIM 2: KATEGORİ SEÇİMİ (BİRDEN FAZLA KATEGORİ SEÇİLEBİLİR) */}
-              <div
-                style={{
-                  padding: '14px',
-                  borderRadius: '12px',
-                  background: 'var(--ads-card-subtle)',
-                  border: '1px solid var(--ads-border)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '10px'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+              {/* ADIM 2: KATEGORİ SEÇİMİ VEYA CANLI YAYIN PROGRAM İSMİ SEÇİMİ */}
+              {formIsChannelDefault ? (
+                <div
+                  style={{
+                    padding: '14px 16px',
+                    borderRadius: '12px',
+                    background: 'rgba(13, 148, 136, 0.1)',
+                    border: '1.5px solid rgba(13, 148, 136, 0.45)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '10px'
+                  }}
+                >
                   <div>
-                    <span style={{ fontSize: '12.5px', fontWeight: '800', color: 'var(--ads-text-main)' }}>
-                      2. Program Kategorisi Seçimi (Birden Fazla Kategori Seçebilirsiniz) *
-                    </span>
-                    <div style={{ fontSize: '11.5px', color: 'var(--ads-text-muted)', marginTop: '2px' }}>
-                      Seçtiğiniz tüm kategorilerdeki programlardan sonra gelen reklam kuşağında aşağıdaki Giriş ve Çıkış jenerikleri kullanılacaktır.
+                    <div style={{ fontSize: '13px', fontWeight: '900', color: '#0d9488' }}>
+                      ⚙️ Kanal Varsayılan (Default) Giriş &amp; Çıkış Ayarı Düzenleniyor
+                    </div>
+                    <div style={{ fontSize: '11.5px', color: 'var(--ads-text-sub)', marginTop: '3px' }}>
+                      Reklam Giriş &amp; Çıkış alanına özel olarak eklenmemiş ve arşivde daha önce bölümü / kategori bilgisi bulunmayan canlı yayınlar için seçili kanalda aşağıdaki Giriş ve Çıkış klipleri otomatik olarak yerleşir.
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* 2A: KATEGORİ SEÇİMİ */}
+                  <div
+                    style={{
+                      padding: '14px',
+                      borderRadius: '12px',
+                      background: 'var(--ads-card-subtle)',
+                      border: '1px solid var(--ads-border)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '10px'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                      <div>
+                        <span style={{ fontSize: '12.5px', fontWeight: '800', color: 'var(--ads-text-main)' }}>
+                          2A. Program Kategorisi Seçimi (Birden Fazla Kategori Seçebilirsiniz)
+                        </span>
+                        <div style={{ fontSize: '11.5px', color: 'var(--ads-text-muted)', marginTop: '2px' }}>
+                          Seçtiğiniz tüm kategorilerdeki programlardan sonra gelen reklam kuşağında aşağıdaki Giriş ve Çıkış jenerikleri kullanılacaktır.
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <button
+                          type="button"
+                          onClick={() => setFormCategories(allAvailableCategories.map(c => c.name))}
+                          className="ads-saas-btn ads-saas-btn-sm"
+                          style={{ fontSize: '11px' }}
+                        >
+                          Tüm Kategorileri Seç
+                        </button>
+                        {formCategories.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setFormCategories([])}
+                            className="ads-saas-btn ads-saas-btn-sm"
+                            style={{ fontSize: '11px', color: '#ef4444' }}
+                          >
+                            Seçimi Temizle
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                      {allAvailableCategories.map(cat => {
+                        const isChecked = formCategories.some(
+                          c => c.toLocaleLowerCase('tr-TR') === cat.name.toLocaleLowerCase('tr-TR')
+                        );
+                        return (
+                          <button
+                            key={cat.name}
+                            type="button"
+                            onClick={() => toggleFormCategory(cat.name)}
+                            style={{
+                              padding: '7px 13px',
+                              borderRadius: '9px',
+                              border: isChecked ? `2px solid ${cat.color}` : '1px solid var(--ads-border-strong)',
+                              background: isChecked ? cat.color : 'var(--ads-card-bg)',
+                              color: isChecked ? '#ffffff' : 'var(--ads-text-main)',
+                              fontSize: '12px',
+                              fontWeight: '800',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              boxShadow: isChecked ? `0 4px 12px ${cat.color}44` : 'none',
+                              transition: 'all 0.12s ease'
+                            }}
+                          >
+                            <span
+                              style={{
+                                width: '16px',
+                                height: '16px',
+                                borderRadius: '4px',
+                                border: isChecked ? '1.5px solid #fff' : `1.5px solid ${cat.color}`,
+                                background: isChecked ? 'rgba(255,255,255,0.22)' : 'transparent',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}
+                            >
+                              {isChecked && <Check size={11} strokeWidth={3} />}
+                            </span>
+                            <span>{cat.name}</span>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <button
-                      type="button"
-                      onClick={() => setFormCategories(allAvailableCategories.map(c => c.name))}
-                      className="ads-saas-btn ads-saas-btn-sm"
-                      style={{ fontSize: '11px' }}
-                    >
-                      Tüm Kategorileri Seç
-                    </button>
-                    {formCategories.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setFormCategories([])}
-                        className="ads-saas-btn ads-saas-btn-sm"
-                        style={{ fontSize: '11px', color: '#ef4444' }}
-                      >
-                        Seçimi Temizle
-                      </button>
+                  {/* 2B: CANLI YAYIN / ÖZEL PROGRAM İSMİ SEÇİMİ (LİSTEDEN OTOMATİK ÇEKİLENLER + MANUEL İSİM GİRİŞİ) */}
+                  <div
+                    style={{
+                      padding: '14px',
+                      borderRadius: '12px',
+                      background: 'rgba(225, 29, 72, 0.04)',
+                      border: '1.5px solid rgba(225, 29, 72, 0.35)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '10px'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                      <div>
+                        <span style={{ fontSize: '12.5px', fontWeight: '900', color: '#e11d48' }}>
+                          2B. 🔴 Canlı Yayın / Özel Program İsmi Seçimi (Kaç Part Olduğu Önemli Değil - Tüm Partlar İçin Geçerli)
+                        </span>
+                        <div style={{ fontSize: '11.5px', color: 'var(--ads-text-muted)', marginTop: '2px' }}>
+                          Yayın listesindeki canlı etiketli programlardan seçebilir veya program adını yazarak ekleyebilirsiniz.
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <input
+                          type="text"
+                          value={formLiveProgramInput}
+                          onChange={e => setFormLiveProgramInput(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' && formLiveProgramInput.trim()) {
+                              e.preventDefault();
+                              handleAddCustomLiveProgramToForm();
+                            }
+                          }}
+                          placeholder="Program adı yazın (Örn: Çerçeve, Hasbihal)..."
+                          className="ads-saas-input"
+                          style={{ minWidth: '240px', height: '32px', fontSize: '12px' }}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddCustomLiveProgramToForm}
+                          className="ads-saas-btn ads-saas-btn-primary ads-saas-btn-sm"
+                          style={{ background: '#e11d48', border: 'none' }}
+                        >
+                          <Plus size={12} /> Program Ekle
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Seçili Canlı Yayın Programları */}
+                    {formLiveProgramNames.length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                        {formLiveProgramNames.map(lpName => (
+                          <span
+                            key={`sel-live-${lpName}`}
+                            style={{
+                              padding: '5px 11px',
+                              borderRadius: '8px',
+                              background: 'linear-gradient(135deg, #e11d48, #be123c)',
+                              color: '#ffffff',
+                              fontSize: '11.5px',
+                              fontWeight: '800',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px'
+                            }}
+                          >
+                            <span>🔴 {lpName} (Tüm Partlar)</span>
+                            <button
+                              type="button"
+                              onClick={() => toggleFormLiveProgram(lpName)}
+                              style={{
+                                border: 'none',
+                                background: 'rgba(255,255,255,0.22)',
+                                color: '#fff',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                padding: '1px 4px',
+                                display: 'inline-flex',
+                                alignItems: 'center'
+                              }}
+                              title="Kaldır"
+                            >
+                              <X size={11} />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Yayın Listesinden Otomatik Çekilen Canlı Yayınlar Hızlı Seçim Hapları */}
+                    {detectedLiveProgramsFromSchedules.length > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                        <span style={{ fontSize: '11px', fontWeight: '800', color: 'var(--ads-text-sub)' }}>
+                          Yayın &amp; Taslak Listelerinden Otomatik Çekilen Canlı Yayınlar (Seçmek İçin Tıklayın):
+                        </span>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                          {detectedLiveProgramsFromSchedules.map(liveItem => {
+                            const isPicked = formLiveProgramNames.some(
+                              p => p.toLocaleLowerCase('tr-TR') === liveItem.baseTitle.toLocaleLowerCase('tr-TR')
+                            );
+                            return (
+                              <button
+                                key={`modal-live-${liveItem.baseTitle}`}
+                                type="button"
+                                onClick={() => toggleFormLiveProgram(liveItem.baseTitle)}
+                                style={{
+                                  padding: '5px 10px',
+                                  borderRadius: '8px',
+                                  border: isPicked ? '2px solid #e11d48' : '1px solid var(--ads-border-strong)',
+                                  background: isPicked ? 'rgba(225, 29, 72, 0.14)' : 'var(--ads-card-bg)',
+                                  color: isPicked ? '#e11d48' : 'var(--ads-text-main)',
+                                  fontSize: '11.5px',
+                                  fontWeight: '800',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '5px'
+                                }}
+                              >
+                                {isPicked ? <Check size={12} /> : <Plus size={12} />}
+                                <span>{liveItem.baseTitle}</span>
+                                {liveItem.previousEpisodeCategory && (
+                                  <span style={{ fontSize: '10px', opacity: 0.8 }}>
+                                    ({liveItem.previousEpisodeCategory})
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
                     )}
                   </div>
-                </div>
-
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                  {allAvailableCategories.map(cat => {
-                    const isChecked = formCategories.some(
-                      c => c.toLocaleLowerCase('tr-TR') === cat.name.toLocaleLowerCase('tr-TR')
-                    );
-                    return (
-                      <button
-                        key={cat.name}
-                        type="button"
-                        onClick={() => toggleFormCategory(cat.name)}
-                        style={{
-                          padding: '7px 13px',
-                          borderRadius: '9px',
-                          border: isChecked ? `2px solid ${cat.color}` : '1px solid var(--ads-border-strong)',
-                          background: isChecked ? cat.color : 'var(--ads-card-bg)',
-                          color: isChecked ? '#ffffff' : 'var(--ads-text-main)',
-                          fontSize: '12px',
-                          fontWeight: '800',
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          boxShadow: isChecked ? `0 4px 12px ${cat.color}44` : 'none',
-                          transition: 'all 0.12s ease'
-                        }}
-                      >
-                        <span
-                          style={{
-                            width: '16px',
-                            height: '16px',
-                            borderRadius: '4px',
-                            border: isChecked ? '1.5px solid #fff' : `1.5px solid ${cat.color}`,
-                            background: isChecked ? 'rgba(255,255,255,0.22)' : 'transparent',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}
-                        >
-                          {isChecked && <Check size={11} strokeWidth={3} />}
-                        </span>
-                        <span>{cat.name}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+                </>
+              )}
 
               {/* ADIM 3: REKLAM GİRİŞ & REKLAM ÇIKIŞ KLİBİ SEÇİMİ VE MEDYA KÜTÜPHANESİ ARAMA */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

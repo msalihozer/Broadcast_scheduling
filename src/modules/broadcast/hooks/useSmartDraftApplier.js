@@ -281,6 +281,13 @@ export default function useSmartDraftApplier({
           const liveDurationFrames = timecodeToFrames(liveDurationTc);
           const liveDetailParts = [slot.host, slot.topic].filter(Boolean);
           const liveDetailText = liveDetailParts.join(' • ') || slot.note || '';
+          const matchedLiveArchiveProgs = findMatchingAdminPrograms(slot, usedPrograms);
+          const archiveLiveCat = matchedLiveArchiveProgs[0]?.categoryName || '';
+          const archiveLiveCatId = matchedLiveArchiveProgs[0]?.categoryId || null;
+          const resolvedLiveCat =
+            slot.category && !/^(canl[ıi]|özel|ozel|genel)/i.test(String(slot.category).trim())
+              ? slot.category
+              : archiveLiveCat || slot.category || 'Canlı Yayın';
 
           newRundownItems.push({
             id: `live_${slot.id || idx}_${Date.now()}`,
@@ -295,7 +302,9 @@ export default function useSmartDraftApplier({
             durationTc: liveDurationTc,
             durationFrames: liveDurationFrames,
             durationSec: Math.floor(liveDurationFrames / BROADCAST_FPS),
-            category: slot.category || 'Canlı Yayın',
+            category: resolvedLiveCat,
+            categoryName: resolvedLiveCat,
+            categoryId: slot.categoryId || archiveLiveCatId || null,
             categoryColor: '#ef4444',
             episodeNo: slot.episodeNo ?? (slot.episode ? Number(slot.episode) || slot.episode : null),
             partNo: null,
@@ -660,6 +669,13 @@ export default function useSmartDraftApplier({
           const liveDurationTc = slot.durationFormatted || secondsToTimecode(liveDurationSec);
           const liveDurationFrames = timecodeToFrames(liveDurationTc);
           const liveDetailText = [slot.host, slot.topic].filter(Boolean).join(' • ') || slot.note || '';
+          const matchedLiveArchiveProgs = findMatchingAdminPrograms(slot, usedPrograms);
+          const archiveLiveCat = matchedLiveArchiveProgs[0]?.categoryName || '';
+          const archiveLiveCatId = matchedLiveArchiveProgs[0]?.categoryId || null;
+          const resolvedLiveCat =
+            slot.category && !/^(canl[ıi]|özel|ozel|genel)/i.test(String(slot.category).trim())
+              ? slot.category
+              : archiveLiveCat || slot.category || 'Canlı Yayın';
           built.push({
             id: `live_${slot.id || slotIdx}_${Date.now()}`,
             instanceId: `inst_live_${Date.now()}_${slotIdx}_${Math.random().toString(36).substr(2, 5)}`,
@@ -673,7 +689,9 @@ export default function useSmartDraftApplier({
             durationTc: liveDurationTc,
             durationFrames: liveDurationFrames,
             durationSec: Math.floor(liveDurationFrames / BROADCAST_FPS),
-            category: slot.category || 'Canlı Yayın',
+            category: resolvedLiveCat,
+            categoryName: resolvedLiveCat,
+            categoryId: slot.categoryId || archiveLiveCatId || null,
             categoryColor: '#ef4444',
             episodeNo: slot.episodeNo ?? (slot.episode ? Number(slot.episode) || slot.episode : null),
             partNo: null,

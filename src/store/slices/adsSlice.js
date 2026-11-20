@@ -88,12 +88,37 @@ export const createAdsSlice = (set, get) => ({
   reservations: Array.isArray(initialBackup.reservations) ? initialBackup.reservations : [],
   timeBlocks: DEFAULT_TIME_BLOCKS,
   adBreakBumperRules: loadAdBreakBumperRulesBackup() || DEFAULT_AD_BREAK_BUMPER_RULES,
+  usedArchivePrograms: [],
   ramadanConfig: loadSavedRamadanConfig(),
 
   /**
-   * Kanal ve kategori bazlı Reklam Giriş / Çıkış Jenerik kuralı ekler veya günceller.
+   * MAM Arşivindeki aktif program listesini (`/api/archive/used-programs`) çeker ve store'a (`usedArchivePrograms`) yazar.
+   * Bu sayede Çerçeve, Hasbihal gibi canlı yayınların önceki bölümleri olup olmadığı ve hangi kategoride oldukları
+   * otomatik olarak tespit edilir.
+   */
+  syncUsedArchiveProgramsForAds: async () => {
+    try {
+      const res = await fetch('/api/archive/used-programs');
+      if (res.ok) {
+        const data = await res.json();
+        const progList = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.programs)
+          ? data.programs
+          : [];
+        if (progList.length > 0) {
+          set({ usedArchivePrograms: progList });
+        }
+      }
+    } catch (_) {}
+  },
+
+  /**
+   * Kanal, kategori, canlı yayın program ismi (`liveProgramNames`) veya kanal varsayılanı (`isChannelDefault`)
+   * bazlı Reklam Giriş / Çıkış Jenerik kuralı ekler veya günceller.
    * applyToBothChannels=true ise kuralı hem Semerkand HD (ch_hd) hem de Semerkand WAY (ch_way) için kaydeder.
-   * Seçilen kategoriler aynı kanalda başka bir kuralda varsa çakışmayı önlemek için eski kuraldan otomatik düşülür.
+   * Seçilen kategoriler veya canlı yayın program isimleri aynı kanalda başka bir kuralda varsa
+   * çakışmayı önlemek için eski kuraldan otomatik düşülür.
    */
   saveAdBreakBumperRule: (rulePayload) => set(state => {
     const currentRules = Array.isArray(state.adBreakBumperRules) ? [...state.adBreakBumperRules] : [];
@@ -101,55 +126,90 @@ export const createAdsSlice = (set, get) => ({
       ? ['ch_hd', 'ch_way']
       : [rulePayload.channelId || 'ch_hd'];
 
+    const isChannelDefault = Boolean(rulePayload.isChannelDefault);
     const selectedCategories = Array.from(
       new Set((rulePayload.categories || []).map(c => String(c || '').trim()).filter(Boolean))
     );
     const selectedCategoryIds = Array.from(
       new Set((rulePayload.categoryIds || []).map(Number).filter(n => !isNaN(n) && n > 0))
     );
+    const selectedLivePrograms = Array.from(
+      new Set((rulePayload.liveProgramNames || []).map(p => String(p || '').trim()).filter(Boolean))
+    );
 
-    if (selectedCategories.length === 0) return state;
+    if (!isChannelDefault && selectedCategories.length === 0 && selectedLivePrograms.length === 0) {
+      return state;
+    }
 
     let updatedRules = [...currentRules];
 
     targetChannels.forEach((chId, chIdx) => {
-      const editingId =
-        !rulePayload.applyToBothChannels && rulePayload.id
-          ? String(rulePayload.id)
-          : chIdx === 0 && rulePayload.id && String(rulePayload.channelId) === String(chId)
-          ? String(rulePayload.id)
-          : null;
+      const existingDefaultForChannel = isChannelDefault
+        ? updatedRules.find(r => String(r.channelId) === String(chId) && Boolean(r.isChannelDefault))
+        : null;
 
-      // Aynı kanaldaki diğer kurallardan bu kategorileri çıkar (tekillik koruması)
-      updatedRules = updatedRules
-        .map(r => {
-          if (String(r.channelId) !== String(chId)) return r;
-          if (editingId && String(r.id) === editingId) return r;
+      const editingId = isChannelDefault
+        ? (existingDefaultForChannel?.id || rulePayload.id || `bumper-${chId}-live_default_fallback`)
+        : !rulePayload.applyToBothChannels && rulePayload.id
+        ? String(rulePayload.id)
+        : chIdx === 0 && rulePayload.id && String(rulePayload.channelId) === String(chId)
+        ? String(rulePayload.id)
+        : null;
 
-          const remainingCats = (r.categories || []).filter(
-            catName => !selectedCategories.some(sc => sc.toLocaleLowerCase('tr-TR') === String(catName).toLocaleLowerCase('tr-TR'))
-          );
-          const remainingCatIds = (r.categoryIds || []).filter(
-            cId => !selectedCategoryIds.includes(Number(cId))
-          );
+      // Aynı kanaldaki diğer kurallardan bu kategorileri ve canlı yayın program isimlerini çıkar (tekillik koruması)
+      if (!isChannelDefault) {
+        updatedRules = updatedRules
+          .map(r => {
+            if (String(r.channelId) !== String(chId)) return r;
+            if (editingId && String(r.id) === editingId) return r;
+            if (r.isChannelDefault) return r;
 
-          if (remainingCats.length === 0) return null;
-          return {
-            ...r,
-            categories: remainingCats,
-            categoryIds: remainingCatIds
-          };
-        })
-        .filter(Boolean);
+            const remainingCats = (r.categories || []).filter(
+              catName =>
+                !selectedCategories.some(
+                  sc => sc.toLocaleLowerCase('tr-TR') === String(catName).toLocaleLowerCase('tr-TR')
+                )
+            );
+            const remainingCatIds = (r.categoryIds || []).filter(
+              cId => !selectedCategoryIds.includes(Number(cId))
+            );
+            const remainingLiveProgs = (r.liveProgramNames || []).filter(
+              lpName =>
+                !selectedLivePrograms.some(
+                  sp => sp.toLocaleLowerCase('tr-TR') === String(lpName).toLocaleLowerCase('tr-TR')
+                )
+            );
+
+            if (remainingCats.length === 0 && remainingLiveProgs.length === 0) return null;
+            return {
+              ...r,
+              categories: remainingCats,
+              categoryIds: remainingCatIds,
+              liveProgramNames: remainingLiveProgs
+            };
+          })
+          .filter(Boolean);
+      }
+
+      const defaultTitleParts = [
+        ...selectedCategories,
+        ...(selectedLivePrograms.length > 0 ? [`Canlı: ${selectedLivePrograms.join(', ')}`] : [])
+      ];
 
       const ruleObj = {
         id: editingId || `bumper-${chId}-${Date.now()}-${chIdx}`,
         channelId: chId,
         ruleName:
           String(rulePayload.ruleName || '').trim() ||
-          `${selectedCategories.join(', ')} Reklam Giriş & Çıkışı`,
-        categories: selectedCategories,
+          (isChannelDefault
+            ? 'Canlı Yayın & Kategorisiz Programlar Varsayılan (Default) Giriş & Çıkışı'
+            : `${defaultTitleParts.join(' • ')} Reklam Giriş & Çıkışı`),
+        categories: isChannelDefault && selectedCategories.length === 0
+          ? ['Canlı Yayın (Varsayılan)']
+          : selectedCategories,
         categoryIds: selectedCategoryIds,
+        liveProgramNames: selectedLivePrograms,
+        isChannelDefault,
         introClip: rulePayload.introClip || null,
         outroClip: rulePayload.outroClip || null,
         isActive: rulePayload.isActive !== false,

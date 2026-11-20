@@ -94,6 +94,30 @@ export function buildDefaultAdBreakBumperRules() {
       ruleName: 'Kültürel, Haber, Detay ve Kısa Programlar Reklam Giriş & Çıkışı',
       categories: ['Kültürel', 'Haber', 'Tanıtım', 'Detay', 'Kısa Program'],
       categoryIds: [8, 2, 3, 9, 10],
+      liveProgramNames: [],
+      isChannelDefault: false,
+      introClip: {
+        clipId: '3540',
+        name: 'reklam_kulturel_giris_2014',
+        code: '42N6CU52.mxf',
+        durationSec: 9,
+        durationMs: 9040
+      },
+      outroClip: {
+        clipId: '3539',
+        name: 'reklam_kulturel_cikis_2014',
+        code: '42N6CU1L.mxf',
+        durationSec: 9,
+        durationMs: 9040
+      }
+    },
+    {
+      key: 'live_default_fallback',
+      ruleName: 'Canlı Yayın & Kategorisiz Programlar Varsayılan (Default) Giriş & Çıkışı',
+      categories: ['Canlı Yayın (Varsayılan)'],
+      categoryIds: [],
+      liveProgramNames: [],
+      isChannelDefault: true,
       introClip: {
         clipId: '3540',
         name: 'reklam_kulturel_giris_2014',
@@ -119,8 +143,10 @@ export function buildDefaultAdBreakBumperRules() {
         id: `bumper-${chId}-${tpl.key}`,
         channelId: chId,
         ruleName: tpl.ruleName,
-        categories: [...tpl.categories],
-        categoryIds: [...tpl.categoryIds],
+        categories: [...(tpl.categories || [])],
+        categoryIds: [...(tpl.categoryIds || [])],
+        liveProgramNames: [...(tpl.liveProgramNames || [])],
+        isChannelDefault: Boolean(tpl.isChannelDefault),
         introClip: { ...tpl.introClip },
         outroClip: { ...tpl.outroClip },
         isActive: true,
@@ -185,7 +211,25 @@ export function loadAdBreakBumperRulesBackup() {
       if (raw !== null) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+          const defaults = buildDefaultAdBreakBumperRules();
+          const next = parsed.map(r => ({
+            ...r,
+            liveProgramNames: Array.isArray(r.liveProgramNames) ? r.liveProgramNames : [],
+            isChannelDefault: Boolean(r.isChannelDefault)
+          }));
+          // Her kanal için en az 1 adet Varsayılan (Default) Canlı Yayın & Kategorisiz kuralı bulunmasını garanti et
+          ['ch_hd', 'ch_way'].forEach(chId => {
+            const hasDefaultForChannel = next.some(
+              r => String(r.channelId) === chId && Boolean(r.isChannelDefault)
+            );
+            if (!hasDefaultForChannel) {
+              const defRule = defaults.find(
+                d => String(d.channelId) === chId && Boolean(d.isChannelDefault)
+              );
+              if (defRule) next.push(defRule);
+            }
+          });
+          return next;
         }
       }
     }

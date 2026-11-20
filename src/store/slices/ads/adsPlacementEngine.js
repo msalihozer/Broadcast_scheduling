@@ -40,75 +40,202 @@ function normalizeCatKey(str = '') {
     .replace(/ı/g, 'i')
     .replace(/ö/g, 'o')
     .replace(/ç/g, 'c')
+    .replace(/[âîû]/g, m => ({ 'â': 'a', 'î': 'i', 'û': 'u' }[m] || m))
     .replace(/[^a-z0-9]/g, '')
     .trim();
 }
 
 /**
+ * Program veya klip başlığından Bölüm, Part, Kısım, (Canlı) ve dosya uzantısı gibi ekleri temizleyerek
+ * baz program adını döndürür. Böylece bir canlı yayın 1, 2 veya 3 part olsa dahi tüm partları aynı baz program adıyla eşleşir.
+ */
+export function extractBaseProgramTitle(progOrTitle) {
+  const raw =
+    typeof progOrTitle === 'string'
+      ? progOrTitle
+      : progOrTitle?.appliedDraftTitle ||
+        progOrTitle?.programTitle ||
+        progOrTitle?.title ||
+        progOrTitle?.name ||
+        progOrTitle?.clipName ||
+        '';
+
+  return String(raw || '')
+    .replace(/\.(mxf|mp4|mov|avi)$/i, '')
+    .replace(/\((?:canl[ıi]|bant|tekrar|yeni)[^)]*\)/gi, ' ')
+    .replace(/\[(?:canl[ıi]|bant|tekrar|yeni)[^\]]*\]/gi, ' ')
+    .replace(/(?:^|\s|-|–|•)(?:canl[ıi]\s*yay[ıi]n|canl[ıi])(?:\s|-|–|•|:|$)/gi, ' ')
+    .replace(/(?:^|\s|-|_|–|•)(?:b[öo]l[üu]m|blm|ep|episode|c[üu]z|g[üu]n)\s*[-:.#]?\s*\d+/gi, ' ')
+    .replace(/\d+\s*\.\s*(?:b[öo]l[üu]m|k[ıi]s[ıi]m|part|c[üu]z|g[üu]n)/gi, ' ')
+    .replace(/(?:^|\s|-|_|–|•)(?:part|pt|k[ıi]s[ıi]m|p)\s*[-:.#]?\s*\d+/gi, ' ')
+    .replace(/[_-]\d{1,4}(?:[_-]\d{1,2})?$/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/^[-–•:\s]+|[-–•:\s]+$/g, '')
+    .trim();
+}
+
+const GENERIC_OR_LIVE_CAT_KEYS = new Set([
+  '',
+  'programlar',
+  'program',
+  'genel',
+  'genelyayin',
+  'yayin',
+  'canliyayin',
+  'canli',
+  'canliyayinozel',
+  'ozelyayin',
+  'ozelprogram',
+  'ozel',
+  'canliyayinvarsayilan'
+]);
+
+export function isSpecificContentCategory(catName = '') {
+  const norm = normalizeCatKey(catName);
+  return Boolean(norm && !GENERIC_OR_LIVE_CAT_KEYS.has(norm));
+}
+
+/**
+ * Bir canlı yayın veya kategorisi belirtilmemiş program için:
+ * 1) MAM Arşivinde (`/api/archive/used-programs` -> `state.usedArchivePrograms`) önceki bölümleri var mı?
+ * 2) Medya Kütüphanesinde (`state.libraryPrograms`) veya diğer günlerin yayın listelerinde (`state.days`) önceki bölümleri var mı?
+ * 3) Bilinen arşiv programları (Çerçeve, Hasbihal, Güzergah, Bedesten, Mevakib, Riyazü's Salihin vb.) içinde önceki bölümü var mı?
+ * kontrol ederek varsa kategori bilgisini döndürür. Hiç önceki bölümü yoksa `null` döndürür.
+ */
+export function detectPreviousEpisodeCategoryForLiveProgram(state, progOrTitle) {
+  const baseTitle = extractBaseProgramTitle(progOrTitle);
+  const normBase = normalizeCatKey(baseTitle);
+  if (!normBase || normBase === 'canliyayinozel' || normBase === 'ozelprogram' || normBase === 'canliyayin') {
+    return null;
+  }
+
+  // 1. MAM Arşivindeki aktif programlar (usedArchivePrograms) içinde önceki bölümü var mı?
+  const archiveProgs = Array.isArray(state?.usedArchivePrograms) ? state.usedArchivePrograms : [];
+  for (const ap of archiveProgs) {
+    if (!ap) continue;
+    const apBase = normalizeCatKey(extractBaseProgramTitle(ap.title || ap.name || ''));
+    if (!apBase || apBase.length < 3) continue;
+    if (apBase === normBase || (apBase.length >= 4 && (normBase.includes(apBase) || apBase.includes(normBase)))) {
+      const catName = ap.categoryName || ap.category || '';
+      const catDetails = getCategoryDetails(ap.categoryId, catName);
+      const resolvedName =
+        catDetails?.id && isSpecificContentCategory(catDetails.name)
+          ? catDetails.name
+          : isSpecificContentCategory(catName)
+          ? catName
+          : null;
+      if (resolvedName) {
+        return {
+          categoryName: resolvedName,
+          categoryId: Number(catDetails?.id || ap.categoryId || 4),
+          matchedProgramTitle: ap.title || ap.name || baseTitle,
+          source: 'archive_previous_episodes'
+        };
+      }
+    }
+  }
+
+  // 2. Kütüphane programları (libraryPrograms) içinde önceki bölümü var mı?
+  const libProgs = Array.isArray(state?.libraryPrograms) ? state.libraryPrograms : [];
+  for (const lp of libProgs) {
+    if (!lp) continue;
+    const lpBase = normalizeCatKey(extractBaseProgramTitle(lp.title || lp.name || ''));
+    if (!lpBase || lpBase.length < 3) continue;
+    if (lpBase === normBase || (lpBase.length >= 4 && (normBase.includes(lpBase) || lpBase.includes(normBase)))) {
+      const catName = lp.category || lp.categoryName || '';
+      const catDetails = getCategoryDetails(lp.categoryId, catName);
+      const resolvedName =
+        catDetails?.id && isSpecificContentCategory(catDetails.name)
+          ? catDetails.name
+          : isSpecificContentCategory(catName)
+          ? catName
+          : null;
+      if (resolvedName) {
+        return {
+          categoryName: resolvedName,
+          categoryId: Number(catDetails?.id || lp.categoryId || 4),
+          matchedProgramTitle: lp.title || lp.name || baseTitle,
+          source: 'library_previous_episodes'
+        };
+      }
+    }
+  }
+
+  // 3. Yayın Planlama / Taslak geçmiş veya diğer günlerdeki (`state.days`) önceki bölümlerinde kategori bilgisi var mı?
+  const daysObj = state?.days || {};
+  for (const dayData of Object.values(daysObj)) {
+    if (!dayData?.variants) continue;
+    for (const varObj of Object.values(dayData.variants)) {
+      const progs = varObj?.programs || [];
+      for (const p of progs) {
+        if (!p || p.type === 'ad_break' || p.isIntroClip) continue;
+        const pCat = p.category || p.categoryName || '';
+        if (!isSpecificContentCategory(pCat)) continue;
+        const pBase = normalizeCatKey(extractBaseProgramTitle(p));
+        if (pBase && pBase.length >= 4 && (pBase === normBase || normBase.includes(pBase) || pBase.includes(normBase))) {
+          const catDetails = getCategoryDetails(p.categoryId, pCat);
+          return {
+            categoryName: catDetails?.id && isSpecificContentCategory(catDetails.name) ? catDetails.name : pCat,
+            categoryId: Number(catDetails?.id || p.categoryId || 4),
+            matchedProgramTitle: extractBaseProgramTitle(p) || baseTitle,
+            source: 'schedule_previous_episodes'
+          };
+        }
+      }
+    }
+  }
+
+  // 4. Bilinen Semerkand TV Arşiv Programları (Çerçeve, Hasbihal vb. önceki bölümleri arşivde kayıtlı programlar)
+  const KNOWN_ARCHIVE_PROGRAM_CATEGORIES = [
+    { keywords: ['cerceve', 'guzergah', 'bedesten', 'azizistanbul', 'ulucami', 'mostar', 'sehirveinsan', 'mimari', 'belgesel'], categoryName: 'Kültürel', categoryId: 8 },
+    { keywords: ['hasbihal', 'semerkandsohbet', 'mevakib', 'tefsir', 'riyazussalihin', 'salihin', 'kuduri', 'yakut', 'safvet', 'tefasir', 'minhac', 'delail', 'hatmiserif', 'mukabele', 'besvakit', 'hacegan', 'yuzyilinalim', 'mesnevi', 'kisasienbiya', 'ilimdersler', 'tecvid', 'taliulbusra', 'nefismuhasebe', 'cumavaaz', 'kandilozel', 'iftar', 'sahur'], categoryName: 'Dini', categoryId: 4 },
+    { keywords: ['hanimlar', 'evimiz', 'mutfak', 'bayan', 'kadinveaile'], categoryName: 'Kadın', categoryId: 1 },
+    { keywords: ['sekeragaci', 'mavifidan', 'neselipetek', 'soninci'], categoryName: 'Çocuk', categoryId: 5 },
+    { keywords: ['anaajans', 'haberbulten', 'gundemozel'], categoryName: 'Haber', categoryId: 2 }
+  ];
+
+  for (const entry of KNOWN_ARCHIVE_PROGRAM_CATEGORIES) {
+    if (entry.keywords.some(kw => normBase.includes(kw) || kw.includes(normBase))) {
+      return {
+        categoryName: entry.categoryName,
+        categoryId: entry.categoryId,
+        matchedProgramTitle: baseTitle,
+        source: 'known_archive_program'
+      };
+    }
+  }
+
+  return null;
+}
+
+/**
  * Bir reklam kuşağından hemen önce yayınlanan programı (`prevProg`) ve kategorisini tespit eder;
- * seçili kanal (`channelId`) ve kategori için tanımlı RTÜK Reklam Giriş (`introBumperAd`) ve
+ * seçili kanal (`channelId`) ve kategori / canlı yayın kuralı için tanımlı RTÜK Reklam Giriş (`introBumperAd`) ve
  * Reklam Çıkış (`outroBumperAd`) jenerik kliplerini ve sürelerini döndürür.
+ *
+ * Canlı Yayın & Kategorisiz Program Çözümleme Sırası:
+ * 1) Reklam Giriş & Çıkış alanında canlı yayın program ismi (`liveProgramNames`) olarak tanımlanmışsa
+ *    (program kaç part olursa olsun her part için) doğrudan o kuralın giriş ve çıkışı yerleşir.
+ * 2) Kural listesine özel eklenmemişse ama programın (örn: Çerçeve, Hasbihal) önceki bölümleri varsa,
+ *    önceki bölümlerinden kategori bilgisi otomatik çekilir ve o kategorinin giriş/çıkışı yerleşir.
+ * 3) Hem kural listesine eklenmemiş hem de önceki bölümü / kategori bilgisi yoksa,
+ *    aktif kanalın Varsayılan (Default) giriş ve çıkışı (varsayılan: `reklam_kulturel_giris_2014` / `reklam_kulturel_cikis_2014`,
+ *    her kanal için ayrı ayrı değiştirilebilir) otomatik yerleşir.
  */
 export function resolveAdBreakBumpersForPrecedingProgram(state, channelId, prevProg, nextProg = null) {
   const refProg = prevProg || nextProg || null;
   const sourceProgramTitle =
     refProg?.programTitle || refProg?.title || refProg?.name || refProg?.clipName || 'Genel Yayın';
+  const baseProgramTitle = extractBaseProgramTitle(refProg || sourceProgramTitle);
+  const normBaseTitle = normalizeCatKey(baseProgramTitle);
 
-  let rawCatName = String(refProg?.category || refProg?.categoryName || '').trim();
-  let rawCatId = Number(refProg?.categoryId) || null;
-
-  // Eğer programda kategori adı 'Programlar', 'Genel' gibi jenerik kalmışsa kütüphaneden veya başlıktan çözümle
-  const isGenericCat =
-    !rawCatName ||
-    ['programlar', 'program', 'genel', 'genelyayin', 'yayin'].includes(normalizeCatKey(rawCatName));
-
-  if (isGenericCat && refProg) {
-    const progSearchText = `${refProg.programTitle || ''} ${refProg.title || ''} ${refProg.name || ''} ${refProg.clipName || ''}`.toLocaleLowerCase('tr-TR');
-    const libMatch = (state?.libraryPrograms || []).find(
-      lp =>
-        lp &&
-        (String(lp.id) === String(refProg.id) ||
-          (lp.title && progSearchText.includes(String(lp.title).toLocaleLowerCase('tr-TR'))))
-    );
-    if (libMatch && (libMatch.category || libMatch.categoryName || libMatch.categoryId)) {
-      rawCatName = libMatch.category || libMatch.categoryName || rawCatName;
-      rawCatId = Number(libMatch.categoryId) || rawCatId;
-    } else if (/hanım|hanim|bayan|kadın|kadin|aile|mutfak|lezzet|yemek|evimiz/i.test(progSearchText)) {
-      rawCatName = 'Kadın';
-      rawCatId = 1;
-    } else if (/çocuk|cocuk|masal|çizgi|cizgi|minik|şekerağacı|sekeragaci|mavi fidan/i.test(progSearchText)) {
-      rawCatName = 'Çocuk';
-      rawCatId = 5;
-    } else if (/haber|gündem|gundem|bülten|bulten|ajans/i.test(progSearchText)) {
-      rawCatName = 'Haber';
-      rawCatId = 2;
-    } else if (/kültür|kultur|tarih|belgesel|gezi|şehir|sehir|mimari|sanat|edebiyat|mostar/i.test(progSearchText)) {
-      rawCatName = 'Kültürel';
-      rawCatId = 8;
-    } else if (/tanıtım|tanitim|fragman/i.test(progSearchText)) {
-      rawCatName = 'Tanıtım';
-      rawCatId = 3;
-    } else if (/detay/i.test(progSearchText)) {
-      rawCatName = 'Detay';
-      rawCatId = 9;
-    } else if (/kısa|kisa/i.test(progSearchText)) {
-      rawCatName = 'Kısa Program';
-      rawCatId = 10;
-    } else {
-      rawCatName = 'Dini';
-      rawCatId = 4;
-    }
-  }
-
-  const catDetails = getCategoryDetails(rawCatId, rawCatName);
-  const detectedCategoryName =
-    catDetails?.id && catDetails?.name && catDetails.name !== 'Genel Yayın'
-      ? catDetails.name
-      : rawCatName && !isGenericCat
-      ? rawCatName
-      : 'Dini';
-  const detectedCategoryId = Number(catDetails?.id || rawCatId || 4);
-  const normDetected = normalizeCatKey(detectedCategoryName);
+  const isLiveProg = Boolean(
+    refProg?.isLive ||
+      refProg?.type === 'live' ||
+      /canl[ıi]/i.test(String(refProg?.category || '')) ||
+      /canl[ıi]/i.test(String(refProg?.note || '')) ||
+      /\bcanl[ıi]\b/i.test(sourceProgramTitle)
+  );
 
   const allRules =
     Array.isArray(state?.adBreakBumperRules) && state.adBreakBumperRules.length > 0
@@ -123,22 +250,98 @@ export function resolveAdBreakBumpersForPrecedingProgram(state, channelId, prevP
       ? activeChannelRules
       : allRules.filter(r => r && r.isActive !== false);
 
-  let matchedRule = candidateRules.find(r => {
-    const byName = (r.categories || []).some(c => {
-      const nc = normalizeCatKey(c);
-      if (!nc || !normDetected) return false;
-      return nc === normDetected || nc.includes(normDetected) || normDetected.includes(nc);
-    });
-    if (byName) return true;
-    const byId = (r.categoryIds || []).some(cid => Number(cid) === detectedCategoryId);
-    return byId;
-  });
+  // ============================================================================
+  // 1. ÖNCELİK: Reklam Giriş & Çıkış alanında Program İsmi (liveProgramNames) ile eşleşen kural
+  // (Kaç part olduğu önemli değil, baz program ismiyle her part için geçerli olur)
+  // ============================================================================
+  let matchedLiveProgramRule = null;
+  if (normBaseTitle) {
+    matchedLiveProgramRule = candidateRules.find(r =>
+      Array.isArray(r.liveProgramNames) &&
+      r.liveProgramNames.some(lpName => {
+        const normLp = normalizeCatKey(extractBaseProgramTitle(lpName));
+        if (!normLp) return false;
+        return normLp === normBaseTitle || normBaseTitle.includes(normLp) || normLp.includes(normBaseTitle);
+      })
+    );
+  }
 
-  if (!matchedRule) {
-    matchedRule =
-      candidateRules.find(r => (r.categories || []).some(c => normalizeCatKey(c) === 'dini')) ||
-      candidateRules[0] ||
-      DEFAULT_AD_BREAK_BUMPER_RULES[0];
+  let matchedRule = null;
+  let detectedCategoryName = '';
+  let detectedCategoryId = null;
+  let resolutionMethod = 'category'; // 'live_rule' | 'previous_episodes' | 'category' | 'channel_default'
+
+  if (matchedLiveProgramRule) {
+    matchedRule = matchedLiveProgramRule;
+    resolutionMethod = 'live_rule';
+    detectedCategoryName = `Canlı Yayın (${baseProgramTitle || sourceProgramTitle})`;
+    detectedCategoryId = Number(matchedLiveProgramRule.categoryIds?.[0]) || 8;
+  } else {
+    // ============================================================================
+    // 2. ÖNCELİK: Programın kendi geçerli kategorisi VEYA önceki bölümlerinden kategori tespiti
+    // ============================================================================
+    let rawCatName = String(refProg?.category || refProg?.categoryName || '').trim();
+    let rawCatId = Number(refProg?.categoryId) || null;
+    const hasSpecificCatOnProg = isSpecificContentCategory(rawCatName);
+
+    let prevEpisodeInfo = null;
+    if (!hasSpecificCatOnProg && refProg) {
+      prevEpisodeInfo = detectPreviousEpisodeCategoryForLiveProgram(state, refProg);
+      if (prevEpisodeInfo) {
+        rawCatName = prevEpisodeInfo.categoryName;
+        rawCatId = prevEpisodeInfo.categoryId;
+        resolutionMethod = 'previous_episodes';
+      }
+    }
+
+    if (isSpecificContentCategory(rawCatName)) {
+      const catDetails = getCategoryDetails(rawCatId, rawCatName);
+      const cleanCatName =
+        catDetails?.id && isSpecificContentCategory(catDetails.name)
+          ? catDetails.name
+          : rawCatName;
+      detectedCategoryName =
+        resolutionMethod === 'previous_episodes' && isLiveProg
+          ? `${cleanCatName} (Önceki Bölümlerden)`
+          : cleanCatName;
+      detectedCategoryId = Number(catDetails?.id || rawCatId || 4);
+      const normDetected = normalizeCatKey(cleanCatName);
+
+      matchedRule = candidateRules.find(r => {
+        if (r.isChannelDefault) return false;
+        const byName = (r.categories || []).some(c => {
+          const nc = normalizeCatKey(c);
+          if (!nc || !normDetected) return false;
+          return nc === normDetected || nc.includes(normDetected) || normDetected.includes(nc);
+        });
+        if (byName) return true;
+        const byId = (r.categoryIds || []).some(cid => Number(cid) === detectedCategoryId);
+        return byId;
+      });
+    }
+
+    // ============================================================================
+    // 3. ÖNCELİK: Kurala eklenmemiş VE önceki bölümü yok / kategori bilgisi alınamıyorsa
+    // Kanal Bazlı Varsayılan (Default) Kuralı (reklam_kulturel_giris_2014 / cikis veya kanalın özel default'u)
+    // ============================================================================
+    if (!matchedRule) {
+      const channelDefaultRule =
+        candidateRules.find(r => Boolean(r.isChannelDefault)) ||
+        allRules.find(r => String(r.channelId) === String(channelId) && Boolean(r.isChannelDefault)) ||
+        candidateRules.find(r => (r.categories || []).some(c => normalizeCatKey(c) === 'kulturel')) ||
+        DEFAULT_AD_BREAK_BUMPER_RULES.find(
+          r => String(r.channelId) === String(channelId) && Boolean(r.isChannelDefault)
+        ) ||
+        DEFAULT_AD_BREAK_BUMPER_RULES.find(r => Boolean(r.isChannelDefault)) ||
+        DEFAULT_AD_BREAK_BUMPER_RULES[0];
+
+      matchedRule = channelDefaultRule;
+      resolutionMethod = 'channel_default';
+      detectedCategoryName = isLiveProg
+        ? 'Canlı Yayın (Varsayılan Default)'
+        : detectedCategoryName || 'Varsayılan (Default)';
+      detectedCategoryId = 8;
+    }
   }
 
   let introBumperAd = null;
@@ -203,6 +406,9 @@ export function resolveAdBreakBumpersForPrecedingProgram(state, channelId, prevP
     detectedCategoryName,
     detectedCategoryId,
     sourceProgramTitle,
+    baseProgramTitle,
+    isLiveProg,
+    resolutionMethod,
     introBumperAd,
     outroBumperAd,
     totalBumperDurationSec
