@@ -354,47 +354,24 @@ export default function SendToAdReservationModal({
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginTop: '10px' }}>
               <button
                 type="button"
                 onClick={handleCloseModal}
                 style={{
-                  padding: '10px 20px',
-                  borderRadius: '10px',
-                  border: '1px solid var(--border-color)',
-                  background: 'var(--bg-primary)',
-                  color: 'var(--text-primary)',
-                  fontSize: '13px',
-                  fontWeight: '800',
-                  cursor: 'pointer'
-                }}
-              >
-                Yayın Planlamada Kal
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  handleCloseModal();
-                  navigate('/ads');
-                }}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '10px 22px',
+                  minWidth: '200px',
+                  padding: '10px 24px',
                   borderRadius: '10px',
                   border: 'none',
-                  background: 'linear-gradient(135deg, #ea580c 0%, #d97706 100%)',
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                   color: '#ffffff',
                   fontSize: '13.5px',
                   fontWeight: '900',
                   cursor: 'pointer',
-                  boxShadow: '0 6px 18px rgba(234, 88, 12, 0.35)'
+                  boxShadow: '0 6px 18px rgba(16, 185, 129, 0.35)'
                 }}
               >
-                <span>Reklam Rezervasyon Modülünü Aç</span>
-                <ExternalLink size={15} />
+                Tamam, Kapat
               </button>
             </div>
           </div>

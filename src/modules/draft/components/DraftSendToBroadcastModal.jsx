@@ -452,50 +452,25 @@ export default function DraftSendToBroadcastModal({
                 </div>
               </div>
 
-              {/* Butonlar */}
-              <div style={{ display: 'flex', gap: '10px', width: '100%', marginTop: '12px' }}>
+              {/* Buton */}
+              <div style={{ display: 'flex', justifyContent: 'center', width: '100%', marginTop: '12px' }}>
                 <button
                   type="button"
                   onClick={handleClose}
                   style={{
-                    flex: 1,
-                    padding: '11px 16px',
+                    minWidth: '200px',
+                    padding: '11px 24px',
                     borderRadius: '10px',
-                    background: 'var(--bg-tertiary)',
-                    border: '1px solid var(--border-color)',
-                    color: 'var(--text-primary)',
-                    fontSize: '13px',
-                    fontWeight: 700,
-                    cursor: 'pointer'
-                  }}
-                >
-                  Taslakta Kal
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleClose();
-                    if (navigate) navigate('/ready');
-                  }}
-                  style={{
-                    flex: 1.5,
-                    padding: '11px 16px',
-                    borderRadius: '10px',
-                    background: 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)',
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                     border: 'none',
                     color: '#ffffff',
-                    fontSize: '13px',
+                    fontSize: '13.5px',
                     fontWeight: 800,
                     cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    boxShadow: '0 4px 14px rgba(14, 165, 233, 0.4)'
+                    boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)'
                   }}
                 >
-                  <span>Yayın Planlama Ekranına Git</span>
-                  <ArrowRight size={15} />
+                  Tamam, Kapat
                 </button>
               </div>
             </div>

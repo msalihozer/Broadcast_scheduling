@@ -39,7 +39,8 @@ import {
   AdHourlyMatrixView,
   AdManualSpotModal
 } from './planning/AdPlanningWorkspaceViews';
-import { isRamadanFeatureWindowOpen } from './reservation/reservationConstants';
+import { isRamadanFeatureWindowOpen, filterAndSortPrefixFirst } from './reservation/reservationConstants';
+import AdVideoPlayer from './AdVideoPlayer';
 
 export { PRIORITY_BADGES, formatTcClock, formatSecToReadable, getMondayStr };
 
@@ -84,6 +85,18 @@ const AdPlanningTab = () => {
   const [manualSearch, setManualSearch] = useState('');
   const [manualCompanyFilter, setManualCompanyFilter] = useState('');
   const [quickModalBreak, setQuickModalBreak] = useState(null);
+  const [previewMaterial, setPreviewMaterial] = useState(null);
+
+  const handlePreviewMaterial = (matOrId) => {
+    if (!matOrId) return;
+    if (typeof matOrId === 'object' && (matOrId.id || matOrId.clipId || matOrId.code)) {
+      const found = materials.find(m => String(m.id) === String(matOrId.id || matOrId.materialId));
+      setPreviewMaterial(found || matOrId);
+      return;
+    }
+    const found = materials.find(m => String(m.id) === String(matOrId) || String(m.clipId) === String(matOrId));
+    if (found) setPreviewMaterial(found);
+  };
 
   const selectedDayKey = `ready-${selectedChannel}-${selectedDate}`;
 
@@ -240,8 +253,19 @@ const AdPlanningTab = () => {
         const totalCapSec = breaksCount * 6 * 60;
         const fillRatio = totalCapSec > 0 ? Math.min(100, Math.round((filledSec / totalCapSec) * 100)) : 0;
 
-        const isRevised = dayObj.adsStatus === 'revised' || Boolean(dayObj.isRevised);
-        const adsStatus = dayObj.adsStatus || (spotsCount > 0 ? 'planned' : 'pending');
+        const isRevised =
+          dayObj.adsStatus === 'revised' ||
+          (Boolean(dayObj.isRevised) &&
+            dayObj.adsStatus !== 'completed' &&
+            dayObj.adsStatus !== 'planned' &&
+            spotsCount === 0);
+        const adsStatus = isRevised
+          ? 'revised'
+          : dayObj.adsStatus === 'completed'
+          ? 'completed'
+          : spotsCount > 0
+          ? 'planned'
+          : (dayObj.adsStatus || 'pending');
 
         let statusBadgeText = '⏳ Bekliyor';
         if (isRevised) statusBadgeText = '🔄 REVİZE';
@@ -430,20 +454,90 @@ const AdPlanningTab = () => {
       return '';
     };
 
-    return mapped.map((item, idx) => {
+    // Aktif sponsorluk rezervasyonlarını program başlığına göre eşleştir
+    const normProgTitle = (s = '') =>
+      String(s || '')
+        .toLocaleLowerCase('tr-TR')
+        .replace(/\s*-\s*bölüm\s*\d+.*$/gi, '')
+        .replace(/\s*\(part\s*\d+\).*$/gi, '')
+        .replace(/\s*part\s*\d+.*$/gi, '')
+        .replace(/[^a-z0-9ğüşıöç]/gi, '')
+        .trim();
+
+    const sponsorRulesList = [];
+    reservations.forEach(res => {
+      const items =
+        Array.isArray(res.items) && res.items.length > 0
+          ? res.items
+          : [res];
+      items.forEach(it => {
+        const isSp = it.isSponsor !== undefined ? Boolean(it.isSponsor) : Boolean(res.isSponsor);
+        const progTitle = String(it.sponsorProgramTitle || res.sponsorProgramTitle || '').trim();
+        if (!isSp || !progTitle) return;
+        const normTarget = normProgTitle(progTitle);
+        if (!normTarget) return;
+        const mat = materials.find(m => String(m.id) === String(it.materialId || res.materialId));
+        const comp = companies.find(c => String(c.id) === String(it.companyId || res.companyId || mat?.companyId));
+        sponsorRulesList.push({
+          reservationId: res.id,
+          normTarget,
+          programTitle: progTitle,
+          companyName: comp?.name || mat?.companyName || 'Sponsor Firma',
+          materialName: mat?.name || 'Sponsor Klip',
+          materialId: mat?.id || it.materialId,
+          positions: it.sponsorPositions || res.sponsorPositions || []
+        });
+      });
+    });
+
+    const matchProgramSponsors = (progObj) => {
+      if (!progObj || progObj.isAdBlock) return [];
+      const rawT = `${progObj.programTitle || ''} ${progObj.title || ''} ${progObj.name || ''}`;
+      const normP = normProgTitle(rawT);
+      if (!normP) return [];
+      return sponsorRulesList.filter(
+        sr => normP.includes(sr.normTarget) || sr.normTarget.includes(normP)
+      );
+    };
+
+    const withProgramSponsors = mapped.map(item => {
+      if (item.isAdBlock) return item;
+      const matchedSponsors = matchProgramSponsors(item);
+      const uniqueSponsorNames = Array.from(new Set(matchedSponsors.map(s => `${s.companyName} (${s.materialName})`)));
+      return {
+        ...item,
+        isSponsoredProgram: matchedSponsors.length > 0,
+        sponsorBadges: matchedSponsors,
+        sponsorSummaryText: uniqueSponsorNames.join(' • ')
+      };
+    });
+
+    return withProgramSponsors.map((item, idx) => {
       if (!item.isAdBlock) return item;
-      const prevProg = idx > 0 && !mapped[idx - 1].isAdBlock ? mapped[idx - 1] : null;
-      const nextProg = idx < mapped.length - 1 && !mapped[idx + 1].isAdBlock ? mapped[idx + 1] : null;
+      const prevProg = idx > 0 && !withProgramSponsors[idx - 1].isAdBlock ? withProgramSponsors[idx - 1] : null;
+      const nextProg = idx < withProgramSponsors.length - 1 && !withProgramSponsors[idx + 1].isAdBlock ? withProgramSponsors[idx + 1] : null;
+      const hasSponsorAds = (item.placedAds || []).some(ad => {
+        if (ad.isSponsorSpot || ad.lockOrder) return true;
+        const rObj = reservations.find(r => String(r.id) === String(ad.reservationId));
+        if (!rObj) return false;
+        if (rObj.isSponsor) return true;
+        return Array.isArray(rObj.items) && rObj.items.some(it => String(it.materialId) === String(ad.materialId) && it.isSponsor);
+      });
       return {
         ...item,
         ramadanBreakTag: autoDetectBreakRamadanTag(idx),
         prevProgramTitle: prevProg?.title || null,
         nextProgramTitle: nextProg?.title || null,
         prevProgramStartClock: prevProg?.exactStartClock || null,
-        nextProgramStartClock: nextProg?.exactStartClock || null
+        nextProgramStartClock: nextProg?.exactStartClock || null,
+        prevProgramIsSponsored: Boolean(prevProg?.isSponsoredProgram),
+        nextProgramIsSponsored: Boolean(nextProg?.isSponsoredProgram),
+        prevProgramSponsorText: prevProg?.sponsorSummaryText || '',
+        nextProgramSponsorText: nextProg?.sponsorSummaryText || '',
+        hasSponsorAds
       };
     });
-  }, [selectedDayInfo, activeListCode, selectedPlacements, timeBlocks]);
+  }, [selectedDayInfo, activeListCode, selectedPlacements, timeBlocks, reservations, materials, companies]);
 
   // Seçili günün yayın listesinden çekilen Sahur ve İftar program başlangıç saatleri
   const todayRamadanScheduleInfo = useMemo(() => {
@@ -609,29 +703,31 @@ const AdPlanningTab = () => {
   }, [adBreaksList, eligibleReservationItems]);
 
   const filteredPoolReservations = useMemo(() => {
-    return eligibleReservationItems.filter(it => {
+    const byComp = eligibleReservationItems.filter(it => {
       if (manualCompanyFilter && String(it.companyId) !== String(manualCompanyFilter)) return false;
-      if (manualSearch.trim()) {
-        const q = manualSearch.toLocaleLowerCase('tr-TR');
-        const hay = `${it.companyName} ${it.productName} ${it.materialName} ${it.sponsorProgramTitle || ''}`.toLocaleLowerCase('tr-TR');
-        if (!hay.includes(q)) return false;
-      }
       return true;
     });
+    if (!manualSearch.trim()) return byComp;
+    return filterAndSortPrefixFirst(
+      byComp,
+      manualSearch,
+      it => it?.materialName || it?.companyName || '',
+      it => `${it?.companyName || ''} ${it?.productName || ''} ${it?.sponsorProgramTitle || ''}`
+    );
   }, [eligibleReservationItems, manualCompanyFilter, manualSearch]);
 
   const filteredPoolCatalog = useMemo(() => {
-    return materials
-      .filter(m => {
-        if (manualCompanyFilter && String(m.companyId) !== String(manualCompanyFilter)) return false;
-        if (manualSearch.trim()) {
-          const q = manualSearch.toLocaleLowerCase('tr-TR');
-          const hay = `${m.name || ''} ${m.companyName || ''} ${m.productName || ''} ${m.clipId || ''}`.toLocaleLowerCase('tr-TR');
-          if (!hay.includes(q)) return false;
-        }
-        return true;
-      })
-      .slice(0, 60);
+    const byComp = materials.filter(m => {
+      if (manualCompanyFilter && String(m.companyId) !== String(manualCompanyFilter)) return false;
+      return true;
+    });
+    if (!manualSearch.trim()) return byComp.slice(0, 150);
+    return filterAndSortPrefixFirst(
+      byComp,
+      manualSearch,
+      m => m?.name || m?.clipName || '',
+      m => `${m?.companyName || ''} ${m?.productName || ''} ${m?.clipId || ''}`
+    );
   }, [materials, manualCompanyFilter, manualSearch]);
 
   const handleRunAutoPlanDay = (channelId, dateStr, dayKey, showSuccessDialog = false) => {
@@ -923,6 +1019,7 @@ const AdPlanningTab = () => {
                   onOpenQuickModalBreak={setQuickModalBreak}
                   onMoveAdInBreak={moveAdInBreak}
                   onRemoveAdFromBreak={removeAdFromBreak}
+                  onPreviewMaterial={handlePreviewMaterial}
                   onSetBreakRamadanTag={
                     isRamadanFeatureWindowOpen(ramadanConfig, selectedDayInfo?.date || selectedDate)
                       ? handleSetBreakRamadanTag
@@ -936,9 +1033,11 @@ const AdPlanningTab = () => {
                   enrichedTimeline={enrichedTimeline}
                   materials={materials}
                   companies={companies}
+                  reservations={reservations}
                   selectedDayInfo={selectedDayInfo}
                   onOpenQuickModalBreak={setQuickModalBreak}
                   onRemoveAdFromBreak={removeAdFromBreak}
+                  onPreviewMaterial={handlePreviewMaterial}
                 />
               )}
 
@@ -946,7 +1045,9 @@ const AdPlanningTab = () => {
                 <AdHourlyMatrixView
                   adBreaksList={adBreaksList}
                   materials={materials}
+                  reservations={reservations}
                   onOpenQuickModalBreak={setQuickModalBreak}
+                  onPreviewMaterial={handlePreviewMaterial}
                 />
               )}
             </>
@@ -964,12 +1065,14 @@ const AdPlanningTab = () => {
           manualCompanyFilter={manualCompanyFilter}
           onChangeManualCompanyFilter={setManualCompanyFilter}
           companies={companies}
+          materials={materials}
           adBreaksList={adBreaksList}
           selectedStudioBreak={selectedStudioBreak}
           onSelectStudioBreakTime={setActiveBreakTimeForManual}
           filteredPoolReservations={filteredPoolReservations}
           filteredPoolCatalog={filteredPoolCatalog}
           onQuickAddSpotToBreak={handleQuickAddSpotToBreak}
+          onPreviewMaterial={handlePreviewMaterial}
         />
       </div>
 
@@ -987,8 +1090,17 @@ const AdPlanningTab = () => {
         filteredPoolReservations={filteredPoolReservations}
         filteredPoolCatalog={filteredPoolCatalog}
         onQuickAddSpotToBreak={handleQuickAddSpotToBreak}
+        onPreviewMaterial={handlePreviewMaterial}
         onClose={() => setQuickModalBreak(null)}
       />
+
+      {/* VİDEO ÖNİZLEME / İZLEME MODALI */}
+      {previewMaterial && (
+        <AdVideoPlayer
+          material={previewMaterial}
+          onClose={() => setPreviewMaterial(null)}
+        />
+      )}
     </div>
   );
 };

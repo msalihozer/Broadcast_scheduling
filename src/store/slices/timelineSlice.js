@@ -277,6 +277,7 @@ export const createTimelineSlice = (set, get) => ({
 
       const listControlDay = {
         ...day,
+        isRevised: false,
         adsStatus: 'completed',
         updatedAt: new Date().toISOString(),
         allocatedAdDuration: allocatedAdDuration,
@@ -309,10 +310,12 @@ export const createTimelineSlice = (set, get) => ({
           ...state.days,
           [readyKey]: {
             ...day,
+            isRevised: false,
             adsStatus: 'completed'
           },
           [finalKey]: {
             ...day,
+            isRevised: false,
             adsStatus: 'completed'
           }
         }
