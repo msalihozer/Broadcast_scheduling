@@ -53,6 +53,7 @@ const TR_MONTHS = [
 const TR_DAYS = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
 
 export function getDatePeriodBuckets(dateStr = '') {
+  const TR_SHORT_MONTHS = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
   if (!dateStr || typeof dateStr !== 'string' || dateStr.length < 10) {
     const now = new Date();
     const y = now.getFullYear();
@@ -75,16 +76,40 @@ export function getDatePeriodBuckets(dateStr = '') {
   const dt = new Date(y, m - 1, d);
   const dayName = TR_DAYS[dt.getDay()] || 'Gün';
 
-  // ISO Hafta hesaplama
-  const startOfYear = new Date(y, 0, 1);
-  const pastDays = Math.floor((dt - startOfYear) / 86400000);
-  const weekNo = Math.max(1, Math.ceil((pastDays + startOfYear.getDay() + 1) / 7));
+  // Pazartesi başlangıçlı (Pazartesi - Pazar) gerçek yayın haftası hesaplama
+  const dayOfWeekMondayZero = (dt.getDay() + 6) % 7; // Pazartesi = 0 ... Pazar = 6
+  const mondayDate = new Date(y, m - 1, d - dayOfWeekMondayZero);
+  const sundayDate = new Date(
+    mondayDate.getFullYear(),
+    mondayDate.getMonth(),
+    mondayDate.getDate() + 6
+  );
+
+  // ISO-8601 Hafta Numarası (Perşembe gününe göre)
+  const thursdayDate = new Date(
+    mondayDate.getFullYear(),
+    mondayDate.getMonth(),
+    mondayDate.getDate() + 3
+  );
+  const isoYear = thursdayDate.getFullYear();
+  const firstThursday = new Date(isoYear, 0, 4);
+  const firstMondayOffset = (firstThursday.getDay() + 6) % 7;
+  const firstIsoMonday = new Date(isoYear, 0, 4 - firstMondayOffset);
+  const weekNo = Math.max(
+    1,
+    Math.round((mondayDate - firstIsoMonday) / (7 * 86400000)) + 1
+  );
+
+  const monStr = `${String(mondayDate.getDate()).padStart(2, '0')} ${TR_SHORT_MONTHS[mondayDate.getMonth()]}`;
+  const sunStr = `${String(sundayDate.getDate()).padStart(2, '0')} ${TR_SHORT_MONTHS[sundayDate.getMonth()]} ${sundayDate.getFullYear()}`;
+  const weekMondayIso = `${mondayDate.getFullYear()}-${String(mondayDate.getMonth() + 1).padStart(2, '0')}-${String(mondayDate.getDate()).padStart(2, '0')}`;
 
   return {
     date: clean,
     dayName,
-    weekKey: `${y}-H${String(weekNo).padStart(2, '0')}`,
-    weekLabel: `${y} • ${weekNo}. Hafta`,
+    weekKey: weekMondayIso,
+    weekLabel: `${monStr} – ${sunStr}`,
+    weekNo,
     monthKey: `${y}-${String(m).padStart(2, '0')}`,
     monthLabel: `${TR_MONTHS[m - 1]} ${y}`,
     yearKey: String(y)

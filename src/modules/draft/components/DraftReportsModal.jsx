@@ -349,22 +349,43 @@ const DraftReportsModal = ({
         });
 
         if (!ps.weeksMap[periodInfo.weekKey]) {
-          ps.weeksMap[periodInfo.weekKey] = { key: periodInfo.weekKey, label: periodInfo.weekLabel, count: 0, seconds: 0 };
+          ps.weeksMap[periodInfo.weekKey] = {
+            key: periodInfo.weekKey,
+            label: periodInfo.weekLabel,
+            count: 0,
+            seconds: 0,
+            daysSet: new Set()
+          };
         }
         ps.weeksMap[periodInfo.weekKey].count += 1;
         ps.weeksMap[periodInfo.weekKey].seconds += sec;
+        ps.weeksMap[periodInfo.weekKey].daysSet.add(dateKey);
 
         if (!ps.monthsMap[periodInfo.monthKey]) {
-          ps.monthsMap[periodInfo.monthKey] = { key: periodInfo.monthKey, label: periodInfo.monthLabel, count: 0, seconds: 0 };
+          ps.monthsMap[periodInfo.monthKey] = {
+            key: periodInfo.monthKey,
+            label: periodInfo.monthLabel,
+            count: 0,
+            seconds: 0,
+            daysSet: new Set()
+          };
         }
         ps.monthsMap[periodInfo.monthKey].count += 1;
         ps.monthsMap[periodInfo.monthKey].seconds += sec;
+        ps.monthsMap[periodInfo.monthKey].daysSet.add(dateKey);
 
         if (!ps.yearsMap[periodInfo.yearKey]) {
-          ps.yearsMap[periodInfo.yearKey] = { key: periodInfo.yearKey, label: `${periodInfo.yearKey} Yılı`, count: 0, seconds: 0 };
+          ps.yearsMap[periodInfo.yearKey] = {
+            key: periodInfo.yearKey,
+            label: `${periodInfo.yearKey} Yılı`,
+            count: 0,
+            seconds: 0,
+            daysSet: new Set()
+          };
         }
         ps.yearsMap[periodInfo.yearKey].count += 1;
         ps.yearsMap[periodInfo.yearKey].seconds += sec;
+        ps.yearsMap[periodInfo.yearKey].daysSet.add(dateKey);
 
         // Dönemsel kovalara ekle
         periodMap.weekly[periodInfo.weekKey].programsCount += 1;
@@ -542,70 +563,132 @@ const DraftReportsModal = ({
 
         const detailedDates = Object.values(item.daysMap).sort((a, b) => a.dateKey.localeCompare(b.dateKey));
         const progActiveDays = Math.max(1, detailedDates.length);
-        const progActiveWeeks = Math.max(1, Object.keys(item.weeksMap).length);
-        const progActiveMonths = Math.max(1, Object.keys(item.monthsMap).length);
-        const progActiveYears = Math.max(1, Object.keys(item.yearsMap).length);
+        const firstDateKey = detailedDates[0]?.dateKey || '';
+        const lastDateKey = detailedDates[detailedDates.length - 1]?.dateKey || '';
+        const formatShortTrDate = dStr => {
+          if (!dStr || dStr.length < 10) return dStr;
+          const [y, m, d] = dStr.split('-');
+          return `${d}.${m}.${y}`;
+        };
+        const activeDateSpanLabel =
+          firstDateKey && lastDateKey
+            ? firstDateKey === lastDateKey
+              ? formatShortTrDate(firstDateKey)
+              : `${formatShortTrDate(firstDateKey)} – ${formatShortTrDate(lastDateKey)}`
+            : '-';
 
-        // 1. GÜNDE NE KADAR (Yayınlandığı gün başına ortalama adet ve süre + Tek bölüm ortalama süresi)
+        const weeksList = Object.values(item.weeksMap)
+          .map(w => ({
+            ...w,
+            daysCount: w.daysSet ? w.daysSet.size : 0,
+            hoursFormatted: formatSecondsToHoursMin(w.seconds)
+          }))
+          .sort((a, b) => a.key.localeCompare(b.key));
+
+        const monthsList = Object.values(item.monthsMap)
+          .map(m => ({
+            ...m,
+            daysCount: m.daysSet ? m.daysSet.size : 0,
+            hoursFormatted: formatSecondsToHoursMin(m.seconds)
+          }))
+          .sort((a, b) => a.key.localeCompare(b.key));
+
+        const yearsList = Object.values(item.yearsMap)
+          .map(y => ({
+            ...y,
+            daysCount: y.daysSet ? y.daysSet.size : 0,
+            hoursFormatted: formatSecondsToHoursMin(y.seconds)
+          }))
+          .sort((a, b) => a.key.localeCompare(b.key));
+
+        const progActiveWeeks = Math.max(1, weeksList.length);
+        const progActiveMonths = Math.max(1, monthsList.length);
+        const progActiveYears = Math.max(1, yearsList.length);
+
+        // 1. GÜNDE NE KADAR (Gerçek günlük yayın sayısı ve süresi)
+        const dayCounts = detailedDates.map(d => d.count);
+        const minDayCount = dayCounts.length > 0 ? Math.min(...dayCounts) : 0;
+        const maxDayCount = dayCounts.length > 0 ? Math.max(...dayCounts) : 0;
         const dailyAvgCount = Number((item.count / progActiveDays).toFixed(1));
+        const dailyCountLabel =
+          minDayCount === maxDayCount
+            ? `Günde ${minDayCount} Defa`
+            : `Günde ${minDayCount}–${maxDayCount} Defa (Ort. ${dailyAvgCount})`;
         const dailyAvgSeconds = Math.round(item.seconds / progActiveDays);
         const dailyAvgHoursFormatted = formatSecondsToHoursMin(dailyAvgSeconds);
         const singleBroadcastAvgSec = Math.round(item.seconds / Math.max(1, item.count));
         const singleBroadcastFormatted = formatSecondsToHoursMin(singleBroadcastAvgSec);
 
-        // 2. HAFTADA NE KADAR (Haftalık ortalama / gerçek yayın adedi ve süresi)
+        // 2. HAFTADA NE KADAR (Gerçek Pazartesi-Pazar haftalık yayın sayısı ve süresi)
+        const weekCounts = weeksList.map(w => w.count);
+        const minWeekCount = weekCounts.length > 0 ? Math.min(...weekCounts) : 0;
+        const maxWeekCount = weekCounts.length > 0 ? Math.max(...weekCounts) : 0;
         const weeklyAvgCount = Number((item.count / progActiveWeeks).toFixed(1));
+        const weeklyCountLabel =
+          minWeekCount === maxWeekCount
+            ? `Haftada ${minWeekCount} Defa`
+            : `Haftada ${ weeklyAvgCount } Defa (${minWeekCount}–${maxWeekCount})`;
         const weeklyAvgSeconds = Math.round(item.seconds / progActiveWeeks);
         const weeklyHoursFormatted = formatSecondsToHoursMin(weeklyAvgSeconds);
+        const weeksBreakdownText = weeksList
+          .map(w => `${w.label}: ${w.count} defa (${w.hoursFormatted}, ${w.daysCount} gün)`)
+          .join(' • ');
 
-        // 3. AYDA NE KADAR (Kayıtlı aylık veri + 4.33 haftalık aylık standart karşılık)
+        // 3. AYDA NE KADAR (Sadece sistemde kayıtlı gerçek aylık veri — hayali projeksiyon yok!)
         const monthlyRecordedCount = Number((item.count / progActiveMonths).toFixed(1));
         const monthlyRecordedSec = Math.round(item.seconds / progActiveMonths);
-        const estMonthlyCount = Math.round(weeklyAvgCount * 4.33);
-        const estMonthlySeconds = Math.round(weeklyAvgSeconds * 4.33);
-        const estMonthlyHours = formatSecondsToHoursMin(estMonthlySeconds);
+        const monthlyRecordedHours = formatSecondsToHoursMin(monthlyRecordedSec);
+        const monthsBreakdownText = monthsList
+          .map(m => `${m.label}: ${m.count} Defa (${m.hoursFormatted}, ${m.daysCount} gün kayıtlı)`)
+          .join(' • ');
 
-        // 4. YILDA NE KADAR (Kayıtlı yıllık veri + 52 haftalık yıllık standart karşılık)
+        // 4. YILDA NE KADAR (Sadece sistemde kayıtlı gerçek yıllık veri — hayali 52 hafta çarpımı yok!)
         const yearlyRecordedCount = Number((item.count / progActiveYears).toFixed(1));
         const yearlyRecordedSec = Math.round(item.seconds / progActiveYears);
-        const estYearlyCount = Math.round(weeklyAvgCount * 52);
-        const estYearlySeconds = Math.round(weeklyAvgSeconds * 52);
-        const estYearlyHours = formatSecondsToHoursMin(estYearlySeconds);
+        const yearlyRecordedHours = formatSecondsToHoursMin(yearlyRecordedSec);
+        const yearsBreakdownText = yearsList
+          .map(y => `${y.label}: ${y.count} Defa (${y.hoursFormatted}, ${y.daysCount} gün / ${progActiveWeeks} hafta kayıtlı)`)
+          .join(' • ');
 
         return {
           ...item,
           episodesCount: item.episodesSet.size,
           activeDaysCount: detailedDates.length,
+          firstDateKey,
+          lastDateKey,
+          activeDateSpanLabel,
+          durationSpanSummary: `${detailedDates.length} Günde / ${weeksList.length} Haftada (${activeDateSpanLabel})`,
           sortedDaysOfWeek,
           dayBreakdown,
           detailedDates,
-          // Günlük metrikler
+          // Günlük gerçek metrikler
           dailyAvgCount,
+          dailyCountLabel,
           dailyAvgSeconds,
           dailyAvgHoursFormatted,
           singleBroadcastFormatted,
-          // Haftalık metrikler
-          progActiveWeeks,
+          // Haftalık gerçek metrikler
+          progActiveWeeks: weeksList.length,
           weeklyAvgCount,
+          weeklyCountLabel,
           weeklyAvgSeconds,
           weeklyHoursFormatted,
-          // Aylık metrikler
-          progActiveMonths,
+          weeksBreakdownText,
+          // Aylık gerçek kayıtlı metrikler
+          progActiveMonths: monthsList.length,
           monthlyRecordedCount,
-          monthlyRecordedHours: formatSecondsToHoursMin(monthlyRecordedSec),
-          estMonthlyCount,
-          estMonthlyHours,
-          // Yıllık metrikler
-          progActiveYears,
+          monthlyRecordedHours,
+          monthsBreakdownText,
+          // Yıllık gerçek kayıtlı metrikler
+          progActiveYears: yearsList.length,
           yearlyRecordedCount,
-          yearlyRecordedHours: formatSecondsToHoursMin(yearlyRecordedSec),
-          estYearlyCount,
-          estYearlyHours,
+          yearlyRecordedHours,
+          yearsBreakdownText,
           // Toplam
           hoursFormatted: formatSecondsToHoursMin(item.seconds),
-          weeksList: Object.values(item.weeksMap).sort((a, b) => a.key.localeCompare(b.key)),
-          monthsList: Object.values(item.monthsMap).sort((a, b) => a.key.localeCompare(b.key)),
-          yearsList: Object.values(item.yearsMap).sort((a, b) => a.key.localeCompare(b.key))
+          weeksList,
+          monthsList,
+          yearsList
         };
       })
       .sort((a, b) => b.count - a.count || b.seconds - a.seconds);
@@ -703,31 +786,31 @@ const DraftReportsModal = ({
     );
   };
 
-  // EXCEL ÇIKTISI (Tüm filtreleri ve Günlük/Haftalık/Aylık/Yıllık metrikleri içerir)
+  // EXCEL ÇIKTISI (Sadece gerçek kayıtlı verileri ve ne kadar sürede kaç defa girdiğini içerir)
   const handleExportExcel = () => {
     const sections = [
       {
-        title: '1. PROGRAM BAZLI GÜNLÜK, HAFTALIK, AYLIK VE YILLIK YAYINLANMA & SAAT RAPORU',
+        title: '1. PROGRAM BAZLI GÜNLÜK, HAFTALIK, AYLIK VE YILLIK GERÇEK YAYINLANMA & SAAT RAPORU',
         headers: [
           'Program Adı',
           'Kategori',
-          'Seçili Dönem Toplam Yayın',
-          'Seçili Dönem Toplam Saat',
-          'Günde Ne Kadar (Günlük Ort. Adet & Süre)',
-          'Haftada Ne Kadar (Haftalık Adet & Saat)',
-          'Ayda Ne Kadar (Aylık Kayıtlı / Aylık 30 Günlük Karşılık)',
-          'Yılda Ne Kadar (Yıllık Kayıtlı / Yıllık 52 Haftalık Karşılık)',
+          'Toplam Kaç Defa & Ne Kadar Sürede',
+          'Toplam Yayın Saati',
+          'Günde Ne Kadar (Günlük Gerçek Yayın & Süre)',
+          'Haftada Ne Kadar (Haftalık Gerçek Yayın & Süre)',
+          'Ayda Ne Kadar (Kayıtlı Aylık Gerçek Veri)',
+          'Yılda Ne Kadar (Kayıtlı Yıllık Gerçek Veri)',
           'Hangi Gün Kaç Defa & Kaç Saat Yayınlandı'
         ],
         rows: filteredPrograms.map(p => [
           p.title,
           p.category,
-          `${p.count} Defa (${p.activeDaysCount} Gün)`,
+          `${p.count} Defa (${p.durationSpanSummary})`,
           p.hoursFormatted,
-          `Günde ${p.dailyAvgCount} Kez (${p.dailyAvgHoursFormatted}/gün • Bölüm: ${p.singleBroadcastFormatted})`,
-          `Haftada ${p.weeklyAvgCount} Kez (${p.weeklyHoursFormatted}/hafta)`,
-          `Kayıtlı Ay: ${p.monthlyRecordedCount} Kez (${p.monthlyRecordedHours}) | Aylık: ~${p.estMonthlyCount} Kez (${p.estMonthlyHours})`,
-          `Kayıtlı Yıl: ${p.yearlyRecordedCount} Kez (${p.yearlyRecordedHours}) | Yıllık: ~${p.estYearlyCount} Kez (${p.estYearlyHours})`,
+          `${p.dailyCountLabel} (${p.dailyAvgHoursFormatted}/gün • Tek yayın: ${p.singleBroadcastFormatted})`,
+          `${p.weeklyCountLabel} (${p.weeklyHoursFormatted}/hafta • ${p.weeksBreakdownText})`,
+          p.monthsBreakdownText,
+          p.yearsBreakdownText,
           p.dayBreakdown
         ])
       }
@@ -840,27 +923,27 @@ const DraftReportsModal = ({
       headers: [
         'Program Adı',
         'Kategori',
-        'Seçili Dönem Toplam Yayın (Kaç Defa)',
-        'Seçili Dönem Toplam Süre (Saat)',
-        'Günde Ne Kadar (Günlük Ort. Adet)',
-        'Günde Ne Kadar (Günlük Ort. Süre)',
-        'Haftada Ne Kadar (Haftalık Adet)',
-        'Haftada Ne Kadar (Haftalık Süre)',
-        'Ayda Ne Kadar (Aylık Adet & Saat)',
-        'Yılda Ne Kadar (Yıllık Adet & Saat)',
+        'Toplam Yayın (Kaç Defa)',
+        'Ne Kadar Sürede (Gün / Hafta / Tarih Aralığı)',
+        'Toplam Süre (Saat)',
+        'Günde Ne Kadar (Adet)',
+        'Günde Ne Kadar (Süre)',
+        'Haftada Ne Kadar (Adet & Süre)',
+        'Ayda Ne Kadar (Kayıtlı Aylık Gerçek Veri)',
+        'Yılda Ne Kadar (Kayıtlı Yıllık Gerçek Veri)',
         'Hangi Gün Kaç Defa & Kaç Saat'
       ],
       rows: filteredPrograms.map(p => [
         p.title,
         p.category,
-        p.count,
+        `${p.count} Defa`,
+        p.durationSpanSummary,
         p.hoursFormatted,
-        `${p.dailyAvgCount} Kez/Gün`,
-        p.dailyAvgHoursFormatted,
-        `${p.weeklyAvgCount} Kez/Hafta`,
-        p.weeklyHoursFormatted,
-        `${p.estMonthlyCount} Kez (${p.estMonthlyHours})`,
-        `${p.estYearlyCount} Kez (${p.estYearlyHours})`,
+        p.dailyCountLabel,
+        `${p.dailyAvgHoursFormatted}/gün`,
+        `${p.weeklyCountLabel} (${p.weeklyHoursFormatted}/hafta)`,
+        p.monthsBreakdownText,
+        p.yearsBreakdownText,
         p.dayBreakdown
       ])
     });
@@ -870,27 +953,27 @@ const DraftReportsModal = ({
   const handleExportPDF = () => {
     const sections = [
       {
-        title: '1. Program Bazlı Günlük, Haftalık, Aylık ve Yıllık Yayınlanma & Süre Analizi',
+        title: '1. Program Bazlı Günlük, Haftalık, Aylık ve Yıllık Gerçek Yayınlanma & Süre Analizi',
         description:
-          'Her programın seçili tarih aralığında günde, haftada, ayda ve yılda kaç defa ve kaç saat yayınlandığını gösterir.',
+          'Her programın sistemde kayıtlı gerçek verilerine göre ne kadar sürede kaç defa yayınlandığını ve günlük/haftalık/aylık/yıllık gerçek yayın sürelerini gösterir.',
         headers: [
           'Program Adı',
           'Kategori',
-          'Dönem Toplamı',
+          'Toplam Yayın & Kapsam Süresi',
           'Günde Ne Kadar',
           'Haftada Ne Kadar',
-          'Ayda Ne Kadar',
-          'Yılda Ne Kadar',
+          'Ayda Ne Kadar (Kayıtlı)',
+          'Yılda Ne Kadar (Kayıtlı)',
           'Hangi Günler Yayınlandı'
         ],
         rows: filteredPrograms.map(p => [
           p.title,
           p.category,
-          `${p.count} Kez (${p.hoursFormatted})`,
-          `${p.dailyAvgCount} Kez/Gün (${p.dailyAvgHoursFormatted})`,
-          `${p.weeklyAvgCount} Kez/Hf (${p.weeklyHoursFormatted})`,
-          `~${p.estMonthlyCount} Kez (${p.estMonthlyHours})`,
-          `~${p.estYearlyCount} Kez (${p.estYearlyHours})`,
+          `${p.count} Defa (${p.hoursFormatted}) • ${p.durationSpanSummary}`,
+          `${p.dailyCountLabel} (${p.dailyAvgHoursFormatted}/gün)`,
+          `${p.weeklyCountLabel} (${p.weeklyHoursFormatted}/hafta)`,
+          p.monthsBreakdownText,
+          p.yearsBreakdownText,
           p.dayBreakdown
         ])
       }
@@ -951,11 +1034,11 @@ const DraftReportsModal = ({
       accentColor: '#2563eb',
       kpis: focusedProgram
         ? [
-            { label: 'Program Adı', value: focusedProgram.title, sub: focusedProgram.category },
-            { label: 'Günde Ne Kadar', value: `${focusedProgram.dailyAvgCount} Kez / Gün`, sub: focusedProgram.dailyAvgHoursFormatted },
-            { label: 'Haftada Ne Kadar', value: `${focusedProgram.weeklyAvgCount} Kez / Hafta`, sub: focusedProgram.weeklyHoursFormatted },
-            { label: 'Ayda Ne Kadar', value: `~${focusedProgram.estMonthlyCount} Kez / Ay`, sub: focusedProgram.estMonthlyHours, color: '#059669' },
-            { label: 'Yılda Ne Kadar', value: `~${focusedProgram.estYearlyCount} Kez / Yıl`, sub: focusedProgram.estYearlyHours, color: '#d97706' }
+            { label: 'Program Adı & Kapsam', value: `${focusedProgram.count} Defa (${focusedProgram.hoursFormatted})`, sub: focusedProgram.durationSpanSummary },
+            { label: 'Günde Ne Kadar', value: focusedProgram.dailyCountLabel, sub: `${focusedProgram.dailyAvgHoursFormatted} / gün (Bölüm: ${focusedProgram.singleBroadcastFormatted})` },
+            { label: 'Haftada Ne Kadar', value: focusedProgram.weeklyCountLabel, sub: `${focusedProgram.weeklyHoursFormatted} / hafta (${focusedProgram.progActiveWeeks} Hafta)` },
+            { label: 'Ayda Ne Kadar (Kayıtlı)', value: `${focusedProgram.monthlyRecordedCount} Defa / Ay`, sub: focusedProgram.monthsBreakdownText, color: '#059669' },
+            { label: 'Yılda Ne Kadar (Kayıtlı)', value: `${focusedProgram.yearlyRecordedCount} Defa / Yıl`, sub: focusedProgram.yearsBreakdownText, color: '#d97706' }
           ]
         : [
             { label: 'Listelenen Program', value: `${filteredPrograms.length} Program`, sub: `${reportData.totalPrograms} Toplam Kuşak` },
@@ -1632,7 +1715,8 @@ const DraftReportsModal = ({
                       </span>
                     </div>
                     <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                      Seçili tarih aralığında toplam <strong>{focusedProgram.activeDaysCount} farklı günde</strong>,{' '}
+                      <strong>{focusedProgram.activeDateSpanLabel}</strong> tarihleri arasında toplam{' '}
+                      <strong>{focusedProgram.activeDaysCount} aktif günde ({focusedProgram.progActiveWeeks} haftada)</strong>{' '}
                       <strong>{focusedProgram.count} defa</strong> yayınlandı (Toplam süre: <strong>{focusedProgram.hoursFormatted}</strong> • Tek yayın ort. süresi: <strong>{focusedProgram.singleBroadcastFormatted}</strong>).
                     </div>
                   </div>
@@ -1679,58 +1763,60 @@ const DraftReportsModal = ({
                   </div>
                 </div>
 
-                {/* 4 Kutu: Günde Ne Kadar / Haftada Ne Kadar / Ayda Ne Kadar / Yılda Ne Kadar */}
+                {/* 4 Kutu: Günde Ne Kadar / Haftada Ne Kadar / Ayda Ne Kadar (Kayıtlı) / Yılda Ne Kadar (Kayıtlı) */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '14px' }}>
                   <div style={{ padding: '12px 14px', borderRadius: '10px', background: 'var(--bg-secondary)', border: '1px solid rgba(37, 99, 235, 0.3)' }}>
-                    <div style={{ fontSize: '11px', fontWeight: 800, color: '#2563eb' }}>1. GÜNDE NE KADAR YAYINLANDI</div>
+                    <div style={{ fontSize: '11px', fontWeight: 800, color: '#2563eb' }}>1. GÜNDE NE KADAR (GERÇEK VERİ)</div>
                     <div style={{ fontSize: '18px', fontWeight: 900, color: 'var(--text-primary)', marginTop: '4px' }}>
-                      Günde {focusedProgram.dailyAvgCount} Defa
+                      {focusedProgram.dailyCountLabel}
                     </div>
                     <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#059669', marginTop: '2px' }}>
                       Günlük Süre: {focusedProgram.dailyAvgHoursFormatted} / gün
                     </div>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '3px' }}>
-                      Tek Bölüm Süresi: {focusedProgram.singleBroadcastFormatted} • {focusedProgram.activeDaysCount} aktif yayın günü
+                      Tek Yayın Süresi: {focusedProgram.singleBroadcastFormatted} • {focusedProgram.activeDaysCount} aktif yayın günü
                     </div>
                   </div>
 
                   <div style={{ padding: '12px 14px', borderRadius: '10px', background: 'var(--bg-secondary)', border: '1px solid rgba(8, 145, 178, 0.3)' }}>
-                    <div style={{ fontSize: '11px', fontWeight: 800, color: '#0891b2' }}>2. HAFTADA NE KADAR YAYINLANDI</div>
+                    <div style={{ fontSize: '11px', fontWeight: 800, color: '#0891b2' }}>2. HAFTADA NE KADAR (PZT–PAZ GERÇEK)</div>
                     <div style={{ fontSize: '18px', fontWeight: 900, color: 'var(--text-primary)', marginTop: '4px' }}>
-                      Haftada {focusedProgram.weeklyAvgCount} Defa
+                      {focusedProgram.weeklyCountLabel}
                     </div>
                     <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#059669', marginTop: '2px' }}>
                       Haftalık Süre: {focusedProgram.weeklyHoursFormatted} / hafta
                     </div>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '3px' }}>
-                      {focusedProgram.progActiveWeeks} farklı haftada toplam {focusedProgram.count} yayın
+                      {focusedProgram.weeksBreakdownText}
                     </div>
                   </div>
 
                   <div style={{ padding: '12px 14px', borderRadius: '10px', background: 'var(--bg-secondary)', border: '1px solid rgba(5, 150, 105, 0.3)' }}>
-                    <div style={{ fontSize: '11px', fontWeight: 800, color: '#059669' }}>3. AYDA NE KADAR YAYINLANDI</div>
-                    <div style={{ fontSize: '18px', fontWeight: 900, color: 'var(--text-primary)', marginTop: '4px' }}>
-                      Ayda ~{focusedProgram.estMonthlyCount} Defa
-                    </div>
-                    <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#059669', marginTop: '2px' }}>
-                      Aylık Süre: {focusedProgram.estMonthlyHours} / ay
-                    </div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '3px' }}>
-                      Kayıtlı Ay Ortalaması: {focusedProgram.monthlyRecordedCount} kez ({focusedProgram.monthlyRecordedHours})
-                    </div>
+                    <div style={{ fontSize: '11px', fontWeight: 800, color: '#059669' }}>3. AYDA NE KADAR (KAYITLI AYLIK VERİ)</div>
+                    {focusedProgram.monthsList.map(m => (
+                      <div key={m.key} style={{ marginTop: '4px' }}>
+                        <div style={{ fontSize: '16px', fontWeight: 900, color: 'var(--text-primary)' }}>
+                          {m.label}: {m.count} Defa
+                        </div>
+                        <div style={{ fontSize: '12px', fontWeight: 800, color: '#059669' }}>
+                          Toplam Süre: {m.hoursFormatted} ({m.daysCount} gün kayıtlı)
+                        </div>
+                      </div>
+                    ))}
                   </div>
 
                   <div style={{ padding: '12px 14px', borderRadius: '10px', background: 'var(--bg-secondary)', border: '1px solid rgba(217, 119, 6, 0.35)' }}>
-                    <div style={{ fontSize: '11px', fontWeight: 800, color: '#d97706' }}>4. YILDA NE KADAR YAYINLANDI</div>
-                    <div style={{ fontSize: '18px', fontWeight: 900, color: 'var(--text-primary)', marginTop: '4px' }}>
-                      Yılda ~{focusedProgram.estYearlyCount} Defa
-                    </div>
-                    <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#d97706', marginTop: '2px' }}>
-                      Yıllık Süre: {focusedProgram.estYearlyHours} / yıl
-                    </div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '3px' }}>
-                      Kayıtlı Yıl Toplamı: {focusedProgram.yearlyRecordedCount} kez ({focusedProgram.yearlyRecordedHours})
-                    </div>
+                    <div style={{ fontSize: '11px', fontWeight: 800, color: '#d97706' }}>4. YILDA NE KADAR (KAYITLI YILLIK VERİ)</div>
+                    {focusedProgram.yearsList.map(y => (
+                      <div key={y.key} style={{ marginTop: '4px' }}>
+                        <div style={{ fontSize: '16px', fontWeight: 900, color: 'var(--text-primary)' }}>
+                          {y.label}: {y.count} Defa
+                        </div>
+                        <div style={{ fontSize: '12px', fontWeight: 800, color: '#d97706' }}>
+                          Toplam Süre: {y.hoursFormatted} ({y.daysCount} gün / {focusedProgram.progActiveWeeks} hafta kayıtlı)
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
@@ -1827,25 +1913,28 @@ const DraftReportsModal = ({
                 <table style={{ width: '100%', minWidth: '1120px', borderCollapse: 'collapse', fontSize: '12px' }}>
                   <thead>
                     <tr style={{ background: 'var(--bg-tertiary)', textAlign: 'left', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-color)' }}>
-                      <th style={{ padding: '11px 12px', width: '22%' }}>Program Adı &amp; Kategori</th>
-                      <th style={{ padding: '11px 10px', textAlign: 'center', width: '11%' }}>Seçili Dönem Toplamı</th>
-                      <th style={{ padding: '11px 10px', textAlign: 'center', width: '13%', background: 'rgba(37, 99, 235, 0.06)', color: '#1d4ed8' }}>
+                      <th style={{ padding: '11px 12px', width: '21%' }}>Program Adı &amp; Kategori</th>
+                      <th style={{ padding: '11px 10px', textAlign: 'center', width: '14%' }}>
+                        Kayıtlı Toplam Yayın
+                        <div style={{ fontSize: '10px', fontWeight: 600, opacity: 0.85 }}>(Ne Kadar Sürede Kaç Defa)</div>
+                      </th>
+                      <th style={{ padding: '11px 10px', textAlign: 'center', width: '12%', background: 'rgba(37, 99, 235, 0.06)', color: '#1d4ed8' }}>
                         Günde Ne Kadar
-                        <div style={{ fontSize: '10px', fontWeight: 600, opacity: 0.85 }}>(Günlük Adet &amp; Süre)</div>
+                        <div style={{ fontSize: '10px', fontWeight: 600, opacity: 0.85 }}>(Günlük Gerçek Veri)</div>
                       </th>
                       <th style={{ padding: '11px 10px', textAlign: 'center', width: '13%', background: 'rgba(8, 145, 178, 0.06)', color: '#0e7490' }}>
                         Haftada Ne Kadar
-                        <div style={{ fontSize: '10px', fontWeight: 600, opacity: 0.85 }}>(Haftalık Adet &amp; Süre)</div>
+                        <div style={{ fontSize: '10px', fontWeight: 600, opacity: 0.85 }}>(Pzt–Paz Gerçek Haftalık)</div>
                       </th>
                       <th style={{ padding: '11px 10px', textAlign: 'center', width: '13%', background: 'rgba(5, 150, 105, 0.06)', color: '#047857' }}>
                         Ayda Ne Kadar
-                        <div style={{ fontSize: '10px', fontWeight: 600, opacity: 0.85 }}>(Aylık Adet &amp; Süre)</div>
+                        <div style={{ fontSize: '10px', fontWeight: 600, opacity: 0.85 }}>(Kayıtlı Aylık Gerçek Veri)</div>
                       </th>
                       <th style={{ padding: '11px 10px', textAlign: 'center', width: '13%', background: 'rgba(217, 119, 6, 0.06)', color: '#b45309' }}>
                         Yılda Ne Kadar
-                        <div style={{ fontSize: '10px', fontWeight: 600, opacity: 0.85 }}>(Yıllık Adet &amp; Süre)</div>
+                        <div style={{ fontSize: '10px', fontWeight: 600, opacity: 0.85 }}>(Kayıtlı Yıllık Gerçek Veri)</div>
                       </th>
-                      <th style={{ padding: '11px 12px', width: '15%' }}>Hangi Günler Yayınlandı</th>
+                      <th style={{ padding: '11px 12px', width: '14%' }}>Hangi Günler Yayınlandı</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1895,7 +1984,7 @@ const DraftReportsModal = ({
                                 {p.category}
                               </span>
                               <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                                • {p.activeDaysCount} gün • Tek yayın: {p.singleBroadcastFormatted}
+                                • Tek yayın: {p.singleBroadcastFormatted}
                               </span>
                               <span style={{ fontSize: '10.5px', color: '#2563eb', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
                                 <Eye size={11} /> {isFocused ? 'Detay Açık' : 'Detay'}
@@ -1903,16 +1992,22 @@ const DraftReportsModal = ({
                             </div>
                           </td>
 
-                          {/* 2. Seçili Dönem Toplamı */}
+                          {/* 2. Kayıtlı Toplam Yayın (Ne Kadar Sürede Kaç Defa Girmiş) */}
                           <td style={{ padding: '11px 10px', textAlign: 'center', verticalAlign: 'middle' }}>
                             <div style={{ fontWeight: 900, color: 'var(--text-primary)', fontSize: '13.5px' }}>{p.count} Defa</div>
                             <div style={{ fontWeight: 800, color: '#059669', fontSize: '12px', marginTop: '2px' }}>{p.hoursFormatted}</div>
+                            <div style={{ fontSize: '10.5px', fontWeight: 700, color: '#2563eb', marginTop: '2px' }}>
+                              {p.activeDaysCount} Günde ({p.progActiveWeeks} Hafta)
+                            </div>
+                            <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '1px' }}>
+                              {p.activeDateSpanLabel}
+                            </div>
                           </td>
 
-                          {/* 3. Günde Ne Kadar */}
+                          {/* 3. Günde Ne Kadar (Gerçek Günlük Veri) */}
                           <td style={{ padding: '11px 10px', textAlign: 'center', verticalAlign: 'middle', background: 'rgba(37, 99, 235, 0.03)' }}>
                             <div style={{ fontWeight: 900, color: '#2563eb', fontSize: '13px' }}>
-                              Günde {p.dailyAvgCount} Kez
+                              {p.dailyCountLabel}
                             </div>
                             <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '11.5px', marginTop: '2px' }}>
                               {p.dailyAvgHoursFormatted} / gün
@@ -1922,43 +2017,55 @@ const DraftReportsModal = ({
                             </div>
                           </td>
 
-                          {/* 4. Haftada Ne Kadar */}
+                          {/* 4. Haftada Ne Kadar (Pazartesi-Pazar Gerçek Haftalık Veri) */}
                           <td style={{ padding: '11px 10px', textAlign: 'center', verticalAlign: 'middle', background: 'rgba(8, 145, 178, 0.03)' }}>
                             <div style={{ fontWeight: 900, color: '#0891b2', fontSize: '13px' }}>
-                              Haftada {p.weeklyAvgCount} Kez
+                              {p.weeklyCountLabel}
                             </div>
                             <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '11.5px', marginTop: '2px' }}>
                               {p.weeklyHoursFormatted} / hafta
                             </div>
-                            <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: '1px' }}>
-                              ({p.progActiveWeeks} aktif hafta)
+                            <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px', lineHeight: 1.35 }}>
+                              {p.weeksList.map(w => (
+                                <div key={w.key}>
+                                  {w.label}: <strong>{w.count} kez</strong>
+                                </div>
+                              ))}
                             </div>
                           </td>
 
-                          {/* 5. Ayda Ne Kadar */}
+                          {/* 5. Ayda Ne Kadar (Sadece Kayıtlı Aylık Gerçek Veri) */}
                           <td style={{ padding: '11px 10px', textAlign: 'center', verticalAlign: 'middle', background: 'rgba(5, 150, 105, 0.03)' }}>
-                            <div style={{ fontWeight: 900, color: '#059669', fontSize: '13px' }}>
-                              Ayda ~{p.estMonthlyCount} Kez
-                            </div>
-                            <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '11.5px', marginTop: '2px' }}>
-                              {p.estMonthlyHours} / ay
-                            </div>
-                            <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: '1px' }}>
-                              Kayıtlı: {p.monthlyRecordedCount} kez ({p.monthlyRecordedHours})
-                            </div>
+                            {p.monthsList.map(m => (
+                              <div key={m.key} style={{ marginBottom: p.monthsList.length > 1 ? '4px' : '0px' }}>
+                                <div style={{ fontWeight: 900, color: '#059669', fontSize: '12.5px' }}>
+                                  {m.label}: {m.count} Defa
+                                </div>
+                                <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '11.5px', marginTop: '1px' }}>
+                                  {m.hoursFormatted}
+                                </div>
+                                <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '1px' }}>
+                                  ({m.daysCount} gün kayıtlı)
+                                </div>
+                              </div>
+                            ))}
                           </td>
 
-                          {/* 6. Yılda Ne Kadar */}
+                          {/* 6. Yılda Ne Kadar (Sadece Kayıtlı Yıllık Gerçek Veri) */}
                           <td style={{ padding: '11px 10px', textAlign: 'center', verticalAlign: 'middle', background: 'rgba(217, 119, 6, 0.03)' }}>
-                            <div style={{ fontWeight: 900, color: '#d97706', fontSize: '13px' }}>
-                              Yılda ~{p.estYearlyCount} Kez
-                            </div>
-                            <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '11.5px', marginTop: '2px' }}>
-                              {p.estYearlyHours} / yıl
-                            </div>
-                            <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: '1px' }}>
-                              Kayıtlı: {p.yearlyRecordedCount} kez ({p.yearlyRecordedHours})
-                            </div>
+                            {p.yearsList.map(y => (
+                              <div key={y.key} style={{ marginBottom: p.yearsList.length > 1 ? '4px' : '0px' }}>
+                                <div style={{ fontWeight: 900, color: '#d97706', fontSize: '12.5px' }}>
+                                  {y.label}: {y.count} Defa
+                                </div>
+                                <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '11.5px', marginTop: '1px' }}>
+                                  {y.hoursFormatted}
+                                </div>
+                                <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '1px' }}>
+                                  ({y.daysCount} gün / {p.progActiveWeeks} hafta kayıtlı)
+                                </div>
+                              </div>
+                            ))}
                           </td>
 
                           {/* 7. Hangi Gün Kaç Defa & Kaç Saat */}
