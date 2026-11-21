@@ -55,6 +55,8 @@ const AdPlanningDaySummaryCard = ({
 
   const minBreakFillSec = Number(adsAutoFillSettings?.minBreakFillSec ?? 120);
   const uniquenessRule = adsAutoFillSettings?.uniquenessRule || 'same_clip';
+  const strictTimeBlocks = adsAutoFillSettings?.strictTimeBlocks !== false;
+  const quotaStrategy = adsAutoFillSettings?.quotaStrategy || 'smart_pacing';
   const varyOrderAcrossBreaks = adsAutoFillSettings?.varyOrderAcrossBreaks !== false;
 
   const uniquenessLabel =
@@ -468,10 +470,78 @@ const AdPlanningDaySummaryCard = ({
               </div>
             </div>
 
-            {/* 3. Kuşak & Gün Varyasyonu ve Öncelik / Kota Kuralları */}
+            {/* 3. Günlük Spot Kullanım Stratejisi (Min / Optimal / Max) */}
             <div
               style={{
-                flex: '1 1 220px',
+                flex: '1.3 1 300px',
+                padding: '10px 12px',
+                borderRadius: '10px',
+                background: 'var(--ads-canvas-bg)',
+                border: '1px solid var(--ads-border)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px'
+              }}
+            >
+              <span style={{ fontSize: '11.5px', fontWeight: '800', color: 'var(--ads-text-main)' }}>
+                3. Günlük Spot Kullanım Stratejisi (Min / Max Dengesi)
+              </span>
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                {[
+                  {
+                    id: 'smart_pacing',
+                    label: 'Akıllı Kampanya Dağılımı',
+                    desc: 'Her reklamı her gün direkt Max Spota dayamaz; kalan toplam spotu kampanya günlerine bölerek (Min ≤ Hedef ≤ Max) dengeli kullanır.'
+                  },
+                  {
+                    id: 'min_plus_2min',
+                    label: 'Min Spot + En Az 2 Dk Taban',
+                    desc: 'Önce her reklamın Günlük Min Spotunu ve kuşakların en az 2 dk taban süresini doldurur, üzerinde gereksiz Max tüketimi yapmaz.'
+                  },
+                  {
+                    id: 'up_to_max',
+                    label: 'Max Spota Kadar Doldur',
+                    desc: 'Kuşaklarda yer oldukça reklamları Günlük Max Spot sınırına kadar doldurur (Max kesinlikle aşılmaz).'
+                  }
+                ].map(opt => {
+                  const active = quotaStrategy === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => onUpdateAutoFillSettings && onUpdateAutoFillSettings({ quotaStrategy: opt.id })}
+                      style={{
+                        flex: '1 1 130px',
+                        padding: '7px 10px',
+                        borderRadius: '8px',
+                        border: active ? '1.5px solid var(--ads-brand)' : '1px solid var(--ads-border)',
+                        background: active ? 'var(--ads-brand-soft)' : 'var(--ads-card-subtle)',
+                        color: active ? 'var(--ads-brand)' : 'var(--ads-text-main)',
+                        fontSize: '11.5px',
+                        fontWeight: '800',
+                        cursor: 'pointer',
+                        textAlign: 'left'
+                      }}
+                      title={opt.desc}
+                    >
+                      {active ? '✓ ' : ''}{opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{ fontSize: '10.5px', color: 'var(--ads-text-muted)', lineHeight: 1.35 }}>
+                {quotaStrategy === 'smart_pacing'
+                  ? 'Kalan toplam spotu kampanya bitiş tarihine kadar kalan gün sayısına böler; tüm reklamları aynı gün Max Spota dayamaz.'
+                  : quotaStrategy === 'min_plus_2min'
+                  ? 'Yalnızca Günlük Min Spotları ve kuşakların en az 2 dk taban doluluğunu sağlar.'
+                  : 'Kuşaklarda boş süre oldukça Günlük Max Spot sınırına kadar yerleştirir.'}
+              </div>
+            </div>
+
+            {/* 4. Yayın Kuşağı (Sabah/Öğle/Akşam/Gece) Eşleşmesi & Varyasyon */}
+            <div
+              style={{
+                flex: '1 1 240px',
                 padding: '10px 12px',
                 borderRadius: '10px',
                 background: 'var(--ads-canvas-bg)',
@@ -479,12 +549,35 @@ const AdPlanningDaySummaryCard = ({
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                gap: '6px'
+                gap: '8px'
               }}
             >
               <span style={{ fontSize: '11.5px', fontWeight: '800', color: 'var(--ads-text-main)' }}>
-                3. Kuşak &amp; Gün Dizilim Varyasyonu
+                4. Yayın Kuşağı &amp; Dizilim Kuralları
               </span>
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '11.5px',
+                  fontWeight: '700',
+                  color: 'var(--ads-text-main)',
+                  cursor: 'pointer'
+                }}
+                title="İşaretliyken Sabah reklamı sadece Sabah kuşaklarına (06:00-12:00), Akşam reklamı sadece Akşam Prime Time (18:00-24:00) kuşaklarına girer."
+              >
+                <input
+                  type="checkbox"
+                  checked={strictTimeBlocks}
+                  onChange={e =>
+                    onUpdateAutoFillSettings &&
+                    onUpdateAutoFillSettings({ strictTimeBlocks: e.target.checked })
+                  }
+                  style={{ width: '15px', height: '15px', accentColor: 'var(--ads-brand)' }}
+                />
+                <span>Sadece Seçili Yayın Kuşağına (Sabah/Öğle/Akşam/Gece) Yerleştir</span>
+              </label>
               <label
                 style={{
                   display: 'flex',
@@ -508,9 +601,6 @@ const AdPlanningDaySummaryCard = ({
                 <Shuffle size={13} color="var(--ads-brand)" />
                 <span>Her Kuşak ve Her Gün Farklı Dizilim</span>
               </label>
-              <div style={{ fontSize: '10.5px', color: 'var(--ads-text-muted)', lineHeight: 1.35 }}>
-                Sponsor → Zorunlu (1000) → Yüksek (700) → Normal (400) → Dolgu (100) önceliğiyle, Min/Max spot kotasını aşmadan dağıtır.
-              </div>
             </div>
           </div>
         </div>

@@ -975,6 +975,10 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
   const uniquenessRule = ['same_clip', 'same_company', 'none'].includes(autoFillCfg.uniquenessRule)
     ? autoFillCfg.uniquenessRule
     : 'same_clip';
+  const strictTimeBlocks = autoFillCfg.strictTimeBlocks !== false;
+  const quotaStrategy = ['smart_pacing', 'min_plus_2min', 'up_to_max'].includes(autoFillCfg.quotaStrategy)
+    ? autoFillCfg.quotaStrategy
+    : 'smart_pacing';
   const varyOrderAcrossBreaks = autoFillCfg.varyOrderAcrossBreaks !== false;
   const nextVariationCounter = (Number(autoFillCfg.variationCounter) || 1) + 1;
 
@@ -1086,6 +1090,28 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
         const rawDailyMin = Math.max(0, Number(it.dailyMinSpots ?? res.dailyMinSpots ?? 1));
         const effectiveDailyMin = Math.min(rawDailyMin, effectiveDailyMax);
 
+        // Akıllı Kampanya Günlük Hedef (Smart Pacing):
+        // Reklamın her gün direkt `dailyMaxSpots` sınırına dayanmaması için, kalan toplam spotu (`itemRemainingTotal`)
+        // kampanya bitiş tarihine kadar kalan gün sayısına (`remainingCampaignDays`) böler:
+        // `dailyMinSpots <= dailyOptimalTarget <= dailyMaxSpots`
+        const startStrForPacing = it.startDate || res.startDate;
+        const endStrForPacing = it.endDate || res.endDate;
+        let remainingCampaignDays = 1;
+        if (endStrForPacing) {
+          const eDateObj = new Date(endStrForPacing);
+          eDateObj.setHours(23, 59, 59, 999);
+          const refStartObj = startStrForPacing ? new Date(startStrForPacing) : targetDateObj;
+          refStartObj.setHours(0, 0, 0, 0);
+          const effectiveFrom = targetDateObj > refStartObj ? targetDateObj : refStartObj;
+          const diffMs = eDateObj.getTime() - effectiveFrom.getTime();
+          remainingCampaignDays = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+        }
+        const pacedDailyTarget = Math.ceil(itemRemainingTotal / remainingCampaignDays);
+        const dailyOptimalTarget = Math.max(
+          effectiveDailyMin,
+          Math.min(effectiveDailyMax, pacedDailyTarget)
+        );
+
         const durationSec = normalizeAdDurationSeconds(material.duration, material.clipName);
         const itemBlocks =
           Array.isArray(it.timeBlockIds) && it.timeBlockIds.length > 0
@@ -1146,7 +1172,9 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
           materialName: material.name,
           durationSec,
           dailyMinSpots: effectiveDailyMin,
+          dailyOptimalTarget,
           dailyMaxSpots: effectiveDailyMax,
+          remainingCampaignDays,
           plannedSpots: itemPlannedTotal,
           timeBlockIds: itemBlocks,
           candHash: hashString32(`${res.id}__${material.id}`)
@@ -1622,13 +1650,14 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
   // AŞAMA 3: KUŞAK TABAN SÜRE GARANTİSİ (Kuşak Boş Kalamaz — En Az `minBreakFillSec` (Varsayılan 120 sn / 2 dk) Doluluk)
   // Tüm kuşakları en boş olandan başlayarak tarar ve her kuşağı (eldeki reklamların Max Spot sınırını ASLA aşmadan!)
   // en az `minBreakFillSec` (ör. 2 dakika) ticari reklam süresine ulaştırmaya çalışır.
+  // ÖNEMLİ: Önce adayların `dailyOptimalTarget` (Akıllı Günlük Hedef) sınırını aşmadan 2 dk tabanı doldurur;
+  // eğer 2 dk taban hala dolmadıysa yalnızca o kuşak için `dailyMaxSpots`'a kadar izin verir.
   let minFillPassActive = true;
   let minFillRound = 0;
   while (minFillPassActive && minFillRound < 25) {
     minFillPassActive = false;
     minFillRound++;
 
-    // Hedef sürenin (`minBreakFillSec`) altında kalan kuşakları en az dolu olandan sırala
     const underMinBuckets = [...adBreakBuckets]
       .filter(b => getBucketAdsDurationSec(b) < minBreakFillSec && b.usedSec + 10 <= b.capacitySec)
       .sort((a, b) => {
@@ -1644,10 +1673,6 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
         ? [...ramadanCandidates, ...standardCandidates]
         : standardCandidates;
 
-      // Henüz `dailyMaxSpots` sınırına ulaşmamış adayları puanla:
-      // 1) Henüz `dailyMinSpots` hedefini tamamlamamış olanlara yüksek öncelik ver
-      // 2) Zorunlu (1000) > Yüksek (700) > Normal (400) > Dolgu (100) önceliğini koru
-      // 3) Kuşak yayılımı (spacing) ve günlük varyasyon (`pseudoNoise`) ekle
       const eligibleCands = poolForBucket
         .filter(c => (dailyCountMap[c.itemKey] || 0) < c.dailyMaxSpots)
         .sort((a, b) => {
@@ -1657,8 +1682,13 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
           const bNeedsMin = bCount < b.dailyMinSpots ? 1 : 0;
           if (bNeedsMin !== aNeedsMin) return bNeedsMin - aNeedsMin;
 
-          const aUsageRatio = aCount / Math.max(1, a.dailyMaxSpots);
-          const bUsageRatio = bCount / Math.max(1, b.dailyMaxSpots);
+          // Akıllı hedef (`dailyOptimalTarget`) altında olanlara öncelik ver ki her reklam hemen Max'a dayanmasın
+          const aUnderOptimal = aCount < a.dailyOptimalTarget ? 1 : 0;
+          const bUnderOptimal = bCount < b.dailyOptimalTarget ? 1 : 0;
+          if (bUnderOptimal !== aUnderOptimal) return bUnderOptimal - aUnderOptimal;
+
+          const aUsageRatio = aCount / Math.max(1, a.dailyOptimalTarget || a.dailyMaxSpots);
+          const bUsageRatio = bCount / Math.max(1, b.dailyOptimalTarget || b.dailyMaxSpots);
 
           const aScore =
             (1 - aUsageRatio) * 500 +
@@ -1672,7 +1702,7 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
         });
 
       let placedInThisBucket = false;
-      // Önce kendi saat dilimi (`timeBlockId`) eşleşen adayları dene
+      // 1. Önce kendi seçili yayın kuşağı (`timeBlockId`: Sabah / Öğle / Akşam Prime / Gece) eşleşen adayları dene
       for (const cand of eligibleCands) {
         if (tryPlaceCandidateInBucket(cand, bucket, { ignoreTimeBlock: false })) {
           placedInThisBucket = true;
@@ -1681,9 +1711,8 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
         }
       }
 
-      // Kendi saat diliminde aday kalmadıysa ve kuşak hala 2 dk (`minBreakFillSec`) altındaysa,
-      // kuşağın boş kalmaması için (yine Max Spot'u ASLA aşmadan!) diğer saat dilimindeki uygun adaylardan destek al
-      if (!placedInThisBucket && getBucketAdsDurationSec(bucket) < minBreakFillSec) {
+      // 2. Sadece kullanıcı ayarlarda `strictTimeBlocks === false` (2 dk taban için esnek saat dilimi) seçtiyse diğer saat diliminden destek al
+      if (!placedInThisBucket && !strictTimeBlocks && getBucketAdsDurationSec(bucket) < minBreakFillSec) {
         for (const cand of eligibleCands) {
           if (tryPlaceCandidateInBucket(cand, bucket, { ignoreTimeBlock: true })) {
             placedInThisBucket = true;
@@ -1697,7 +1726,7 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
 
   // AŞAMA 4: GÜNLÜK MİNİMUM SPOT GARANTİSİ (`dailyMinSpots`)
   // Kuşakların taban doluluğu sağlandıktan sonra hala `dailyMinSpots` sayısına ulaşmamış rezervasyon varsa
-  // en uygun ve en ferah kuşaklara yerleştir.
+  // kendi seçili yayın kuşağındaki (`timeBlockIds`) en uygun kuşaklara yerleştir.
   standardCandidates.forEach((cand, cIdx) => {
     let guard = 0;
     while (
@@ -1726,51 +1755,61 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
     }
   });
 
-  // AŞAMA 5: KOTA DAHİLİNDE (`dailyMaxSpots` AŞILMADAN!) DENGELİ VE VARYASYONLU SÜRE DOLDURMA
-  // Elde kalan spot haklarını (`dailyCount < dailyMaxSpots`) tüm kuşaklar arasında en az dolu kuşağa ve
-  // en geniş kuşak aralığına (spacing) göre dağıtır. Max Spot dolduğunda kesinlikle durur!
-  let placedInRound = true;
-  let roundCount = 0;
-  while (placedInRound && roundCount < 40) {
-    placedInRound = false;
-    roundCount++;
+  // AŞAMA 5: GÜNLÜK SPOT STRATEJİSİNE GÖRE DENGELİ DAĞITIM
+  // - `'min_plus_2min'` seçiliyse: Aşama 3 (2 dk taban) ve Aşama 4 (`dailyMinSpots`) tamamlandığı için burada durur; Max'a kadar zorlamaz!
+  // - `'smart_pacing'` (Varsayılan) seçiliyse: Her reklamı `dailyMaxSpots`'a dayamak yerine kampanya günlerine bölünmüş `dailyOptimalTarget` (`Min <= Hedef <= Max`) değerine kadar dengeli dağıtır!
+  // - `'up_to_max'` seçiliyse: Kuşaklarda yer oldukça `dailyMaxSpots` sınırına kadar doldurur (ama Max'ı asla aşmaz).
+  if (quotaStrategy !== 'min_plus_2min') {
+    let placedInRound = true;
+    let roundCount = 0;
+    while (placedInRound && roundCount < 40) {
+      placedInRound = false;
+      roundCount++;
 
-    const bucketsSortedByLeastFilled = [...adBreakBuckets]
-      .filter(b => b.usedSec + 10 <= b.capacitySec)
-      .sort((a, b) => {
-        const ratioA = a.usedSec / Math.max(1, a.capacitySec);
-        const ratioB = b.usedSec / Math.max(1, b.capacitySec);
-        if (Math.abs(ratioA - ratioB) > 0.08) return ratioA - ratioB;
-        return pseudoNoise(a.bucketOrderIdx, roundCount + 50) - pseudoNoise(b.bucketOrderIdx, roundCount + 50);
-      });
-
-    for (const bucket of bucketsSortedByLeastFilled) {
-      const poolForBucket = bucket.ramadanBreakTag
-        ? [...ramadanCandidates, ...standardCandidates]
-        : standardCandidates;
-
-      const availableCands = poolForBucket
-        .filter(c => (dailyCountMap[c.itemKey] || 0) < c.dailyMaxSpots)
+      const bucketsSortedByLeastFilled = [...adBreakBuckets]
+        .filter(b => b.usedSec + 10 <= b.capacitySec)
         .sort((a, b) => {
-          const aRatio = (dailyCountMap[a.itemKey] || 0) / Math.max(1, a.dailyMaxSpots);
-          const bRatio = (dailyCountMap[b.itemKey] || 0) / Math.max(1, b.dailyMaxSpots);
-          const aScore =
-            (1 - aRatio) * 450 +
-            (a.isSponsor ? 300 : 0) +
-            a.priority * 0.4 +
-            scoreBucketForCandidate(a, bucket, roundCount);
-          const bScore =
-            (1 - bRatio) * 450 +
-            (b.isSponsor ? 300 : 0) +
-            b.priority * 0.4 +
-            scoreBucketForCandidate(b, bucket, roundCount);
-          return bScore - aScore;
+          const ratioA = a.usedSec / Math.max(1, a.capacitySec);
+          const ratioB = b.usedSec / Math.max(1, b.capacitySec);
+          if (Math.abs(ratioA - ratioB) > 0.08) return ratioA - ratioB;
+          return pseudoNoise(a.bucketOrderIdx, roundCount + 50) - pseudoNoise(b.bucketOrderIdx, roundCount + 50);
         });
 
-      for (const cand of availableCands) {
-        if (tryPlaceCandidateInBucket(cand, bucket, { ignoreTimeBlock: false })) {
-          placedInRound = true;
-          break;
+      for (const bucket of bucketsSortedByLeastFilled) {
+        const poolForBucket = bucket.ramadanBreakTag
+          ? [...ramadanCandidates, ...standardCandidates]
+          : standardCandidates;
+
+        const availableCands = poolForBucket
+          .filter(c => {
+            const cur = dailyCountMap[c.itemKey] || 0;
+            const capForStrategy =
+              quotaStrategy === 'smart_pacing' ? c.dailyOptimalTarget : c.dailyMaxSpots;
+            return cur < capForStrategy && cur < c.dailyMaxSpots;
+          })
+          .sort((a, b) => {
+            const aCap = Math.max(1, quotaStrategy === 'smart_pacing' ? a.dailyOptimalTarget : a.dailyMaxSpots);
+            const bCap = Math.max(1, quotaStrategy === 'smart_pacing' ? b.dailyOptimalTarget : b.dailyMaxSpots);
+            const aRatio = (dailyCountMap[a.itemKey] || 0) / aCap;
+            const bRatio = (dailyCountMap[b.itemKey] || 0) / bCap;
+            const aScore =
+              (1 - aRatio) * 450 +
+              (a.isSponsor ? 300 : 0) +
+              a.priority * 0.4 +
+              scoreBucketForCandidate(a, bucket, roundCount);
+            const bScore =
+              (1 - bRatio) * 450 +
+              (b.isSponsor ? 300 : 0) +
+              b.priority * 0.4 +
+              scoreBucketForCandidate(b, bucket, roundCount);
+            return bScore - aScore;
+          });
+
+        for (const cand of availableCands) {
+          if (tryPlaceCandidateInBucket(cand, bucket, { ignoreTimeBlock: false })) {
+            placedInRound = true;
+            break;
+          }
         }
       }
     }

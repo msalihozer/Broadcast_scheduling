@@ -507,16 +507,23 @@ const USER_AUTO_FILL_SETTINGS_STORAGE_KEY = 'yayin_ads_autofill_settings_v1';
  * Otomatik Reklam Doldurma (Auto-Plan) Algoritması Ayarları:
  * - `minBreakFillSec`: Kuşak başına hedeflenen en az doluluk süresi (saniye). Varsayılan: 120 sn (2 dakika).
  * - `uniquenessRule`: Kuşak içi tekrar önleme kuralı:
- *   - `'same_clip'`   : Aynı reklam klibi aynı kuşağa bir daha giremez (aynı firmanın farklı ürünü/klibi varsa araya başka firma girerek girebilir).
- *   - `'same_company'`: Aynı firma (dolayısıyla aynı klip de) aynı kuşağa bir daha giremez (kuşak başına firma tekilliği).
- *   - `'none'`        : İkisi de geçersiz (kısıtlama yok; yine de mümkün olduğunca üst üste gelmeyecek şekilde dizilir).
+ *   - `'same_clip'`   : Aynı reklam klibi aynı kuşağa bir daha giremez.
+ *   - `'same_company'`: Aynı firma (dolayısıyla aynı klip de) aynı kuşağa bir daha giremez.
+ *   - `'none'`        : İkisi de geçersiz.
+ * - `strictTimeBlocks`: `true` (Varsayılan) — Rezervasyonda seçilen Yayın Kuşağı (`Sabah`, `Öğle`, `Akşam Prime Time`, `Gece`) dışındaki kuşaklara kesinlikle girmez.
+ * - `quotaStrategy`: Günlük Spot Kullanım Stratejisi:
+ *   - `'smart_pacing'`  : Akıllı Kampanya Dağılımı (Varsayılan) — Kalan toplam spotu kampanya bitiş tarihine kadar kalan günlere böler (`Min <= Hedef <= Max`); her reklamı her gün direkt Max Spot'a dayamaz!
+ *   - `'min_ plus_2min'`: Min Spot + En Az 2 Dk Taban — Önce her reklamın Günlük Min Spotunu ve kuşakların en az 2 dk taban süresini doldurur, üzerinde gereksiz Max tüketimi yapmaz.
+ *   - `'up_to_max'`     : Kuşakları Max Spot'a Kadar Doldur — Kuşaklarda yer oldukça Günlük Max Spot sınırına kadar doldurur.
  * - `strictMaxSpot`: `true` (zorunlu) — Rezervasyondaki Günlük Max Spot (`dailyMaxSpots`) ve Toplam Planlanan Spot (`plannedSpots`) kesinlikle aşılamaz.
  * - `varyOrderAcrossBreaks`: `true` — Her kuşak ve her gün aynı sırada dizilmemesi için ağırlıklı rotasyon ve varyasyon uygular.
- * - `variationCounter`: Her otomatik doldurmada artan varyasyon tohumu (aynı günde tekrar basıldığında da farklı dizilim üretir).
+ * - `variationCounter`: Her otomatik doldurmada artan varyasyon tohumu.
  */
 export const DEFAULT_ADS_AUTO_FILL_SETTINGS = {
   minBreakFillSec: 120,
   uniquenessRule: 'same_clip', // 'same_clip' | 'same_company' | 'none'
+  strictTimeBlocks: true,
+  quotaStrategy: 'smart_pacing', // 'smart_pacing' | 'min_plus_2min' | 'up_to_max'
   strictMaxSpot: true,
   varyOrderAcrossBreaks: true,
   variationCounter: 1
@@ -536,6 +543,10 @@ export function loadAdsAutoFillSettingsBackup() {
             uniquenessRule: ['same_clip', 'same_company', 'none'].includes(parsed.uniquenessRule)
               ? parsed.uniquenessRule
               : 'same_clip',
+            strictTimeBlocks: parsed.strictTimeBlocks !== false,
+            quotaStrategy: ['smart_pacing', 'min_plus_2min', 'up_to_max'].includes(parsed.quotaStrategy)
+              ? parsed.quotaStrategy
+              : 'smart_pacing',
             strictMaxSpot: true
           };
         }
