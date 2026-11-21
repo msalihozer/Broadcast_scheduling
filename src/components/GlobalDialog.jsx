@@ -200,14 +200,15 @@ const GlobalDialog = () => {
           borderRadius: '22px',
           width: '100%',
           maxWidth: parsedContent.items.length > 0 ? '480px' : '430px',
-          padding: '28px 26px 24px 26px',
+          maxHeight: 'calc(100vh - 32px)',
+          padding: '24px 24px 20px 24px',
           boxShadow: '0 24px 60px -12px rgba(15, 23, 42, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.1)',
           animation: 'saasDialogPopIn 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           textAlign: 'center',
-          overflow: 'hidden'
+          overflowY: 'auto'
         }}
       >
         {/* Üst Vurgu Şeridi */}

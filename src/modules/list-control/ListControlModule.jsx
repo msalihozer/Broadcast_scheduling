@@ -463,10 +463,12 @@ const ListControlModule = ({ date, channelId }) => {
           overflow: 'hidden',
           boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)'
         }}>
-          {/* Header Row */}
+          {/* Header Row (Flex Layout) */}
           <div style={{
-            display: 'grid',
-            gridTemplateColumns,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '10px 12px',
             background: 'var(--bg-tertiary)',
             borderBottom: '1px solid var(--border-color)',
             fontSize: '11px',
@@ -475,11 +477,18 @@ const ListControlModule = ({ date, channelId }) => {
             textTransform: 'uppercase'
           }}>
             {timelineColumns.map(col => (
-              <ResizableHeaderCell
+              <div
                 key={col.id}
-                column={col}
-                onResize={width => setColumnWidth(col.id, width)}
-              />
+                style={{
+                  flex: col.width === -1 ? '1 1 200px' : `0 0 ${col.width}px`,
+                  minWidth: col.width === -1 ? '140px' : `${col.width}px`
+                }}
+              >
+                <ResizableHeaderCell
+                  column={col}
+                  onResize={(_, width) => setColumnWidth(col.id, width)}
+                />
+              </div>
             ))}
           </div>
 

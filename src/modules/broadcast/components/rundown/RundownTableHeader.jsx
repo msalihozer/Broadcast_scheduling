@@ -5,7 +5,7 @@
  */
 import React, { memo } from 'react';
 import { Clock } from 'lucide-react';
-import { RUNDOWN_GRID_TEMPLATE } from '../../utils/rundownHelpers';
+import { RUNDOWN_FLEX_COLUMNS } from '../../utils/rundownHelpers';
 
 const RundownTableHeader = memo(function RundownTableHeader({
   programsCount = 0,
@@ -14,10 +14,9 @@ const RundownTableHeader = memo(function RundownTableHeader({
 }) {
   return (
     <div style={{
-      display: 'grid',
-      gridTemplateColumns: RUNDOWN_GRID_TEMPLATE,
-      columnGap: '8px',
+      display: 'flex',
       alignItems: 'center',
+      gap: '8px',
       padding: '9px 10px',
       background: 'var(--bg-tertiary)',
       borderBottom: '2px solid var(--border-color)',
@@ -37,7 +36,7 @@ const RundownTableHeader = memo(function RundownTableHeader({
       minWidth: 0,
       boxSizing: 'border-box'
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0 }}>
+      <div style={{ ...RUNDOWN_FLEX_COLUMNS.order, display: 'flex', alignItems: 'center', gap: '4px' }}>
         <input
           type="checkbox"
           checked={programsCount > 0 && selectedCount === programsCount}
@@ -47,15 +46,15 @@ const RundownTableHeader = memo(function RundownTableHeader({
         />
         <span>#</span>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--accent-primary)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      <div style={{ ...RUNDOWN_FLEX_COLUMNS.time, display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--accent-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         <Clock size={13} style={{ flexShrink: 0 }} />
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>Yayın Saati</span>
       </div>
-      <div style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Süre</div>
-      <div style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Klip Adı</div>
-      <div style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Bölüm / Part</div>
-      <div style={{ minWidth: 0, whiteSpace: 'nowrap' }}>Tür</div>
-      <div style={{ textAlign: 'right', minWidth: 0, whiteSpace: 'nowrap' }}>İşlemler</div>
+      <div style={{ ...RUNDOWN_FLEX_COLUMNS.duration, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Süre</div>
+      <div style={{ ...RUNDOWN_FLEX_COLUMNS.title, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Klip Adı</div>
+      <div style={{ ...RUNDOWN_FLEX_COLUMNS.unit, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Bölüm / Part</div>
+      <div style={{ ...RUNDOWN_FLEX_COLUMNS.type, whiteSpace: 'nowrap' }}>Tür</div>
+      <div style={{ ...RUNDOWN_FLEX_COLUMNS.actions, textAlign: 'right', whiteSpace: 'nowrap' }}>İşlemler</div>
     </div>
   );
 });

@@ -132,17 +132,21 @@ export default function AddAdBreakModal({ isOpen, onClose }) {
         borderRadius: '16px',
         width: '100%',
         maxWidth: '500px',
+        maxHeight: 'calc(100vh - 32px)',
+        display: 'flex',
+        flexDirection: 'column',
         boxShadow: '0 20px 40px rgba(0,0,0,0.45)',
         overflow: 'hidden'
       }}>
         {/* Header */}
         <div style={{
-          padding: '16px 20px',
+          padding: '14px 20px',
           borderBottom: '1px solid var(--border-color)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          background: 'rgba(245, 158, 11, 0.12)'
+          background: 'rgba(245, 158, 11, 0.12)',
+          flexShrink: 0
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{
@@ -175,7 +179,7 @@ export default function AddAdBreakModal({ isOpen, onClose }) {
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSaveSettingsOnly} style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <form onSubmit={handleSaveSettingsOnly} style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '14px', overflowY: 'auto', flex: '1 1 0%', minHeight: 0 }}>
           {/* Bilgilendirme Kutusu */}
           <div style={{
             padding: '10px 12px',

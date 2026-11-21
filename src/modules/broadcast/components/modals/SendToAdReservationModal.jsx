@@ -169,7 +169,7 @@ export default function SendToAdReservationModal({
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 100000,
-        padding: '20px'
+        padding: '14px'
       }}
     >
       <div
@@ -177,7 +177,7 @@ export default function SendToAdReservationModal({
         style={{
           width: '100%',
           maxWidth: '1040px',
-          maxHeight: '90vh',
+          maxHeight: 'calc(100vh - 28px)',
           background: 'var(--bg-secondary)',
           border: '1.5px solid var(--border-color)',
           borderRadius: '18px',
@@ -189,14 +189,15 @@ export default function SendToAdReservationModal({
       >
         {/* 1. ÜST BAŞLIK (HEADER) */}
         <div style={{
-          padding: '16px 22px',
+          padding: '12px 20px',
           background: 'var(--bg-tertiary)',
           borderBottom: '1px solid var(--border-color)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: '14px',
-          flexWrap: 'wrap'
+          flexWrap: 'wrap',
+          flexShrink: 0
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{
@@ -289,72 +290,76 @@ export default function SendToAdReservationModal({
         {/* GÖNDERİM TAMAMLANDIYSA BAŞARI VE YÖNLENDİRME EKRANI */}
         {sentSuccessInfo ? (
           <div style={{
-            padding: '36px 28px',
+            padding: '28px 24px',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             textAlign: 'center',
-            gap: '18px'
+            gap: '16px',
+            overflowY: 'auto',
+            flex: 1,
+            minHeight: 0
           }}>
             <div style={{
-              width: '68px',
-              height: '68px',
-              borderRadius: '20px',
+              width: '60px',
+              height: '60px',
+              borderRadius: '18px',
               background: 'rgba(16, 185, 129, 0.16)',
               border: '2px solid rgba(16, 185, 129, 0.45)',
               color: '#10b981',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 12px 30px rgba(16, 185, 129, 0.25)'
+              boxShadow: '0 12px 30px rgba(16, 185, 129, 0.25)',
+              flexShrink: 0
             }}>
-              <CheckCircle2 size={36} />
+              <CheckCircle2 size={32} />
             </div>
 
             <div>
-              <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '900', color: 'var(--text-primary)' }}>
+              <h3 style={{ margin: 0, fontSize: '19px', fontWeight: '900', color: 'var(--text-primary)' }}>
                 Yayın Listesi Kaydedildi ve Reklam Rezervasyona İletildi!
               </h3>
-              <p style={{ margin: '6px 0 0 0', fontSize: '13.5px', color: 'var(--text-secondary)' }}>
+              <p style={{ margin: '6px 0 0 0', fontSize: '13px', color: 'var(--text-secondary)' }}>
                 <strong>{channelObj.name}</strong> • <strong>{selectedDate} (Liste {activeList})</strong> akışı kontrol edilerek liste halinde Reklam Rezervasyon modülüne aktarıldı.
               </p>
             </div>
 
             <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(4, minmax(140px, 1fr))',
-              gap: '12px',
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '10px',
               width: '100%',
               maxWidth: '720px',
               marginTop: '4px'
             }}>
-              <div style={{ padding: '12px', borderRadius: '12px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
+              <div style={{ flex: '1 1 150px', padding: '10px 12px', borderRadius: '12px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
                 <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '700' }}>İLETİLEN LİSTE</div>
-                <div style={{ fontSize: '16px', fontWeight: '900', color: 'var(--text-primary)', marginTop: '4px' }}>
+                <div style={{ fontSize: '15px', fontWeight: '900', color: 'var(--text-primary)', marginTop: '4px' }}>
                   Liste {activeList} ({sentSuccessInfo.totalCount} Öğe)
                 </div>
               </div>
-              <div style={{ padding: '12px', borderRadius: '12px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
+              <div style={{ flex: '1 1 150px', padding: '10px 12px', borderRadius: '12px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
                 <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '700' }}>REKLAM KUŞAKLARI</div>
-                <div style={{ fontSize: '16px', fontWeight: '900', color: '#ea580c', marginTop: '4px' }}>
+                <div style={{ fontSize: '15px', fontWeight: '900', color: '#ea580c', marginTop: '4px' }}>
                   {sentSuccessInfo.adBreakCount} Kuşak ({sentSuccessInfo.totalAdMin} dk)
                 </div>
               </div>
-              <div style={{ padding: '12px', borderRadius: '12px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
+              <div style={{ flex: '1 1 150px', padding: '10px 12px', borderRadius: '12px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
                 <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '700' }}>ZAMAN ARALIĞI</div>
-                <div style={{ fontSize: '15px', fontWeight: '900', color: 'var(--text-primary)', marginTop: '4px', fontFamily: 'monospace' }}>
+                <div style={{ fontSize: '14.5px', fontWeight: '900', color: 'var(--text-primary)', marginTop: '4px', fontFamily: 'monospace' }}>
                   {timeStats.startClock} → {timeStats.endClock}
                 </div>
               </div>
-              <div style={{ padding: '12px', borderRadius: '12px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
+              <div style={{ flex: '1 1 150px', padding: '10px 12px', borderRadius: '12px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
                 <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '700' }}>KAYIT & İLETİM SAATİ</div>
-                <div style={{ fontSize: '16px', fontWeight: '900', color: '#10b981', marginTop: '4px' }}>
+                <div style={{ fontSize: '15px', fontWeight: '900', color: '#10b981', marginTop: '4px' }}>
                   ✓ {sentSuccessInfo.sentAt}
                 </div>
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginTop: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginTop: '6px', flexShrink: 0 }}>
               <button
                 type="button"
                 onClick={handleCloseModal}
@@ -379,46 +384,49 @@ export default function SendToAdReservationModal({
           <>
             {/* 2. ZAMAN, DOLULUK VE KUŞAK ÖN KONTROL KARTLARI */}
             <div style={{
-              padding: '16px 22px',
+              padding: '10px 20px',
               display: 'flex',
               flexDirection: 'column',
-              gap: '14px',
+              gap: '8px',
               borderBottom: '1px solid var(--border-color)',
-              background: 'var(--bg-primary)'
+              background: 'var(--bg-primary)',
+              flexShrink: 0
             }}>
               <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-                gap: '12px'
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '10px'
               }}>
                 {/* Kart 1: Başlangıç & Bitiş Saati */}
                 <div style={{
-                  padding: '12px 14px',
-                  borderRadius: '12px',
+                  flex: '1 1 200px',
+                  minWidth: 0,
+                  padding: '9px 12px',
+                  borderRadius: '10px',
                   background: 'var(--bg-secondary)',
                   border: '1px solid var(--border-color)',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '4px'
+                  gap: '3px'
                 }}>
-                  <span style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                  <span style={{ fontSize: '10.5px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
                     Zaman Aralığı (Başlangıç → Bitiş)
                   </span>
                   <div style={{
-                    fontSize: '16px',
+                    fontSize: '14.5px',
                     fontWeight: '900',
                     color: 'var(--text-primary)',
                     fontFamily: 'monospace',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px'
+                    gap: '5px'
                   }}>
-                    <Clock size={15} color="var(--accent-primary)" />
+                    <Clock size={14} color="var(--accent-primary)" />
                     <span>{timeStats.startClock}</span>
                     <span style={{ color: 'var(--text-secondary)' }}>→</span>
                     <span>{timeStats.endClock}</span>
                   </div>
-                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                  <span style={{ fontSize: '10.5px', color: 'var(--text-secondary)' }}>
                     {prevOverflowFrames > 0
                       ? `Dünden Devir: +${formatFramesHuman(prevOverflowFrames)}`
                       : 'Gün Başlangıcı: 00:00:00'}
@@ -427,35 +435,37 @@ export default function SendToAdReservationModal({
 
                 {/* Kart 2: 24 Saatlik Doluluk & Toplam Süre */}
                 <div style={{
-                  padding: '12px 14px',
-                  borderRadius: '12px',
+                  flex: '1 1 200px',
+                  minWidth: 0,
+                  padding: '9px 12px',
+                  borderRadius: '10px',
                   background: 'var(--bg-secondary)',
                   border: '1px solid var(--border-color)',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '5px'
+                  gap: '4px'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                    <span style={{ fontSize: '10.5px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
                       24 Saatlik Doluluk
                     </span>
                     <span style={{
-                      fontSize: '12px',
+                      fontSize: '11.5px',
                       fontWeight: '900',
                       color: timeStats.fillPercentage >= 99.5 ? '#10b981' : '#3b82f6'
                     }}>
                       %{timeStats.fillPercentage.toFixed(1)}
                     </span>
                   </div>
-                  <div style={{ fontSize: '15px', fontWeight: '900', color: 'var(--text-primary)' }}>
+                  <div style={{ fontSize: '14px', fontWeight: '900', color: 'var(--text-primary)' }}>
                     {formatFramesHuman(timeStats.totalDayUsageFrames)}{' '}
-                    <span style={{ fontSize: '11.5px', color: 'var(--text-secondary)', fontWeight: '700' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '700' }}>
                       / 24 sa
                     </span>
                   </div>
                   <div style={{
                     width: '100%',
-                    height: '6px',
+                    height: '5px',
                     borderRadius: '999px',
                     background: 'var(--bg-tertiary)',
                     overflow: 'hidden'
@@ -474,8 +484,10 @@ export default function SendToAdReservationModal({
 
                 {/* Kart 3: Süre & Sarkma Kontrol Durumu */}
                 <div style={{
-                  padding: '12px 14px',
-                  borderRadius: '12px',
+                  flex: '1 1 200px',
+                  minWidth: 0,
+                  padding: '9px 12px',
+                  borderRadius: '10px',
                   background: isDurationHealthy
                     ? 'rgba(16, 185, 129, 0.1)'
                     : nextOverflowFrames > 0
@@ -488,13 +500,13 @@ export default function SendToAdReservationModal({
                     : '1px solid rgba(245, 158, 11, 0.4)',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '4px'
+                  gap: '3px'
                 }}>
-                  <span style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                  <span style={{ fontSize: '10.5px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
                     Zaman & Süre Kontrolü
                   </span>
                   <div style={{
-                    fontSize: '14.5px',
+                    fontSize: '13.5px',
                     fontWeight: '900',
                     color: isDurationHealthy
                       ? '#059669'
@@ -503,26 +515,26 @@ export default function SendToAdReservationModal({
                       : '#d97706',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px'
+                    gap: '5px'
                   }}>
                     {isDurationHealthy ? (
                       <>
-                        <CheckCircle2 size={15} />
+                        <CheckCircle2 size={14} />
                         <span>24 Saat Tam Dolu</span>
                       </>
                     ) : nextOverflowFrames > 0 ? (
                       <>
-                        <AlertTriangle size={15} />
+                        <AlertTriangle size={14} />
                         <span>Sarkma: +{formatFramesHuman(nextOverflowFrames)}</span>
                       </>
                     ) : (
                       <>
-                        <AlertTriangle size={15} />
+                        <AlertTriangle size={14} />
                         <span>Eksik: {formatFramesHuman(timeStats.remainingFrames)}</span>
                       </>
                     )}
                   </div>
-                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                  <span style={{ fontSize: '10.5px', color: 'var(--text-secondary)' }}>
                     {isDurationHealthy
                       ? 'Süre kontrolü kusursuz'
                       : nextOverflowFrames > 0
@@ -533,8 +545,10 @@ export default function SendToAdReservationModal({
 
                 {/* Kart 4: Reklam Kuşakları ve Liste İçeriği */}
                 <div style={{
-                  padding: '12px 14px',
-                  borderRadius: '12px',
+                  flex: '1 1 200px',
+                  minWidth: 0,
+                  padding: '9px 12px',
+                  borderRadius: '10px',
                   background: timeStats.adBreaks.length > 0
                     ? 'rgba(234, 88, 12, 0.1)'
                     : 'rgba(245, 158, 11, 0.12)',
@@ -543,23 +557,23 @@ export default function SendToAdReservationModal({
                     : '1px solid rgba(245, 158, 11, 0.45)',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '4px'
+                  gap: '3px'
                 }}>
-                  <span style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                  <span style={{ fontSize: '10.5px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
                     Reklam & Liste Özeti
                   </span>
                   <div style={{
-                    fontSize: '15px',
+                    fontSize: '14px',
                     fontWeight: '900',
                     color: '#ea580c',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px'
+                    gap: '5px'
                   }}>
-                    <Megaphone size={15} />
+                    <Megaphone size={14} />
                     <span>{timeStats.adBreaks.length} Reklam Kuşağı ({timeStats.totalAdMin} dk)</span>
                   </div>
-                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                  <span style={{ fontSize: '10.5px', color: 'var(--text-secondary)' }}>
                     Toplam {programs.length} Öğe • {timeStats.introItems.length} İntro • {timeStats.liveItems.length} Canlı
                   </span>
                 </div>
@@ -572,8 +586,8 @@ export default function SendToAdReservationModal({
                 justifyContent: 'space-between',
                 flexWrap: 'wrap',
                 gap: '8px',
-                padding: '10px 14px',
-                borderRadius: '10px',
+                padding: '7px 12px',
+                borderRadius: '9px',
                 background: 'var(--bg-secondary)',
                 border: '1px solid var(--border-color)'
               }}>
@@ -669,14 +683,15 @@ export default function SendToAdReservationModal({
 
             {/* 3. LİSTE SEKMELERİ VE ARAMA ÇUBUĞU */}
             <div style={{
-              padding: '10px 22px',
+              padding: '8px 20px',
               background: 'var(--bg-tertiary)',
               borderBottom: '1px solid var(--border-color)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               gap: '12px',
-              flexWrap: 'wrap'
+              flexWrap: 'wrap',
+              flexShrink: 0
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <button
@@ -777,19 +792,20 @@ export default function SendToAdReservationModal({
               </div>
             </div>
 
-            {/* 4. İLETİLECEK YAYIN LİSTESİ VE ZAMAN TABLOSU */}
+            {/* 4. İLETİLECEK YAYIN LİSTESİ VE ZAMAN TABLOSU (FLEX LAYOUT) */}
             <div style={{
-              flex: 1,
-              minHeight: '220px',
-              maxHeight: '42vh',
+              flex: '1 1 0%',
+              minHeight: 0,
               overflowY: 'auto',
-              background: 'var(--bg-primary)'
+              background: 'var(--bg-primary)',
+              display: 'flex',
+              flexDirection: 'column'
             }}>
-              {/* Tablo Başlığı */}
+              {/* Tablo Başlığı (Flex) */}
               <div style={{
-                display: 'grid',
-                gridTemplateColumns: '50px 185px 130px 1fr 140px 120px',
-                columnGap: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
                 padding: '8px 18px',
                 background: 'var(--bg-secondary)',
                 borderBottom: '1px solid var(--border-color)',
@@ -799,14 +815,15 @@ export default function SendToAdReservationModal({
                 textTransform: 'uppercase',
                 position: 'sticky',
                 top: 0,
-                zIndex: 5
+                zIndex: 5,
+                flexShrink: 0
               }}>
-                <div>#</div>
-                <div>Başlangıç → Bitiş</div>
-                <div>Süre</div>
-                <div>Klip / Program / Kuşak Adı</div>
-                <div>Bölüm / Part</div>
-                <div>Tür</div>
+                <div style={{ width: '48px', flexShrink: 0 }}>#</div>
+                <div style={{ width: '175px', flexShrink: 0 }}>Başlangıç → Bitiş</div>
+                <div style={{ width: '128px', flexShrink: 0 }}>Süre</div>
+                <div style={{ flex: 1, minWidth: 0 }}>Klip / Program / Kuşak Adı</div>
+                <div style={{ width: '130px', flexShrink: 0 }}>Bölüm / Part</div>
+                <div style={{ width: '115px', flexShrink: 0 }}>Tür</div>
               </div>
 
               {filteredRows.length === 0 ? (
@@ -834,11 +851,10 @@ export default function SendToAdReservationModal({
                     <div
                       key={item.instanceId || idx}
                       style={{
-                        display: 'grid',
-                        gridTemplateColumns: '50px 185px 130px 1fr 140px 120px',
-                        columnGap: '10px',
+                        display: 'flex',
                         alignItems: 'center',
-                        padding: '8px 18px',
+                        gap: '10px',
+                        padding: '7px 18px',
                         borderBottom: '1px solid var(--border-color)',
                         borderLeft: isAd
                           ? '4px solid #ea580c'
@@ -856,16 +872,17 @@ export default function SendToAdReservationModal({
                           : item.isOverflow
                           ? 'rgba(239, 68, 68, 0.08)'
                           : 'transparent',
-                        fontSize: '12.5px'
+                        fontSize: '12.5px',
+                        flexShrink: 0
                       }}
                     >
                       {/* 1. Sıra */}
-                      <div style={{ fontWeight: '800', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
+                      <div style={{ width: '48px', flexShrink: 0, fontWeight: '800', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
                         #{item.order || idx + 1}
                       </div>
 
                       {/* 2. Başlangıç -> Bitiş Saati */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontFamily: 'monospace', fontWeight: '800' }}>
+                      <div style={{ width: '175px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '5px', fontFamily: 'monospace', fontWeight: '800' }}>
                         <span style={{ color: 'var(--text-primary)' }}>{startInfo.hhmmss}</span>
                         <span style={{ color: 'var(--text-secondary)' }}>→</span>
                         <span style={{ color: 'var(--text-secondary)' }}>{endInfo.hhmmss}</span>
@@ -884,7 +901,7 @@ export default function SendToAdReservationModal({
                       </div>
 
                       {/* 3. Süre */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div style={{ width: '128px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '5px' }}>
                         <span style={{
                           fontWeight: '800',
                           color: isAd ? '#ea580c' : 'var(--text-primary)'
@@ -898,6 +915,8 @@ export default function SendToAdReservationModal({
 
                       {/* 4. Klip / Program Adı */}
                       <div style={{
+                        flex: 1,
+                        minWidth: 0,
                         fontWeight: '800',
                         color: 'var(--text-primary)',
                         whiteSpace: 'nowrap',
@@ -908,7 +927,7 @@ export default function SendToAdReservationModal({
                       </div>
 
                       {/* 5. Bölüm / Part */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                      <div style={{ width: '130px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
                         {unitInfo.unitLabel && !isIntro && (
                           <span style={{
                             fontSize: '11px',
@@ -939,7 +958,7 @@ export default function SendToAdReservationModal({
                       </div>
 
                       {/* 6. Tür */}
-                      <div>
+                      <div style={{ width: '115px', flexShrink: 0 }}>
                         <span style={{
                           fontSize: '11px',
                           fontWeight: '800',
@@ -983,16 +1002,17 @@ export default function SendToAdReservationModal({
               )}
             </div>
 
-            {/* 5. ALT ONAY VE AKSİYON ÇUBUĞU (FOOTER) */}
+            {/* 5. ALT ONAY VE AKSİYON ÇUBUĞU (FOOTER — HER ZAMAN GÖRÜNÜR, KESİLMEZ) */}
             <div style={{
-              padding: '14px 22px',
+              padding: '12px 20px',
               background: 'var(--bg-tertiary)',
               borderTop: '1px solid var(--border-color)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               gap: '12px',
-              flexWrap: 'wrap'
+              flexWrap: 'wrap',
+              flexShrink: 0
             }}>
               <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
                 Onayladığınızda <strong>Liste {activeList}</strong> yayın akışı kaydedilecek ve <strong>{programs.length} öğelik</strong> tam yayın listesi Reklam Rezervasyon modülüne iletilecektir.

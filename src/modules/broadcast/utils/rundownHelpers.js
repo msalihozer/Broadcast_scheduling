@@ -10,6 +10,16 @@ import useThemeStore from '../../../store/themeStore';
 export const RUNDOWN_GRID_TEMPLATE =
   '44px minmax(144px, 1.15fr) minmax(136px, 0.98fr) minmax(150px, 2.2fr) minmax(78px, 1fr) minmax(68px, 0.75fr) 124px';
 
+export const RUNDOWN_FLEX_COLUMNS = {
+  order: { flex: '0 0 48px', minWidth: '48px' },
+  time: { flex: '0 0 162px', minWidth: '150px' },
+  duration: { flex: '0 0 138px', minWidth: '126px' },
+  title: { flex: '1 1 220px', minWidth: '140px' },
+  unit: { flex: '0 0 135px', minWidth: '100px' },
+  type: { flex: '0 0 112px', minWidth: '96px' },
+  actions: { flex: '0 0 124px', minWidth: '124px' }
+};
+
 /**
  * "HH.MM.SS.FF" formatındaki timecode metnini okunaklı saat parçalarına ayırır.
  * Örn: "14.26.50.00" -> { hh: "14", mm: "26", ss: "50", ff: "00", hhmm: "14:26", hhmmss: "14:26:50", hourNum: 14 }

@@ -2268,7 +2268,7 @@ export const AdManualSpotModal = ({
           position: 'relative',
           width: '100%',
           maxWidth: '860px',
-          maxHeight: '85vh',
+          maxHeight: 'calc(100vh - 36px)',
           background: 'var(--ads-canvas-bg)',
           border: '1px solid var(--ads-border-strong)',
           borderRadius: '20px',
@@ -2281,18 +2281,20 @@ export const AdManualSpotModal = ({
         <div
           style={{
             height: '4px',
-            background: 'linear-gradient(135deg, #2563eb 0%, #0d9488 100%)'
+            background: 'linear-gradient(135deg, #2563eb 0%, #0d9488 100%)',
+            flexShrink: 0
           }}
         />
 
         <div
           style={{
-            padding: '18px 22px',
+            padding: '14px 20px',
             borderBottom: '1px solid var(--ads-border)',
             background: 'var(--ads-card-subtle)',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between'
+            justifyContent: 'space-between',
+            flexShrink: 0
           }}
         >
           <div>
@@ -2346,7 +2348,7 @@ export const AdManualSpotModal = ({
           </button>
         </div>
 
-        <div style={{ padding: '14px 22px', borderBottom: '1px solid var(--ads-border)', display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+        <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--ads-border)', display: 'flex', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', flexShrink: 0 }}>
           <div className="ads-saas-pill-group">
             <button
               type="button"
@@ -2377,7 +2379,7 @@ export const AdManualSpotModal = ({
           </div>
         </div>
 
-        <div style={{ padding: '16px 22px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ padding: '14px 20px', overflowY: 'auto', flex: '1 1 0%', minHeight: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {manualSourceTab === 'reservations'
             ? filteredPoolReservations.map(item => (
                 <div
@@ -2607,7 +2609,7 @@ export const AdManualSpotModal = ({
               ))}
         </div>
 
-        <div style={{ padding: '14px 22px', borderTop: '1px solid var(--ads-border)', background: 'var(--ads-card-subtle)', display: 'flex', justifyContent: 'center' }}>
+        <div style={{ padding: '12px 20px', borderTop: '1px solid var(--ads-border)', background: 'var(--ads-card-subtle)', display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
           <button type="button" onClick={onClose} className="ads-saas-btn ads-saas-btn-primary" style={{ minWidth: '160px' }}>
             <CheckCircle2 size={15} /> Tamam, Kapat
           </button>

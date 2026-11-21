@@ -20,7 +20,7 @@ import {
 import { formatFramesHuman } from '../../utils/timecodeUtils';
 import useThemeStore, { hexToRgba } from '../../../../store/themeStore';
 import {
-  RUNDOWN_GRID_TEMPLATE,
+  RUNDOWN_FLEX_COLUMNS,
   parseTimecodeDisplay,
   getHourPeriodLabel,
   resolveItemUnitDisplay
@@ -206,7 +206,7 @@ const BroadcastRundownRow = memo(function BroadcastRundownRow({
         }} />
       )}
 
-      {/* ANA YAYIN SATIRI */}
+      {/* ANA YAYIN SATIRI (FLEX TABLO SATIRI) */}
       <div
         draggable
         onDragStart={(e) => handleDragStart(e, index)}
@@ -214,10 +214,9 @@ const BroadcastRundownRow = memo(function BroadcastRundownRow({
         onDrop={(e) => handleDrop(e, index)}
         onClick={(e) => handleRowClick(e, item, index)}
         style={{
-          display: 'grid',
-          gridTemplateColumns: RUNDOWN_GRID_TEMPLATE,
-          columnGap: '8px',
+          display: 'flex',
           alignItems: 'center',
+          gap: '8px',
           padding: (isSelected || isMultiSelected) ? '8px 10px' : '7px 10px',
           width: '100%',
           minWidth: 0,
@@ -262,7 +261,7 @@ const BroadcastRundownRow = memo(function BroadcastRundownRow({
         }}
       >
         {/* 1. Sıra, Seçim Kutusu & Sürükleme Tutamacı */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '3px', minWidth: 0 }}>
+        <div style={{ ...RUNDOWN_FLEX_COLUMNS.order, display: 'flex', alignItems: 'center', gap: '3px' }}>
           <input
             type="checkbox"
             checked={isMultiSelected || isSelected}
@@ -285,7 +284,7 @@ const BroadcastRundownRow = memo(function BroadcastRundownRow({
         </div>
 
         {/* 2. YAYIN SAATİ (Başlangıç → Bitiş, tek satır şık kapsül) */}
-        <div style={{ minWidth: 0 }}>
+        <div style={{ ...RUNDOWN_FLEX_COLUMNS.time }}>
           <div style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -333,7 +332,7 @@ const BroadcastRundownRow = memo(function BroadcastRundownRow({
 
         {/* 3. SÜRE (Yayın Saati'nin hemen yanında) */}
         <div
-          style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0, overflow: 'hidden' }}
+          style={{ ...RUNDOWN_FLEX_COLUMNS.duration, display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden' }}
           onClick={(e) => e.stopPropagation()}
         >
           {isEditingDuration ? (
@@ -468,7 +467,7 @@ const BroadcastRundownRow = memo(function BroadcastRundownRow({
         </div>
 
         {/* 4. KLİP / PROGRAM ADI (Canlı Yayınlarda Program + Canlı Rozeti + Detaylar, Bulunamayan Programlarda Uyarı Rozeti gösterilir) */}
-        <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '3px' }}>
+        <div style={{ ...RUNDOWN_FLEX_COLUMNS.title, display: 'flex', flexDirection: 'column', gap: '3px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
             <span
               style={{
@@ -715,7 +714,7 @@ const BroadcastRundownRow = memo(function BroadcastRundownRow({
         </div>
 
         {/* 5. BÖLÜM / PART ROZETLERİ */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap', minWidth: 0 }}>
+        <div style={{ ...RUNDOWN_FLEX_COLUMNS.unit, display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
           {isIntroClip ? (
             <span style={{
               background: 'rgba(99, 102, 241, 0.16)',
@@ -782,7 +781,7 @@ const BroadcastRundownRow = memo(function BroadcastRundownRow({
         </div>
 
         {/* 6. TÜR ROZETİ (Bölüm ve Part'tan hemen sonra) */}
-        <div style={{ minWidth: 0 }}>
+        <div style={{ ...RUNDOWN_FLEX_COLUMNS.type }}>
           {isAd ? (
             <span style={{
               background: 'rgba(245, 158, 11, 0.2)',
@@ -925,11 +924,11 @@ const BroadcastRundownRow = memo(function BroadcastRundownRow({
         {/* 7. İŞLEMLER (Ferah, üst üste binmeyen butonlar ve çalışan ⓘ bilgi butonu) */}
         <div
           style={{
+            ...RUNDOWN_FLEX_COLUMNS.actions,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'flex-end',
-            gap: '2px',
-            minWidth: 0
+            gap: '2px'
           }}
           onClick={e => e.stopPropagation()}
         >

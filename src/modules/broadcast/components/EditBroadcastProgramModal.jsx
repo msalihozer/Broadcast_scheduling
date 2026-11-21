@@ -83,8 +83,11 @@ const EditBroadcastProgramModal = ({ isOpen, onClose, program }) => {
         borderRadius: '16px',
         width: '100%',
         maxWidth: '480px',
+        maxHeight: 'calc(100vh - 32px)',
+        display: 'flex',
+        flexDirection: 'column',
         boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
-        overflow: 'hidden'
+        overflowY: 'auto'
       }}>
         {/* Başlık */}
         <div style={{

@@ -88,7 +88,14 @@ const RundownRow = ({ program, index, channelId, date, variant, isEditing, onFin
   });
   
   const timelineColumns = usePlanningStore(state => state.timelineColumns);
-  const gridTemplateColumns = React.useMemo(() => timelineColumns.map(c => c.width === -1 ? 'auto' : `${c.width}px`).join(' '), [timelineColumns]);
+  const getColFlexStyle = (colId, fallbackWidth = 100) => {
+    const col = timelineColumns.find(c => c.id === colId);
+    const w = col ? col.width : fallbackWidth;
+    if (w === -1) {
+      return { flex: '1 1 200px', minWidth: '140px' };
+    }
+    return { flex: `0 0 ${w}px`, minWidth: `${w}px` };
+  };
 
   const themeConfig = useThemeStore(state => state.config);
   const isSelected = selectedInstanceIds.includes(program.instanceId);
@@ -241,10 +248,10 @@ const RundownRow = ({ program, index, channelId, date, variant, isEditing, onFin
       <div
         className={`rundown-row ${isSelected ? 'selected' : ''}`}
         style={{
-          display: 'grid',
-          gridTemplateColumns,
-          gap: '16px',
+          display: 'flex',
           alignItems: 'center',
+          gap: '8px',
+          padding: '8px 12px',
           background: program.isFromAds ? 'rgba(234, 179, 8, 0.15)' : undefined,
           border: program.isFromAds ? '1px solid rgba(234, 179, 8, 0.3)' : undefined
         }}
@@ -254,12 +261,12 @@ const RundownRow = ({ program, index, channelId, date, variant, isEditing, onFin
         }}
         onBlur={handleBlur}
       >
-        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+        <div style={{ ...getColFlexStyle('index', 60), position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
           {index % 3 === 0 ? <ChevronDown size={14} style={{ position: 'absolute', left: '2px' }} /> : <ChevronRight size={14} style={{ position: 'absolute', left: '2px', opacity: 0 }} />}
           <span style={{ fontSize: '12px', fontWeight: '500' }}>{index + 1}</span>
         </div>
 
-        <div style={{ fontSize: '13px', color: 'var(--text-secondary)', textAlign: 'center' }}>
+        <div style={{ ...getColFlexStyle('start', 100), fontSize: '13px', color: 'var(--text-secondary)', textAlign: 'center' }}>
           {isEditing ? (
             <input
               type="text"
@@ -267,34 +274,34 @@ const RundownRow = ({ program, index, channelId, date, variant, isEditing, onFin
               onChange={(e) => setEditStartStr(e.target.value)}
               onKeyDown={handleKeyDown}
               autoFocus
-              style={{ width: '100px', background: 'var(--bg-primary)', color: '#fff', border: '1px solid var(--accent-primary)', borderRadius: '4px', fontSize: '13px', padding: '4px', textAlign: 'center' }}
+              style={{ width: '90px', background: 'var(--bg-primary)', color: '#fff', border: '1px solid var(--accent-primary)', borderRadius: '4px', fontSize: '13px', padding: '4px', textAlign: 'center' }}
             />
           ) : (
             formatTime(program.startMinute)
           )}
         </div>
 
-        <div style={{ fontSize: '13px', color: 'var(--text-secondary)', textAlign: 'center' }}>
+        <div style={{ ...getColFlexStyle('duration', 90), fontSize: '13px', color: 'var(--text-secondary)', textAlign: 'center' }}>
           {isEditing ? (
             <input
               type="text"
               value={editDurationStr}
               onChange={(e) => setEditDurationStr(e.target.value)}
               onKeyDown={handleKeyDown}
-              style={{ width: '100px', background: 'var(--bg-primary)', color: '#fff', border: '1px solid var(--accent-primary)', borderRadius: '4px', fontSize: '13px', padding: '4px', textAlign: 'center' }}
+              style={{ width: '80px', background: 'var(--bg-primary)', color: '#fff', border: '1px solid var(--accent-primary)', borderRadius: '4px', fontSize: '13px', padding: '4px', textAlign: 'center' }}
             />
           ) : (
             formatTime(program.duration)
           )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ ...getColFlexStyle('icon', 60), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {program.isFromAds ? (
             <div style={{ width: '16px', height: '16px', borderRadius: '4px', background: '#3b82f6', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 'bold' }}>R</div>
           ) : icon}
         </div>
 
-        <div style={{ color: 'var(--text-primary)', fontWeight: program.isFromAds ? '600' : '500', wordBreak: 'break-word', overflowWrap: 'anywhere', textAlign: 'center' }}>
+        <div style={{ ...getColFlexStyle('title', -1), color: 'var(--text-primary)', fontWeight: program.isFromAds ? '600' : '500', wordBreak: 'break-word', overflowWrap: 'anywhere', textAlign: 'center' }}>
           {isEditing ? (
             <input
               type="text"
@@ -308,19 +315,20 @@ const RundownRow = ({ program, index, channelId, date, variant, isEditing, onFin
           )}
         </div>
 
-        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontFamily: 'monospace', textAlign: 'center' }}>
+        <div style={{ ...getColFlexStyle('id', 100), fontSize: '12px', color: 'var(--text-secondary)', fontFamily: 'monospace', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {program.id || '-'}
         </div>
 
-        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', textAlign: 'center' }}>
+        <div style={{ ...getColFlexStyle('trimIn', 100), fontSize: '12px', color: 'var(--text-secondary)', textAlign: 'center' }}>
           {formatSeconds(program.trimIn)}
         </div>
-        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', textAlign: 'center' }}>
+        <div style={{ ...getColFlexStyle('trimOut', 100), fontSize: '12px', color: 'var(--text-secondary)', textAlign: 'center' }}>
           {formatSeconds(program.trimOut)}
         </div>
 
         <div
           style={{
+            ...getColFlexStyle('logo', 160),
             fontSize: '11.5px',
             color: 'var(--text-secondary)',
             display: 'flex',
@@ -359,7 +367,7 @@ const RundownRow = ({ program, index, channelId, date, variant, isEditing, onFin
           )}
         </div>
 
-        <div style={{ textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+        <div style={{ ...getColFlexStyle('category', 120), textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
           <span style={{
             background: program.isFromAds ? 'rgba(59, 130, 246, 0.1)' : cat.bg,
             color: program.isFromAds ? '#3b82f6' : cat.color,
@@ -392,7 +400,7 @@ const RundownRow = ({ program, index, channelId, date, variant, isEditing, onFin
           )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+        <div style={{ ...getColFlexStyle('status', 120), display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
           <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: program.isFromAds ? '#10b981' : status.color }} />
           <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>
             {program.isFromAds ? 'Hazır' : status.label}
