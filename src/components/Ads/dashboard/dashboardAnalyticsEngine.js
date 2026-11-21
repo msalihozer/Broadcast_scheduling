@@ -184,6 +184,7 @@ export function computeDashboardAnalytics({
   materials = [],
   timeBlocks = [],
   adPlacements = {},
+  adsPricingConfig = {},
   filters = {}
 }) {
   const {
@@ -250,6 +251,7 @@ export function computeDashboardAnalytics({
       ads.forEach(ad => {
         const dur = Number(ad.duration) || 30;
         breakSec += dur;
+        if (ad.isBumperAd) return;
 
         if (ad.reservationId) {
           const rKey = String(ad.reservationId);
@@ -386,38 +388,6 @@ export function computeDashboardAnalytics({
     const realizationRatePct =
       totalPlanned > 0 ? Math.min(100, Math.round((effectiveRealized / totalPlanned) * 100)) : 0;
 
-    // Finansal / Gelir Hesabı (Eğer fiyat girilmemişse spot başına 1.500 TL varsayılan kurumsal tarife ile hesaplar)
-    const explicitBudget =
-      Number(res.totalAmount) ||
-      Number(res.totalBudget) ||
-      items.reduce((sum, it) => sum + (Number(it.totalBudget) || (Number(it.plannedSpots) || 0) * (Number(it.spotPrice) || 0)), 0);
-
-    const unitSpotPrice =
-      explicitBudget > 0 && totalPlanned > 0
-        ? Math.round(explicitBudget / totalPlanned)
-        : Number(res.spotPrice || firstItem.spotPrice) || 1500;
-
-    const plannedRevenue = explicitBudget > 0 ? explicitBudget : totalPlanned * unitSpotPrice;
-    const realizedRevenue = Math.min(plannedRevenue, effectiveRealized * unitSpotPrice);
-
-    // Tahsilat durumu
-    const collectedAmount =
-      res.collectedAmount !== undefined
-        ? Number(res.collectedAmount)
-        : res.paymentStatus === 'paid'
-        ? plannedRevenue
-        : res.paymentStatus === 'partial'
-        ? Math.round(plannedRevenue * 0.5)
-        : lifecycleStatus === 'completed'
-        ? plannedRevenue
-        : Math.round(realizedRevenue * 0.65);
-
-    const remainingReceivable =
-      lifecycleStatus === 'cancelled' ? 0 : Math.max(0, plannedRevenue - collectedAmount);
-
-    const daysToStart = diffDaysBetween(startDate, todayStr);
-    const daysToEnd = diffDaysBetween(endDate, todayStr);
-
     const allChannelIds = Array.from(
       new Set([
         ...(res.channelIds || []),
@@ -425,6 +395,61 @@ export function computeDashboardAnalytics({
       ])
     );
     if (allChannelIds.length === 0) allChannelIds.push('ch_hd');
+
+    // Finansal / Gelir Hesabı (Yalnızca girilen ücret veya kullanıcının tanımladığı tarife üzerinden hesaplanır)
+    const explicitSpotPrice = Number(res.spotPrice || firstItem.spotPrice) || 0;
+    const explicitBudget =
+      Number(res.totalAmount) ||
+      Number(res.totalBudget) ||
+      Number(res.toplamTutar) ||
+      items.reduce(
+        (sum, it) =>
+          sum + (Number(it.totalBudget) || (Number(it.plannedSpots) || 0) * (Number(it.spotPrice) || 0)),
+        0
+      );
+
+    const primaryCh = allChannelIds[0] || 'ch_hd';
+    const tariffChannelRate = Number(adsPricingConfig?.channelRates?.[primaryCh]) || 0;
+    const tariffBaseSpotRate = Number(adsPricingConfig?.defaultSpotPrice) || 0;
+    const tariffSponsorRate = Number(adsPricingConfig?.sponsorSpotPrice) || tariffBaseSpotRate;
+    const tariffSecRate = Number(adsPricingConfig?.defaultPerSecondPrice) || 0;
+    const matDurSec = Number(mat?.duration) || 25;
+
+    const fallbackTariffSpotPrice = res.isSponsor
+      ? tariffSponsorRate
+      : tariffChannelRate > 0
+      ? tariffChannelRate
+      : tariffBaseSpotRate > 0
+      ? tariffBaseSpotRate
+      : tariffSecRate > 0
+      ? Math.round(matDurSec * tariffSecRate)
+      : 0;
+
+    const unitSpotPrice =
+      explicitSpotPrice > 0
+        ? explicitSpotPrice
+        : explicitBudget > 0 && totalPlanned > 0
+        ? Math.round(explicitBudget / totalPlanned)
+        : fallbackTariffSpotPrice;
+
+    const plannedRevenue = explicitBudget > 0 ? explicitBudget : totalPlanned * unitSpotPrice;
+    const realizedRevenue = unitSpotPrice > 0 ? effectiveRealized * unitSpotPrice : 0;
+
+    // Tahsilat durumu (Sadece girilen gerçek tahsilat veya ödeme durumu baz alınır)
+    const collectedAmount =
+      res.collectedAmount !== undefined && res.collectedAmount !== ''
+        ? Number(res.collectedAmount) || 0
+        : res.paymentStatus === 'paid'
+        ? plannedRevenue
+        : res.paymentStatus === 'partial'
+        ? Math.round(plannedRevenue * 0.5)
+        : 0;
+
+    const remainingReceivable =
+      lifecycleStatus === 'cancelled' ? 0 : Math.max(0, plannedRevenue - collectedAmount);
+
+    const daysToStart = diffDaysBetween(startDate, todayStr);
+    const daysToEnd = diffDaysBetween(endDate, todayStr);
 
     return {
       ...res,

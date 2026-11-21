@@ -202,6 +202,7 @@ export function saveAdBreakBumperRulesBackup(rules) {
       window.localStorage.setItem(USER_BUMPER_RULES_STORAGE_KEY, JSON.stringify(rules));
     }
   } catch (e) {}
+  pushAdsStoreToServer({ adBreakBumperRules: rules });
 }
 
 export function loadAdBreakBumperRulesBackup() {
@@ -288,6 +289,7 @@ export function saveChannelLogoSettingsBackup(adSettings) {
       window.localStorage.setItem(USER_CHANNEL_LOGO_SETTINGS_STORAGE_KEY, JSON.stringify(adSettings));
     }
   } catch (e) {}
+  pushAdsStoreToServer({ adSettings });
 }
 
 export function loadChannelLogoSettingsBackup() {
@@ -451,13 +453,109 @@ export function buildInitialReservationsAndPlacements() {
   };
 }
 
+const USER_ADS_PRICING_CONFIG_STORAGE_KEY = 'yayin_ads_pricing_config_v2';
+const USER_DELETED_RESERVATIONS_STORAGE_KEY = 'yayin_ads_deleted_reservation_ids_v1';
+
+export const DEFAULT_ADS_PRICING_CONFIG = {
+  defaultSpotPrice: 0,
+  defaultPerSecondPrice: 0,
+  sponsorSpotPrice: 0,
+  channelRates: {
+    ch_hd: 0,
+    ch_way: 0
+  },
+  timeBlockRates: {
+    'Sabah Kuşağı': 0,
+    'Öğle Kuşağı': 0,
+    'Akşam (Prime Time)': 0,
+    'Gece Kuşağı': 0
+  }
+};
+
+export function loadAdsPricingConfigBackup() {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const raw = window.localStorage.getItem(USER_ADS_PRICING_CONFIG_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          return {
+            ...DEFAULT_ADS_PRICING_CONFIG,
+            ...parsed,
+            channelRates: { ...DEFAULT_ADS_PRICING_CONFIG.channelRates, ...(parsed.channelRates || {}) },
+            timeBlockRates: { ...DEFAULT_ADS_PRICING_CONFIG.timeBlockRates, ...(parsed.timeBlockRates || {}) }
+          };
+        }
+      }
+    }
+  } catch (e) {}
+  return { ...DEFAULT_ADS_PRICING_CONFIG };
+}
+
+export function saveAdsPricingConfigBackup(config) {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage && config && typeof config === 'object') {
+      window.localStorage.setItem(USER_ADS_PRICING_CONFIG_STORAGE_KEY, JSON.stringify(config));
+    }
+  } catch (e) {}
+  pushAdsStoreToServer({ adsPricingConfig: config });
+}
+
+export function loadDeletedReservationIdsBackup() {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const raw = window.localStorage.getItem(USER_DELETED_RESERVATIONS_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed.map(String);
+      }
+    }
+  } catch (e) {}
+  return [];
+}
+
+export function recordDeletedReservationIdBackup(deletedId) {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage && deletedId) {
+      const existing = loadDeletedReservationIdsBackup();
+      const next = Array.from(new Set([...existing, String(deletedId)])).slice(-500);
+      window.localStorage.setItem(USER_DELETED_RESERVATIONS_STORAGE_KEY, JSON.stringify(next));
+      return next;
+    }
+  } catch (e) {}
+  return [];
+}
+
 /**
- * Kullanıcının oluşturduğu rezervasyonları ve kuşak yerleşimlerini `localStorage`'a yedekler.
+ * Tarayıcıdaki Reklam Rezervasyon, Yerleşim, Giriş/Çıkış Kuralları, Logo ve Fiyatlandırma verilerini
+ * arka planda sunucu veritabanına (`POST /api/ads-store`) kaydeder.
+ * Bu sayede .80 IP adresi veya seyare.semerkand.com üzerinden bağlanıldığında veriler ortak veritabanında tutulur.
+ */
+export async function pushAdsStoreToServer(partialPayload = {}) {
+  try {
+    if (typeof window === 'undefined' || typeof fetch !== 'function') return null;
+    const res = await fetch('/api/ads-store', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(partialPayload)
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data?.store || null;
+    }
+  } catch (_) {}
+  return null;
+}
+
+/**
+ * Kullanıcının oluşturduğu rezervasyonları ve kuşak yerleşimlerini hem `localStorage`'a
+ * hem de sunucu veritabanına (`/api/ads-store`) yedekler.
  *
  * @param {Array} reservations - Kayıtlı rezervasyon listesi
  * @param {Object} adPlacements - Gün bazlı reklam kuşağı yerleşim haritası
+ * @param {Object} [extraOptions] - Silinen ID veya tam üzerine yazma seçenekleri
  */
-export function saveAdsReservationsBackup(reservations, adPlacements) {
+export function saveAdsReservationsBackup(reservations, adPlacements, extraOptions = {}) {
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
       if (Array.isArray(reservations)) {
@@ -470,6 +568,14 @@ export function saveAdsReservationsBackup(reservations, adPlacements) {
   } catch (e) {
     // ignore storage quota errors
   }
+
+  const deletedReservationIds = loadDeletedReservationIdsBackup();
+  pushAdsStoreToServer({
+    ...(Array.isArray(reservations) ? { reservations } : {}),
+    ...(adPlacements && typeof adPlacements === 'object' ? { adPlacements } : {}),
+    deletedReservationIds,
+    ...extraOptions
+  });
 }
 
 /**

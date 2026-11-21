@@ -712,6 +712,234 @@ export function createDraftRouter() {
         }
     });
 
+    // =========================================================================
+    // REKLAM REZERVASYON, YERLEŞİM, FİYATLANDIRMA VE LİSTE KALICI VERİTABANI DEPOSU
+    // (Hem PostgreSQL `ads_persistent_store` tablosunda hem de `backend/data/ads_persistent_store.json`
+    //  dosyasında yedekli tutulur; böylece IP (.80) veya domain (seyare.semerkand.com) fark etmeksizin
+    //  tüm tarayıcılarda aynı veriler görünür ve hiçbir zaman kaybolmaz.)
+    // =========================================================================
+    const adsStoreFilePath = () => {
+        const dataDir = path.resolve(BACKEND_DIR, 'data');
+        if (!fs.existsSync(dataDir)) {
+            fs.mkdirSync(dataDir, { recursive: true });
+        }
+        return path.join(dataDir, 'ads_persistent_store.json');
+    };
+
+    const adsStoreBackupFilePath = () => {
+        const dataDir = path.resolve(BACKEND_DIR, 'data');
+        if (!fs.existsSync(dataDir)) {
+            fs.mkdirSync(dataDir, { recursive: true });
+        }
+        return path.join(dataDir, 'ads_persistent_store.backup.json');
+    };
+
+    let adsPgTableInitialized = false;
+    const ensureAdsPgTable = async () => {
+        if (!isPostgresReady() || adsPgTableInitialized) return;
+        try {
+            await pgQuery(`
+                CREATE TABLE IF NOT EXISTS ads_persistent_store (
+                    store_key VARCHAR(64) PRIMARY KEY,
+                    payload JSONB NOT NULL,
+                    updated_at TIMESTAMPTZ DEFAULT NOW()
+                );
+            `);
+            adsPgTableInitialized = true;
+        } catch (e) {
+            console.warn('[ADS-STORE] PG table init warning:', e.message);
+        }
+    };
+
+    const readAdsStoreFromServer = async () => {
+        let diskData = null;
+        const p = adsStoreFilePath();
+        if (fs.existsSync(p)) {
+            try {
+                diskData = JSON.parse(fs.readFileSync(p, 'utf8'));
+            } catch (_) {}
+        }
+
+        if (isPostgresReady()) {
+            try {
+                await ensureAdsPgTable();
+                const res = await pgQuery(
+                    `SELECT payload FROM ads_persistent_store WHERE store_key = 'main_ads_store' LIMIT 1`
+                );
+                if (res.rows && res.rows.length > 0 && res.rows[0].payload) {
+                    const pgData = res.rows[0].payload;
+                    if (!diskData) {
+                        try {
+                            fs.writeFileSync(p, JSON.stringify(pgData, null, 2), 'utf8');
+                        } catch (_) {}
+                        return pgData;
+                    }
+                    // Hangisi daha güncelse veya daha çok rezervasyon içeriyorsa birleştir
+                    return mergeAdsStorePayloads(pgData, diskData);
+                }
+            } catch (e) {
+                console.warn('[ADS-STORE] PG read warning:', e.message);
+            }
+        }
+
+        return (
+            diskData || {
+                reservations: [],
+                deletedReservationIds: [],
+                adPlacements: {},
+                adBreakBumperRules: null,
+                adSettings: null,
+                adsPricingConfig: null,
+                manualCompanies: [],
+                manualProducts: [],
+                manualMaterials: [],
+                updatedAt: null
+            }
+        );
+    };
+
+    const mergeAdsStorePayloads = (baseStore = {}, incomingStore = {}) => {
+        const base = baseStore || {};
+        const inc = incomingStore || {};
+        const replaceReservations = Boolean(inc.replaceReservations);
+
+        const deletedSet = new Set([
+            ...(Array.isArray(base.deletedReservationIds) ? base.deletedReservationIds.map(String) : []),
+            ...(Array.isArray(inc.deletedReservationIds) ? inc.deletedReservationIds.map(String) : [])
+        ]);
+
+        // 1. Rezervasyonları ID bazlı birleştir (Silinmiş olmayanları koru, güncellenenleri üstüne yaz)
+        const resMap = new Map();
+        if (!replaceReservations && Array.isArray(base.reservations)) {
+            base.reservations.forEach(r => {
+                if (r && r.id && !deletedSet.has(String(r.id)) && !String(r.id).startsWith('res-auto-')) {
+                    resMap.set(String(r.id), r);
+                }
+            });
+        }
+        if (Array.isArray(inc.reservations)) {
+            inc.reservations.forEach(r => {
+                if (r && r.id && !deletedSet.has(String(r.id)) && !String(r.id).startsWith('res-auto-')) {
+                    const idStr = String(r.id);
+                    const existing = resMap.get(idStr);
+                    if (!existing) {
+                        resMap.set(idStr, r);
+                    } else {
+                        const existingTime = existing.updatedAt ? new Date(existing.updatedAt).getTime() : 0;
+                        const incTime = r.updatedAt ? new Date(r.updatedAt).getTime() : Date.now();
+                        resMap.set(idStr, incTime >= existingTime ? { ...existing, ...r } : { ...r, ...existing });
+                    }
+                }
+            });
+        }
+
+        // 2. Reklam kuşağı yerleşimlerini (adPlacements) gün bazlı birleştir
+        const mergedPlacements = {
+            ...(replaceReservations ? {} : base.adPlacements || {})
+        };
+        if (inc.adPlacements && typeof inc.adPlacements === 'object') {
+            Object.entries(inc.adPlacements).forEach(([dayKey, blocks]) => {
+                if (!Array.isArray(blocks)) return;
+                const existingBlocks = mergedPlacements[dayKey];
+                const incTotalAds = blocks.reduce((s, b) => s + ((b?.ads || []).length), 0);
+                const exTotalAds = Array.isArray(existingBlocks)
+                    ? existingBlocks.reduce((s, b) => s + ((b?.ads || []).length), 0)
+                    : 0;
+                if (!existingBlocks || incTotalAds > 0 || inc.forceOverwritePlacements) {
+                    if (incTotalAds > 0 || exTotalAds === 0 || inc.forceOverwritePlacements) {
+                        mergedPlacements[dayKey] = blocks;
+                    }
+                }
+            });
+        }
+
+        // 3. Manuel eklenen Firmalar, Ürünler ve Materyalleri ID bazlı birleştir
+        const mergeByIdList = (listA = [], listB = []) => {
+            const map = new Map();
+            (Array.isArray(listA) ? listA : []).forEach(it => {
+                if (it && it.id) map.set(String(it.id), it);
+            });
+            (Array.isArray(listB) ? listB : []).forEach(it => {
+                if (it && it.id) map.set(String(it.id), { ...(map.get(String(it.id)) || {}), ...it });
+            });
+            return Array.from(map.values());
+        };
+
+        return {
+            reservations: Array.from(resMap.values()),
+            deletedReservationIds: Array.from(deletedSet).slice(-500),
+            adPlacements: mergedPlacements,
+            adBreakBumperRules:
+                Array.isArray(inc.adBreakBumperRules) && inc.adBreakBumperRules.length > 0
+                    ? inc.adBreakBumperRules
+                    : base.adBreakBumperRules || null,
+            adSettings: inc.adSettings || base.adSettings || null,
+            adsPricingConfig: inc.adsPricingConfig || base.adsPricingConfig || null,
+            manualCompanies: mergeByIdList(base.manualCompanies, inc.manualCompanies),
+            manualProducts: mergeByIdList(base.manualProducts, inc.manualProducts),
+            manualMaterials: mergeByIdList(base.manualMaterials, inc.manualMaterials),
+            updatedAt: new Date().toISOString()
+        };
+    };
+
+    const writeAdsStoreToServer = async (mergedPayload) => {
+        const p = adsStoreFilePath();
+        const backupP = adsStoreBackupFilePath();
+        try {
+            if (fs.existsSync(p)) {
+                fs.copyFileSync(p, backupP);
+            }
+            fs.writeFileSync(p, JSON.stringify(mergedPayload, null, 2), 'utf8');
+        } catch (e) {
+            console.error('[ADS-STORE] Disk write error:', e.message);
+        }
+
+        if (isPostgresReady()) {
+            try {
+                await ensureAdsPgTable();
+                await pgQuery(
+                    `INSERT INTO ads_persistent_store (store_key, payload, updated_at)
+                     VALUES ('main_ads_store', $1::jsonb, NOW())
+                     ON CONFLICT (store_key) DO UPDATE SET
+                        payload = EXCLUDED.payload,
+                        updated_at = NOW()`,
+                    [JSON.stringify(mergedPayload)]
+                );
+            } catch (e) {
+                console.warn('[ADS-STORE] PG write warning:', e.message);
+            }
+        }
+    };
+
+    router.get('/ads-store', async (req, res) => {
+        try {
+            const storeData = await readAdsStoreFromServer();
+            return res.json({
+                success: true,
+                store: storeData
+            });
+        } catch (err) {
+            console.error('[ADS-STORE] GET error:', err);
+            return res.status(500).json({ error: err.message });
+        }
+    });
+
+    router.post('/ads-store', express.json({ limit: '25mb' }), async (req, res) => {
+        try {
+            const incoming = req.body || {};
+            const current = await readAdsStoreFromServer();
+            const merged = mergeAdsStorePayloads(current, incoming);
+            await writeAdsStoreToServer(merged);
+            return res.json({
+                success: true,
+                store: merged
+            });
+        } catch (err) {
+            console.error('[ADS-STORE] POST error:', err);
+            return res.status(500).json({ error: err.message });
+        }
+    });
+
     return router;
 }
 

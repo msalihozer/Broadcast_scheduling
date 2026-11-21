@@ -691,6 +691,7 @@ export function computeAdsAnalyticsReport({
   adPlacements = {},
   channels = [],
   timeBlocks = [],
+  adsPricingConfig = {},
   filters = {}
 }) {
   const {
@@ -716,24 +717,40 @@ export function computeAdsAnalyticsReport({
   // Materyal / Rezervasyon birim spot fiyatı ve planlanan spot / bütçe haritası
   const pricingByResAndMat = new Map();
   const pricingByMat = new Map();
+  const tariffBaseSpotRate = Number(adsPricingConfig?.defaultSpotPrice) || 0;
+  const tariffSponsorRate = Number(adsPricingConfig?.sponsorSpotPrice) || tariffBaseSpotRate;
+  const tariffSecRate = Number(adsPricingConfig?.defaultPerSecondPrice) || 0;
+
   (reservations || []).forEach(res => {
     const items = Array.isArray(res.items) && res.items.length > 0 ? res.items : [res];
+    const chId = (res.channelIds && res.channelIds[0]) || (items[0]?.channelIds && items[0].channelIds[0]) || 'ch_hd';
+    const tariffChannelRate = Number(adsPricingConfig?.channelRates?.[chId]) || 0;
+
     items.forEach(it => {
       const mId = String(it.materialId || res.materialId || '');
+      const matObj = materialMap.get(mId);
+      const durSec = Number(matObj?.duration) || 25;
       const planned = Math.max(1, Number(it.plannedSpots || res.totalPlannedSpots || 20));
+      const explicitBudgetVal = Number(it.totalBudget || res.totalBudget || res.totalAmount || res.toplamTutar || 0);
+      const fallbackTariff = res.isSponsor
+        ? tariffSponsorRate
+        : tariffChannelRate > 0
+        ? tariffChannelRate
+        : tariffBaseSpotRate > 0
+        ? tariffBaseSpotRate
+        : tariffSecRate > 0
+        ? Math.round(durSec * tariffSecRate)
+        : 0;
+
       const unitPrice = Math.max(
         0,
         Number(it.spotPrice) ||
           Number(res.spotPrice) ||
-          (Number(it.totalBudget || res.toplamTutar) > 0
-            ? Number(it.totalBudget || res.toplamTutar) / planned
-            : 0)
+          (explicitBudgetVal > 0 ? Math.round(explicitBudgetVal / planned) : fallbackTariff)
       );
       const totalBudget =
-        Number(it.totalBudget) > 0
-          ? Number(it.totalBudget)
-          : Number(res.toplamTutar) > 0
-          ? Number(res.toplamTutar)
+        explicitBudgetVal > 0
+          ? explicitBudgetVal
           : Math.round(planned * unitPrice * 100) / 100;
 
       if (mId) {
@@ -792,6 +809,7 @@ export function computeAdsAnalyticsReport({
       if (timeBlockId && tbInfo.id !== timeBlockId && tbInfo.name !== timeBlockId) return;
 
       (block.ads || []).forEach((ad, adIdx) => {
+        if (ad.isBumperAd) return;
         const mat = materialMap.get(String(ad.materialId));
         const prod = mat
           ? productMap.get(String(mat.productId))
@@ -1205,10 +1223,45 @@ export function computeAdsAnalyticsReport({
       const plannedSpots = Math.max(1, Number(res.totalPlannedSpots) || items.reduce((s, i) => s + (Number(i.plannedSpots) || 0), 0) || 20);
       const realizedSpots = Math.max(Number(res.realizedSpots) || 0, placedCountByResId[res.id] || 0);
       const spotDiff = plannedSpots - realizedSpots; // negatifse aşım (- fark)
-      const unitPrice = Number(res.spotPrice || items[0]?.spotPrice || 0);
-      const plannedBudget = Number(res.toplamTutar) || items.reduce((s, i) => s + (Number(i.totalBudget) || 0), 0) || Math.round(plannedSpots * unitPrice);
-      const realizedBudget = unitPrice > 0 ? Math.round(realizedSpots * unitPrice) : plannedBudget;
+      const chId = (res.channelIds && res.channelIds[0]) || (items[0]?.channelIds && items[0].channelIds[0]) || 'ch_hd';
+      const tariffChannelRate = Number(adsPricingConfig?.channelRates?.[chId]) || 0;
+      const firstMat = materialMap.get(String(res.materialId || items[0]?.materialId || ''));
+      const durSec = Number(firstMat?.duration) || 25;
+      const fallbackTariff = res.isSponsor
+        ? tariffSponsorRate
+        : tariffChannelRate > 0
+        ? tariffChannelRate
+        : tariffBaseSpotRate > 0
+        ? tariffBaseSpotRate
+        : tariffSecRate > 0
+        ? Math.round(durSec * tariffSecRate)
+        : 0;
+
+      const explicitBudget =
+        Number(res.totalAmount) ||
+        Number(res.totalBudget) ||
+        Number(res.toplamTutar) ||
+        items.reduce((s, i) => s + (Number(i.totalBudget) || 0), 0);
+
+      const unitPrice =
+        Number(res.spotPrice || items[0]?.spotPrice) > 0
+          ? Number(res.spotPrice || items[0]?.spotPrice)
+          : explicitBudget > 0 && plannedSpots > 0
+          ? Math.round(explicitBudget / plannedSpots)
+          : fallbackTariff;
+
+      const plannedBudget = explicitBudget > 0 ? explicitBudget : Math.round(plannedSpots * unitPrice);
+      const realizedBudget = unitPrice > 0 ? Math.round(realizedSpots * unitPrice) : 0;
       const budgetDiff = plannedBudget - realizedBudget;
+      const collectedAmount =
+        res.collectedAmount !== undefined && res.collectedAmount !== ''
+          ? Number(res.collectedAmount) || 0
+          : res.paymentStatus === 'paid'
+          ? plannedBudget
+          : res.paymentStatus === 'partial'
+          ? Math.round(plannedBudget * 0.5)
+          : 0;
+      const remainingReceivable = Math.max(0, plannedBudget - collectedAmount);
 
       return {
         id: res.id,
@@ -1228,7 +1281,9 @@ export function computeAdsAnalyticsReport({
         unitPrice,
         plannedBudget,
         realizedBudget,
-        budgetDiff
+        budgetDiff,
+        collectedAmount,
+        remainingReceivable
       };
     });
 
@@ -1254,7 +1309,12 @@ export function computeAdsAnalyticsReport({
 
   const totalSpotsCount = spotLogs.length;
   const totalBroadcastSec = spotLogs.reduce((acc, s) => acc + s.durationSec, 0);
-  const totalRevenue = spotLogs.reduce((acc, s) => acc + (Number(s.unitPrice) || 0), 0);
+  const totalSpotRevenue = spotLogs.reduce((acc, s) => acc + (Number(s.unitPrice) || 0), 0);
+  const totalPlannedBudget = planReports.reduce((acc, pr) => acc + (Number(pr.plannedBudget) || 0), 0);
+  const totalRealizedBudget = planReports.reduce((acc, pr) => acc + (Number(pr.realizedBudget) || 0), 0);
+  const totalCollectedAmount = planReports.reduce((acc, pr) => acc + (Number(pr.collectedAmount) || 0), 0);
+  const totalRemainingReceivable = planReports.reduce((acc, pr) => acc + (Number(pr.remainingReceivable) || 0), 0);
+  const totalRevenue = totalRealizedBudget > 0 ? totalRealizedBudget : (totalSpotRevenue > 0 ? totalSpotRevenue : totalPlannedBudget);
   const totalBroadcastDays = uniqueDatesSet.size;
 
   const timeBlockReports = Array.from(byTimeBlockMap.values())
@@ -1279,6 +1339,10 @@ export function computeAdsAnalyticsReport({
       totalBroadcastSec,
       totalBroadcastMin: Number((totalBroadcastSec / 60).toFixed(1)),
       totalRevenue: Math.round(totalRevenue * 100) / 100,
+      totalPlannedBudget: Math.round(totalPlannedBudget * 100) / 100,
+      totalRealizedBudget: Math.round(totalRealizedBudget * 100) / 100,
+      totalCollectedAmount: Math.round(totalCollectedAmount * 100) / 100,
+      totalRemainingReceivable: Math.round(totalRemainingReceivable * 100) / 100,
       totalBroadcastDays,
       avgSpotsPerDay: totalBroadcastDays > 0 ? Number((totalSpotsCount / totalBroadcastDays).toFixed(1)) : 0,
       avgSecPerDay: totalBroadcastDays > 0 ? Math.round(totalBroadcastSec / totalBroadcastDays) : 0,

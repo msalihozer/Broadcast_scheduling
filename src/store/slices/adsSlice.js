@@ -38,7 +38,13 @@ import {
   buildDefaultChannelLogoSettings,
   saveChannelLogoSettingsBackup,
   loadChannelLogoSettingsBackup,
-  resolveProgramLogoForChannel
+  resolveProgramLogoForChannel,
+  DEFAULT_ADS_PRICING_CONFIG,
+  loadAdsPricingConfigBackup,
+  saveAdsPricingConfigBackup,
+  loadDeletedReservationIdsBackup,
+  recordDeletedReservationIdBackup,
+  pushAdsStoreToServer
 } from './ads/adsCatalogHelpers';
 
 import {
@@ -93,8 +99,157 @@ export const createAdsSlice = (set, get) => ({
   reservations: Array.isArray(initialBackup.reservations) ? initialBackup.reservations : [],
   timeBlocks: DEFAULT_TIME_BLOCKS,
   adBreakBumperRules: loadAdBreakBumperRulesBackup() || DEFAULT_AD_BREAK_BUMPER_RULES,
+  adsPricingConfig: loadAdsPricingConfigBackup(),
   usedArchivePrograms: [],
   ramadanConfig: loadSavedRamadanConfig(),
+
+  /**
+   * Dashboard ve Raporlar için Spot & Ücretlendirme tarife ayarlarını günceller.
+   */
+  updateAdsPricingConfig: (updates) => set(state => {
+    const cur = state.adsPricingConfig || DEFAULT_ADS_PRICING_CONFIG;
+    const nextConfig = {
+      ...cur,
+      ...updates,
+      channelRates: { ...(cur.channelRates || {}), ...(updates.channelRates || {}) },
+      timeBlockRates: { ...(cur.timeBlockRates || {}), ...(updates.timeBlockRates || {}) }
+    };
+    saveAdsPricingConfigBackup(nextConfig);
+    return { adsPricingConfig: nextConfig };
+  }),
+
+  /**
+   * Seçili Spot / Saniye Ücret Tarifesini (`adsPricingConfig`) fiyatı henüz girilmemiş (veya tüm)
+   * rezervasyonlara uygular.
+   */
+  applyPricingTariffToReservations: ({ overwriteExisting = false } = {}) => set(state => {
+    const cfg = state.adsPricingConfig || DEFAULT_ADS_PRICING_CONFIG;
+    const baseSpotRate = Number(cfg.defaultSpotPrice) || 0;
+    const baseSecRate = Number(cfg.defaultPerSecondPrice) || 0;
+    const sponsorRate = Number(cfg.sponsorSpotPrice) || baseSpotRate;
+
+    const nextReservations = (state.reservations || []).map(res => {
+      const hasExistingPrice = Number(res.spotPrice) > 0 || Number(res.totalBudget) > 0 || Number(res.totalAmount) > 0;
+      if (hasExistingPrice && !overwriteExisting) return res;
+
+      const items = Array.isArray(res.items) && res.items.length > 0 ? res.items : [res];
+      const plannedSpots = Math.max(
+        1,
+        Number(res.totalPlannedSpots) ||
+          items.reduce((s, it) => s + (Number(it.plannedSpots) || 0), 0) ||
+          20
+      );
+      const firstMat = (state.materials || []).find(
+        m => String(m.id) === String(res.materialId || items[0]?.materialId)
+      );
+      const durSec = Number(firstMat?.duration) || 25;
+
+      const chId = (res.channelIds && res.channelIds[0]) || (items[0]?.channelIds && items[0].channelIds[0]) || 'ch_hd';
+      const chRate = Number(cfg.channelRates?.[chId]) || 0;
+
+      let unitSpotPrice = res.isSponsor ? sponsorRate : (chRate > 0 ? chRate : baseSpotRate);
+      if (unitSpotPrice <= 0 && baseSecRate > 0) {
+        unitSpotPrice = Math.round(durSec * baseSecRate);
+      }
+
+      const totalBudget = Math.round(plannedSpots * unitSpotPrice);
+      const nextItems = Array.isArray(res.items)
+        ? res.items.map(it => {
+            const itPlanned = Math.max(1, Number(it.plannedSpots) || plannedSpots);
+            return {
+              ...it,
+              spotPrice: unitSpotPrice,
+              totalBudget: Math.round(itPlanned * unitSpotPrice)
+            };
+          })
+        : res.items;
+
+      return {
+        ...res,
+        spotPrice: unitSpotPrice,
+        totalBudget,
+        totalAmount: totalBudget,
+        toplamTutar: totalBudget,
+        items: nextItems,
+        updatedAt: new Date().toISOString()
+      };
+    });
+
+    saveAdsReservationsBackup(nextReservations, state.adPlacements);
+    return { reservations: nextReservations };
+  }),
+
+  /**
+   * Tarayıcıdaki (`localStorage` — örn: .80 IP adresi veya seyare.semerkand.com) rezervasyon,
+   * reklam yerleşimi, giriş/çıkış kuralları, kanal logoları ve ücretlendirme verilerini
+   * sunucu veritabanı (`/api/ads-store` -> PostgreSQL + `backend/data/ads_persistent_store.json`) ile çift yönlü eşitler.
+   */
+  syncAdsStoreWithServer: async () => {
+    try {
+      const state = get();
+      const localBackup = loadAdsReservationsBackup();
+      const localReservations =
+        Array.isArray(state.reservations) && state.reservations.length > 0
+          ? state.reservations
+          : Array.isArray(localBackup.reservations)
+          ? localBackup.reservations
+          : [];
+      const localPlacements =
+        state.adPlacements && Object.keys(state.adPlacements).length > 0
+          ? state.adPlacements
+          : localBackup.adPlacements || {};
+      const deletedReservationIds = loadDeletedReservationIdsBackup();
+
+      const manualCompanies = (state.companies || []).filter(c => c && c.isManual);
+      const manualProducts = (state.products || []).filter(p => p && p.isManual);
+      const manualMaterials = (state.materials || []).filter(m => m && m.isManual);
+
+      const mergedStore = await pushAdsStoreToServer({
+        reservations: localReservations,
+        deletedReservationIds,
+        adPlacements: localPlacements,
+        adBreakBumperRules: state.adBreakBumperRules,
+        adSettings: state.adSettings,
+        adsPricingConfig: state.adsPricingConfig,
+        manualCompanies,
+        manualProducts,
+        manualMaterials
+      });
+
+      if (!mergedStore) return null;
+
+      const serverReservations = Array.isArray(mergedStore.reservations)
+        ? mergedStore.reservations
+        : localReservations;
+      const serverPlacements =
+        mergedStore.adPlacements && typeof mergedStore.adPlacements === 'object'
+          ? mergedStore.adPlacements
+          : localPlacements;
+
+      // Yerel önbelleği de güncelle
+      try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          window.localStorage.setItem('yayin_ads_reservations_backup_v4', JSON.stringify(serverReservations));
+          window.localStorage.setItem('yayin_ads_placements_backup_v4', JSON.stringify(serverPlacements));
+        }
+      } catch (_) {}
+
+      set(cur => ({
+        reservations: serverReservations,
+        adPlacements: serverPlacements,
+        adBreakBumperRules:
+          Array.isArray(mergedStore.adBreakBumperRules) && mergedStore.adBreakBumperRules.length > 0
+            ? mergedStore.adBreakBumperRules
+            : cur.adBreakBumperRules,
+        adSettings: mergedStore.adSettings || cur.adSettings,
+        adsPricingConfig: mergedStore.adsPricingConfig || cur.adsPricingConfig
+      }));
+
+      return mergedStore;
+    } catch (_) {
+      return null;
+    }
+  },
 
   /**
    * MAM Arşivindeki aktif program listesini (`/api/archive/used-programs`) çeker ve store'a (`usedArchivePrograms`) yazar.
@@ -450,6 +605,11 @@ export const createAdsSlice = (set, get) => ({
       );
     }
 
+    // Rezervasyon, yerleşim, kural ve fiyatlandırma verilerini sunucu veritabanıyla (.80 & seyare.semerkand.com ortak) eşitle
+    if (typeof get().syncAdsStoreWithServer === 'function') {
+      get().syncAdsStoreWithServer();
+    }
+
     return synced;
   },
 
@@ -657,7 +817,14 @@ export const createAdsSlice = (set, get) => ({
   // 5. REZERVASYON & SPONSORLUK (RESERVATION) İŞLEMLERİ
   // ============================================================================
   addReservation: (reservation) => set(state => {
-    const newRes = { ...reservation, id: `res-${Date.now()}`, isManual: true };
+    const nowIso = new Date().toISOString();
+    const newRes = {
+      ...reservation,
+      id: reservation.id || `res-${Date.now()}`,
+      isManual: true,
+      createdAt: reservation.createdAt || nowIso,
+      updatedAt: nowIso
+    };
     const cleanedExisting = enforceSingularBumperUniqueness(state.reservations, newRes);
     const nextReservations = [newRes, ...cleanedExisting];
     saveAdsReservationsBackup(nextReservations, state.adPlacements);
@@ -677,9 +844,10 @@ export const createAdsSlice = (set, get) => ({
 
   updateReservation: (id, updatedFields) => set(state => {
     let updatedTarget = null;
+    const nowIso = new Date().toISOString();
     const mapped = state.reservations.map(r => {
-      if (r.id === id) {
-        updatedTarget = { ...r, ...updatedFields, isManual: true };
+      if (String(r.id) === String(id)) {
+        updatedTarget = { ...r, ...updatedFields, isManual: true, updatedAt: nowIso };
         return updatedTarget;
       }
       return r;
@@ -703,6 +871,7 @@ export const createAdsSlice = (set, get) => ({
   }),
 
   removeReservation: (id) => set(state => {
+    recordDeletedReservationIdBackup(id);
     const nextReservations = state.reservations.filter(r => String(r.id) !== String(id));
     const nextAdPlacements = {};
     Object.entries(state.adPlacements || {}).forEach(([dayKey, blocks]) => {
@@ -728,6 +897,9 @@ export const createAdsSlice = (set, get) => ({
   }),
 
   clearAllReservations: () => set(state => {
+    (state.reservations || []).forEach(r => {
+      if (r?.id) recordDeletedReservationIdBackup(r.id);
+    });
     const nextReservations = [];
     const nextAdPlacements = {};
     Object.entries(state.adPlacements || {}).forEach(([dayKey, blocks]) => {
@@ -736,7 +908,10 @@ export const createAdsSlice = (set, get) => ({
         ads: []
       }));
     });
-    saveAdsReservationsBackup(nextReservations, nextAdPlacements);
+    saveAdsReservationsBackup(nextReservations, nextAdPlacements, {
+      replaceReservations: true,
+      forceOverwritePlacements: true
+    });
     useAdminLogStore.getState().addLog({
       category: 'ads',
       panel: 'ads',

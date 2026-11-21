@@ -19,7 +19,7 @@
  * - `./dashboard/DashboardOperationsTable.jsx`: Alt bölümde operasyon ekibinin doğrudan durum değiştirme,
  *   Makegood (telafi yayını) tanımlama, tahsilat girişi ve materyal teknik onayı yapabileceği canlı tablo.
  */
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import usePlanningStore from '../../store/planningStore';
 import useDialogStore from '../../store/dialogStore';
 import AdsReservationForm from './AdsReservationForm';
@@ -29,6 +29,7 @@ import DashboardFilterBar from './dashboard/DashboardFilterBar';
 import DashboardTopKpiSections from './dashboard/DashboardTopKpiSections';
 import DashboardMiddleGridSections from './dashboard/DashboardMiddleGridSections';
 import DashboardOperationsTable from './dashboard/DashboardOperationsTable';
+import DashboardPricingPanel from './dashboard/DashboardPricingPanel';
 
 const INITIAL_FILTERS = {
   channelFilter: 'all',
@@ -46,12 +47,22 @@ const DashboardTab = ({ setActiveTab }) => {
   const reservations = usePlanningStore(state => state.reservations || []);
   const timeBlocks = usePlanningStore(state => state.timeBlocks || []);
   const adPlacements = usePlanningStore(state => state.adPlacements || {});
+  const adsPricingConfig = usePlanningStore(state => state.adsPricingConfig || {});
+  const updateAdsPricingConfig = usePlanningStore(state => state.updateAdsPricingConfig);
+  const applyPricingTariffToReservations = usePlanningStore(state => state.applyPricingTariffToReservations);
+  const syncAdsStoreWithServer = usePlanningStore(state => state.syncAdsStoreWithServer);
   const updateReservation = usePlanningStore(state => state.updateReservation);
   const removeReservation = usePlanningStore(state => state.removeReservation);
   const updateMaterial = usePlanningStore(state => state.updateMaterial);
   const autoPlanAdsForDay = usePlanningStore(state => state.autoPlanAdsForDay);
   const autoPlanAdsForWeek = usePlanningStore(state => state.autoPlanAdsForWeek);
   const setSelectedCompanyDetailId = usePlanningStore(state => state.setSelectedCompanyDetailId);
+
+  useEffect(() => {
+    if (typeof syncAdsStoreWithServer === 'function') {
+      syncAdsStoreWithServer();
+    }
+  }, [syncAdsStoreWithServer]);
 
   const [filters, setFilters] = useState(INITIAL_FILTERS);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -97,9 +108,10 @@ const DashboardTab = ({ setActiveTab }) => {
       materials,
       timeBlocks,
       adPlacements,
+      adsPricingConfig,
       filters
     });
-  }, [reservations, companies, products, materials, timeBlocks, adPlacements, filters]);
+  }, [reservations, companies, products, materials, timeBlocks, adPlacements, adsPricingConfig, filters]);
 
   // Operasyon Tablosuna Kaydır
   const handleScrollToOpsTable = () => {
@@ -221,6 +233,20 @@ const DashboardTab = ({ setActiveTab }) => {
         onSelectStatusFilter={st => handleUpdateFilter('statusFilter', st)}
         onNavigateTab={setActiveTab}
         onScrollToOpsTable={handleScrollToOpsTable}
+      />
+
+      {/* DOĞRUDAN SPOT ADEDİ, BİRİM ÜCRET, BÜTÇE VE TAHSİLAT VERİ GİRİŞ PANELİ */}
+      <DashboardPricingPanel
+        reservations={analytics.filteredReservations}
+        adsPricingConfig={adsPricingConfig}
+        onUpdatePricingConfig={updateAdsPricingConfig}
+        onApplyTariffToReservations={applyPricingTariffToReservations}
+        onUpdateReservation={(id, patch) => {
+          if (updateReservation) updateReservation(id, patch);
+        }}
+        onSyncWithServer={syncAdsStoreWithServer}
+        onNavigateReports={setActiveTab}
+        onShowToast={showToast}
       />
 
       {/* BÖLÜM 5, 6, 7 VE 8: REKLAM ENVANTERİ (7/15/30G TAHMİN), FİRMA/ÜRÜN/SEKTÖR, MATERYAL KONTROLÜ VE OPERASYON UYARILARI */}

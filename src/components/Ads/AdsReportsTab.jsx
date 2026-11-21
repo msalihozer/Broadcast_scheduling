@@ -61,6 +61,8 @@ const AdsReportsTab = ({ setActiveTab }) => {
   const materials = usePlanningStore(state => state.materials || []);
   const reservations = usePlanningStore(state => state.reservations || []);
   const adPlacements = usePlanningStore(state => state.adPlacements || {});
+  const adsPricingConfig = usePlanningStore(state => state.adsPricingConfig || {});
+  const updateReservation = usePlanningStore(state => state.updateReservation);
   const channels = usePlanningStore(state => state.channels || []);
   const timeBlocks = usePlanningStore(state => state.timeBlocks || []);
   const setSelectedCompanyDetailId = usePlanningStore(state => state.setSelectedCompanyDetailId);
@@ -113,9 +115,10 @@ const AdsReportsTab = ({ setActiveTab }) => {
         adPlacements,
         channels,
         timeBlocks,
+        adsPricingConfig,
         filters
       }),
-    [companies, products, materials, reservations, adPlacements, channels, timeBlocks, filters]
+    [companies, products, materials, reservations, adPlacements, channels, timeBlocks, adsPricingConfig, filters]
   );
 
   const {
@@ -249,7 +252,7 @@ const AdsReportsTab = ({ setActiveTab }) => {
 
     if (reportView === 'plans') {
       exportToCSV({
-        filename: `Reklam_Yayin_Plan_Kullanim_Raporu${scopeSuffix}`,
+        filename: `Reklam_Spot_ve_Ucretlendirme_Raporu${scopeSuffix}`,
         headers: [
           'Plan / Kampanya Adı',
           'Firma',
@@ -260,7 +263,9 @@ const AdsReportsTab = ({ setActiveTab }) => {
           'Kullanım Oranı (%)',
           'Birim Spot Fiyatı (₺)',
           'Planlanan Bütçe (₺)',
-          'Gerçekleşen Tutar (₺)'
+          'Gerçekleşen Tutar (₺)',
+          'Tahsil Edilen (₺)',
+          'Kalan Alacak (₺)'
         ],
         rows: planReports.map(pr => [
           pr.name,
@@ -272,7 +277,9 @@ const AdsReportsTab = ({ setActiveTab }) => {
           `%${pr.usagePct}`,
           pr.unitPrice,
           pr.plannedBudget,
-          pr.realizedBudget
+          pr.realizedBudget,
+          pr.collectedAmount || 0,
+          pr.remainingReceivable || 0
         ])
       });
       return;
@@ -399,8 +406,8 @@ const AdsReportsTab = ({ setActiveTab }) => {
           ])
         },
         {
-          title: '4. YAYIN PLANI / KOTA KULLANIM VE FİYAT / AŞIM (- FARK) RAPORU',
-          headers: ['Plan Adı', 'Firma', 'Tarih Aralığı', 'Planlanan Spot', 'Gerçekleşen Spot', 'Kalan / Aşım (-)', 'Kullanım %', 'Planlanan Bütçe', 'Gerçekleşen Tutar'],
+          title: '4. YAYIN PLANI, SPOT KULLANIMI VE ÜCRETLENDİRME / TAHSİLAT RAPORU',
+          headers: ['Plan Adı', 'Firma', 'Tarih Aralığı', 'Planlanan Spot', 'Gerçekleşen Spot', 'Kalan / Aşım (-)', 'Kullanım %', 'Birim Spot Ücreti', 'Planlanan Bütçe', 'Gerçekleşen Tutar', 'Tahsil Edilen', 'Kalan Alacak'],
           rows: planReports.map(pr => [
             pr.name,
             pr.companyName,
@@ -409,8 +416,11 @@ const AdsReportsTab = ({ setActiveTab }) => {
             `${pr.realizedSpots} Spot`,
             `${pr.spotDiff} Spot`,
             `%${pr.usagePct}`,
+            pr.unitPrice > 0 ? `${pr.unitPrice.toLocaleString('tr-TR')} ₺` : '-',
             pr.plannedBudget > 0 ? `${pr.plannedBudget.toLocaleString('tr-TR')} ₺` : '-',
-            pr.realizedBudget > 0 ? `${pr.realizedBudget.toLocaleString('tr-TR')} ₺` : '-'
+            pr.realizedBudget > 0 ? `${pr.realizedBudget.toLocaleString('tr-TR')} ₺` : '-',
+            (pr.collectedAmount || 0) > 0 ? `${(pr.collectedAmount || 0).toLocaleString('tr-TR')} ₺` : '0 ₺',
+            (pr.remainingReceivable || 0) > 0 ? `${(pr.remainingReceivable || 0).toLocaleString('tr-TR')} ₺` : '0 ₺'
           ])
         }
       ]
@@ -487,8 +497,8 @@ const AdsReportsTab = ({ setActiveTab }) => {
           ])
         },
         {
-          title: '4. Yayın Planı & Kota Kullanım / Aşım (- Fark) Raporu',
-          headers: ['Plan Adı', 'Firma', 'Tarih Aralığı', 'Planlanan', 'Gerçekleşen', 'Fark / Aşım (-)', 'Planlanan Bütçe', 'Gerçekleşen Tutar'],
+          title: '4. Yayın Planı, Spot Kullanımı ve Ücretlendirme / Tahsilat Raporu',
+          headers: ['Plan Adı', 'Firma', 'Tarih Aralığı', 'Planlanan', 'Gerçekleşen', 'Fark / Aşım (-)', 'Birim Ücret', 'Planlanan Bütçe', 'Gerçekleşen Tutar', 'Tahsilat / Kalan'],
           rows: planReports.map(pr => [
             pr.name,
             pr.companyName,
@@ -496,8 +506,10 @@ const AdsReportsTab = ({ setActiveTab }) => {
             `${pr.plannedSpots} Spot`,
             `${pr.realizedSpots} Spot`,
             `${pr.spotDiff} Spot (%${pr.usagePct})`,
+            pr.unitPrice > 0 ? `${pr.unitPrice.toLocaleString('tr-TR')} ₺` : '-',
             pr.plannedBudget > 0 ? `${pr.plannedBudget.toLocaleString('tr-TR')} ₺` : '-',
-            pr.realizedBudget > 0 ? `${pr.realizedBudget.toLocaleString('tr-TR')} ₺` : '-'
+            pr.realizedBudget > 0 ? `${pr.realizedBudget.toLocaleString('tr-TR')} ₺` : '-',
+            `Tahsil: ${(pr.collectedAmount || 0).toLocaleString('tr-TR')} ₺ / Kalan: ${(pr.remainingReceivable || 0).toLocaleString('tr-TR')} ₺`
           ])
         }
       ]
@@ -617,11 +629,11 @@ const AdsReportsTab = ({ setActiveTab }) => {
         </div>
       </div>
 
-      {/* 5 PROFESYONEL KPI ÖZET KARTI */}
+      {/* 6 PROFESYONEL KPI ÖZET KARTI (SPOT & ÜCRETLENDİRME DAHİL) */}
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(5, 1fr)',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(195px, 1fr))',
           gap: '10px',
           flexShrink: 0
         }}
@@ -666,6 +678,30 @@ const AdsReportsTab = ({ setActiveTab }) => {
           </div>
         </div>
 
+        <div
+          className="ads-saas-card"
+          onClick={() => setReportView('plans')}
+          style={{
+            padding: '12px 14px',
+            gap: '4px',
+            cursor: 'pointer',
+            border: '1.5px solid rgba(5, 150, 105, 0.45)',
+            background: 'rgba(16, 185, 129, 0.06)'
+          }}
+          title="Spot & Ücretlendirme Detay Tablosunu Aç"
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '11px', fontWeight: '800', color: '#059669' }}>💰 Spot &amp; Ücretlendirme</span>
+            <Wallet size={15} color="#059669" />
+          </div>
+          <div style={{ fontSize: '17px', fontWeight: '900', color: '#059669' }}>
+            ₺{(summary.totalPlannedBudget || summary.totalRevenue || 0).toLocaleString('tr-TR')}
+          </div>
+          <div style={{ fontSize: '10.5px', fontWeight: '700', color: 'var(--ads-text-muted)' }}>
+            Gerçekleşen: ₺{(summary.totalRealizedBudget || 0).toLocaleString('tr-TR')} • Tahsil: ₺{(summary.totalCollectedAmount || 0).toLocaleString('tr-TR')}
+          </div>
+        </div>
+
         <div className="ads-saas-card" style={{ padding: '12px 14px', gap: '4px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--ads-text-muted)' }}>En Yoğun Kuşak</span>
@@ -684,7 +720,7 @@ const AdsReportsTab = ({ setActiveTab }) => {
             { id: 'material', label: `1. Materyal / Spot Bazlı (${materialReports.length})` },
             { id: 'company', label: `2. Firma Bazlı (${companyReports.length})` },
             { id: 'product', label: `3. Ürün Bazlı (${productReports.length})` },
-            { id: 'plans', label: `4. Yayın Planı & Kullanım / Fiyat (${planReports.length})` },
+            { id: 'plans', label: `4. Yayın Planı, Spot & Ücretlendirme (${planReports.length})` },
             { id: 'periods', label: '5. Haftalık / Aylık / Yıllık Analiz' },
             { id: 'daily', label: `6. Günlük & Saat (${dailyReports.length})` },
             { id: 'timeblocks', label: '7. Kuşak & Saat Yoğunluğu' },
@@ -1377,7 +1413,7 @@ const AdsReportsTab = ({ setActiveTab }) => {
         </div>
       )}
 
-      {/* 3C. YAYIN PLANI & KULLANIM / FİYAT / AŞIM (- FARK) RAPORU */}
+      {/* 3C. YAYIN PLANI, SPOT KULLANIMI VE ÜCRETLENDİRME / TAHSİLAT RAPORU */}
       {reportView === 'plans' && (
         <div
           style={{
@@ -1385,11 +1421,50 @@ const AdsReportsTab = ({ setActiveTab }) => {
             border: '1px solid var(--border-color)',
             borderRadius: '12px',
             display: 'flex',
-            flexDirection: 'column'
+            flexDirection: 'column',
+            overflow: 'hidden'
           }}
         >
+          {/* Üst Finansal & Spot Özeti Şeridi */}
+          <div
+            style={{
+              padding: '12px 16px',
+              background: 'var(--bg-tertiary)',
+              borderBottom: '1px solid var(--border-color)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px'
+            }}
+          >
+            <div>
+              <div style={{ fontSize: '13.5px', fontWeight: '900', color: 'var(--text-primary)' }}>
+                💰 Yayın Planı, Spot Kotası ve Ücretlendirme / Tahsilat Raporu ({planReports.length} Rezervasyon)
+              </div>
+              <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                Planlanan spot, gerçekleşen spot, birim spot ücreti, toplam bütçe ve tahsilat verilerini bu tablodan da doğrudan güncelleyebilir ve PDF/Excel olarak indirebilirsiniz.
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap', fontSize: '12px', fontWeight: '800' }}>
+              <span style={{ color: '#059669' }}>
+                Planlanan Bütçe: <strong>₺{(summary.totalPlannedBudget || 0).toLocaleString('tr-TR')}</strong>
+              </span>
+              <span style={{ color: '#0284c7' }}>
+                Gerçekleşen Yayın Tutarı: <strong>₺{(summary.totalRealizedBudget || 0).toLocaleString('tr-TR')}</strong>
+              </span>
+              <span style={{ color: '#10b981' }}>
+                Tahsil Edilen: <strong>₺{(summary.totalCollectedAmount || 0).toLocaleString('tr-TR')}</strong>
+              </span>
+              <span style={{ color: '#d97706' }}>
+                Kalan Alacak: <strong>₺{(summary.totalRemainingReceivable || 0).toLocaleString('tr-TR')}</strong>
+              </span>
+            </div>
+          </div>
+
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '1050px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '1220px' }}>
               <thead
                 style={{
                   background: 'var(--bg-tertiary)',
@@ -1402,20 +1477,25 @@ const AdsReportsTab = ({ setActiveTab }) => {
                   <th style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-color)' }}>Plan / Kampanya Adı</th>
                   <th style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-color)' }}>Firma</th>
                   <th style={{ padding: '14px 14px', borderBottom: '1px solid var(--border-color)' }}>Tarih Aralığı</th>
-                  <th style={{ padding: '14px 14px', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>Planlanan Spot</th>
-                  <th style={{ padding: '14px 14px', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>Gerçekleşen Spot</th>
-                  <th style={{ padding: '14px 14px', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>Kalan / Aşım (- Fark)</th>
-                  <th style={{ padding: '14px 14px', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>Birim Fiyat &amp; Bütçe</th>
+                  <th style={{ padding: '14px 12px', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>Planlanan Spot</th>
+                  <th style={{ padding: '14px 12px', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>Gerçekleşen Spot</th>
+                  <th style={{ padding: '14px 12px', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>Kalan / Aşım (- Fark)</th>
+                  <th style={{ padding: '14px 12px', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>Birim Spot Ücreti (₺)</th>
+                  <th style={{ padding: '14px 12px', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>Planlanan Bütçe (₺)</th>
+                  <th style={{ padding: '14px 12px', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>Gerçekleşen Tutar (₺)</th>
+                  <th style={{ padding: '14px 12px', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>Tahsil Edilen &amp; Kalan</th>
                 </tr>
               </thead>
               <tbody>
                 {planReports.map(pr => (
                   <tr
                     key={pr.id}
-                    onClick={() => openMaterialAndCompanyDetail(pr.companyId)}
-                    style={{ borderBottom: '1px solid var(--border-color)', cursor: 'pointer' }}
+                    style={{ borderBottom: '1px solid var(--border-color)' }}
                   >
-                    <td style={{ padding: '13px 16px', fontWeight: '800', color: 'var(--text-primary)' }}>
+                    <td
+                      onClick={() => openMaterialAndCompanyDetail(pr.companyId)}
+                      style={{ padding: '13px 16px', fontWeight: '800', color: 'var(--text-primary)', cursor: 'pointer' }}
+                    >
                       {pr.name}
                       {pr.isRamadanSpecial && (
                         <span style={{ marginLeft: '6px', fontSize: '10px', padding: '2px 7px', borderRadius: '999px', background: '#d97706', color: '#fff', fontWeight: 900 }}>
@@ -1428,15 +1508,39 @@ const AdsReportsTab = ({ setActiveTab }) => {
                         </span>
                       )}
                     </td>
-                    <td style={{ padding: '13px 16px', fontWeight: '700', color: '#60a5fa' }}>{pr.companyName}</td>
+                    <td
+                      onClick={() => openMaterialAndCompanyDetail(pr.companyId)}
+                      style={{ padding: '13px 16px', fontWeight: '700', color: '#60a5fa', cursor: 'pointer' }}
+                    >
+                      {pr.companyName}
+                    </td>
                     <td style={{ padding: '13px 14px', fontFamily: 'monospace', fontSize: '12px' }}>
                       {pr.startDate} – {pr.endDate}
                     </td>
-                    <td style={{ padding: '13px 14px', textAlign: 'center', fontWeight: '800' }}>{pr.plannedSpots} Spot</td>
-                    <td style={{ padding: '13px 14px', textAlign: 'center', fontWeight: '900', color: pr.spotDiff < 0 ? '#ef4444' : '#34d399' }}>
+                    <td style={{ padding: '13px 12px', textAlign: 'center' }}>
+                      <input
+                        type="number"
+                        min="1"
+                        value={pr.plannedSpots ?? ''}
+                        onChange={e => {
+                          const nextPlanned = Math.max(1, Number(e.target.value) || 1);
+                          const nextBudget = pr.unitPrice > 0 ? Math.round(nextPlanned * pr.unitPrice) : pr.plannedBudget;
+                          updateReservation &&
+                            updateReservation(pr.id, {
+                              totalPlannedSpots: nextPlanned,
+                              totalBudget: nextBudget,
+                              totalAmount: nextBudget,
+                              toplamTutar: nextBudget
+                            });
+                        }}
+                        className="ads-saas-input"
+                        style={{ width: '85px', fontWeight: '800', textAlign: 'center' }}
+                      />
+                    </td>
+                    <td style={{ padding: '13px 12px', textAlign: 'center', fontWeight: '900', color: pr.spotDiff < 0 ? '#ef4444' : '#34d399' }}>
                       {pr.realizedSpots} Spot (%{pr.usagePct})
                     </td>
-                    <td style={{ padding: '13px 14px', textAlign: 'center' }}>
+                    <td style={{ padding: '13px 12px', textAlign: 'center' }}>
                       <span
                         style={{
                           padding: '4px 10px',
@@ -1450,24 +1554,80 @@ const AdsReportsTab = ({ setActiveTab }) => {
                         {pr.spotDiff < 0 ? `${pr.spotDiff} Spot Aşım` : `${pr.spotDiff} Kalan`}
                       </span>
                     </td>
-                    <td style={{ padding: '13px 14px', textAlign: 'center', fontSize: '12px' }}>
-                      {pr.plannedBudget > 0 || pr.unitPrice > 0 ? (
-                        <div>
-                          <div style={{ fontWeight: '800', color: '#10b981' }}>
-                            Gerçekleşen: {pr.realizedBudget.toLocaleString('tr-TR')} ₺
-                          </div>
-                          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                            Plan: {pr.plannedBudget.toLocaleString('tr-TR')} ₺ {pr.unitPrice > 0 ? `(${pr.unitPrice} ₺/spot)` : ''}
-                          </div>
-                          {pr.budgetDiff < 0 && (
-                            <div style={{ fontSize: '11px', fontWeight: '900', color: '#ef4444' }}>
-                              {pr.budgetDiff.toLocaleString('tr-TR')} ₺ Bütçe Aşımı
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <span style={{ color: 'var(--text-muted)' }}>Sadece Spot Kotası</span>
-                      )}
+                    <td style={{ padding: '13px 12px', textAlign: 'center' }}>
+                      <input
+                        type="number"
+                        min="0"
+                        step="50"
+                        value={pr.unitPrice || ''}
+                        onChange={e => {
+                          const nextUnit = Math.max(0, Number(e.target.value) || 0);
+                          const nextBudget = Math.round((pr.plannedSpots || 1) * nextUnit);
+                          updateReservation &&
+                            updateReservation(pr.id, {
+                              spotPrice: nextUnit,
+                              totalBudget: nextBudget,
+                              totalAmount: nextBudget,
+                              toplamTutar: nextBudget
+                            });
+                        }}
+                        placeholder="0 ₺"
+                        className="ads-saas-input"
+                        style={{ width: '105px', fontWeight: '800', textAlign: 'center' }}
+                      />
+                    </td>
+                    <td style={{ padding: '13px 12px', textAlign: 'center' }}>
+                      <input
+                        type="number"
+                        min="0"
+                        step="100"
+                        value={pr.plannedBudget || ''}
+                        onChange={e => {
+                          const nextBudget = Math.max(0, Number(e.target.value) || 0);
+                          const nextUnit = (pr.plannedSpots || 1) > 0 ? Math.round(nextBudget / (pr.plannedSpots || 1)) : 0;
+                          updateReservation &&
+                            updateReservation(pr.id, {
+                              spotPrice: nextUnit,
+                              totalBudget: nextBudget,
+                              totalAmount: nextBudget,
+                              toplamTutar: nextBudget
+                            });
+                        }}
+                        placeholder="0 ₺"
+                        className="ads-saas-input"
+                        style={{ width: '115px', fontWeight: '800', color: '#059669', textAlign: 'center' }}
+                      />
+                    </td>
+                    <td style={{ padding: '13px 12px', textAlign: 'center', fontWeight: '800', color: '#0284c7', fontFamily: 'monospace' }}>
+                      ₺{(pr.realizedBudget || 0).toLocaleString('tr-TR')}
+                    </td>
+                    <td style={{ padding: '13px 12px', textAlign: 'center' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                        <input
+                          type="number"
+                          min="0"
+                          step="100"
+                          value={pr.collectedAmount || ''}
+                          onChange={e => {
+                            const nextCol = Math.max(0, Number(e.target.value) || 0);
+                            updateReservation &&
+                              updateReservation(pr.id, {
+                                collectedAmount: nextCol,
+                                paymentStatus: nextCol >= pr.plannedBudget && pr.plannedBudget > 0 ? 'paid' : nextCol > 0 ? 'partial' : 'unpaid'
+                              });
+                          }}
+                          placeholder="Tahsil: 0 ₺"
+                          className="ads-saas-input"
+                          style={{ width: '115px', fontWeight: '800', textAlign: 'center' }}
+                        />
+                        <span style={{ fontSize: '10.5px', fontWeight: '800', color: pr.remainingReceivable > 0 ? '#d97706' : '#10b981' }}>
+                          {pr.remainingReceivable > 0
+                            ? `Kalan: ₺${pr.remainingReceivable.toLocaleString('tr-TR')}`
+                            : pr.plannedBudget > 0
+                            ? '✓ Tahsil Edildi'
+                            : '-'}
+                        </span>
+                      </div>
                     </td>
                   </tr>
                 ))}
