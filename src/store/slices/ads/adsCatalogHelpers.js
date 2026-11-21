@@ -547,15 +547,7 @@ export async function pushAdsStoreToServer(partialPayload = {}) {
   return null;
 }
 
-/**
- * Kullanıcının oluşturduğu rezervasyonları ve kuşak yerleşimlerini hem `localStorage`'a
- * hem de sunucu veritabanına (`/api/ads-store`) yedekler.
- *
- * @param {Array} reservations - Kayıtlı rezervasyon listesi
- * @param {Object} adPlacements - Gün bazlı reklam kuşağı yerleşim haritası
- * @param {Object} [extraOptions] - Silinen ID veya tam üzerine yazma seçenekleri
- */
-export function saveAdsReservationsBackup(reservations, adPlacements, extraOptions = {}) {
+export function writeAdsReservationsLocalCacheOnly(reservations, adPlacements) {
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
       if (Array.isArray(reservations)) {
@@ -565,9 +557,19 @@ export function saveAdsReservationsBackup(reservations, adPlacements, extraOptio
         window.localStorage.setItem(USER_PLACEMENTS_STORAGE_KEY, JSON.stringify(adPlacements));
       }
     }
-  } catch (e) {
-    // ignore storage quota errors
-  }
+  } catch (_) {}
+}
+
+/**
+ * Kullanıcının oluşturduğu rezervasyonları ve kuşak yerleşimlerini hem `localStorage`'a
+ * hem de sunucu veritabanına (`/api/ads-store`) yedekler.
+ *
+ * @param {Array} reservations - Kayıtlı rezervasyon listesi
+ * @param {Object} adPlacements - Gün bazlı reklam kuşağı yerleşim haritası
+ * @param {Object} [extraOptions] - Silinen ID veya tam üzerine yazma seçenekleri
+ */
+export function saveAdsReservationsBackup(reservations, adPlacements, extraOptions = {}) {
+  writeAdsReservationsLocalCacheOnly(reservations, adPlacements);
 
   const deletedReservationIds = loadDeletedReservationIdsBackup();
   pushAdsStoreToServer({
@@ -579,37 +581,91 @@ export function saveAdsReservationsBackup(reservations, adPlacements, extraOptio
 }
 
 /**
- * `localStorage`'da kayıtlı rezervasyonları ve reklam yerleşimlerini yükler.
- * Eski otomatik üretilmiş (`res-auto-*`) kayıtlar varsa temizler.
+ * `localStorage`'da kayıtlı tüm olası anahtarlardaki (`yayin_ads_reservations_v1`,
+ * `yayin-planlama-storage`, `yayin_ads_reservations_backup_v4`) rezervasyonları ve reklam yerleşimlerini
+ * birleştirerek yükler. Hiçbir yerel verinin gözden kaçmamasını garanti eder.
  */
 export function loadAdsReservationsBackup() {
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
-      const rawRes = window.localStorage.getItem(USER_RESERVATIONS_STORAGE_KEY);
-      const rawPlace = window.localStorage.getItem(USER_PLACEMENTS_STORAGE_KEY);
-      const parsedRes = rawRes !== null ? JSON.parse(rawRes) : null;
-      const parsedPlace = rawPlace !== null ? JSON.parse(rawPlace) : null;
+      const deletedSet = new Set(loadDeletedReservationIdsBackup());
+      const resMap = new Map();
+      let foundAnyResSource = false;
 
-      // Eski otomatik üretilmiş varsayılan (res-auto-*) kayıtları tamamen filtrele
-      const reservations = Array.isArray(parsedRes)
-        ? parsedRes.filter(r => r && !String(r.id).startsWith('res-auto-'))
-        : null;
+      const collectReservations = list => {
+        if (!Array.isArray(list)) return;
+        foundAnyResSource = true;
+        list.forEach(r => {
+          if (
+            r &&
+            r.id &&
+            !String(r.id).startsWith('res-auto-') &&
+            !deletedSet.has(String(r.id))
+          ) {
+            resMap.set(String(r.id), r);
+          }
+        });
+      };
 
-      let adPlacements = null;
-      if (parsedPlace && typeof parsedPlace === 'object') {
-        adPlacements = {};
-        Object.entries(parsedPlace).forEach(([dayKey, blocks]) => {
-          const cleanedBlocks = (blocks || [])
+      // 1. Ana yedek anahtarı (yayin_ads_reservations_v1)
+      try {
+        const rawV1 = window.localStorage.getItem(USER_RESERVATIONS_STORAGE_KEY);
+        if (rawV1 !== null) collectReservations(JSON.parse(rawV1));
+      } catch (_) {}
+
+      // 2. V4 yedek anahtarı (yayin_ads_reservations_backup_v4)
+      try {
+        const rawV4 = window.localStorage.getItem('yayin_ads_reservations_backup_v4');
+        if (rawV4 !== null) collectReservations(JSON.parse(rawV4));
+      } catch (_) {}
+
+      // 3. Zustand ana persist deposu (yayin-planlama-storage)
+      let zustandState = null;
+      try {
+        const rawZustand = window.localStorage.getItem('yayin-planlama-storage');
+        if (rawZustand) {
+          const parsedZ = JSON.parse(rawZustand);
+          zustandState = parsedZ?.state || parsedZ || null;
+          if (Array.isArray(zustandState?.reservations)) {
+            collectReservations(zustandState.reservations);
+          }
+        }
+      } catch (_) {}
+
+      const mergedPlacements = {};
+      let foundAnyPlaceSource = false;
+
+      const collectPlacements = placeObj => {
+        if (!placeObj || typeof placeObj !== 'object') return;
+        foundAnyPlaceSource = true;
+        Object.entries(placeObj).forEach(([dayKey, blocks]) => {
+          if (!Array.isArray(blocks)) return;
+          const cleanedBlocks = blocks
             .map(b => ({
               ...b,
               ads: (b.ads || []).filter(ad => ad && !String(ad.reservationId).startsWith('res-auto-'))
             }))
             .filter(b => Array.isArray(b.ads) && b.ads.length > 0);
           if (cleanedBlocks.length > 0) {
-            adPlacements[dayKey] = cleanedBlocks;
+            mergedPlacements[dayKey] = cleanedBlocks;
           }
         });
+      };
+
+      if (zustandState?.adPlacements) {
+        collectPlacements(zustandState.adPlacements);
       }
+      try {
+        const rawPV4 = window.localStorage.getItem('yayin_ads_placements_backup_v4');
+        if (rawPV4 !== null) collectPlacements(JSON.parse(rawPV4));
+      } catch (_) {}
+      try {
+        const rawPV1 = window.localStorage.getItem(USER_PLACEMENTS_STORAGE_KEY);
+        if (rawPV1 !== null) collectPlacements(JSON.parse(rawPV1));
+      } catch (_) {}
+
+      const reservations = foundAnyResSource ? Array.from(resMap.values()) : null;
+      const adPlacements = foundAnyPlaceSource ? mergedPlacements : null;
 
       return {
         reservations,

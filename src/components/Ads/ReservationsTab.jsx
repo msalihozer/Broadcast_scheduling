@@ -19,7 +19,8 @@ import {
   TrendingUp,
   Layers,
   Play,
-  X
+  X,
+  RefreshCw
 } from 'lucide-react';
 import usePlanningStore from '../../store/planningStore';
 import AdsReservationForm, { SPONSOR_POSITIONS } from './AdsReservationForm';
@@ -54,8 +55,28 @@ const ReservationsTab = ({ setActiveTab }) => {
     adPlacements = {},
     ramadanConfig = { enabled: true, startDate: '2026-02-18', endDate: '2026-03-19' },
     removeReservation,
-    clearAllReservations
+    clearAllReservations,
+    syncAdsStoreWithServer
   } = usePlanningStore();
+
+  const [isServerSyncing, setIsServerSyncing] = useState(false);
+
+  const handleManualServerSync = async () => {
+    if (!syncAdsStoreWithServer) return;
+    setIsServerSyncing(true);
+    try {
+      const merged = await syncAdsStoreWithServer();
+      const count = Array.isArray(merged?.reservations) ? merged.reservations.length : reservations.length;
+      useDialogStore
+        .getState()
+        .showSuccess(
+          'Sunucu Veritabanı Eşitlemesi Tamamlandı',
+          `Sunucu veritabanı (/api/ads-store) ile rezervasyonlar eşitlendi.\n\nToplam Aktif Rezervasyon: ${count} adet.`
+        );
+    } finally {
+      setIsServerSyncing(false);
+    }
+  };
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [defaultSponsorMode, setDefaultSponsorMode] = useState(false);
@@ -309,6 +330,21 @@ const ReservationsTab = ({ setActiveTab }) => {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button
+            type="button"
+            onClick={handleManualServerSync}
+            disabled={isServerSyncing}
+            className="ads-saas-btn"
+            style={{
+              borderColor: 'rgba(13, 148, 136, 0.35)',
+              color: '#0d9488',
+              background: 'rgba(13, 148, 136, 0.08)'
+            }}
+            title=".80 ve seyare.semerkand.com arasındaki rezervasyonları sunucu veritabanı ile şimdi eşitle"
+          >
+            <RefreshCw size={14} className={isServerSyncing ? 'animate-spin' : ''} />
+            {isServerSyncing ? 'Eşitleniyor...' : 'Sunucuyla Eşitle'}
+          </button>
           {reservations.length > 0 && (
             <button
               type="button"

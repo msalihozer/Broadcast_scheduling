@@ -29,9 +29,14 @@ const AdsReservationModule = () => {
   const materialsCount = usePlanningStore(state => (state.materials || []).length);
   const loadAdsData = usePlanningStore(state => state.loadAdsData);
   const syncAdsCatalogFromArchive = usePlanningStore(state => state.syncAdsCatalogFromArchive);
+  const syncAdsStoreWithServer = usePlanningStore(state => state.syncAdsStoreWithServer);
   const setAdFilters = usePlanningStore(state => state.setAdFilters);
 
   useEffect(() => {
+    // Hangi sekmede olursa olsun (.80 veya seyare.semerkand.com) açılır açılmaz sunucu DB ile rezervasyonları eşitle
+    if (typeof syncAdsStoreWithServer === 'function') {
+      syncAdsStoreWithServer();
+    }
     if (companiesCount === 0 || productsCount === 0 || materialsCount === 0) {
       loadAdsData();
       if (syncAdsCatalogFromArchive) {

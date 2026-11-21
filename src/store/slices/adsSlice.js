@@ -44,7 +44,8 @@ import {
   saveAdsPricingConfigBackup,
   loadDeletedReservationIdsBackup,
   recordDeletedReservationIdBackup,
-  pushAdsStoreToServer
+  pushAdsStoreToServer,
+  writeAdsReservationsLocalCacheOnly
 } from './ads/adsCatalogHelpers';
 
 import {
@@ -188,16 +189,25 @@ export const createAdsSlice = (set, get) => ({
     try {
       const state = get();
       const localBackup = loadAdsReservationsBackup();
-      const localReservations =
-        Array.isArray(state.reservations) && state.reservations.length > 0
-          ? state.reservations
-          : Array.isArray(localBackup.reservations)
-          ? localBackup.reservations
-          : [];
-      const localPlacements =
-        state.adPlacements && Object.keys(state.adPlacements).length > 0
-          ? state.adPlacements
-          : localBackup.adPlacements || {};
+
+      // Hem Zustand belleğindeki hem de tüm localStorage anahtarlarındaki rezervasyonları birleştir
+      const mergedLocalResMap = new Map();
+      if (Array.isArray(localBackup.reservations)) {
+        localBackup.reservations.forEach(r => {
+          if (r && r.id) mergedLocalResMap.set(String(r.id), r);
+        });
+      }
+      if (Array.isArray(state.reservations)) {
+        state.reservations.forEach(r => {
+          if (r && r.id) mergedLocalResMap.set(String(r.id), r);
+        });
+      }
+      const localReservations = Array.from(mergedLocalResMap.values());
+
+      const localPlacements = {
+        ...(localBackup.adPlacements && typeof localBackup.adPlacements === 'object' ? localBackup.adPlacements : {}),
+        ...(state.adPlacements && typeof state.adPlacements === 'object' ? state.adPlacements : {})
+      };
       const deletedReservationIds = loadDeletedReservationIdsBackup();
 
       const manualCompanies = (state.companies || []).filter(c => c && c.isManual);
@@ -226,13 +236,8 @@ export const createAdsSlice = (set, get) => ({
           ? mergedStore.adPlacements
           : localPlacements;
 
-      // Yerel önbelleği de güncelle
-      try {
-        if (typeof window !== 'undefined' && window.localStorage) {
-          window.localStorage.setItem('yayin_ads_reservations_backup_v4', JSON.stringify(serverReservations));
-          window.localStorage.setItem('yayin_ads_placements_backup_v4', JSON.stringify(serverPlacements));
-        }
-      } catch (_) {}
+      // Yerel önbelleği (yayin_ads_reservations_v1 & yayin_ads_placements_v1) doğrudan güncelle
+      writeAdsReservationsLocalCacheOnly(serverReservations, serverPlacements);
 
       set(cur => ({
         reservations: serverReservations,
@@ -554,17 +559,34 @@ export const createAdsSlice = (set, get) => ({
       remoteArchiveAds: remoteAds
     });
 
+    // Önce sunucu veritabanıyla (.80 & seyare.semerkand.com ortak /api/ads-store) rezervasyonları eşitle
+    let syncedServerStore = null;
+    if (typeof get().syncAdsStoreWithServer === 'function') {
+      syncedServerStore = await get().syncAdsStoreWithServer();
+    }
+
+    const latestState = get();
     const backup = loadAdsReservationsBackup();
-    const currentReservations = Array.isArray(state.reservations)
-      ? state.reservations
-      : Array.isArray(backup.reservations)
-      ? backup.reservations
-      : null;
-    const currentPlacements = state.adPlacements && typeof state.adPlacements === 'object'
-      ? state.adPlacements
-      : backup.adPlacements && typeof backup.adPlacements === 'object'
-      ? backup.adPlacements
-      : null;
+    const currentReservations =
+      Array.isArray(syncedServerStore?.reservations) && syncedServerStore.reservations.length > 0
+        ? syncedServerStore.reservations
+        : Array.isArray(latestState.reservations) && latestState.reservations.length > 0
+        ? latestState.reservations
+        : Array.isArray(backup.reservations)
+        ? backup.reservations
+        : Array.isArray(latestState.reservations)
+        ? latestState.reservations
+        : null;
+    const currentPlacements =
+      syncedServerStore?.adPlacements && Object.keys(syncedServerStore.adPlacements).length > 0
+        ? syncedServerStore.adPlacements
+        : latestState.adPlacements && Object.keys(latestState.adPlacements).length > 0
+        ? latestState.adPlacements
+        : backup.adPlacements && typeof backup.adPlacements === 'object'
+        ? backup.adPlacements
+        : latestState.adPlacements && typeof latestState.adPlacements === 'object'
+        ? latestState.adPlacements
+        : null;
 
     const seeded = (currentReservations === null || currentPlacements === null)
       ? buildInitialReservationsAndPlacements(synced.materials, [])
@@ -581,8 +603,8 @@ export const createAdsSlice = (set, get) => ({
       reservations: preservedReservations,
       adPlacements: preservedPlacements,
       selectedCompanyDetailId:
-        synced.companies.some(c => String(c.id) === String(state.selectedCompanyDetailId))
-          ? state.selectedCompanyDetailId
+        synced.companies.some(c => String(c.id) === String(latestState.selectedCompanyDetailId))
+          ? latestState.selectedCompanyDetailId
           : synced.companies[0]?.id || null,
       adsSyncInfo: {
         lastSyncedAt: new Date().toISOString(),
@@ -603,11 +625,6 @@ export const createAdsSlice = (set, get) => ({
           `• Toplam Materyal (Klip): ${synced.materials.length} Reklam Klibi\n\n` +
           `Tüm klipler en son yüklenenden eskiye doğru sıralandı.`
       );
-    }
-
-    // Rezervasyon, yerleşim, kural ve fiyatlandırma verilerini sunucu veritabanıyla (.80 & seyare.semerkand.com ortak) eşitle
-    if (typeof get().syncAdsStoreWithServer === 'function') {
-      get().syncAdsStoreWithServer();
     }
 
     return synced;

@@ -160,3 +160,26 @@ CREATE INDEX IF NOT EXISTS idx_archive_clips_mam_cat ON archive_clips(mam_catego
 CREATE INDEX IF NOT EXISTS idx_archive_clips_date ON archive_clips(file_create_time DESC);
 CREATE INDEX IF NOT EXISTS idx_archive_clips_ep ON archive_clips(program_id, episode_no, part_no);
 
+-- 7. MAM Arşiv Klip Ayrıştırma Kuralları (Parsing Rules)
+CREATE TABLE IF NOT EXISTS archive_parsing_rules (
+    id SERIAL PRIMARY KEY,
+    program_title VARCHAR(255) NOT NULL,
+    category_id INTEGER NOT NULL DEFAULT 4,
+    match_patterns TEXT NOT NULL,
+    exclude_patterns TEXT DEFAULT '',
+    unit_type VARCHAR(32) NOT NULL DEFAULT 'bolum',
+    extract_source VARCHAR(32) NOT NULL DEFAULT 'both',
+    description TEXT DEFAULT '',
+    is_system BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- 8. Reklam Rezervasyon, Yerleşim, Giriş/Çıkış Kuralları, Logo ve Ücretlendirme Kalıcı Depo Tablosu
+CREATE TABLE IF NOT EXISTS ads_persistent_store (
+    store_key VARCHAR(64) PRIMARY KEY,
+    payload JSONB NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+
