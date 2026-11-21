@@ -28,7 +28,11 @@ import {
   Info,
   GripVertical,
   CornerLeftUp,
-  CornerLeftDown
+  CornerLeftDown,
+  Repeat,
+  ArrowRightToLine,
+  PanelLeftClose,
+  Clock
 } from 'lucide-react';
 import { PRIORITY_BADGES } from './adPlanningConstants';
 import useThemeStore, { hexToRgba } from '../../../store/themeStore';
@@ -103,12 +107,16 @@ const AdBreakInteractiveSpotsList = ({
   onReorderAdInBreak,
   onRemoveAdFromBreak,
   onPreviewMaterial,
-  onQuickAddSpotToBreak
+  onQuickAddSpotToBreak,
+  clipOccurrencesMap = {}
 }) => {
   const [dragOverState, setDragOverState] = useState(null); // { adIndex: number, position: 'above' | 'below' } | { emptyBreak: true }
 
   const isBreakSelectedForAd =
     selectedAdTarget && selectedAdTarget.breakTime === brk.shortTime;
+  const activeHighlightedMaterialId = selectedAdTarget?.materialId
+    ? String(selectedAdTarget.materialId)
+    : null;
 
   const handleRowDragStart = (e, adIdx, ad, mat) => {
     e.stopPropagation();
@@ -174,7 +182,8 @@ const AdBreakInteractiveSpotsList = ({
             onSelectAdTarget({
               breakTime: brk.shortTime,
               adIndex: adjustedTarget,
-              adTitle: parsed.title || 'Spot'
+              adTitle: parsed.title || 'Spot',
+              materialId: parsed.materialId
             });
           }
         }
@@ -391,6 +400,17 @@ const AdBreakInteractiveSpotsList = ({
             const isRowSelected =
               isBreakSelectedForAd && selectedAdTarget.adIndex === adIdx;
 
+            const matIdStr = String(ad.materialId || ad.clipId || '');
+            const clipOcc = !spInfo.isBumper && matIdStr ? clipOccurrencesMap[matIdStr] : null;
+            // Bir reklam klibine tıklandığında aynısı başka yerlerde varsa seçilmiş gibi değil, etrafı belirgin şekilde renklenir
+            const isSameClipElsewhere = Boolean(
+              !isRowSelected &&
+                !spInfo.isBumper &&
+                activeHighlightedMaterialId &&
+                matIdStr &&
+                matIdStr === activeHighlightedMaterialId
+            );
+
             const isDropAbove =
               dragOverState &&
               dragOverState.adIndex === adIdx &&
@@ -403,6 +423,8 @@ const AdBreakInteractiveSpotsList = ({
             const isIntroBumper = Boolean(spInfo.isBumper && spInfo.bumperType === 'intro');
             const isOutroBumper = Boolean(spInfo.isBumper && spInfo.bumperType === 'outro');
             const matDisplayName = ad.name || ad.clipName || mat?.name || 'Reklam Spotu';
+            const compDisplayName = comp?.name || mat?.companyName || ad.companyName || 'Firma';
+            const prodDisplayName = prod?.name || mat?.productName || ad.productName || '';
 
             return (
               <div
@@ -445,7 +467,8 @@ const AdBreakInteractiveSpotsList = ({
                         onSelectAdTarget({
                           breakTime: brk.shortTime,
                           adIndex: adIdx,
-                          adTitle: matDisplayName
+                          adTitle: matDisplayName,
+                          materialId: ad.materialId
                         });
                       }
                     }
@@ -454,50 +477,61 @@ const AdBreakInteractiveSpotsList = ({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
+                    flexWrap: 'wrap',
                     gap: '10px',
-                    padding: '8px 11px',
+                    padding: spInfo.isBumper ? '6px 10px' : '9px 12px',
                     borderRadius: '10px',
                     cursor: 'pointer',
                     background: isRowSelected
-                      ? 'linear-gradient(90deg, rgba(2, 132, 199, 0.16) 0%, rgba(37, 99, 235, 0.08) 100%)'
+                      ? 'linear-gradient(90deg, rgba(2, 132, 199, 0.16) 0%, rgba(37, 99, 235, 0.06) 100%)'
+                      : isSameClipElsewhere
+                      ? 'rgba(245, 158, 11, 0.08)'
                       : isIntroBumper
-                      ? 'linear-gradient(90deg, rgba(16, 185, 129, 0.18) 0%, rgba(13, 148, 136, 0.06) 100%)'
+                      ? 'rgba(16, 185, 129, 0.08)'
                       : isOutroBumper
-                      ? 'linear-gradient(90deg, rgba(217, 119, 6, 0.18) 0%, rgba(245, 158, 11, 0.06) 100%)'
+                      ? 'rgba(217, 119, 6, 0.08)'
                       : spInfo.isSponsor
-                      ? 'linear-gradient(90deg, rgba(147, 51, 234, 0.16) 0%, rgba(217, 119, 6, 0.08) 100%)'
+                      ? 'linear-gradient(90deg, rgba(147, 51, 234, 0.12) 0%, rgba(217, 119, 6, 0.04) 100%)'
                       : 'var(--ads-card-subtle)',
                     border: isRowSelected
                       ? '2px solid #0284c7'
+                      : isSameClipElsewhere
+                      ? '2.5px solid #f59e0b'
                       : isIntroBumper
-                      ? '1.5px solid #059669'
+                      ? '1px solid rgba(5, 150, 105, 0.45)'
                       : isOutroBumper
-                      ? '1.5px solid #d97706'
+                      ? '1px solid rgba(217, 119, 6, 0.45)'
                       : spInfo.isSponsor
-                      ? '1.5px solid #9333ea'
+                      ? '1.5px solid rgba(147, 51, 234, 0.55)'
                       : '1px solid var(--ads-border)',
                     borderLeft: isRowSelected
                       ? '6px solid #0284c7'
+                      : isSameClipElsewhere
+                      ? '7px solid #f59e0b'
                       : isIntroBumper
-                      ? '6px solid #059669'
+                      ? '5px solid #059669'
                       : isOutroBumper
-                      ? '6px solid #d97706'
+                      ? '5px solid #d97706'
                       : spInfo.isSponsor
                       ? '5px solid #9333ea'
                       : '3px solid var(--ads-border-strong)',
-                    boxShadow: isRowSelected
+                    boxShadow: isSameClipElsewhere
+                      ? '0 0 0 3px rgba(245, 158, 11, 0.25), 0 4px 12px rgba(245, 158, 11, 0.14)'
+                      : isRowSelected
                       ? '0 4px 12px rgba(2, 132, 199, 0.2)'
                       : undefined,
-                    transition: 'all 0.12s ease'
+                    transition: 'all 0.14s ease'
                   }}
                   title={
                     spInfo.isBumper
                       ? 'RTÜK Zorunlu Reklam Giriş / Çıkış Jeneriği (En Başta ve En Sonda Kilitli)'
-                      : 'Seçmek (üstüne/altına reklam eklemek) için tıklayın veya sürükleyip sırasını değiştirin'
+                      : isSameClipElsewhere
+                      ? `Bu reklam klibi seçili kliple aynı! Bugün toplam ${clipOcc?.count || 1} kuşakta yayınlanıyor.`
+                      : 'Tıklayarak diğer kuşaklardaki eşleşmelerini görebilir veya üstüne/altına reklam ekleyebilirsiniz'
                   }
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
-                    {/* Sürükle-Bırak Tutamacı */}
+                  {/* Sol Bilgi Grubu (Flex, sıkışmayan yapı) */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '9px', minWidth: '200px', flex: '1 1 260px' }}>
                     <span
                       style={{
                         color: spInfo.isBumper ? (isIntroBumper ? '#059669' : '#d97706') : 'var(--ads-text-muted)',
@@ -506,7 +540,6 @@ const AdBreakInteractiveSpotsList = ({
                         alignItems: 'center',
                         flexShrink: 0
                       }}
-                      title={spInfo.isBumper ? 'RTÜK Kilitli Sıra' : 'Sürükleyerek sırasını değiştirin'}
                     >
                       <GripVertical size={15} />
                     </span>
@@ -519,15 +552,17 @@ const AdBreakInteractiveSpotsList = ({
                         borderRadius: '6px',
                         background: isRowSelected
                           ? '#0284c7'
+                          : isSameClipElsewhere
+                          ? '#f59e0b'
                           : isIntroBumper
-                          ? 'linear-gradient(135deg, #059669, #047857)'
+                          ? '#059669'
                           : isOutroBumper
-                          ? 'linear-gradient(135deg, #d97706, #b45309)'
+                          ? '#d97706'
                           : spInfo.isSponsor
-                          ? 'linear-gradient(135deg, #9333ea, #7e22ce)'
+                          ? '#9333ea'
                           : 'var(--ads-pill-bar-bg)',
                         color:
-                          isRowSelected || spInfo.isBumper || spInfo.isSponsor
+                          isRowSelected || isSameClipElsewhere || spInfo.isBumper || spInfo.isSponsor
                             ? '#ffffff'
                             : 'var(--ads-text-main)',
                         fontSize: '11px',
@@ -541,170 +576,151 @@ const AdBreakInteractiveSpotsList = ({
                       {adIdx + 1}
                     </span>
 
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                    {/* RTÜK Giriş/Çıkış ise tek satır sade gösterim, Ticari/Sponsor ise temiz başlık + alt bilgi */}
+                    {spInfo.isBumper ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', minWidth: 0 }}>
                         <span
                           style={{
-                            fontSize: '12.5px',
-                            fontWeight: '800',
-                            fontFamily: spInfo.isBumper ? 'monospace' : 'inherit',
-                            color: isRowSelected
-                              ? '#0369a1'
-                              : isIntroBumper
-                              ? '#047857'
-                              : isOutroBumper
-                              ? '#b45309'
-                              : spInfo.isSponsor
-                              ? '#7e22ce'
-                              : 'var(--ads-text-main)'
+                            fontSize: '10.5px',
+                            fontWeight: '900',
+                            padding: '2px 8px',
+                            borderRadius: '6px',
+                            background: isIntroBumper ? '#059669' : '#d97706',
+                            color: '#ffffff'
+                          }}
+                        >
+                          {isIntroBumper ? '🟢 RTÜK Giriş' : '🟠 RTÜK Çıkış'} • {spInfo.bumperCategoryName}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: '12px',
+                            fontWeight: '700',
+                            fontFamily: 'monospace',
+                            color: 'var(--ads-text-sub)'
                           }}
                         >
                           {matDisplayName}
                         </span>
-
-                        {isIntroBumper && (
-                          <span
-                            style={{
-                              fontSize: '10px',
-                              fontWeight: '900',
-                              padding: '2px 8px',
-                              borderRadius: '999px',
-                              background: 'linear-gradient(135deg, #059669, #047857)',
-                              color: '#ffffff',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px'
-                            }}
-                          >
-                            🟢 RTÜK REKLAM GİRİŞ (1. SIRA KİLİTLİ) • Kategori: {spInfo.bumperCategoryName}
-                          </span>
-                        )}
-
-                        {isOutroBumper && (
-                          <span
-                            style={{
-                              fontSize: '10px',
-                              fontWeight: '900',
-                              padding: '2px 8px',
-                              borderRadius: '999px',
-                              background: 'linear-gradient(135deg, #d97706, #b45309)',
-                              color: '#ffffff',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px'
-                            }}
-                          >
-                            🟠 RTÜK REKLAM ÇIKIŞ (SON SIRA KİLİTLİ) • Kategori: {spInfo.bumperCategoryName}
-                          </span>
-                        )}
-
-                        {isRowSelected && (
-                          <span
-                            style={{
-                              fontSize: '10px',
-                              fontWeight: '900',
-                              padding: '2px 8px',
-                              borderRadius: '999px',
-                              background: '#0284c7',
-                              color: '#ffffff',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '3px'
-                            }}
-                          >
-                            🎯 SEÇİLİ ({insertPositionMode === 'above' ? '↑ Üstüne Eklenecek' : insertPositionMode === 'below' ? '↓ Altına Eklenecek' : 'Sona'})
-                          </span>
-                        )}
-
-                        {spInfo.isSponsor && (
-                          <span
-                            style={{
-                              fontSize: '10px',
-                              fontWeight: '900',
-                              padding: '2px 8px',
-                              borderRadius: '999px',
-                              background: ad.lockOrder
-                                ? 'linear-gradient(135deg, #e11d48, #be123c)'
-                                : 'linear-gradient(135deg, #9333ea, #7e22ce)',
-                              color: '#ffffff',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '3px'
-                            }}
-                          >
-                            🏆 SPONSOR • {spInfo.roleLabel}
-                          </span>
-                        )}
-
-                        {spInfo.isSponsor && spInfo.programTitle && (
-                          <span
-                            style={{
-                              fontSize: '10px',
-                              fontWeight: '800',
-                              padding: '2px 8px',
-                              borderRadius: '6px',
-                              background: 'rgba(147, 51, 234, 0.14)',
-                              color: '#9333ea',
-                              border: '1px solid rgba(147, 51, 234, 0.35)'
-                            }}
-                          >
-                            📺 Program: {spInfo.programTitle}
-                          </span>
-                        )}
-
-                        {(ad.isRamadanSpot || resObj?.isRamadanSpecial) && (
-                          <span
-                            style={{
-                              fontSize: '10px',
-                              fontWeight: '900',
-                              padding: '1px 7px',
-                              borderRadius: '999px',
-                              background: 'linear-gradient(135deg, #d97706, #b45309)',
-                              color: '#fff'
-                            }}
-                          >
-                            🌙 Ramazan Özel
-                          </span>
-                        )}
-
-                        {prioBadge && !spInfo.isBumper && (
-                          <span
-                            style={{
-                              fontSize: '10px',
-                              fontWeight: '800',
-                              padding: '1px 7px',
-                              borderRadius: '5px',
-                              background: prioBadge.bg,
-                              color: prioBadge.color
-                            }}
-                          >
-                            {prioBadge.label}
-                          </span>
-                        )}
                       </div>
+                    ) : (
+                      <div style={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '7px', flexWrap: 'wrap' }}>
+                          <span
+                            style={{
+                              fontSize: '13px',
+                              fontWeight: '800',
+                              color: isRowSelected
+                                ? '#0369a1'
+                                : isSameClipElsewhere
+                                ? '#b45309'
+                                : spInfo.isSponsor
+                                ? '#7e22ce'
+                                : 'var(--ads-text-main)'
+                            }}
+                          >
+                            {matDisplayName}
+                          </span>
 
-                      <div style={{ fontSize: '11px', color: 'var(--ads-text-muted)', marginTop: '2px' }}>
-                        {spInfo.isBumper ? (
-                          <span>
-                            <strong>{ad.companyName || 'RTÜK REKLAM JENERİĞİ'}</strong> •{' '}
-                            {ad.productName || `Önceki Program: ${brk.prevProgramTitle || 'Genel'}`} •{' '}
-                            <span style={{ fontFamily: 'monospace' }}>{ad.code || ''}</span>
-                          </span>
-                        ) : (
-                          <span>
-                            <strong>{comp?.name || mat?.companyName || ad.companyName || 'Firma'}</strong> •{' '}
-                            {prod?.name || mat?.productName || ad.productName || 'Ürün'}
-                          </span>
-                        )}
+                          {isRowSelected && (
+                            <span
+                              style={{
+                                fontSize: '10px',
+                                fontWeight: '900',
+                                padding: '2px 8px',
+                                borderRadius: '999px',
+                                background: '#0284c7',
+                                color: '#ffffff'
+                              }}
+                            >
+                              🎯 SEÇİLİ {clipOcc?.count > 1 ? `(${clipOcc.count} Kuşakta Var)` : ''}
+                            </span>
+                          )}
+
+                          {isSameClipElsewhere && (
+                            <span
+                              style={{
+                                fontSize: '10.5px',
+                                fontWeight: '900',
+                                padding: '2px 9px',
+                                borderRadius: '999px',
+                                background: '#f59e0b',
+                                color: '#ffffff',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                boxShadow: '0 2px 6px rgba(245, 158, 11, 0.35)'
+                              }}
+                            >
+                              <Repeat size={11} />
+                              <span>Aynı Klip ({clipOcc?.count || 2} Kuşakta)</span>
+                            </span>
+                          )}
+
+                          {spInfo.isSponsor && (
+                            <span
+                              style={{
+                                fontSize: '10px',
+                                fontWeight: '900',
+                                padding: '2px 8px',
+                                borderRadius: '6px',
+                                background: ad.lockOrder ? '#e11d48' : '#9333ea',
+                                color: '#ffffff'
+                              }}
+                            >
+                              🏆 {spInfo.roleLabel}
+                              {spInfo.programTitle ? ` • ${spInfo.programTitle}` : ''}
+                            </span>
+                          )}
+
+                          {!spInfo.isSponsor && prioBadge && (
+                            <span
+                              style={{
+                                fontSize: '10px',
+                                fontWeight: '800',
+                                padding: '1px 7px',
+                                borderRadius: '5px',
+                                background: prioBadge.bg,
+                                color: prioBadge.color
+                              }}
+                            >
+                              {prioBadge.label}
+                            </span>
+                          )}
+                        </div>
+
+                        <div style={{ fontSize: '11.5px', color: 'var(--ads-text-muted)', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                          <strong style={{ color: 'var(--ads-text-sub)' }}>{compDisplayName}</strong>
+                          {prodDisplayName && prodDisplayName !== compDisplayName && (
+                            <span>• {prodDisplayName}</span>
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
 
-                  {/* Sağ Aksiyon Butonları: ⓘ Detay/Önizleme, Süre, ↑ Yukarı, ↓ Aşağı, 🗑 Sil */}
+                  {/* Sağ Aksiyon Butonları: Süre, ⓘ Önizleme, ↑ Yukarı, ↓ Aşağı, 🗑 Sil */}
                   <div
-                    style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0, marginLeft: 'auto' }}
                     onClick={e => e.stopPropagation()}
                   >
+                    <span
+                      style={{
+                        fontFamily: 'monospace',
+                        fontSize: '11.5px',
+                        fontWeight: '800',
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        background: isIntroBumper
+                          ? 'rgba(16, 185, 129, 0.14)'
+                          : isOutroBumper
+                          ? 'rgba(217, 119, 6, 0.14)'
+                          : 'rgba(13, 148, 136, 0.12)',
+                        color: isIntroBumper ? '#059669' : isOutroBumper ? '#d97706' : '#0d9488'
+                      }}
+                    >
+                      {ad.duration} sn
+                    </span>
+
                     {onPreviewMaterial && (mat || ad.materialId || ad.clipId) && (
                       <button
                         type="button"
@@ -727,7 +743,7 @@ const AdBreakInteractiveSpotsList = ({
                             sponsorProgramTitle: spInfo.programTitle,
                             sponsorTag: spInfo.roleLabel,
                             breakTime: brk.shortTime,
-                            breakName: brk.title,
+                            breakName: `${brk.exactStartClock} Kuşağı`,
                             orderInBreak: adIdx + 1,
                             prevProgramTitle: brk.prevProgramTitle,
                             nextProgramTitle: brk.nextProgramTitle
@@ -738,7 +754,7 @@ const AdBreakInteractiveSpotsList = ({
                           width: '28px',
                           height: '28px',
                           padding: 0,
-                          borderRadius: '8px',
+                          borderRadius: '7px',
                           background: 'rgba(37, 99, 235, 0.12)',
                           border: '1px solid rgba(37, 99, 235, 0.35)',
                           color: '#2563eb',
@@ -746,29 +762,11 @@ const AdBreakInteractiveSpotsList = ({
                           alignItems: 'center',
                           justifyContent: 'center'
                         }}
-                        title="Reklam Detayları, Firma, Kare (25/30/50 FPS) ve Video Önizleme (ⓘ)"
+                        title="Reklam Detayları ve Video Önizleme (ⓘ)"
                       >
                         <Info size={14} />
                       </button>
                     )}
-
-                    <span
-                      style={{
-                        fontFamily: 'monospace',
-                        fontSize: '11.5px',
-                        fontWeight: '800',
-                        padding: '3px 8px',
-                        borderRadius: '6px',
-                        background: isIntroBumper
-                          ? 'rgba(16, 185, 129, 0.16)'
-                          : isOutroBumper
-                          ? 'rgba(217, 119, 6, 0.16)'
-                          : 'rgba(13, 148, 136, 0.12)',
-                        color: isIntroBumper ? '#059669' : isOutroBumper ? '#d97706' : '#0d9488'
-                      }}
-                    >
-                      {ad.duration} sn
-                    </span>
 
                     {onMoveAdInBreak && !spInfo.isBumper && (
                       <>
@@ -859,6 +857,20 @@ const AdBreakInteractiveSpotsList = ({
   );
 };
 
+const getTimeBlockBadgeStyle = (tbName = '') => {
+  const lower = String(tbName || '').toLocaleLowerCase('tr-TR');
+  if (lower.includes('sabah')) {
+    return { bg: 'rgba(2, 132, 199, 0.14)', color: '#0284c7', border: 'rgba(2, 132, 199, 0.35)' };
+  }
+  if (lower.includes('öğle') || lower.includes('ogle')) {
+    return { bg: 'rgba(217, 119, 6, 0.14)', color: '#d97706', border: 'rgba(217, 119, 6, 0.35)' };
+  }
+  if (lower.includes('akşam') || lower.includes('aksam') || lower.includes('prime')) {
+    return { bg: 'rgba(124, 58, 237, 0.15)', color: '#7c3aed', border: 'rgba(124, 58, 237, 0.38)' };
+  }
+  return { bg: 'rgba(15, 118, 110, 0.14)', color: '#0f766e', border: 'rgba(15, 118, 110, 0.35)' };
+};
+
 export const AdBreaksListView = ({
   adBreaksList = [],
   selectedDayInfo,
@@ -879,11 +891,16 @@ export const AdBreaksListView = ({
   onRemoveAdFromBreak,
   onPreviewMaterial,
   onQuickAddSpotToBreak,
-  onSetBreakRamadanTag
+  onSetBreakRamadanTag,
+  clipOccurrencesMap = {}
 }) => {
   const themeConfig = useThemeStore(state => state.config);
   const emptyBreakColor = themeConfig?.modules?.ads?.emptyBreakColor || themeConfig?.specialColors?.adBreakEmptyColor || '#ea580c';
   const filledBreakColor = themeConfig?.modules?.ads?.filledBreakColor || themeConfig?.specialColors?.adBreakFilledColor || '#0d9488';
+
+  const activeHighlightedMaterialId = selectedAdTarget?.materialId
+    ? String(selectedAdTarget.materialId)
+    : null;
 
   if (adBreaksList.length === 0) {
     return (
@@ -909,13 +926,18 @@ export const AdBreaksListView = ({
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {adBreaksList.map((brk, brkIdx) => {
         const isActiveTarget =
           selectedStudioBreak && selectedStudioBreak.shortTime === brk.shortTime;
         const isSponsorBreak = Boolean(
           brk.hasSponsorAds || brk.prevProgramIsSponsored || brk.nextProgramIsSponsored
         );
+        const hasHighlightedClipInBreak = Boolean(
+          activeHighlightedMaterialId &&
+            (brk.placedAds || []).some(a => !a.isBumperAd && String(a.materialId) === activeHighlightedMaterialId)
+        );
+        const tbStyle = getTimeBlockBadgeStyle(brk.timeBlockName);
 
         return (
           <div
@@ -926,13 +948,17 @@ export const AdBreaksListView = ({
               padding: '16px 18px',
               gap: '12px',
               cursor: 'pointer',
-              border: isActiveTarget
+              border: hasHighlightedClipInBreak
+                ? '2px solid #f59e0b'
+                : isActiveTarget
                 ? '2px solid var(--ads-brand)'
                 : isSponsorBreak
-                ? '1.5px solid rgba(147, 51, 234, 0.55)'
+                ? '1.5px solid rgba(147, 51, 234, 0.5)'
                 : '1px solid var(--ads-border)',
               borderLeft: `6px solid ${
-                isActiveTarget
+                hasHighlightedClipInBreak
+                  ? '#f59e0b'
+                  : isActiveTarget
                   ? 'var(--ads-brand)'
                   : brk.hasSponsorAds
                   ? '#9333ea'
@@ -940,16 +966,19 @@ export const AdBreaksListView = ({
                   ? filledBreakColor
                   : emptyBreakColor
               }`,
-              background: brk.hasSponsorAds
-                ? 'linear-gradient(180deg, rgba(147, 51, 234, 0.05) 0%, var(--ads-card-bg) 100%)'
-                : undefined,
-              boxShadow: isActiveTarget
+              boxShadow: hasHighlightedClipInBreak
+                ? '0 0 0 3px rgba(245, 158, 11, 0.16), 0 8px 20px -6px rgba(245, 158, 11, 0.2)'
+                : isActiveTarget
                 ? '0 8px 22px -6px rgba(70, 95, 255, 0.2)'
                 : undefined,
               transition: 'all 0.15s ease'
             }}
           >
-            {/* Kuşak Üst Başlığı */}
+            {/* ================================================================
+                1. SATIR: TEMİZ VE TEKRARSIZ KUŞAK BAŞLIĞI (FLEXBOX)
+                Sol: [X. KUŞAK] + [Saat Aralığı] + [Sabah/Öğle/Akşam Kuşağı]
+                Sağ: [Spot & Süre Doluluk Özeti] + [+ Spot Ekle / Temizle]
+               ================================================================ */}
             <div
               style={{
                 display: 'flex',
@@ -959,176 +988,146 @@ export const AdBreaksListView = ({
                 gap: '10px'
               }}
             >
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  <span
-                    style={{
-                      fontSize: '11px',
-                      fontWeight: 800,
-                      padding: '3px 8px',
-                      borderRadius: '6px',
-                      background: isActiveTarget ? 'var(--ads-brand)' : 'var(--ads-pill-bar-bg)',
-                      color: isActiveTarget ? '#ffffff' : 'var(--ads-text-sub)'
-                    }}
-                  >
-                    {brkIdx + 1}. Kuşak
-                  </span>
-                  <span
-                    style={{
-                      fontFamily: 'monospace',
-                      fontSize: '13.5px',
-                      fontWeight: '900',
-                      padding: '3px 9px',
-                      borderRadius: '7px',
-                      background: 'var(--ads-brand-soft)',
-                      color: 'var(--ads-brand)'
-                    }}
-                  >
-                    {brk.exactStartClock} → {brk.exactEndClock}
-                  </span>
-                  <span style={{ fontSize: '14.5px', fontWeight: '800', color: 'var(--ads-text-main)' }}>
-                    {brk.title}
-                  </span>
-                  <span className="ta-badge ta-badge-info" style={{ fontSize: '10.5px' }}>
-                    {brk.timeBlockName}
-                  </span>
+              {/* Sol: Kuşak Sırası, Saat Aralığı ve Yayın Kuşağı Dilimi (Tekrarsız) */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: '900',
+                    padding: '5px 11px',
+                    borderRadius: '8px',
+                    background: isActiveTarget ? 'var(--ads-brand)' : '#1e293b',
+                    color: '#ffffff',
+                    letterSpacing: '0.02em'
+                  }}
+                >
+                  {brkIdx + 1}. KUŞAK
+                </span>
 
-                  {brk.hasSponsorAds && (
-                    <span
-                      style={{
-                        fontSize: '10.5px',
-                        fontWeight: '900',
-                        padding: '3px 9px',
-                        borderRadius: '999px',
-                        background: 'linear-gradient(135deg, #9333ea 0%, #7e22ce 100%)',
-                        color: '#ffffff',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        boxShadow: '0 2px 8px rgba(147, 51, 234, 0.35)'
-                      }}
-                    >
-                      <Award size={12} /> SPONSORLU KUŞAK
-                    </span>
-                  )}
+                <span
+                  style={{
+                    fontFamily: 'monospace',
+                    fontSize: '13.5px',
+                    fontWeight: '900',
+                    padding: '4px 11px',
+                    borderRadius: '8px',
+                    background: 'var(--ads-brand-soft)',
+                    color: 'var(--ads-brand)',
+                    border: '1px solid rgba(70, 95, 255, 0.25)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px'
+                  }}
+                >
+                  <Clock size={13} />
+                  <span>{brk.exactStartClock} – {brk.exactEndClock}</span>
+                </span>
 
-                  {onSetBreakRamadanTag && (
-                    <select
-                      value={brk.ramadanBreakTag || ''}
-                      onClick={e => e.stopPropagation()}
-                      onChange={e => {
-                        e.stopPropagation();
-                        onSetBreakRamadanTag(brk, e.target.value);
-                      }}
-                      title="Bu reklam kuşağını Ramazan Özel (Sahur / İftar Öncesi, Arası, Sonrası) olarak işaretle"
-                      style={{
-                        fontSize: '10.5px',
-                        fontWeight: '900',
-                        padding: '3px 8px',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        outline: 'none',
-                        background: (brk.ramadanBreakTag || '').startsWith('sahur')
-                          ? 'linear-gradient(135deg, #0284c7, #0369a1)'
-                          : (brk.ramadanBreakTag || '').startsWith('iftar')
-                          ? 'linear-gradient(135deg, #d97706, #b45309)'
-                          : 'var(--ads-card-subtle)',
-                        color: brk.ramadanBreakTag ? '#ffffff' : 'var(--ads-text-sub)',
-                        border: brk.ramadanBreakTag ? 'none' : '1px dashed var(--ads-border-strong)'
-                      }}
-                    >
-                      <option value="" style={{ background: '#1e293b', color: '#f8fafc' }}>🌙 Ramazan Özel İşaretle...</option>
-                      <option value="sahur_before" style={{ background: '#1e293b', color: '#38bdf8' }}>🌙 SAHUR ÖNCESİ KUŞAĞI</option>
-                      <option value="sahur_middle" style={{ background: '#1e293b', color: '#38bdf8' }}>🌙 SAHUR ARASI KUŞAĞI</option>
-                      <option value="sahur_after" style={{ background: '#1e293b', color: '#38bdf8' }}>🌙 SAHUR SONRASI KUŞAĞI</option>
-                      <option value="iftar_before" style={{ background: '#1e293b', color: '#fbbf24' }}>🕌 İFTAR ÖNCESİ KUŞAĞI</option>
-                      <option value="iftar_middle" style={{ background: '#1e293b', color: '#fbbf24' }}>🕌 İFTAR ARASI KUŞAĞI</option>
-                      <option value="iftar_after" style={{ background: '#1e293b', color: '#fbbf24' }}>🕌 İFTAR SONRASI KUŞAĞI</option>
-                    </select>
-                  )}
-
-                  {isActiveTarget && (
-                    <span className="ta-badge ta-badge-brand" style={{ fontSize: '10.5px' }}>
-                      <Target size={11} /> Seçili Hedef Kuşak
-                    </span>
-                  )}
-                </div>
-
-                {/* Komşu Program ve Sponsorlu Program Renkli Gösterimi */}
-                {(brk.prevProgramTitle || brk.nextProgramTitle) && (
-                  <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px', fontSize: '11.5px', color: 'var(--ads-text-muted)' }}>
-                    {brk.prevProgramTitle && (
-                      <span
-                        style={{
-                          padding: brk.prevProgramIsSponsored ? '2px 8px' : '0px',
-                          borderRadius: '6px',
-                          background: brk.prevProgramIsSponsored ? 'rgba(147, 51, 234, 0.14)' : 'transparent',
-                          border: brk.prevProgramIsSponsored ? '1px solid rgba(147, 51, 234, 0.4)' : 'none',
-                          color: brk.prevProgramIsSponsored ? '#9333ea' : 'var(--ads-text-muted)'
-                        }}
-                      >
-                        {brk.prevProgramIsSponsored ? '🏆 Sponsorlu Önceki Program: ' : 'Önceki Program: '}
-                        <strong style={{ color: brk.prevProgramIsSponsored ? '#7e22ce' : 'var(--ads-text-sub)' }}>
-                          {brk.prevProgramTitle} {brk.prevProgramStartClock ? `(${brk.prevProgramStartClock})` : ''}
-                        </strong>
-                        {brk.prevProgramCategoryName && (
-                          <span
-                            style={{
-                              marginLeft: '6px',
-                              fontSize: '10px',
-                              fontWeight: '800',
-                              padding: '1px 6px',
-                              borderRadius: '5px',
-                              background: 'rgba(16, 185, 129, 0.14)',
-                              color: '#059669',
-                              border: '1px solid rgba(16, 185, 129, 0.35)'
-                            }}
-                            title={`Kategoriye göre RTÜK Reklam Giriş: ${brk.expectedIntroBumperName || '-'} • Çıkış: ${brk.expectedOutroBumperName || '-'}`}
-                          >
-                            🏷️ {brk.prevProgramCategoryName}
-                            {brk.expectedIntroBumperName ? ` → 🟢 ${brk.expectedIntroBumperName}` : ''}
-                            {brk.expectedOutroBumperName ? ` / 🟠 ${brk.expectedOutroBumperName}` : ''}
-                            {brk.expectedBumperTotalSec ? ` (${brk.expectedBumperTotalSec} sn)` : ''}
-                          </span>
-                        )}
-                        {brk.prevProgramIsSponsored && brk.prevProgramSponsorText ? ` — ${brk.prevProgramSponsorText}` : ''}
-                      </span>
-                    )}
-                    {brk.prevProgramTitle && brk.nextProgramTitle && <span>•</span>}
-                    {brk.nextProgramTitle && (
-                      <span
-                        style={{
-                          padding: brk.nextProgramIsSponsored ? '2px 8px' : '0px',
-                          borderRadius: '6px',
-                          background: brk.nextProgramIsSponsored ? 'rgba(147, 51, 234, 0.14)' : 'transparent',
-                          border: brk.nextProgramIsSponsored ? '1px solid rgba(147, 51, 234, 0.4)' : 'none',
-                          color: brk.nextProgramIsSponsored ? '#9333ea' : 'var(--ads-text-muted)'
-                        }}
-                      >
-                        {brk.nextProgramIsSponsored ? '🏆 Sponsorlu Sonraki Program: ' : 'Sonraki Program: '}
-                        <strong style={{ color: brk.nextProgramIsSponsored ? '#7e22ce' : 'var(--ads-text-sub)' }}>
-                          {brk.nextProgramTitle} {brk.nextProgramStartClock ? `(${brk.nextProgramStartClock})` : ''}
-                        </strong>
-                        {brk.nextProgramIsSponsored && brk.nextProgramSponsorText ? ` — ${brk.nextProgramSponsorText}` : ''}
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }} onClick={e => e.stopPropagation()}>
                 <span
                   style={{
                     fontSize: '11.5px',
-                    fontWeight: 800,
-                    padding: '4px 10px',
+                    fontWeight: '800',
+                    padding: '4px 11px',
                     borderRadius: '8px',
-                    background: 'rgba(13, 148, 136, 0.1)',
-                    color: '#0d9488'
+                    background: tbStyle.bg,
+                    color: tbStyle.color,
+                    border: `1px solid ${tbStyle.border}`
                   }}
                 >
-                  {brk.placedAds.length} Spot
+                  {brk.timeBlockName}
                 </span>
+
+                {brk.hasSponsorAds && (
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: '900',
+                      padding: '4px 10px',
+                      borderRadius: '8px',
+                      background: 'linear-gradient(135deg, #9333ea 0%, #7e22ce 100%)',
+                      color: '#ffffff',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <Award size={12} /> Sponsorlu
+                  </span>
+                )}
+
+                {hasHighlightedClipInBreak && (
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: '900',
+                      padding: '4px 10px',
+                      borderRadius: '8px',
+                      background: 'rgba(245, 158, 11, 0.16)',
+                      border: '1.5px solid #f59e0b',
+                      color: '#b45309',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <Repeat size={12} /> Seçili Klip Bu Kuşakta
+                  </span>
+                )}
+
+                {onSetBreakRamadanTag && (
+                  <select
+                    value={brk.ramadanBreakTag || ''}
+                    onClick={e => e.stopPropagation()}
+                    onChange={e => {
+                      e.stopPropagation();
+                      onSetBreakRamadanTag(brk, e.target.value);
+                    }}
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: '800',
+                      padding: '4px 8px',
+                      borderRadius: '7px',
+                      cursor: 'pointer',
+                      background: brk.ramadanBreakTag ? '#d97706' : 'var(--ads-card-subtle)',
+                      color: brk.ramadanBreakTag ? '#ffffff' : 'var(--ads-text-sub)',
+                      border: '1px solid var(--ads-border-strong)'
+                    }}
+                  >
+                    <option value="">🌙 Ramazan İşaretle...</option>
+                    <option value="sahur_before">🌙 Sahur Öncesi</option>
+                    <option value="sahur_middle">🌙 Sahur Arası</option>
+                    <option value="sahur_after">🌙 Sahur Sonrası</option>
+                    <option value="iftar_before">🕌 İftar Öncesi</option>
+                    <option value="iftar_middle">🕌 İftar Arası</option>
+                    <option value="iftar_after">🕌 İftar Sonrası</option>
+                  </select>
+                )}
+              </div>
+
+              {/* Sağ: Kompakt Süre / Spot Özeti ve Aksiyon Butonları */}
+              <div
+                style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}
+                onClick={e => e.stopPropagation()}
+              >
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '5px 11px',
+                    borderRadius: '8px',
+                    background: 'var(--ads-card-subtle)',
+                    border: '1px solid var(--ads-border)',
+                    fontSize: '12px',
+                    fontWeight: '800'
+                  }}
+                >
+                  <span style={{ color: '#4f46e5' }}>{brk.placedAds.length} Spot</span>
+                  <span style={{ color: 'var(--ads-border-strong)' }}>|</span>
+                  <span style={{ color: '#0d9488' }}>
+                    {brk.filledSec} / {brk.capacitySec} sn (%{brk.fillPct})
+                  </span>
+                </div>
 
                 {brk.placedAds.length > 0 && (
                   <button
@@ -1154,29 +1153,156 @@ export const AdBreaksListView = ({
               </div>
             </div>
 
-            {/* Kuşak Süre Doluluk Çubuğu */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px', fontWeight: '700' }}>
-                <span style={{ color: 'var(--ads-text-sub)' }}>
-                  Doldurulan Süre: <strong>{brk.filledSec} sn</strong> / {brk.capacitySec} sn ({brk.durationMin} dk)
-                </span>
-                <span style={{ color: brk.remainingSec > 0 ? '#0d9488' : '#dc2626' }}>
-                  Kalan Boş Süre: {brk.remainingSec} sn (%{brk.fillPct} Dolu)
-                </span>
+            {/* ================================================================
+                2. SATIR: ÖNCEKİ PROGRAM & SONRAKİ PROGRAM BAĞLAM KUTULARI (2'Lİ FLEX)
+               ================================================================ */}
+            {(brk.prevProgramTitle || brk.nextProgramTitle) && (
+              <div
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '10px'
+                }}
+              >
+                {/* Sol Kutu: Önceki Program */}
+                {brk.prevProgramTitle && (
+                  <div
+                    style={{
+                      flex: '1 1 240px',
+                      minWidth: 0,
+                      padding: '8px 12px',
+                      borderRadius: '9px',
+                      background: brk.prevProgramIsSponsored
+                        ? 'rgba(147, 51, 234, 0.08)'
+                        : 'var(--ads-card-subtle)',
+                      border: brk.prevProgramIsSponsored
+                        ? '1px solid rgba(147, 51, 234, 0.35)'
+                        : '1px solid var(--ads-border)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '8px',
+                      flexWrap: 'wrap'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '10.5px', fontWeight: '800', color: 'var(--ads-text-muted)', textTransform: 'uppercase' }}>
+                        ◀ Önceki:
+                      </span>
+                      {brk.prevProgramStartClock && (
+                        <span style={{ fontSize: '11px', fontWeight: '800', fontFamily: 'monospace', color: 'var(--ads-brand)' }}>
+                          {brk.prevProgramStartClock}
+                        </span>
+                      )}
+                      <strong style={{ fontSize: '12px', fontWeight: '800', color: 'var(--ads-text-main)' }}>
+                        {brk.prevProgramTitle}
+                      </strong>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+                      {brk.prevProgramCategoryName && (
+                        <span
+                          style={{
+                            fontSize: '10px',
+                            fontWeight: '800',
+                            padding: '2px 7px',
+                            borderRadius: '6px',
+                            background: 'rgba(16, 185, 129, 0.14)',
+                            color: '#059669'
+                          }}
+                        >
+                          {brk.prevProgramCategoryName}
+                        </span>
+                      )}
+                      {brk.prevProgramIsSponsored && (
+                        <span
+                          style={{
+                            fontSize: '10px',
+                            fontWeight: '900',
+                            padding: '2px 7px',
+                            borderRadius: '6px',
+                            background: '#9333ea',
+                            color: '#ffffff'
+                          }}
+                        >
+                          🏆 Sponsorlu
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Sağ Kutu: Sonraki Program */}
+                {brk.nextProgramTitle && (
+                  <div
+                    style={{
+                      flex: '1 1 240px',
+                      minWidth: 0,
+                      padding: '8px 12px',
+                      borderRadius: '9px',
+                      background: brk.nextProgramIsSponsored
+                        ? 'rgba(147, 51, 234, 0.08)'
+                        : 'var(--ads-card-subtle)',
+                      border: brk.nextProgramIsSponsored
+                        ? '1px solid rgba(147, 51, 234, 0.35)'
+                        : '1px solid var(--ads-border)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '8px',
+                      flexWrap: 'wrap'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '10.5px', fontWeight: '800', color: 'var(--ads-text-muted)', textTransform: 'uppercase' }}>
+                        ▶ Sonraki:
+                      </span>
+                      {brk.nextProgramStartClock && (
+                        <span style={{ fontSize: '11px', fontWeight: '800', fontFamily: 'monospace', color: 'var(--ads-brand)' }}>
+                          {brk.nextProgramStartClock}
+                        </span>
+                      )}
+                      <strong style={{ fontSize: '12px', fontWeight: '800', color: 'var(--ads-text-main)' }}>
+                        {brk.nextProgramTitle}
+                      </strong>
+                    </div>
+
+                    {brk.nextProgramIsSponsored && (
+                      <span
+                        style={{
+                          fontSize: '10px',
+                          fontWeight: '900',
+                          padding: '2px 7px',
+                          borderRadius: '6px',
+                          background: '#9333ea',
+                          color: '#ffffff'
+                        }}
+                      >
+                        🏆 Sponsorlu
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
-              <div style={{ height: '6px', background: 'var(--ads-pill-bar-bg)', borderRadius: '999px', overflow: 'hidden' }}>
-                <div
-                  style={{
-                    width: `${brk.fillPct}%`,
-                    height: '100%',
-                    background: brk.fillPct > 95 ? '#f59e0b' : 'linear-gradient(90deg, #0d9488 0%, #10b981 100%)',
-                    borderRadius: '999px'
-                  }}
-                />
-              </div>
+            )}
+
+            {/* ================================================================
+                3. SATIR: İNCE SÜRE DOLULUK ÇUBUĞU
+               ================================================================ */}
+            <div style={{ height: '5px', background: 'var(--ads-pill-bar-bg)', borderRadius: '999px', overflow: 'hidden' }}>
+              <div
+                style={{
+                  width: `${brk.fillPct}%`,
+                  height: '100%',
+                  background: brk.fillPct > 95 ? '#f59e0b' : 'linear-gradient(90deg, #0d9488 0%, #10b981 100%)',
+                  borderRadius: '999px'
+                }}
+              />
             </div>
 
-            {/* Ortak İnteraktif Sıralı Spot Listesi (Seçme + Üstüne/Altına Ekleme + Sürükle-Bırak) */}
+            {/* ================================================================
+                4. SATIR: İNTERAKTİF SIRALI SPOT LİSTESİ (FLEXBOX)
+               ================================================================ */}
             <AdBreakInteractiveSpotsList
               brk={brk}
               selectedDayInfo={selectedDayInfo}
@@ -1195,6 +1321,7 @@ export const AdBreaksListView = ({
               onRemoveAdFromBreak={onRemoveAdFromBreak}
               onPreviewMaterial={onPreviewMaterial}
               onQuickAddSpotToBreak={onQuickAddSpotToBreak}
+              clipOccurrencesMap={clipOccurrencesMap}
             />
           </div>
         );
@@ -1228,12 +1355,19 @@ export const AdQuickSpotPoolPanel = ({
   filteredPoolReservations = [],
   filteredPoolCatalog = [],
   onQuickAddSpotToBreak,
-  onPreviewMaterial
+  onPreviewMaterial,
+  onWidenLeftPanel,
+  onCollapseLeftPanel,
+  isWidened = false,
+  clipOccurrencesMap = {}
 }) => {
   const isSelectedAdInActiveBreak =
     selectedAdTarget &&
     selectedStudioBreak &&
     selectedAdTarget.breakTime === selectedStudioBreak.shortTime;
+  const activeHighlightedMaterialId = selectedAdTarget?.materialId
+    ? String(selectedAdTarget.materialId)
+    : null;
 
   const handlePoolItemDragStart = (e, payload) => {
     const dragPayload = {
@@ -1256,17 +1390,44 @@ export const AdQuickSpotPoolPanel = ({
         overflowY: 'auto'
       }}
     >
-      {/* 1. Hedef Kuşak & Ekleme Konumu Seçici */}
+      {/* 1. Hedef Kuşak & Sağa Genişlet / Daralt Kontrolleri */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', flexWrap: 'wrap' }}>
           <span style={{ fontSize: '12.5px', fontWeight: '800', color: 'var(--ads-text-main)' }}>
-            Sol Panel • Reklam &amp; Spot Havuzu
+            Reklam &amp; Spot Havuzu
           </span>
-          {selectedStudioBreak && (
-            <span className="ta-badge ta-badge-brand" style={{ fontSize: '10.5px' }}>
-              Hedef: {selectedStudioBreak.shortTime}
-            </span>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            {onWidenLeftPanel && (
+              <button
+                type="button"
+                onClick={onWidenLeftPanel}
+                className="ads-saas-btn ads-saas-btn-sm"
+                style={{
+                  padding: '3px 7px',
+                  fontSize: '10.5px',
+                  fontWeight: '800',
+                  background: isWidened ? 'var(--ads-brand-soft)' : 'var(--ads-card-subtle)',
+                  color: isWidened ? 'var(--ads-brand)' : 'var(--ads-text-main)',
+                  borderColor: isWidened ? 'var(--ads-brand)' : 'var(--ads-border)'
+                }}
+                title="Sol Paneli Sağa Doğru Genişlet / Normal Boyuta Döndür"
+              >
+                <span>{isWidened ? 'Daralt' : 'Genişlet ➡'}</span>
+                <ArrowRightToLine size={12} />
+              </button>
+            )}
+            {onCollapseLeftPanel && (
+              <button
+                type="button"
+                onClick={onCollapseLeftPanel}
+                className="ads-saas-btn ads-saas-btn-sm"
+                style={{ padding: '3px 6px', fontSize: '10.5px' }}
+                title="Sol Paneli Gizle (Orta Paneli Sola Genişlet)"
+              >
+                <PanelLeftClose size={13} />
+              </button>
+            )}
+          </div>
         </div>
 
         {adBreaksList.length > 0 && (
@@ -1443,10 +1604,26 @@ export const AdQuickSpotPoolPanel = ({
           ) : (
             filteredPoolReservations.map(item => {
               const isMaxReached = item.todayPlaced >= item.dailyMaxSpots;
+              const isHighlightedClip =
+                activeHighlightedMaterialId &&
+                String(item.materialId) === activeHighlightedMaterialId;
               return (
                 <div
                   key={item.uniqueKey}
                   draggable
+                  onClick={() => {
+                    if (!onSelectAdTarget) return;
+                    if (isHighlightedClip && !selectedAdTarget?.breakTime) {
+                      onSelectAdTarget(null);
+                    } else {
+                      onSelectAdTarget({
+                        breakTime: selectedAdTarget?.breakTime || null,
+                        adIndex: typeof selectedAdTarget?.adIndex === 'number' ? selectedAdTarget.adIndex : 0,
+                        adTitle: item.materialName,
+                        materialId: item.materialId
+                      });
+                    }
+                  }}
                   onDragStart={e =>
                     handlePoolItemDragStart(e, {
                       reservationId: item.reservationId,
@@ -1460,17 +1637,30 @@ export const AdQuickSpotPoolPanel = ({
                   style={{
                     padding: '9px 10px',
                     borderRadius: '10px',
-                    border: item.isSponsor ? '1.5px solid #9333ea' : '1px solid var(--ads-border)',
-                    borderLeft: item.isSponsor ? '4px solid #9333ea' : undefined,
-                    background: item.isSponsor
+                    border: isHighlightedClip
+                      ? '2.5px solid #f59e0b'
+                      : item.isSponsor
+                      ? '1.5px solid #9333ea'
+                      : '1px solid var(--ads-border)',
+                    borderLeft: isHighlightedClip
+                      ? '6px solid #f59e0b'
+                      : item.isSponsor
+                      ? '4px solid #9333ea'
+                      : undefined,
+                    background: isHighlightedClip
+                      ? 'rgba(245, 158, 11, 0.08)'
+                      : item.isSponsor
                       ? 'linear-gradient(90deg, rgba(147, 51, 234, 0.14) 0%, rgba(217, 119, 6, 0.06) 100%)'
                       : 'var(--ads-card-subtle)',
+                    boxShadow: isHighlightedClip
+                      ? '0 0 0 3px rgba(245, 158, 11, 0.22)'
+                      : undefined,
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '6px',
-                    cursor: 'grab'
+                    cursor: 'pointer'
                   }}
-                  title="Kuşağa sürükleyip bırakabilir veya Ekle butonlarını kullanabilirsiniz"
+                  title="Tıklayarak bu klibin bulunduğu tüm kuşakları renklendirebilir veya kuşağa sürükleyip bırakabilirsiniz"
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0, flex: 1 }}>
@@ -1781,7 +1971,8 @@ export const AdBroadcastFlowView = ({
   onReorderAdInBreak,
   onRemoveAdFromBreak,
   onPreviewMaterial,
-  onQuickAddSpotToBreak
+  onQuickAddSpotToBreak,
+  clipOccurrencesMap = {}
 }) => {
   const themeConfig = useThemeStore(state => state.config);
   const emptyBreakColor = themeConfig?.modules?.ads?.emptyBreakColor || themeConfig?.specialColors?.adBreakEmptyColor || '#ea580c';
@@ -2054,6 +2245,7 @@ export const AdBroadcastFlowView = ({
                   onRemoveAdFromBreak={onRemoveAdFromBreak}
                   onPreviewMaterial={onPreviewMaterial}
                   onQuickAddSpotToBreak={onQuickAddSpotToBreak}
+                  clipOccurrencesMap={clipOccurrencesMap}
                 />
               )}
             </div>

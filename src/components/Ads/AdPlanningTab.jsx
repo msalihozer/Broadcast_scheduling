@@ -10,8 +10,8 @@
  *   onaylanan (`completed`) listeler tek tıkla erişilebilir şekilde sıralanır.
  * - **Sade 3 Sütunlu Ekran:** Solda Gelen/Revize Listeler, Ortada Seçili Günün Kuşakları, Sağda Seçili Kuşağa Hızlı Reklam Ekleme Havuzu.
  */
-import React, { useState, useEffect, useMemo } from 'react';
-import { Eye } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Eye, PanelLeftOpen, PanelRightOpen } from 'lucide-react';
 import usePlanningStore from '../../store/planningStore';
 import useBroadcastStore from '../../modules/broadcast/store/broadcastStore';
 import { format, parseISO } from 'date-fns';
@@ -92,13 +92,67 @@ const AdPlanningTab = () => {
   const [workspaceView, setWorkspaceView] = useState('breaks'); // 'breaks' | 'flow' | 'matrix'
 
   const [activeBreakTimeForManual, setActiveBreakTimeForManual] = useState(null);
-  const [selectedAdTarget, setSelectedAdTarget] = useState(null); // { breakTime, adIndex, adTitle } | null
+  const [selectedAdTarget, setSelectedAdTarget] = useState(null); // { breakTime, adIndex, adTitle, materialId } | null
   const [insertPositionMode, setInsertPositionMode] = useState('below'); // 'above' | 'below' | 'end'
   const [manualSourceTab, setManualSourceTab] = useState('reservations'); // 'reservations' | 'catalog'
   const [manualSearch, setManualSearch] = useState('');
   const [manualCompanyFilter, setManualCompanyFilter] = useState('');
   const [quickModalBreak, setQuickModalBreak] = useState(null);
   const [previewMaterial, setPreviewMaterial] = useState(null);
+
+  // Sol, Orta ve Sağ Panellerin Sağa/Sola Genişletme ve Daraltma Durumları
+  const [leftPanelWidth, setLeftPanelWidth] = useState(330);
+  const [rightPanelWidth, setRightPanelWidth] = useState(285);
+  const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState(false);
+  const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(false);
+
+  const handleStartResize = useCallback(
+    (side, e) => {
+      e.preventDefault();
+      const startX = e.clientX;
+      const initialWidth = side === 'left' ? leftPanelWidth : rightPanelWidth;
+
+      const onMouseMove = (moveEvent) => {
+        const deltaX = moveEvent.clientX - startX;
+        if (side === 'left') {
+          const nextW = Math.max(240, Math.min(620, initialWidth + deltaX));
+          setLeftPanelWidth(nextW);
+        } else {
+          const nextW = Math.max(230, Math.min(540, initialWidth - deltaX));
+          setRightPanelWidth(nextW);
+        }
+      };
+
+      const onMouseUp = () => {
+        window.removeEventListener('mousemove', onMouseMove);
+        window.removeEventListener('mouseup', onMouseUp);
+      };
+
+      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('mouseup', onMouseUp);
+    },
+    [leftPanelWidth, rightPanelWidth]
+  );
+
+  const handleWidenLeftPanel = () => {
+    setIsLeftPanelCollapsed(false);
+    setLeftPanelWidth(prev => (prev < 420 ? 450 : 330));
+  };
+
+  const handleWidenRightPanel = () => {
+    setIsRightPanelCollapsed(false);
+    setRightPanelWidth(prev => (prev < 380 ? 410 : 285));
+  };
+
+  const handleToggleFullCenter = () => {
+    if (isLeftPanelCollapsed && isRightPanelCollapsed) {
+      setIsLeftPanelCollapsed(false);
+      setIsRightPanelCollapsed(false);
+    } else {
+      setIsLeftPanelCollapsed(true);
+      setIsRightPanelCollapsed(true);
+    }
+  };
 
   const handlePreviewMaterial = (matOrId) => {
     if (!matOrId) return;
@@ -630,12 +684,52 @@ const AdPlanningTab = () => {
     const map = {};
     adBreaksList.forEach(brk => {
       (brk.placedAds || []).forEach(ad => {
+        if (ad?.isBumperAd) return;
         const key = String(ad.materialId);
         map[key] = (map[key] || 0) + 1;
       });
     });
     return map;
   }, [adBreaksList]);
+
+  // Her bir reklam klibinin (materialId) gün içinde hangi kuşaklarda yer aldığını haritala
+  const clipOccurrencesMap = useMemo(() => {
+    const map = {};
+    adBreaksList.forEach((brk, brkIdx) => {
+      (brk.placedAds || []).forEach((ad, adIdx) => {
+        if (!ad || ad.isBumperAd) return;
+        const matId = String(ad.materialId || ad.clipId || '');
+        if (!matId) return;
+        if (!map[matId]) {
+          map[matId] = {
+            count: 0,
+            breakTimes: [],
+            breakNumbers: []
+          };
+        }
+        map[matId].count += 1;
+        if (!map[matId].breakTimes.includes(brk.shortTime)) {
+          map[matId].breakTimes.push(brk.shortTime);
+          map[matId].breakNumbers.push(brkIdx + 1);
+        }
+      });
+    });
+    return map;
+  }, [adBreaksList]);
+
+  const highlightedClipInfo = useMemo(() => {
+    const matId = selectedAdTarget?.materialId ? String(selectedAdTarget.materialId) : null;
+    if (!matId) return null;
+    const occ = clipOccurrencesMap[matId] || { count: 0, breakTimes: [], breakNumbers: [] };
+    const matObj = materials.find(m => String(m.id) === matId);
+    return {
+      materialId: matId,
+      title: selectedAdTarget?.adTitle || matObj?.name || 'Reklam Klibi',
+      count: occ.count,
+      breakTimes: occ.breakTimes,
+      breakNumbers: occ.breakNumbers
+    };
+  }, [selectedAdTarget, clipOccurrencesMap, materials]);
 
   const eligibleReservationItems = useMemo(() => {
     if (!selectedDayInfo) return [];
@@ -990,42 +1084,136 @@ const AdPlanningTab = () => {
         revisedListsCount={revisedListsCount}
       />
 
-      {/* 2. ANA ÇALIŞMA ALANI: SOL (HIZLI REKLAM / SPOT HAVUZU) + ORTA (REKLAM KUŞAKLARI / TAM YAYIN AKIŞI) + SAĞ (GELEN/REVİZE LİSTELER) */}
+      {/* 2. ANA ÇALIŞMA ALANI: ESNEK (FLEX) VE GENİŞLETİLEBİLİR 3 PANELLİ ÇALIŞMA ALANI
+          - Sol Panel (Spot Havuzu): Sağa doğru sürüklenerek veya tek tıkla genişletilebilir / kapatılabilir
+          - Orta Panel (Kuşaklar & Yayın Akışı): Hem sola hem sağa doğru genişletilebilir
+          - Sağ Panel (Yayın Listeleri): Sola doğru sürüklenerek veya tek tıkla genişletilebilir / kapatılabilir */}
       <div
         style={{
-          display: 'grid',
-          gridTemplateColumns: '335px minmax(0, 1fr) 285px',
-          gap: '16px',
-          alignItems: 'start'
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '0px',
+          width: '100%',
+          minWidth: 0
         }}
       >
-        {/* SOL PANEL: SEÇİLİ KUŞAĞA / SEÇİLİ REKLAMIN ÜSTÜNE-ALTINA HIZLI REKLAM & SPOT EKLEME HAVUZU */}
-        <AdQuickSpotPoolPanel
-          manualSourceTab={manualSourceTab}
-          onChangeManualSourceTab={setManualSourceTab}
-          eligibleReservationItemsCount={eligibleReservationItems.length}
-          materialsCount={materials.length}
-          manualSearch={manualSearch}
-          onChangeManualSearch={setManualSearch}
-          manualCompanyFilter={manualCompanyFilter}
-          onChangeManualCompanyFilter={setManualCompanyFilter}
-          companies={companies}
-          materials={materials}
-          adBreaksList={adBreaksList}
-          selectedStudioBreak={selectedStudioBreak}
-          onSelectStudioBreakTime={setActiveBreakTimeForManual}
-          selectedAdTarget={selectedAdTarget}
-          onSelectAdTarget={setSelectedAdTarget}
-          insertPositionMode={insertPositionMode}
-          onChangeInsertPositionMode={setInsertPositionMode}
-          filteredPoolReservations={filteredPoolReservations}
-          filteredPoolCatalog={filteredPoolCatalog}
-          onQuickAddSpotToBreak={handleQuickAddSpotToBreak}
-          onPreviewMaterial={handlePreviewMaterial}
-        />
+        {/* SOL PANEL (SPOT HAVUZU) VEYA KAPALIYKEN AÇMA ŞERİDİ */}
+        {isLeftPanelCollapsed ? (
+          <button
+            type="button"
+            onClick={() => setIsLeftPanelCollapsed(false)}
+            title="Sol Spot Havuzu Panelini Aç (Sağa Genişlet)"
+            style={{
+              width: '38px',
+              padding: '14px 6px',
+              marginRight: '12px',
+              borderRadius: '12px',
+              border: '1.5px solid var(--ads-brand)',
+              background: 'linear-gradient(180deg, var(--ads-brand) 0%, #3641f5 100%)',
+              color: '#ffffff',
+              boxShadow: '0 4px 12px rgba(70, 95, 255, 0.3)',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '10px',
+              position: 'sticky',
+              top: '12px',
+              flexShrink: 0
+            }}
+          >
+            <PanelLeftOpen size={18} />
+            <span
+              style={{
+                writingMode: 'vertical-rl',
+                textOrientation: 'mixed',
+                fontSize: '11.5px',
+                fontWeight: '900',
+                letterSpacing: '0.06em'
+              }}
+            >
+              SPOT HAVUZUNU AÇ ({eligibleReservationItems.length})
+            </span>
+          </button>
+        ) : (
+          <>
+            <div
+              style={{
+                width: `${leftPanelWidth}px`,
+                minWidth: '240px',
+                maxWidth: '42vw',
+                flexShrink: 0,
+                transition: 'width 0.12s ease'
+              }}
+            >
+              <AdQuickSpotPoolPanel
+                manualSourceTab={manualSourceTab}
+                onChangeManualSourceTab={setManualSourceTab}
+                eligibleReservationItemsCount={eligibleReservationItems.length}
+                materialsCount={materials.length}
+                manualSearch={manualSearch}
+                onChangeManualSearch={setManualSearch}
+                manualCompanyFilter={manualCompanyFilter}
+                onChangeManualCompanyFilter={setManualCompanyFilter}
+                companies={companies}
+                materials={materials}
+                adBreaksList={adBreaksList}
+                selectedStudioBreak={selectedStudioBreak}
+                onSelectStudioBreakTime={setActiveBreakTimeForManual}
+                selectedAdTarget={selectedAdTarget}
+                onSelectAdTarget={setSelectedAdTarget}
+                insertPositionMode={insertPositionMode}
+                onChangeInsertPositionMode={setInsertPositionMode}
+                filteredPoolReservations={filteredPoolReservations}
+                filteredPoolCatalog={filteredPoolCatalog}
+                onQuickAddSpotToBreak={handleQuickAddSpotToBreak}
+                onPreviewMaterial={handlePreviewMaterial}
+                onWidenLeftPanel={handleWidenLeftPanel}
+                onCollapseLeftPanel={() => setIsLeftPanelCollapsed(true)}
+                isWidened={leftPanelWidth >= 420}
+                clipOccurrencesMap={clipOccurrencesMap}
+              />
+            </div>
 
-        {/* ORTA PANEL: ŞU ANDA GÜNCELLENEN LİSTE BİLGİ BARI & KUŞAKLAR / TAM YAYIN AKIŞI */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', minWidth: 0 }}>
+            {/* Sol ↔ Orta Panel Arası Sürüklenebilir Genişletme Tutamacı */}
+            <div
+              onMouseDown={e => handleStartResize('left', e)}
+              title="Sürükleyerek Sol Paneli Sağa / Orta Paneli Sola Genişletin"
+              style={{
+                width: '14px',
+                alignSelf: 'stretch',
+                minHeight: '320px',
+                cursor: 'col-resize',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                userSelect: 'none'
+              }}
+            >
+              <div
+                style={{
+                  width: '4px',
+                  height: '64px',
+                  borderRadius: '999px',
+                  background: 'var(--ads-border-strong)',
+                  transition: 'background 0.15s ease'
+                }}
+              />
+            </div>
+          </>
+        )}
+
+        {/* ORTA PANEL: AKTİF LİSTE KURUMSAL KİMLİK KARTI & REKLAM KUŞAKLARI / TAM YAYIN AKIŞI */}
+        <div
+          style={{
+            flex: '1 1 480px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '14px',
+            minWidth: 0
+          }}
+        >
           {!selectedDayInfo ? (
             <div className="ta-card" style={{ padding: '48px', alignItems: 'center', textAlign: 'center' }}>
               <Eye size={42} color="var(--ads-text-muted)" />
@@ -1050,6 +1238,13 @@ const AdPlanningTab = () => {
                 onCompleteAds={completeAds}
                 adsAutoFillSettings={adsAutoFillSettings}
                 onUpdateAutoFillSettings={updateAdsAutoFillSettings}
+                isLeftPanelCollapsed={isLeftPanelCollapsed}
+                isRightPanelCollapsed={isRightPanelCollapsed}
+                onToggleLeftPanel={() => setIsLeftPanelCollapsed(prev => !prev)}
+                onToggleRightPanel={() => setIsRightPanelCollapsed(prev => !prev)}
+                onToggleFullCenter={handleToggleFullCenter}
+                highlightedClipInfo={highlightedClipInfo}
+                onClearHighlightedClip={() => setSelectedAdTarget(null)}
               />
 
               {/* 🌙 RAMAZAN ÖZEL KONTROL ŞERİDİ: SADECE RAMAZAN BAŞLANGICINA 2 HAFTA KALA VEYA RAMAZAN AYINDA GÖSTERİLİR */}
@@ -1170,6 +1365,7 @@ const AdPlanningTab = () => {
                   onRemoveAdFromBreak={removeAdFromBreak}
                   onPreviewMaterial={handlePreviewMaterial}
                   onQuickAddSpotToBreak={handleQuickAddSpotToBreak}
+                  clipOccurrencesMap={clipOccurrencesMap}
                   onSetBreakRamadanTag={
                     isRamadanFeatureWindowOpen(ramadanConfig, selectedDayInfo?.date || selectedDate)
                       ? handleSetBreakRamadanTag
@@ -1199,6 +1395,7 @@ const AdPlanningTab = () => {
                   onRemoveAdFromBreak={removeAdFromBreak}
                   onPreviewMaterial={handlePreviewMaterial}
                   onQuickAddSpotToBreak={handleQuickAddSpotToBreak}
+                  clipOccurrencesMap={clipOccurrencesMap}
                 />
               )}
 
@@ -1215,17 +1412,98 @@ const AdPlanningTab = () => {
           )}
         </div>
 
-        {/* SAĞ PANEL: YAYIN LİSTELERİ & REVİZE TAKİBİ */}
-        <AdPlanningDaysSidebar
-          allListEntries={allListEntries}
-          todayStr={todayStr}
-          selectedDayKey={selectedDayKey}
-          selectedChannel={selectedChannel}
-          selectedDate={selectedDate}
-          activeListCode={activeListCode}
-          onSelectFullListEntry={handleSelectFullListEntry}
-          onRunAutoPlanDay={handleRunAutoPlanDay}
-        />
+        {/* SAĞ PANEL (YAYIN LİSTELERİ) VEYA KAPALIYKEN AÇMA ŞERİDİ */}
+        {isRightPanelCollapsed ? (
+          <button
+            type="button"
+            onClick={() => setIsRightPanelCollapsed(false)}
+            title="Sağ Yayın Listeleri Panelini Aç (Sola Genişlet)"
+            style={{
+              width: '38px',
+              padding: '14px 6px',
+              marginLeft: '12px',
+              borderRadius: '12px',
+              border: '1.5px solid #0d9488',
+              background: 'linear-gradient(180deg, #0d9488 0%, #0f766e 100%)',
+              color: '#ffffff',
+              boxShadow: '0 4px 12px rgba(13, 148, 136, 0.3)',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '10px',
+              position: 'sticky',
+              top: '12px',
+              flexShrink: 0
+            }}
+          >
+            <PanelRightOpen size={18} />
+            <span
+              style={{
+                writingMode: 'vertical-rl',
+                textOrientation: 'mixed',
+                fontSize: '11.5px',
+                fontWeight: '900',
+                letterSpacing: '0.06em'
+              }}
+            >
+              YAYIN LİSTELERİ ({allListEntries.length})
+            </span>
+          </button>
+        ) : (
+          <>
+            {/* Orta ↔ Sağ Panel Arası Sürüklenebilir Genişletme Tutamacı */}
+            <div
+              onMouseDown={e => handleStartResize('right', e)}
+              title="Sürükleyerek Sağ Paneli Sola / Orta Paneli Sağa Genişletin"
+              style={{
+                width: '14px',
+                alignSelf: 'stretch',
+                minHeight: '320px',
+                cursor: 'col-resize',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                userSelect: 'none'
+              }}
+            >
+              <div
+                style={{
+                  width: '4px',
+                  height: '64px',
+                  borderRadius: '999px',
+                  background: 'var(--ads-border-strong)',
+                  transition: 'background 0.15s ease'
+                }}
+              />
+            </div>
+
+            <div
+              style={{
+                width: `${rightPanelWidth}px`,
+                minWidth: '230px',
+                maxWidth: '38vw',
+                flexShrink: 0,
+                transition: 'width 0.12s ease'
+              }}
+            >
+              <AdPlanningDaysSidebar
+                allListEntries={allListEntries}
+                todayStr={todayStr}
+                selectedDayKey={selectedDayKey}
+                selectedChannel={selectedChannel}
+                selectedDate={selectedDate}
+                activeListCode={activeListCode}
+                onSelectFullListEntry={handleSelectFullListEntry}
+                onRunAutoPlanDay={handleRunAutoPlanDay}
+                onWidenRightPanel={handleWidenRightPanel}
+                onCollapseRightPanel={() => setIsRightPanelCollapsed(true)}
+                isWidened={rightPanelWidth >= 380}
+              />
+            </div>
+          </>
+        )}
       </div>
 
       {/* HIZLI MANUEL SPOT EKLEME MODALI */}

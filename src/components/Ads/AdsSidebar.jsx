@@ -31,7 +31,9 @@ import {
 import usePlanningStore from '../../store/planningStore';
 
 const AdsSidebar = ({ activeTab, setActiveTab }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  // En soldaki ana menü paneli varsayılan olarak otomatik kapalı (daraltılmış) başlar
+  // ve kullanıcı bir sekme seçtiğinde çalışma alanına maksimum yer bırakmak için otomatik kapanır.
+  const [isCollapsed, setIsCollapsed] = useState(true);
 
   const companies = usePlanningStore(state => state.companies || []);
   const products = usePlanningStore(state => state.products || []);
@@ -47,6 +49,8 @@ const AdsSidebar = ({ activeTab, setActiveTab }) => {
       setAdFilters({ companyId: '', productId: '' });
     }
     setActiveTab(tabId);
+    // Sekme seçildiğinde sol menü otomatik kapansın
+    setIsCollapsed(true);
   };
 
   const menuGroups = [
@@ -149,22 +153,42 @@ const AdsSidebar = ({ activeTab, setActiveTab }) => {
           <button
             type="button"
             onClick={() => setIsCollapsed(prev => !prev)}
-            title={isCollapsed ? 'Menüyü Genişlet' : 'Menüyü Daralt'}
+            title={isCollapsed ? 'Sol Menüyü Aç (Genişlet)' : 'Sol Menüyü Kapat (Daralt)'}
             style={{
-              width: '34px',
-              height: '34px',
-              borderRadius: '8px',
-              border: '1px solid var(--ads-border)',
-              background: 'var(--ads-card-subtle)',
-              color: 'var(--ads-text-muted)',
+              width: isCollapsed ? '54px' : 'auto',
+              height: '38px',
+              padding: isCollapsed ? '0' : '0 12px',
+              borderRadius: '10px',
+              border: isCollapsed ? '2px solid #f59e0b' : '2px solid #ef4444',
+              background: isCollapsed
+                ? 'linear-gradient(135deg, #465fff 0%, #7c3aed 100%)'
+                : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+              color: '#ffffff',
+              boxShadow: isCollapsed
+                ? '0 4px 14px rgba(70, 95, 255, 0.4)'
+                : '0 4px 14px rgba(239, 68, 68, 0.35)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              gap: '6px',
               cursor: 'pointer',
-              flexShrink: 0
+              flexShrink: 0,
+              fontWeight: '800',
+              fontSize: '11.5px',
+              transition: 'all 0.18s ease'
             }}
           >
-            {isCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+            {isCollapsed ? (
+              <>
+                <PanelLeftOpen size={18} />
+                <span style={{ fontSize: '10px', fontWeight: '900' }}>MENÜ</span>
+              </>
+            ) : (
+              <>
+                <PanelLeftClose size={17} />
+                <span>Kapat</span>
+              </>
+            )}
           </button>
         </div>
 

@@ -22,7 +22,9 @@ import {
   CheckCircle2,
   Clock,
   Layers,
-  FileCheck2
+  FileCheck2,
+  ArrowLeftToLine,
+  PanelRightClose
 } from 'lucide-react';
 import { format, parseISO, addDays } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -65,12 +67,12 @@ export const AdPlanningTopControlBar = ({
         border: '1px solid var(--ads-border-strong)'
       }}
     >
-      {/* ÜST 3 ADIMLI KONTROL IZGARASI: 1. KANAL -> 2. GÜNLÜK TARİH -> 3. LİSTE SEÇİMİ */}
+      {/* ÜST 3 ADIMLI KONTROL FLEX BAR: 1. KANAL -> 2. GÜNLÜK TARİH -> 3. LİSTE SEÇİMİ */}
       <div
         style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))',
-          gap: '16px',
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '14px',
           alignItems: 'stretch'
         }}
       >
@@ -79,6 +81,8 @@ export const AdPlanningTopControlBar = ({
            ==================================================================== */}
         <div
           style={{
+            flex: '1 1 280px',
+            minWidth: 0,
             padding: '14px 16px',
             borderRadius: '14px',
             background: 'var(--ads-card-subtle)',
@@ -178,6 +182,8 @@ export const AdPlanningTopControlBar = ({
            ==================================================================== */}
         <div
           style={{
+            flex: '1.1 1 300px',
+            minWidth: 0,
             padding: '14px 16px',
             borderRadius: '14px',
             background: 'var(--ads-card-subtle)',
@@ -295,6 +301,8 @@ export const AdPlanningTopControlBar = ({
            ==================================================================== */}
         <div
           style={{
+            flex: '1 1 280px',
+            minWidth: 0,
             padding: '14px 16px',
             borderRadius: '14px',
             background: 'var(--ads-card-subtle)',
@@ -458,7 +466,10 @@ export const AdPlanningDaysSidebar = ({
   selectedDate,
   activeListCode = 'A',
   onSelectFullListEntry,
-  onRunAutoPlanDay
+  onRunAutoPlanDay,
+  onWidenRightPanel,
+  onCollapseRightPanel,
+  isWidened = false
 }) => {
   const [filterMode, setFilterMode] = useState('all'); // 'all' | 'revised_pending' | 'completed'
 
@@ -490,18 +501,47 @@ export const AdPlanningDaysSidebar = ({
         overflowY: 'auto'
       }}
     >
-      {/* Sol Panel Başlığı */}
+      {/* Sağ Panel Başlığı & Sola Genişlet / Daralt Kontrolleri */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <FileCheck2 size={16} color="var(--ads-brand)" />
-            <span style={{ fontSize: '13px', fontWeight: '800', color: 'var(--ads-text-main)' }}>
-              Yayın Listeleri &amp; Revize Takibi
+            <span style={{ fontSize: '12.5px', fontWeight: '800', color: 'var(--ads-text-main)' }}>
+              Yayın Listeleri ({filteredEntries.length})
             </span>
           </div>
-          <span className="ta-badge ta-badge-brand" style={{ fontSize: '10.5px' }}>
-            {filteredEntries.length} Liste
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            {onWidenRightPanel && (
+              <button
+                type="button"
+                onClick={onWidenRightPanel}
+                className="ads-saas-btn ads-saas-btn-sm"
+                style={{
+                  padding: '3px 7px',
+                  fontSize: '10.5px',
+                  fontWeight: '800',
+                  background: isWidened ? 'var(--ads-brand-soft)' : 'var(--ads-card-subtle)',
+                  color: isWidened ? 'var(--ads-brand)' : 'var(--ads-text-main)',
+                  borderColor: isWidened ? 'var(--ads-brand)' : 'var(--ads-border)'
+                }}
+                title="Sağ Paneli Sola Doğru Genişlet / Normal Boyuta Döndür"
+              >
+                <ArrowLeftToLine size={12} />
+                <span>{isWidened ? 'Daralt' : '⬅ Genişlet'}</span>
+              </button>
+            )}
+            {onCollapseRightPanel && (
+              <button
+                type="button"
+                onClick={onCollapseRightPanel}
+                className="ads-saas-btn ads-saas-btn-sm"
+                style={{ padding: '3px 6px', fontSize: '10.5px' }}
+                title="Sağ Paneli Gizle (Orta Paneli Sağa Genişlet)"
+              >
+                <PanelRightClose size={13} />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* 3'lü Hızlı Filtre Sekmesi */}
