@@ -193,10 +193,16 @@ const ModeWrapper = ({ mode, children }) => {
 
 function App() {
   const { session, isLoading, initialize } = useAuthStore();
+  const syncAdsStoreWithServer = usePlanningStore(state => state.syncAdsStoreWithServer);
 
   useEffect(() => {
     initialize();
-  }, [initialize]);
+    // Hangi sayfada veya adreste (.80 veya seyare.semerkand.com) açılırsa açılsın
+    // tarayıcıdaki yerel rezervasyonları sunucu veritabanıyla (/api/ads-store) otomatik eşitle
+    if (typeof syncAdsStoreWithServer === 'function') {
+      syncAdsStoreWithServer();
+    }
+  }, [initialize, syncAdsStoreWithServer]);
 
   if (isLoading) {
     return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>Yükleniyor...</div>;

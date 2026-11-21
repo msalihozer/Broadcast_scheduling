@@ -2,7 +2,7 @@
  * @file src/components/Ads/ReservationsTab.jsx
  * @description Yenilenmiş Modern SaaS Temalı Reklam Rezervasyonları ve Çoklu Ürün / Sponsorluk Yönetim Ekranı.
  */
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   Plus,
   Edit2,
@@ -20,9 +20,15 @@ import {
   Layers,
   Play,
   X,
-  RefreshCw
+  RefreshCw,
+  Download,
+  Upload
 } from 'lucide-react';
 import usePlanningStore from '../../store/planningStore';
+import {
+  saveAdsReservationsBackup,
+  loadAdsReservationsBackup
+} from '../../store/slices/ads/adsCatalogHelpers';
 import AdsReservationForm, { SPONSOR_POSITIONS } from './AdsReservationForm';
 import { calculateItemOverageMetrics } from './reservation/reservationConstants';
 import useDialogStore from '../../store/dialogStore';
@@ -60,22 +66,143 @@ const ReservationsTab = ({ setActiveTab }) => {
   } = usePlanningStore();
 
   const [isServerSyncing, setIsServerSyncing] = useState(false);
+  const fileImportRef = useRef(null);
 
   const handleManualServerSync = async () => {
     if (!syncAdsStoreWithServer) return;
     setIsServerSyncing(true);
     try {
+      const localCheck = loadAdsReservationsBackup();
+      const localCount = Array.isArray(localCheck?.reservations) ? localCheck.reservations.length : 0;
       const merged = await syncAdsStoreWithServer();
-      const count = Array.isArray(merged?.reservations) ? merged.reservations.length : reservations.length;
+      const serverCount = Array.isArray(merged?.reservations) ? merged.reservations.length : reservations.length;
       useDialogStore
         .getState()
         .showSuccess(
           'Sunucu Veritabanı Eşitlemesi Tamamlandı',
-          `Sunucu veritabanı (/api/ads-store) ile rezervasyonlar eşitlendi.\n\nToplam Aktif Rezervasyon: ${count} adet.`
+          `Tarayıcı adresi: ${window.location.origin}\n` +
+            `Bu tarayıcı hafızasında bulunan rezervasyon: ${localCount} adet\n` +
+            `Sunucu veritabanındaki (/api/ads-store) toplam rezervasyon: ${serverCount} adet\n\n` +
+            (serverCount === 0
+              ? `Not: Eğer rezervasyonlarınız diğer adreste (.80) görünüyorsa, önce .80 sayfasında "Yedek İndir" veya "Sunucuyla Eşitle" butonuna basın.`
+              : `Tüm rezervasyonlar sunucu veritabanıyla eşitlendi.`)
         );
     } finally {
       setIsServerSyncing(false);
     }
+  };
+
+  // .80 veya herhangi bir tarayıcıdaki tüm rezervasyon, yerleşim, fiyat ve kural verilerini tek tıkla JSON olarak indirir
+  const handleExportReservationsJson = () => {
+    const state = usePlanningStore.getState();
+    const localBackup = loadAdsReservationsBackup();
+    const resMap = new Map();
+    if (Array.isArray(localBackup?.reservations)) {
+      localBackup.reservations.forEach(r => {
+        if (r && r.id) resMap.set(String(r.id), r);
+      });
+    }
+    if (Array.isArray(state.reservations)) {
+      state.reservations.forEach(r => {
+        if (r && r.id) resMap.set(String(r.id), r);
+      });
+    }
+    const exportReservations = Array.from(resMap.values());
+    const exportPlacements = {
+      ...(localBackup?.adPlacements || {}),
+      ...(state.adPlacements || {})
+    };
+
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      origin: typeof window !== 'undefined' ? window.location.origin : '',
+      reservations: exportReservations,
+      adPlacements: exportPlacements,
+      adBreakBumperRules: state.adBreakBumperRules || [],
+      adSettings: state.adSettings || {},
+      adsPricingConfig: state.adsPricingConfig || {},
+      manualCompanies: (state.companies || []).filter(c => c && c.isManual),
+      manualProducts: (state.products || []).filter(p => p && p.isManual),
+      manualMaterials: (state.materials || []).filter(m => m && m.isManual)
+    };
+
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `reklam_rezervasyon_yedek_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // İndirilen JSON yedeğini yükleyip hem mevcut tarayıcıya hem de sunucu veritabanına (/api/ads-store) kaydeder
+  const handleImportReservationsJson = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      try {
+        const parsed = JSON.parse(String(ev.target?.result || '{}'));
+        const incomingRes = Array.isArray(parsed.reservations)
+          ? parsed.reservations
+          : Array.isArray(parsed?.state?.reservations)
+          ? parsed.state.reservations
+          : Array.isArray(parsed)
+          ? parsed
+          : [];
+        const incomingPlacements =
+          (parsed.adPlacements && typeof parsed.adPlacements === 'object' ? parsed.adPlacements : null) ||
+          (parsed?.state?.adPlacements && typeof parsed.state.adPlacements === 'object'
+            ? parsed.state.adPlacements
+            : {});
+
+        if (incomingRes.length === 0 && Object.keys(incomingPlacements).length === 0) {
+          useDialogStore
+            .getState()
+            .showAlert('Geçersiz Yedek Dosyası', 'Seçilen dosyada herhangi bir rezervasyon kaydı bulunamadı.');
+          return;
+        }
+
+        const state = usePlanningStore.getState();
+        const resMap = new Map();
+        (state.reservations || []).forEach(r => {
+          if (r && r.id) resMap.set(String(r.id), r);
+        });
+        incomingRes.forEach(r => {
+          if (r && r.id) resMap.set(String(r.id), r);
+        });
+        const mergedReservations = Array.from(resMap.values());
+        const mergedPlacements = {
+          ...(state.adPlacements || {}),
+          ...incomingPlacements
+        };
+
+        usePlanningStore.setState({
+          reservations: mergedReservations,
+          adPlacements: mergedPlacements
+        });
+        saveAdsReservationsBackup(mergedReservations, mergedPlacements);
+        if (typeof syncAdsStoreWithServer === 'function') {
+          await syncAdsStoreWithServer();
+        }
+
+        useDialogStore
+          .getState()
+          .showSuccess(
+            'Rezervasyonlar Başarıyla Yüklendi',
+            `${incomingRes.length} adet rezervasyon planı başarıyla içe aktarıldı ve sunucu veritabanına (/api/ads-store) kaydedildi.`
+          );
+      } catch (err) {
+        useDialogStore
+          .getState()
+          .showAlert('Dosya Okuma Hatası', `Yedek dosyası okunamadı: ${err.message}`);
+      } finally {
+        if (fileImportRef.current) fileImportRef.current.value = '';
+      }
+    };
+    reader.readAsText(file);
   };
 
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -329,7 +456,40 @@ const ReservationsTab = ({ setActiveTab }) => {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <input
+            ref={fileImportRef}
+            type="file"
+            accept=".json,application/json"
+            onChange={handleImportReservationsJson}
+            style={{ display: 'none' }}
+          />
+          <button
+            type="button"
+            onClick={handleExportReservationsJson}
+            className="ads-saas-btn"
+            style={{
+              borderColor: 'rgba(37, 99, 235, 0.35)',
+              color: '#2563eb',
+              background: 'rgba(37, 99, 235, 0.08)'
+            }}
+            title="Bu tarayıcıdaki tüm rezervasyonları JSON yedek dosyası olarak indir (.80 adresinden indirip seyare.semerkand.com'a yükleyebilirsiniz)"
+          >
+            <Download size={14} /> Yedek İndir
+          </button>
+          <button
+            type="button"
+            onClick={() => fileImportRef.current && fileImportRef.current.click()}
+            className="ads-saas-btn"
+            style={{
+              borderColor: 'rgba(217, 119, 6, 0.35)',
+              color: '#d97706',
+              background: 'rgba(217, 119, 6, 0.08)'
+            }}
+            title="İndirdiğiniz rezervasyon JSON yedek dosyasını buraya ve sunucu veritabanına yükle"
+          >
+            <Upload size={14} /> Yedek Yükle
+          </button>
           <button
             type="button"
             onClick={handleManualServerSync}
