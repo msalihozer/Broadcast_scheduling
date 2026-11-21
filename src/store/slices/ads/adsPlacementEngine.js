@@ -1639,7 +1639,9 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
     ...state.adPlacements,
     [key]: finalPlacements
   };
-  saveAdsReservationsBackup(updatedReservations, nextAdPlacements);
+  saveAdsReservationsBackup(updatedReservations, nextAdPlacements, {
+    forceOverwritePlacements: true
+  });
 
   // Revize veya bekleyen günün kuşağı doldurulduğunda "isRevised" işaretini temizle ve durumunu "planned" yap
   const existingDayObj = state.days?.[key];
@@ -1854,7 +1856,9 @@ export function executeAddManualAdToBreak(state, channelId, date, breakMeta, adP
     });
   }
 
-  saveAdsReservationsBackup(nextReservations, nextAdPlacements);
+  saveAdsReservationsBackup(nextReservations, nextAdPlacements, {
+    forceOverwritePlacements: true
+  });
 
   const existingDayObj = state.days?.[key];
   const nextDays = existingDayObj

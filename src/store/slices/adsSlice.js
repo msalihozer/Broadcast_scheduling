@@ -1102,6 +1102,7 @@ export const createAdsSlice = (set, get) => ({
       });
       nextListControlDays[lcKey] = {
         ...lcDay,
+        updatedAt: new Date().toISOString(),
         variants: updatedVariants
       };
     }
@@ -1123,9 +1124,15 @@ export const createAdsSlice = (set, get) => ({
       });
       nextDays[readyKey] = {
         ...readyDay,
+        updatedAt: new Date().toISOString(),
         variants: updatedVariants
       };
     }
+
+    pushAdsStoreToServer({
+      ...(nextListControlDays[lcKey] ? { listControlDays: { [lcKey]: nextListControlDays[lcKey] } } : {}),
+      ...(nextDays[readyKey] ? { planningDays: { [readyKey]: nextDays[readyKey] } } : {})
+    });
 
     return {
       listControlDays: nextListControlDays,
@@ -1272,7 +1279,9 @@ export const createAdsSlice = (set, get) => ({
       ...state.adPlacements,
       [key]: existingBlocks
     };
-    saveAdsReservationsBackup(state.reservations, nextAdPlacements);
+    saveAdsReservationsBackup(state.reservations, nextAdPlacements, {
+      forceOverwritePlacements: true
+    });
 
     return {
       adPlacements: nextAdPlacements
@@ -1304,7 +1313,9 @@ export const createAdsSlice = (set, get) => ({
       ...state.adPlacements,
       [key]: existingBlocks
     };
-    saveAdsReservationsBackup(state.reservations, nextAdPlacements);
+    saveAdsReservationsBackup(state.reservations, nextAdPlacements, {
+      forceOverwritePlacements: true
+    });
 
     return {
       adPlacements: nextAdPlacements
@@ -1344,7 +1355,9 @@ export const createAdsSlice = (set, get) => ({
       ...state.adPlacements,
       [key]: existingBlocks
     };
-    saveAdsReservationsBackup(state.reservations, nextAdPlacements);
+    saveAdsReservationsBackup(state.reservations, nextAdPlacements, {
+      forceOverwritePlacements: true
+    });
 
     return {
       adPlacements: nextAdPlacements
@@ -1367,7 +1380,9 @@ export const createAdsSlice = (set, get) => ({
       ...state.adPlacements,
       [key]: existingBlocks
     };
-    saveAdsReservationsBackup(state.reservations, nextAdPlacements);
+    saveAdsReservationsBackup(state.reservations, nextAdPlacements, {
+      forceOverwritePlacements: true
+    });
 
     return {
       adPlacements: nextAdPlacements

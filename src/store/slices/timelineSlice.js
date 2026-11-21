@@ -400,20 +400,31 @@ export const createTimelineSlice = (set, get) => ({
       if (!day) return state;
 
       const newAdPlacements = { ...(state.adPlacements || {}) };
-      delete newAdPlacements[readyKey];
+      newAdPlacements[readyKey] = [];
 
       const newDays = { ...state.days };
       delete newDays[finalKey];
       delete newDays[listControlKey];
 
+      const newListControlDays = { ...(state.listControlDays || {}) };
+      delete newListControlDays[listControlKey];
+
       newDays[readyKey] = {
         ...day,
-        adsStatus: 'pending'
+        adsStatus: 'pending',
+        updatedAt: Date.now()
       };
+
+      pushAdsStoreToServer({
+        adPlacements: { [readyKey]: [] },
+        forceOverwritePlacements: true,
+        planningDays: { [readyKey]: newDays[readyKey] }
+      });
 
       return {
         adPlacements: newAdPlacements,
-        days: newDays
+        days: newDays,
+        listControlDays: newListControlDays
       };
     });
   },

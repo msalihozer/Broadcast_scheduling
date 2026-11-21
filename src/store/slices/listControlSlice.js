@@ -8,6 +8,16 @@
  * 3. 2. Aşama Kilidi (Stage 2 Lock): Kesinleşen akışın dondurulması
  */
 import { calculateTotalCount, _recalculateStartTimes, createEmptyDay, _propagateOverflows } from '../storeHelpers';
+import { pushAdsStoreToServer, resolveProgramLogoForChannel } from './ads/adsCatalogHelpers';
+
+const syncListControlDayToServer = (key, dayObj) => {
+  if (!key || !dayObj) return;
+  pushAdsStoreToServer({
+    listControlDays: {
+      [key]: dayObj
+    }
+  });
+};
 
 export const createListControlSlice = (set, get) => ({
   listControlDays: {},
@@ -31,7 +41,11 @@ export const createListControlSlice = (set, get) => ({
       if (!day) return state;
 
       const newInstanceId = providedInstanceId || `${program.id}-${Date.now()}`;
-      const newProgram = { ...program, instanceId: newInstanceId };
+      const newProgram = {
+        ...program,
+        instanceId: newInstanceId,
+        logo: program.logo || resolveProgramLogoForChannel(program, channelId, state.adSettings)
+      };
       
       let currentPrograms = [...day.variants[variant].programs];
       
@@ -55,17 +69,21 @@ export const createListControlSlice = (set, get) => ({
       }
       
       const updatedPrograms = _recalculateStartTimes(currentPrograms, day.startTime || 0);
+      const updatedDay = {
+        ...day,
+        updatedAt: new Date().toISOString(),
+        variants: {
+          ...day.variants,
+          [variant]: { ...day.variants[variant], programs: updatedPrograms }
+        }
+      };
+
+      syncListControlDayToServer(key, updatedDay);
 
       const newState = {
         listControlDays: {
           ...state.listControlDays,
-          [key]: {
-            ...day,
-            variants: {
-              ...day.variants,
-              [variant]: { ...day.variants[variant], programs: updatedPrograms }
-            }
-          }
+          [key]: updatedDay
         }
       };
       
@@ -89,14 +107,17 @@ export const createListControlSlice = (set, get) => ({
       programs[index] = temp;
 
       const updatedPrograms = _recalculateStartTimes(programs, day.startTime || 0);
+      const updatedDay = {
+        ...day,
+        updatedAt: new Date().toISOString(),
+        variants: { ...day.variants, [variant]: { ...day.variants[variant], programs: updatedPrograms } }
+      };
+      syncListControlDayToServer(key, updatedDay);
 
       return {
         listControlDays: {
           ...state.listControlDays,
-          [key]: {
-            ...day,
-            variants: { ...day.variants, [variant]: { ...day.variants[variant], programs: updatedPrograms } }
-          }
+          [key]: updatedDay
         }
       };
     });
@@ -118,14 +139,17 @@ export const createListControlSlice = (set, get) => ({
       programs[index] = temp;
 
       const updatedPrograms = _recalculateStartTimes(programs, day.startTime || 0);
+      const updatedDay = {
+        ...day,
+        updatedAt: new Date().toISOString(),
+        variants: { ...day.variants, [variant]: { ...day.variants[variant], programs: updatedPrograms } }
+      };
+      syncListControlDayToServer(key, updatedDay);
 
       return {
         listControlDays: {
           ...state.listControlDays,
-          [key]: {
-            ...day,
-            variants: { ...day.variants, [variant]: { ...day.variants[variant], programs: updatedPrograms } }
-          }
+          [key]: updatedDay
         }
       };
     });
@@ -145,14 +169,17 @@ export const createListControlSlice = (set, get) => ({
       programs.splice(newIndex, 0, movedItem);
 
       const updatedPrograms = _recalculateStartTimes(programs, day.startTime || 0);
+      const updatedDay = {
+        ...day,
+        updatedAt: new Date().toISOString(),
+        variants: { ...day.variants, [variant]: { ...day.variants[variant], programs: updatedPrograms } }
+      };
+      syncListControlDayToServer(key, updatedDay);
 
       return {
         listControlDays: {
           ...state.listControlDays,
-          [key]: {
-            ...day,
-            variants: { ...day.variants, [variant]: { ...day.variants[variant], programs: updatedPrograms } }
-          }
+          [key]: updatedDay
         }
       };
     });
@@ -174,14 +201,17 @@ export const createListControlSlice = (set, get) => ({
       programs.splice(index + 1, 0, newProgram);
 
       const updatedPrograms = _recalculateStartTimes(programs, day.startTime || 0);
+      const updatedDay = {
+        ...day,
+        updatedAt: new Date().toISOString(),
+        variants: { ...day.variants, [variant]: { ...day.variants[variant], programs: updatedPrograms } }
+      };
+      syncListControlDayToServer(key, updatedDay);
 
       return {
         listControlDays: {
           ...state.listControlDays,
-          [key]: {
-            ...day,
-            variants: { ...day.variants, [variant]: { ...day.variants[variant], programs: updatedPrograms } }
-          }
+          [key]: updatedDay
         }
       };
     });
@@ -224,14 +254,18 @@ export const createListControlSlice = (set, get) => ({
          updatedPrograms = _recalculateStartTimes(programs, newDayStartTime || 0);
       }
 
+      const updatedDay = {
+        ...day,
+        startTime: newDayStartTime,
+        updatedAt: new Date().toISOString(),
+        variants: { ...day.variants, [variant]: { ...day.variants[variant], programs: updatedPrograms } }
+      };
+      syncListControlDayToServer(key, updatedDay);
+
       return {
         listControlDays: {
           ...state.listControlDays,
-          [key]: {
-            ...day,
-            startTime: newDayStartTime,
-            variants: { ...day.variants, [variant]: { ...day.variants[variant], programs: updatedPrograms } }
-          }
+          [key]: updatedDay
         }
       };
     });
@@ -246,17 +280,20 @@ export const createListControlSlice = (set, get) => ({
 
       const programs = day.variants[variant].programs.filter(p => !instanceIds.includes(p.instanceId));
       const updatedPrograms = _recalculateStartTimes(programs, day.startTime || 0);
+      const updatedDay = {
+        ...day,
+        updatedAt: new Date().toISOString(),
+        variants: {
+          ...day.variants,
+          [variant]: { ...day.variants[variant], programs: updatedPrograms }
+        }
+      };
+      syncListControlDayToServer(key, updatedDay);
 
       return {
         listControlDays: {
           ...state.listControlDays,
-          [key]: {
-            ...day,
-            variants: {
-              ...day.variants,
-              [variant]: { ...day.variants[variant], programs: updatedPrograms }
-            }
-          }
+          [key]: updatedDay
         },
         selectedInstanceIds: [],
         selectedTimelineBlock: null
@@ -271,13 +308,17 @@ export const createListControlSlice = (set, get) => ({
       const day = state.listControlDays[key];
       if (!day) return state;
 
+      const updatedDay = {
+        ...day,
+        updatedAt: new Date().toISOString(),
+        variants: { ...day.variants, [variant]: { ...day.variants[variant], programs: [] } }
+      };
+      syncListControlDayToServer(key, updatedDay);
+
       return {
         listControlDays: {
           ...state.listControlDays,
-          [key]: {
-            ...day,
-            variants: { ...day.variants, [variant]: { ...day.variants[variant], programs: [] } }
-          }
+          [key]: updatedDay
         }
       };
     });
