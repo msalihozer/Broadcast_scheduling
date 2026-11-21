@@ -42,6 +42,9 @@ import {
   DEFAULT_ADS_PRICING_CONFIG,
   loadAdsPricingConfigBackup,
   saveAdsPricingConfigBackup,
+  DEFAULT_ADS_AUTO_FILL_SETTINGS,
+  loadAdsAutoFillSettingsBackup,
+  saveAdsAutoFillSettingsBackup,
   loadDeletedReservationIdsBackup,
   recordDeletedReservationIdBackup,
   pushAdsStoreToServer,
@@ -101,8 +104,35 @@ export const createAdsSlice = (set, get) => ({
   timeBlocks: DEFAULT_TIME_BLOCKS,
   adBreakBumperRules: loadAdBreakBumperRulesBackup() || DEFAULT_AD_BREAK_BUMPER_RULES,
   adsPricingConfig: loadAdsPricingConfigBackup(),
+  adsAutoFillSettings: loadAdsAutoFillSettingsBackup(),
   usedArchivePrograms: [],
   ramadanConfig: loadSavedRamadanConfig(),
+
+  /**
+   * Otomatik Reklam Doldurma (Auto-Plan) algoritması ayarlarını günceller:
+   * - `minBreakFillSec`: Kuşak başına en az doluluk süresi (örn: 120 sn = 2 dk)
+   * - `uniquenessRule`: `'same_clip'` (Aynı Klip Giremez) | `'same_company'` (Aynı Firma Giremez) | `'none'` (İkisi de Geçersiz)
+   * - `varyOrderAcrossBreaks`: Her kuşak ve her gün farklı dizilim
+   * - `strictMaxSpot`: Max Spot Aşılamaz (her zaman aktif)
+   */
+  updateAdsAutoFillSettings: (updates = {}) => set(state => {
+    const cur = state.adsAutoFillSettings || DEFAULT_ADS_AUTO_FILL_SETTINGS;
+    const nextSettings = {
+      ...cur,
+      ...updates,
+      minBreakFillSec:
+        updates.minBreakFillSec !== undefined
+          ? Math.max(0, Number(updates.minBreakFillSec))
+          : cur.minBreakFillSec,
+      uniquenessRule:
+        updates.uniquenessRule && ['same_clip', 'same_company', 'none'].includes(updates.uniquenessRule)
+          ? updates.uniquenessRule
+          : cur.uniquenessRule,
+      strictMaxSpot: true
+    };
+    saveAdsAutoFillSettingsBackup(nextSettings);
+    return { adsAutoFillSettings: nextSettings };
+  }),
 
   /**
    * Dashboard ve Raporlar için Spot & Ücretlendirme tarife ayarlarını günceller.
@@ -232,6 +262,7 @@ export const createAdsSlice = (set, get) => ({
         adBreakBumperRules: state.adBreakBumperRules,
         adSettings: state.adSettings,
         adsPricingConfig: state.adsPricingConfig,
+        adsAutoFillSettings: state.adsAutoFillSettings,
         manualCompanies,
         manualProducts,
         manualMaterials,
@@ -261,6 +292,9 @@ export const createAdsSlice = (set, get) => ({
             : cur.adBreakBumperRules,
         adSettings: mergedStore.adSettings || cur.adSettings,
         adsPricingConfig: mergedStore.adsPricingConfig || cur.adsPricingConfig,
+        adsAutoFillSettings: mergedStore.adsAutoFillSettings
+          ? { ...DEFAULT_ADS_AUTO_FILL_SETTINGS, ...mergedStore.adsAutoFillSettings, strictMaxSpot: true }
+          : cur.adsAutoFillSettings,
         days:
           mergedStore.planningDays && typeof mergedStore.planningDays === 'object'
             ? { ...(cur.days || {}), ...mergedStore.planningDays }

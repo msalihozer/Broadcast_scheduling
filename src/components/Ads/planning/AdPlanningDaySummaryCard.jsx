@@ -6,7 +6,7 @@
  * Hangi kanalın, hangi günün ve hangi listenin (`Liste A` / `Liste B`) düzenlendiğini
  * ve revize durumunu operatöre tek bakışta net olarak gösterir.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Zap,
   RotateCcw,
@@ -22,7 +22,11 @@ import {
   Tv,
   Radio,
   Calendar,
-  AlertTriangle
+  AlertTriangle,
+  Settings,
+  ShieldCheck,
+  Shuffle,
+  Sliders
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -41,9 +45,24 @@ const AdPlanningDaySummaryCard = ({
   timelineCount = 0,
   onRunAutoPlanDay,
   onResetAds,
-  onCompleteAds
+  onCompleteAds,
+  adsAutoFillSettings = {},
+  onUpdateAutoFillSettings
 }) => {
+  const [showAutoFillSettings, setShowAutoFillSettings] = useState(false);
+
   if (!selectedDayInfo) return null;
+
+  const minBreakFillSec = Number(adsAutoFillSettings?.minBreakFillSec ?? 120);
+  const uniquenessRule = adsAutoFillSettings?.uniquenessRule || 'same_clip';
+  const varyOrderAcrossBreaks = adsAutoFillSettings?.varyOrderAcrossBreaks !== false;
+
+  const uniquenessLabel =
+    uniquenessRule === 'same_company'
+      ? 'Aynı Firma Giremez (Klip de Giremez)'
+      : uniquenessRule === 'none'
+      ? 'İkisi de Geçersiz (Serbest)'
+      : 'Aynı Klip Bir Daha Giremez';
 
   const channelObj = channels.find(c => String(c.id) === String(selectedDayInfo.channelId)) || {
     id: selectedDayInfo.channelId,
@@ -199,6 +218,24 @@ const AdPlanningDaySummaryCard = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <button
             type="button"
+            onClick={() => setShowAutoFillSettings(prev => !prev)}
+            className="ads-saas-btn"
+            style={{
+              padding: '9px 13px',
+              fontSize: '12px',
+              fontWeight: '800',
+              borderColor: showAutoFillSettings ? 'var(--ads-brand)' : 'var(--ads-border-strong)',
+              background: showAutoFillSettings ? 'var(--ads-brand-soft)' : 'var(--ads-card-subtle)',
+              color: showAutoFillSettings ? 'var(--ads-brand)' : 'var(--ads-text-main)'
+            }}
+            title="Otomatik Doldurma Algoritması Ayarları (En Az Kuşak Süresi, Tekillik Kuralı, Varyasyon, Max Spot Kilidi)"
+          >
+            <Sliders size={14} />
+            <span>Otomatik Doldur Ayarları</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() =>
               onRunAutoPlanDay(selectedDayInfo.channelId, selectedDayInfo.date, selectedDayInfo.key, true)
             }
@@ -256,6 +293,228 @@ const AdPlanningDaySummaryCard = ({
           )}
         </div>
       </div>
+
+      {/* 1B. OTOMATİK DOLDURMA ALGORİTMASI AYARLARI PANELİ */}
+      {showAutoFillSettings && (
+        <div
+          style={{
+            padding: '14px 16px',
+            borderRadius: '12px',
+            background: 'var(--ads-card-subtle)',
+            border: '1.5px solid var(--ads-brand)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <Settings size={16} color="var(--ads-brand)" />
+              <span style={{ fontSize: '13px', fontWeight: '900', color: 'var(--ads-text-main)' }}>
+                Akıllı Otomatik Reklam Doldurma Algoritması Ayarları
+              </span>
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '2px 9px',
+                  borderRadius: '999px',
+                  fontSize: '11px',
+                  fontWeight: '800',
+                  background: 'rgba(16, 185, 129, 0.14)',
+                  color: '#059669',
+                  border: '1px solid rgba(16, 185, 129, 0.35)'
+                }}
+              >
+                <ShieldCheck size={12} /> Max Spot Kilidi: Kesinlikle Aşılamaz
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() =>
+                onRunAutoPlanDay(selectedDayInfo.channelId, selectedDayInfo.date, selectedDayInfo.key, true)
+              }
+              className="ads-saas-btn ads-saas-btn-primary ads-saas-btn-sm"
+              style={{ padding: '6px 12px', fontSize: '11.5px', fontWeight: '800' }}
+            >
+              <Zap size={13} /> Ayarları Uygula &amp; Şimdi Otomatik Doldur
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+            {/* 1. Kuşak En Az Doluluk Süresi */}
+            <div
+              style={{
+                flex: '1 1 240px',
+                padding: '10px 12px',
+                borderRadius: '10px',
+                background: 'var(--ads-canvas-bg)',
+                border: '1px solid var(--ads-border)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+                <span style={{ fontSize: '11.5px', fontWeight: '800', color: 'var(--ads-text-main)' }}>
+                  1. Kuşak En Az Doluluk Süresi (Taban)
+                </span>
+                <span style={{ fontSize: '11.5px', fontWeight: '900', color: 'var(--ads-brand)', fontFamily: 'monospace' }}>
+                  {Math.floor(minBreakFillSec / 60)} dk {minBreakFillSec % 60 > 0 ? `${minBreakFillSec % 60} sn` : ''} ({minBreakFillSec} sn)
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                {[
+                  { sec: 60, label: '1 dk' },
+                  { sec: 90, label: '1.5 dk' },
+                  { sec: 120, label: '2 dk (Varsayılan)' },
+                  { sec: 180, label: '3 dk' },
+                  { sec: 240, label: '4 dk' }
+                ].map(p => (
+                  <button
+                    key={p.sec}
+                    type="button"
+                    onClick={() => onUpdateAutoFillSettings && onUpdateAutoFillSettings({ minBreakFillSec: p.sec })}
+                    className={`ads-saas-pill-btn ${minBreakFillSec === p.sec ? 'active' : ''}`}
+                    style={{ padding: '4px 8px', fontSize: '11px', fontWeight: '800' }}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+                <input
+                  type="number"
+                  min={0}
+                  max={600}
+                  step={10}
+                  value={minBreakFillSec}
+                  onChange={e =>
+                    onUpdateAutoFillSettings &&
+                    onUpdateAutoFillSettings({ minBreakFillSec: Math.max(0, Number(e.target.value) || 0) })
+                  }
+                  className="ads-saas-input"
+                  style={{ width: '72px', padding: '4px 6px', fontSize: '11.5px', fontWeight: '800', textAlign: 'center' }}
+                  title="Saniye cinsinden en az kuşak doluluk süresi"
+                />
+                <span style={{ fontSize: '11px', color: 'var(--ads-text-muted)' }}>sn</span>
+              </div>
+              <div style={{ fontSize: '10.5px', color: 'var(--ads-text-muted)', lineHeight: 1.35 }}>
+                Kuşak boş kalamaz; önce tüm kuşakları en az bu süreye (örn: 2 dk) ulaştırır, kota kalırsa kalan süreyi doldurur.
+              </div>
+            </div>
+
+            {/* 2. Kuşak İçi Tekrar Kuralı (Aynı Klip / Aynı Firma / İkisi de Geçersiz) */}
+            <div
+              style={{
+                flex: '1.3 1 300px',
+                padding: '10px 12px',
+                borderRadius: '10px',
+                background: 'var(--ads-canvas-bg)',
+                border: '1px solid var(--ads-border)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px'
+              }}
+            >
+              <span style={{ fontSize: '11.5px', fontWeight: '800', color: 'var(--ads-text-main)' }}>
+                2. Kuşak İçi Tekrar Önleme Kuralı
+              </span>
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                {[
+                  {
+                    id: 'same_clip',
+                    label: 'Aynı Klip Giremez',
+                    desc: 'Aynı reklam klibi bir kuşağa 2. kez giremez (farklı ürünü varsa araya başka firma girerek girebilir)'
+                  },
+                  {
+                    id: 'same_company',
+                    label: 'Aynı Firma Giremez (Klip de Giremez)',
+                    desc: 'Aynı firmanın hiçbir reklamı aynı kuşağa ikinci kez giremez (kuşak başına firma tekilliği)'
+                  },
+                  {
+                    id: 'none',
+                    label: 'İkisi de Geçersiz',
+                    desc: 'Tekrar kısıtlaması yok; gerekirse aynı firma veya klip girebilir'
+                  }
+                ].map(opt => {
+                  const active = uniquenessRule === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => onUpdateAutoFillSettings && onUpdateAutoFillSettings({ uniquenessRule: opt.id })}
+                      style={{
+                        flex: '1 1 130px',
+                        padding: '7px 10px',
+                        borderRadius: '8px',
+                        border: active ? '1.5px solid var(--ads-brand)' : '1px solid var(--ads-border)',
+                        background: active ? 'var(--ads-brand-soft)' : 'var(--ads-card-subtle)',
+                        color: active ? 'var(--ads-brand)' : 'var(--ads-text-main)',
+                        fontSize: '11.5px',
+                        fontWeight: '800',
+                        cursor: 'pointer',
+                        textAlign: 'left'
+                      }}
+                      title={opt.desc}
+                    >
+                      {active ? '✓ ' : ''}{opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{ fontSize: '10.5px', color: 'var(--ads-text-muted)', lineHeight: 1.35 }}>
+                Seçili Kural: <strong>{uniquenessLabel}</strong>
+              </div>
+            </div>
+
+            {/* 3. Kuşak & Gün Varyasyonu ve Öncelik / Kota Kuralları */}
+            <div
+              style={{
+                flex: '1 1 220px',
+                padding: '10px 12px',
+                borderRadius: '10px',
+                background: 'var(--ads-canvas-bg)',
+                border: '1px solid var(--ads-border)',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                gap: '6px'
+              }}
+            >
+              <span style={{ fontSize: '11.5px', fontWeight: '800', color: 'var(--ads-text-main)' }}>
+                3. Kuşak &amp; Gün Dizilim Varyasyonu
+              </span>
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '11.5px',
+                  fontWeight: '700',
+                  color: 'var(--ads-text-main)',
+                  cursor: 'pointer'
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={varyOrderAcrossBreaks}
+                  onChange={e =>
+                    onUpdateAutoFillSettings &&
+                    onUpdateAutoFillSettings({ varyOrderAcrossBreaks: e.target.checked })
+                  }
+                  style={{ width: '15px', height: '15px', accentColor: 'var(--ads-brand)' }}
+                />
+                <Shuffle size={13} color="var(--ads-brand)" />
+                <span>Her Kuşak ve Her Gün Farklı Dizilim</span>
+              </label>
+              <div style={{ fontSize: '10.5px', color: 'var(--ads-text-muted)', lineHeight: 1.35 }}>
+                Sponsor → Zorunlu (1000) → Yüksek (700) → Normal (400) → Dolgu (100) önceliğiyle, Min/Max spot kotasını aşmadan dağıtır.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 2. SATIR: KOMPAKT 4'LÜ GÜNLÜK ÖZET GÖSTERGE & GÖRÜNÜM SEÇİCİ */}
       <div

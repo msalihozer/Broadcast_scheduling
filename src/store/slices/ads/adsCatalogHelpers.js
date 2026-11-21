@@ -501,6 +501,59 @@ export function saveAdsPricingConfigBackup(config) {
   pushAdsStoreToServer({ adsPricingConfig: config });
 }
 
+const USER_AUTO_FILL_SETTINGS_STORAGE_KEY = 'yayin_ads_autofill_settings_v1';
+
+/**
+ * Otomatik Reklam Doldurma (Auto-Plan) Algoritması Ayarları:
+ * - `minBreakFillSec`: Kuşak başına hedeflenen en az doluluk süresi (saniye). Varsayılan: 120 sn (2 dakika).
+ * - `uniquenessRule`: Kuşak içi tekrar önleme kuralı:
+ *   - `'same_clip'`   : Aynı reklam klibi aynı kuşağa bir daha giremez (aynı firmanın farklı ürünü/klibi varsa araya başka firma girerek girebilir).
+ *   - `'same_company'`: Aynı firma (dolayısıyla aynı klip de) aynı kuşağa bir daha giremez (kuşak başına firma tekilliği).
+ *   - `'none'`        : İkisi de geçersiz (kısıtlama yok; yine de mümkün olduğunca üst üste gelmeyecek şekilde dizilir).
+ * - `strictMaxSpot`: `true` (zorunlu) — Rezervasyondaki Günlük Max Spot (`dailyMaxSpots`) ve Toplam Planlanan Spot (`plannedSpots`) kesinlikle aşılamaz.
+ * - `varyOrderAcrossBreaks`: `true` — Her kuşak ve her gün aynı sırada dizilmemesi için ağırlıklı rotasyon ve varyasyon uygular.
+ * - `variationCounter`: Her otomatik doldurmada artan varyasyon tohumu (aynı günde tekrar basıldığında da farklı dizilim üretir).
+ */
+export const DEFAULT_ADS_AUTO_FILL_SETTINGS = {
+  minBreakFillSec: 120,
+  uniquenessRule: 'same_clip', // 'same_clip' | 'same_company' | 'none'
+  strictMaxSpot: true,
+  varyOrderAcrossBreaks: true,
+  variationCounter: 1
+};
+
+export function loadAdsAutoFillSettingsBackup() {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const raw = window.localStorage.getItem(USER_AUTO_FILL_SETTINGS_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          return {
+            ...DEFAULT_ADS_AUTO_FILL_SETTINGS,
+            ...parsed,
+            minBreakFillSec: Math.max(0, Number(parsed.minBreakFillSec ?? 120)),
+            uniquenessRule: ['same_clip', 'same_company', 'none'].includes(parsed.uniquenessRule)
+              ? parsed.uniquenessRule
+              : 'same_clip',
+            strictMaxSpot: true
+          };
+        }
+      }
+    }
+  } catch (_) {}
+  return { ...DEFAULT_ADS_AUTO_FILL_SETTINGS };
+}
+
+export function saveAdsAutoFillSettingsBackup(settings) {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage && settings && typeof settings === 'object') {
+      window.localStorage.setItem(USER_AUTO_FILL_SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+    }
+  } catch (_) {}
+  pushAdsStoreToServer({ adsAutoFillSettings: settings });
+}
+
 export function loadDeletedReservationIdsBackup() {
   try {
     if (typeof window !== 'undefined' && window.localStorage) {

@@ -907,6 +907,7 @@ export function createDraftRouter() {
                     : base.adBreakBumperRules || null,
             adSettings: inc.adSettings || base.adSettings || null,
             adsPricingConfig: inc.adsPricingConfig || base.adsPricingConfig || null,
+            adsAutoFillSettings: inc.adsAutoFillSettings || base.adsAutoFillSettings || null,
             manualCompanies: mergeByIdList(base.manualCompanies, inc.manualCompanies),
             manualProducts: mergeByIdList(base.manualProducts, inc.manualProducts),
             manualMaterials: mergeByIdList(base.manualMaterials, inc.manualMaterials),

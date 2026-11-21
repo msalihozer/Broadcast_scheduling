@@ -59,6 +59,8 @@ const AdPlanningTab = () => {
     libraryPrograms = [],
     usedArchivePrograms = [],
     syncUsedArchiveProgramsForAds,
+    adsAutoFillSettings = {},
+    updateAdsAutoFillSettings,
     ramadanConfig = { enabled: true, startDate: '', endDate: '', leadDays: 14, forceShow: false },
     setRamadanConfig,
     setBreakRamadanTag,
@@ -792,13 +794,21 @@ const AdPlanningTab = () => {
     if (showSuccessDialog) {
       const formattedDay = format(parseISO(dateStr), 'd MMMM yyyy EEEE', { locale: tr });
       const chName = channels.find(c => String(c.id) === String(channelId))?.name || 'Semerkand HD';
+      const minSec = Number(adsAutoFillSettings?.minBreakFillSec ?? 120);
+      const uRule = adsAutoFillSettings?.uniquenessRule || 'same_clip';
+      const uText =
+        uRule === 'same_company'
+          ? 'Aynı Firma Giremez (Klip de Giremez)'
+          : uRule === 'none'
+          ? 'İkisi de Geçersiz'
+          : 'Aynı Klip Bir Daha Giremez';
       dialog.success(
         'Günlük Otomatik Planlama Tamamlandı',
-        `${formattedDay} (Liste ${activeListCode}) yayın akışı için tüm reklam kuşakları otomatik algoritmayla optimize edilerek yerleştirildi.\n` +
+        `${formattedDay} (Liste ${activeListCode}) yayın akışı için tüm reklam kuşakları yeni algoritmayla yerleştirildi.\n` +
           `Seçili Kanal: ${chName}\n` +
-          `Planlanan Tarih: ${formattedDay}\n` +
-          `Aktif Liste: Liste ${activeListCode}\n` +
-          `Dağıtım Kriteri: Sponsorluk + Öncelik + Min/Max Kota`
+          `En Az Kuşak Doluluk Hedefi: ${Math.floor(minSec / 60)} dk ${minSec % 60 > 0 ? `${minSec % 60} sn` : ''} (${minSec} sn)\n` +
+          `Kuşak İçi Tekrar Kuralı: ${uText}\n` +
+          `Max Spot Koruması: Aktif (Hiçbir Rezervasyon Max Spotu Aşmadı)`
       );
     }
   };
@@ -1002,6 +1012,8 @@ const AdPlanningTab = () => {
                 onRunAutoPlanDay={handleRunAutoPlanDay}
                 onResetAds={resetAds}
                 onCompleteAds={completeAds}
+                adsAutoFillSettings={adsAutoFillSettings}
+                onUpdateAutoFillSettings={updateAdsAutoFillSettings}
               />
 
               {/* 🌙 RAMAZAN ÖZEL KONTROL ŞERİDİ: SADECE RAMAZAN BAŞLANGICINA 2 HAFTA KALA VEYA RAMAZAN AYINDA GÖSTERİLİR */}
