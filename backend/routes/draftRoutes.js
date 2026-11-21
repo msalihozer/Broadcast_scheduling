@@ -826,32 +826,43 @@ export function createDraftRouter() {
                         resMap.set(idStr, r);
                     } else {
                         const existingTime = existing.updatedAt ? new Date(existing.updatedAt).getTime() : 0;
-                        const incTime = r.updatedAt ? new Date(r.updatedAt).getTime() : Date.now();
+                        const incTime = r.updatedAt ? new Date(r.updatedAt).getTime() : 0;
                         resMap.set(idStr, incTime >= existingTime ? { ...existing, ...r } : { ...r, ...existing });
                     }
                 }
             });
         }
 
-        // 2. Reklam kuşağı yerleşimlerini (adPlacements) gün bazlı birleştir
-        const mergedPlacements = {
+        // 2. Reklam kuşağı yerleşimlerini (adPlacements) gün bazlı birleştir ve silinen rezervasyonların spotlarını temizle
+        const rawMergedPlacements = {
             ...(replaceReservations ? {} : base.adPlacements || {})
         };
         if (inc.adPlacements && typeof inc.adPlacements === 'object') {
             Object.entries(inc.adPlacements).forEach(([dayKey, blocks]) => {
                 if (!Array.isArray(blocks)) return;
-                const existingBlocks = mergedPlacements[dayKey];
+                const existingBlocks = rawMergedPlacements[dayKey];
                 const incTotalAds = blocks.reduce((s, b) => s + ((b?.ads || []).length), 0);
                 const exTotalAds = Array.isArray(existingBlocks)
                     ? existingBlocks.reduce((s, b) => s + ((b?.ads || []).length), 0)
                     : 0;
                 if (!existingBlocks || incTotalAds > 0 || inc.forceOverwritePlacements) {
                     if (incTotalAds > 0 || exTotalAds === 0 || inc.forceOverwritePlacements) {
-                        mergedPlacements[dayKey] = blocks;
+                        rawMergedPlacements[dayKey] = blocks;
                     }
                 }
             });
         }
+
+        const mergedPlacements = {};
+        Object.entries(rawMergedPlacements).forEach(([dayKey, blocks]) => {
+            if (!Array.isArray(blocks)) return;
+            mergedPlacements[dayKey] = blocks.map(b => ({
+                ...b,
+                ads: (Array.isArray(b?.ads) ? b.ads : []).filter(
+                    ad => ad && (!ad.reservationId || !deletedSet.has(String(ad.reservationId)))
+                )
+            }));
+        });
 
         // 3. Manuel eklenen Firmalar, Ürünler ve Materyalleri ID bazlı birleştir
         const mergeByIdList = (listA = [], listB = []) => {
@@ -863,6 +874,27 @@ export function createDraftRouter() {
                 if (it && it.id) map.set(String(it.id), { ...(map.get(String(it.id)) || {}), ...it });
             });
             return Array.from(map.values());
+        };
+
+        // 4. Yayın akışı ve Liste Kontrol günlerini (ready-*, final-*, listControlDays) gün bazlı birleştir
+        const mergeDayObjectsMap = (baseDays = {}, incDays = {}) => {
+            const out = { ...(baseDays && typeof baseDays === 'object' ? baseDays : {}) };
+            if (incDays && typeof incDays === 'object') {
+                Object.entries(incDays).forEach(([dayKey, dayObj]) => {
+                    if (!dayObj || typeof dayObj !== 'object') return;
+                    const existing = out[dayKey];
+                    if (!existing) {
+                        out[dayKey] = dayObj;
+                    } else {
+                        const exTime = Number(existing.updatedAt || existing.savedAt || 0) || (existing.updatedAt ? new Date(existing.updatedAt).getTime() : 0);
+                        const inTime = Number(dayObj.updatedAt || dayObj.savedAt || 0) || (dayObj.updatedAt ? new Date(dayObj.updatedAt).getTime() : 0);
+                        if (inTime >= exTime) {
+                            out[dayKey] = { ...existing, ...dayObj };
+                        }
+                    }
+                });
+            }
+            return out;
         };
 
         return {
@@ -878,6 +910,8 @@ export function createDraftRouter() {
             manualCompanies: mergeByIdList(base.manualCompanies, inc.manualCompanies),
             manualProducts: mergeByIdList(base.manualProducts, inc.manualProducts),
             manualMaterials: mergeByIdList(base.manualMaterials, inc.manualMaterials),
+            planningDays: mergeDayObjectsMap(base.planningDays, inc.planningDays),
+            listControlDays: mergeDayObjectsMap(base.listControlDays, inc.listControlDays),
             updatedAt: new Date().toISOString()
         };
     };

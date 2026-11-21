@@ -321,21 +321,42 @@ async function reconnectMssqlPool() {
 
 // Sistem & Kurulum Sağlık Kontrolü (Docker Healthcheck ve 3 Sunuculu Topoloji Doğrulama Uç Noktası)
 app.get('/api/health', (req, res) => {
+    const safeTopology = {
+        APP_SERVER: {
+            hostname: SERVER_TOPOLOGY.APP_SERVER.hostname,
+            frontendPort: SERVER_TOPOLOGY.APP_SERVER.frontendPort,
+            backendPort: SERVER_TOPOLOGY.APP_SERVER.backendPort
+        },
+        BACKUP_SERVER: {
+            hostname: SERVER_TOPOLOGY.BACKUP_SERVER.hostname,
+            frontendPort: SERVER_TOPOLOGY.BACKUP_SERVER.frontendPort,
+            backendPort: SERVER_TOPOLOGY.BACKUP_SERVER.backendPort
+        },
+        DB_DOCKER_SERVER: {
+            hostname: SERVER_TOPOLOGY.DB_DOCKER_SERVER.hostname,
+            postgresPort: SERVER_TOPOLOGY.DB_DOCKER_SERVER.postgresPort
+        },
+        MAM_MSSQL_SERVER: {
+            port: SERVER_TOPOLOGY.MAM_MSSQL_SERVER.port,
+            database: SERVER_TOPOLOGY.MAM_MSSQL_SERVER.database
+        },
+        MAM_SMB_STORAGE: {
+            highResPath: SERVER_TOPOLOGY.MAM_SMB_STORAGE.highResPath,
+            yayinArsivPath: SERVER_TOPOLOGY.MAM_SMB_STORAGE.yayinArsivPath
+        }
+    };
     res.json({
         status: 'ok',
         timestamp: new Date().toISOString(),
         platform: process.platform,
-        topology: SERVER_TOPOLOGY,
+        topology: safeTopology,
         postgres: {
             connected: isPostgresReady(),
-            configuredHost: process.env.PG_HOST || '127.0.0.1',
-            activeHost: getActivePostgresHost(),
             port: parseInt(process.env.PG_PORT || '5432', 10),
             database: process.env.PG_DATABASE || 'yayin_planlama'
         },
         mssql: {
             connected: isMssqlConnected,
-            server: dbConfig.server,
             port: dbConfig.port,
             database: dbConfig.database
         },

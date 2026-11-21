@@ -232,13 +232,22 @@ export function createSystemMonitorRouter({
             return { ok: false, message: 'PostgreSQL bağlantısı aktif olmadığı için tam yedek alınamadı.' };
         }
         try {
-            const [cats, schs, progs, clips, rules] = await Promise.all([
+            const [cats, schs, progs, clips, rules, adsStoreRes] = await Promise.all([
                 pgQuery('SELECT * FROM categories ORDER BY id'),
                 pgQuery('SELECT * FROM schedules ORDER BY channel_id, date_key'),
                 pgQuery('SELECT * FROM archive_programs ORDER BY id'),
                 pgQuery('SELECT * FROM archive_clips ORDER BY id'),
-                pgQuery('SELECT * FROM archive_parsing_rules ORDER BY id')
+                pgQuery('SELECT * FROM archive_parsing_rules ORDER BY id'),
+                pgQuery('SELECT * FROM ads_persistent_store').catch(() => ({ rows: [] }))
             ]);
+
+            const readJsonSafe = (relPath) => {
+                try {
+                    const p = path.resolve('backend', 'data', relPath);
+                    if (fs.existsSync(p)) return JSON.parse(fs.readFileSync(p, 'utf8'));
+                } catch (_) {}
+                return null;
+            };
 
             const now = new Date();
             const stamp = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
@@ -252,7 +261,11 @@ export function createSystemMonitorRouter({
                 schedules: schs.rows,
                 archive_programs: progs.rows,
                 archive_clips: clips.rows,
-                archive_parsing_rules: rules.rows
+                archive_parsing_rules: rules.rows,
+                ads_persistent_store_db: adsStoreRes.rows,
+                ads_persistent_store_disk: readJsonSafe('ads_persistent_store.json'),
+                managed_users: (readJsonSafe('managed_users.json') || []).map(({ password, ...safe }) => safe),
+                role_templates: readJsonSafe('role_templates.json')
             };
 
             const gz = zlib.gzipSync(Buffer.from(JSON.stringify(payload), 'utf8'), { level: 9 });

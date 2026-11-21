@@ -5,7 +5,7 @@
 import { calculateTotalCount, _recalculateStartTimes, createEmptyDay, _propagateOverflows } from '../storeHelpers';
 import { dialog } from '../dialogStore';
 import useAdminLogStore from '../adminLogStore';
-import { resolveProgramLogoForChannel } from './ads/adsCatalogHelpers';
+import { resolveProgramLogoForChannel, pushAdsStoreToServer } from './ads/adsCatalogHelpers';
 
 export const createTimelineSlice = (set, get) => ({
   days: {},
@@ -311,6 +311,23 @@ export const createTimelineSlice = (set, get) => ({
         status: 'success'
       });
 
+      const updatedReadyDay = {
+        ...day,
+        isRevised: false,
+        adsStatus: 'completed',
+        updatedAt: new Date().toISOString()
+      };
+
+      pushAdsStoreToServer({
+        planningDays: {
+          [readyKey]: updatedReadyDay,
+          [finalKey]: updatedReadyDay
+        },
+        listControlDays: {
+          [listControlKey]: listControlDay
+        }
+      });
+
       return {
         listControlDays: {
           ...state.listControlDays,
@@ -318,16 +335,8 @@ export const createTimelineSlice = (set, get) => ({
         },
         days: {
           ...state.days,
-          [readyKey]: {
-            ...day,
-            isRevised: false,
-            adsStatus: 'completed'
-          },
-          [finalKey]: {
-            ...day,
-            isRevised: false,
-            adsStatus: 'completed'
-          }
+          [readyKey]: updatedReadyDay,
+          [finalKey]: updatedReadyDay
         }
       };
     });

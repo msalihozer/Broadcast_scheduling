@@ -6,6 +6,7 @@
  */
 import { getDraftProgramsForDay } from '../../utils/draftDataLoader';
 import usePlanningStore from '../../../../store/planningStore';
+import { pushAdsStoreToServer } from '../../../../store/slices/ads/adsCatalogHelpers';
 import { BROADCAST_FPS } from '../../utils/timecodeUtils';
 import {
   renumberAdBreaksInList,
@@ -473,32 +474,40 @@ export const createClipboardAndSyncSlice = (set, get) => ({
       const fallbackOtherKey = targetVariantKey === 'v1' ? 'v2' : 'v1';
       const existingOtherVariant = existingVariants[fallbackOtherKey] || { programs: [] };
 
+      const updatedReadyDayObj = {
+        ...existingReadyDay,
+        date: dateStr,
+        channelId,
+        sourceList: v,
+        startTime: startMinOffset,
+        prevOverflowFrames,
+        nextOverflowFrames,
+        activeVariant: targetVariantKey,
+        isReadyForBroadcast: true,
+        savedAt: now,
+        updatedAt: now,
+        variants: {
+          ...existingVariants,
+          [targetVariantKey]: {
+            ...(existingVariants[targetVariantKey] || {}),
+            sourceList: v,
+            savedAt: now,
+            programs: convertedForReady
+          },
+          [fallbackOtherKey]: existingOtherVariant
+        }
+      };
+
       usePlanningStore.setState({
         days: {
           ...(planningState.days || {}),
-          [readyKey]: {
-            ...existingReadyDay,
-            date: dateStr,
-            channelId,
-            sourceList: v,
-            startTime: startMinOffset,
-            prevOverflowFrames,
-            nextOverflowFrames,
-            activeVariant: targetVariantKey,
-            isReadyForBroadcast: true,
-            savedAt: now,
-            updatedAt: now,
-            variants: {
-              ...existingVariants,
-              [targetVariantKey]: {
-                ...(existingVariants[targetVariantKey] || {}),
-                sourceList: v,
-                savedAt: now,
-                programs: convertedForReady
-              },
-              [fallbackOtherKey]: existingOtherVariant
-            }
-          }
+          [readyKey]: updatedReadyDayObj
+        }
+      });
+
+      pushAdsStoreToServer({
+        planningDays: {
+          [readyKey]: updatedReadyDayObj
         }
       });
     } catch (err) {
@@ -572,25 +581,33 @@ export const createClipboardAndSyncSlice = (set, get) => ({
       const nextRevisionCount = wasAlreadySent ? (Number(existingReadyDay.revisionCount) || 0) + 1 : 0;
       const nextAdsStatus = wasAlreadySent ? 'revised' : 'pending';
 
+      const updatedSentReadyDay = {
+        ...existingReadyDay,
+        date: dateStr,
+        channelId,
+        sourceList: v,
+        activeVariant: targetVariantKey,
+        adsStatus: nextAdsStatus,
+        isRevised: wasAlreadySent,
+        revisionCount: nextRevisionCount,
+        lastRevisedAt: wasAlreadySent ? now : (existingReadyDay.lastRevisedAt || null),
+        isLockedForStage1: true,
+        isReadyForBroadcast: true,
+        savedAt: now,
+        sentToAdsAt: now,
+        updatedAt: now
+      };
+
       usePlanningStore.setState({
         days: {
           ...(planningState.days || {}),
-          [readyKey]: {
-            ...existingReadyDay,
-            date: dateStr,
-            channelId,
-            sourceList: v,
-            activeVariant: targetVariantKey,
-            adsStatus: nextAdsStatus,
-            isRevised: wasAlreadySent,
-            revisionCount: nextRevisionCount,
-            lastRevisedAt: wasAlreadySent ? now : (existingReadyDay.lastRevisedAt || null),
-            isLockedForStage1: true,
-            isReadyForBroadcast: true,
-            savedAt: now,
-            sentToAdsAt: now,
-            updatedAt: now
-          }
+          [readyKey]: updatedSentReadyDay
+        }
+      });
+
+      pushAdsStoreToServer({
+        planningDays: {
+          [readyKey]: updatedSentReadyDay
         }
       });
     } catch (err) {

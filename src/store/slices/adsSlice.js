@@ -214,6 +214,17 @@ export const createAdsSlice = (set, get) => ({
       const manualProducts = (state.products || []).filter(p => p && p.isManual);
       const manualMaterials = (state.materials || []).filter(m => m && m.isManual);
 
+      // ready-* ve final-* yayın günlerini ve listControlDays günlerini de sunucuya gönder
+      const localPlanningDays = {};
+      Object.entries(state.days || {}).forEach(([k, v]) => {
+        if ((k.startsWith('ready-') || k.startsWith('final-')) && v && typeof v === 'object') {
+          localPlanningDays[k] = v;
+        }
+      });
+      const localListControlDays = state.listControlDays && typeof state.listControlDays === 'object'
+        ? state.listControlDays
+        : {};
+
       const mergedStore = await pushAdsStoreToServer({
         reservations: localReservations,
         deletedReservationIds,
@@ -223,7 +234,9 @@ export const createAdsSlice = (set, get) => ({
         adsPricingConfig: state.adsPricingConfig,
         manualCompanies,
         manualProducts,
-        manualMaterials
+        manualMaterials,
+        planningDays: localPlanningDays,
+        listControlDays: localListControlDays
       });
 
       if (!mergedStore) return null;
@@ -247,7 +260,15 @@ export const createAdsSlice = (set, get) => ({
             ? mergedStore.adBreakBumperRules
             : cur.adBreakBumperRules,
         adSettings: mergedStore.adSettings || cur.adSettings,
-        adsPricingConfig: mergedStore.adsPricingConfig || cur.adsPricingConfig
+        adsPricingConfig: mergedStore.adsPricingConfig || cur.adsPricingConfig,
+        days:
+          mergedStore.planningDays && typeof mergedStore.planningDays === 'object'
+            ? { ...(cur.days || {}), ...mergedStore.planningDays }
+            : cur.days,
+        listControlDays:
+          mergedStore.listControlDays && typeof mergedStore.listControlDays === 'object'
+            ? { ...(cur.listControlDays || {}), ...mergedStore.listControlDays }
+            : cur.listControlDays
       }));
 
       return mergedStore;
@@ -897,7 +918,9 @@ export const createAdsSlice = (set, get) => ({
         ads: (block.ads || []).filter(ad => String(ad.reservationId) !== String(id))
       }));
     });
-    saveAdsReservationsBackup(nextReservations, nextAdPlacements);
+    saveAdsReservationsBackup(nextReservations, nextAdPlacements, {
+      forceOverwritePlacements: true
+    });
     useAdminLogStore.getState().addLog({
       category: 'ads',
       panel: 'ads',
