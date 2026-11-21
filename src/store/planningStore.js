@@ -8,6 +8,7 @@ import { createHistorySlice } from './slices/historySlice';
 import { createDraftSlice } from './slices/draftSlice';
 import { createReadySlice } from './slices/readySlice';
 import { createAdsSlice, ADS_CATALOG_VERSION, initialSyncedCatalog, loadAdsReservationsBackup, saveAdsReservationsBackup } from './slices/adsSlice';
+import { loadChannelLogoSettingsBackup } from './slices/ads/adsCatalogHelpers';
 import { createListControlSlice } from './slices/listControlSlice';
 
 const createTimelineSlice = createTimelineSliceNamed || createTimelineSliceDefault;
@@ -153,9 +154,12 @@ const usePlanningStore = create(
 
         saveAdsReservationsBackup(persistedReservations, persistedPlacements);
 
+        const loadedLogoSettings = loadChannelLogoSettingsBackup();
+
         return {
           ...currentState,
           ...pState,
+          adSettings: loadedLogoSettings,
           days: cleanedDays,
           adsCatalogVersion: ADS_CATALOG_VERSION,
           channels: CHANNELS,

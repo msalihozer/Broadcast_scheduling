@@ -237,6 +237,146 @@ export function loadAdBreakBumperRulesBackup() {
   return null;
 }
 
+const USER_CHANNEL_LOGO_SETTINGS_STORAGE_KEY = 'yayin_channel_logo_settings_v2';
+
+/**
+ * Her kanal (Semerkand HD ve Semerkand WAY) için:
+ * - `broadcastLogoName`: Yayına girerken (Program, Canlı Yayın, İntro, Reklam Çıkış vb.) listeye işlenecek logo ismi
+ * - `adLogoName`: Reklama girerken (Reklam Giriş jeneriği ve Reklam Kuşağı spotları) listeye işlenecek logo ismi
+ * - `bumpers`: Jenerik / Program bazlı özel logo eşleştirme kuralları (Giriş / Çıkış / Özel)
+ */
+export function buildDefaultChannelLogoSettings() {
+  return {
+    ch_hd: {
+      broadcastLogoName: 'Semerkand_Tv_Logo_Corner',
+      adLogoName: 'Semerkand_HD_Reklam_Logo',
+      bumpers: [
+        { id: 'hd-logo-1', name: 'SEMERKAND_intro_v3_2014', type: 'broadcast_in', logoName: 'Semerkand_Tv_Logo_Corner' },
+        { id: 'hd-logo-2', name: 'reklam_dini_giris_2014', type: 'ad_in', logoName: 'Semerkand_HD_Reklam_Logo' },
+        { id: 'hd-logo-3', name: 'reklam_dini_cikis_2014', type: 'broadcast_in', logoName: 'Semerkand_Tv_Logo_Corner' },
+        { id: 'hd-logo-4', name: 'reklam_bayan_giris_2014', type: 'ad_in', logoName: 'Semerkand_HD_Reklam_Logo' },
+        { id: 'hd-logo-5', name: 'reklam_bayan_cikis_2014', type: 'broadcast_in', logoName: 'Semerkand_Tv_Logo_Corner' },
+        { id: 'hd-logo-6', name: 'reklam_cocuk_giris_2014', type: 'ad_in', logoName: 'Semerkand_HD_Reklam_Logo' },
+        { id: 'hd-logo-7', name: 'reklam_cocuk_cikis_2014', type: 'broadcast_in', logoName: 'Semerkand_Tv_Logo_Corner' },
+        { id: 'hd-logo-8', name: 'reklam_kulturel_giris_2014', type: 'ad_in', logoName: 'Semerkand_HD_Reklam_Logo' },
+        { id: 'hd-logo-9', name: 'reklam_kulturel_cikis_2014', type: 'broadcast_in', logoName: 'Semerkand_Tv_Logo_Corner' }
+      ]
+    },
+    ch_way: {
+      broadcastLogoName: 'Semerkand_Way_Logo_Corner',
+      adLogoName: 'Semerkand_WAY_Reklam_Logo',
+      bumpers: [
+        { id: 'way-logo-1', name: 'SEMERKAND_intro_v3_2014', type: 'broadcast_in', logoName: 'Semerkand_Way_Logo_Corner' },
+        { id: 'way-logo-2', name: 'reklam_dini_giris_2014', type: 'ad_in', logoName: 'Semerkand_WAY_Reklam_Logo' },
+        { id: 'way-logo-3', name: 'reklam_dini_cikis_2014', type: 'broadcast_in', logoName: 'Semerkand_Way_Logo_Corner' },
+        { id: 'way-logo-4', name: 'reklam_bayan_giris_2014', type: 'ad_in', logoName: 'Semerkand_WAY_Reklam_Logo' },
+        { id: 'way-logo-5', name: 'reklam_bayan_cikis_2014', type: 'broadcast_in', logoName: 'Semerkand_Way_Logo_Corner' },
+        { id: 'way-logo-6', name: 'reklam_cocuk_giris_2014', type: 'ad_in', logoName: 'Semerkand_WAY_Reklam_Logo' },
+        { id: 'way-logo-7', name: 'reklam_cocuk_cikis_2014', type: 'broadcast_in', logoName: 'Semerkand_Way_Logo_Corner' },
+        { id: 'way-logo-8', name: 'reklam_kulturel_giris_2014', type: 'ad_in', logoName: 'Semerkand_WAY_Reklam_Logo' },
+        { id: 'way-logo-9', name: 'reklam_kulturel_cikis_2014', type: 'broadcast_in', logoName: 'Semerkand_Way_Logo_Corner' }
+      ]
+    }
+  };
+}
+
+export const DEFAULT_CHANNEL_LOGO_SETTINGS = buildDefaultChannelLogoSettings();
+
+export function saveChannelLogoSettingsBackup(adSettings) {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage && adSettings && typeof adSettings === 'object') {
+      window.localStorage.setItem(USER_CHANNEL_LOGO_SETTINGS_STORAGE_KEY, JSON.stringify(adSettings));
+    }
+  } catch (e) {}
+}
+
+export function loadChannelLogoSettingsBackup() {
+  const defaults = buildDefaultChannelLogoSettings();
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const raw = window.localStorage.getItem(USER_CHANNEL_LOGO_SETTINGS_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          const result = {};
+          ['ch_hd', 'ch_way'].forEach(chId => {
+            const chSrc = parsed[chId] || {};
+            const chDef = defaults[chId];
+            result[chId] = {
+              broadcastLogoName:
+                chSrc.broadcastLogoName !== undefined ? String(chSrc.broadcastLogoName) : chDef.broadcastLogoName,
+              adLogoName:
+                chSrc.adLogoName !== undefined ? String(chSrc.adLogoName) : chDef.adLogoName,
+              bumpers:
+                Array.isArray(chSrc.bumpers) && chSrc.bumpers.length > 0
+                  ? chSrc.bumpers
+                  : chDef.bumpers
+            };
+          });
+          return result;
+        }
+      }
+    }
+  } catch (e) {}
+  return defaults;
+}
+
+/**
+ * Yayın Liste Kontrol aşamasında her bir yayın/reklam satırı (`prog`) için
+ * kanalın Logo Ayarlarına (`adSettings[channelId]`) göre hangi logonun gireceğini çözümler:
+ * 1) Satıra özel tanımlı Jenerik / Program kuralı (`bumpers`) varsa onun `logoName` değerini döndürür.
+ * 2) Reklam Çıkış jeneriği (`bumperType === 'outro'` veya `_cikis`) ise yayına geri dönüldüğü için `broadcastLogoName` (Yayına Girerken Logo) döndürür.
+ * 3) Reklam Giriş jeneriği (`bumperType === 'intro'` veya `_giris`) veya Reklam Kuşağı spotu (`isAdClip` / `isFromAds`) ise `adLogoName` (Reklama Girerken Logo) döndürür.
+ * 4) Normal Program, Canlı Yayın, İntro ve Dolgu klipleri için `broadcastLogoName` (Yayına Girerken Logo) döndürür.
+ */
+export function resolveProgramLogoForChannel(prog, channelId = 'ch_hd', adSettings = null) {
+  if (!prog) return '';
+  if (prog.isManualLogo && prog.logo) return prog.logo;
+
+  const settingsPool = adSettings || DEFAULT_CHANNEL_LOGO_SETTINGS;
+  const chSettings = settingsPool?.[channelId] || DEFAULT_CHANNEL_LOGO_SETTINGS[channelId] || DEFAULT_CHANNEL_LOGO_SETTINGS.ch_hd;
+
+  const broadcastLogo = String(chSettings?.broadcastLogoName ?? '').trim();
+  const adLogo = String(chSettings?.adLogoName ?? '').trim();
+  const bumpers = Array.isArray(chSettings?.bumpers) ? chSettings.bumpers : [];
+
+  const rawTitle = String(prog.title || prog.clipName || prog.name || '').replace(/\.(mxf|mp4|mov)$/i, '').trim();
+  const titleLower = rawTitle.toLocaleLowerCase('tr-TR');
+
+  // 1. Özel tanımlı jenerik/program logo eşleşmesi kontrolü
+  if (titleLower && bumpers.length > 0) {
+    const matchedBumper = bumpers.find(
+      b => b && b.name && String(b.name).trim() && titleLower.includes(String(b.name).trim().toLocaleLowerCase('tr-TR'))
+    );
+    if (matchedBumper && matchedBumper.logoName && String(matchedBumper.logoName).trim()) {
+      return String(matchedBumper.logoName).trim();
+    }
+  }
+
+  // 2. Reklam Çıkış Jeneriği -> Yayına girerken girecek logo
+  const isOutroBumper =
+    (prog.isBumperAd && prog.bumperType === 'outro') ||
+    /reklam_.*_cikis/i.test(rawTitle);
+  if (isOutroBumper) {
+    return broadcastLogo;
+  }
+
+  // 3. Reklam Giriş Jeneriği veya Reklam Spotu -> Reklama girerken girecek logo
+  const isAdOrIntroBumper =
+    (prog.isBumperAd && prog.bumperType === 'intro') ||
+    /reklam_.*_giris/i.test(rawTitle) ||
+    Boolean(prog.isAdClip || prog.isFromAds) ||
+    String(prog.id || '').toUpperCase() === 'TPL-3' ||
+    prog.type === 'ad_break';
+
+  if (isAdOrIntroBumper) {
+    return adLogo;
+  }
+
+  // 4. Yayın / Program / İntro / Canlı Yayın -> Yayına girerken girecek logo
+  return broadcastLogo;
+}
+
 /**
  * Verilen tarih dizgesinin (`YYYY-MM-DD`) içinde bulunduğu haftanın
  * Pazartesi (`Monday`) gününü yerel saat dilimine göre `YYYY-MM-DD` olarak döndürür.

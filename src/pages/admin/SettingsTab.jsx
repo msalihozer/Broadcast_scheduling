@@ -20,11 +20,14 @@ const SettingsTab = () => {
   });
   const setRamadanConfig = usePlanningStore(state => state.setRamadanConfig);
   const adSettings = usePlanningStore(state => state.adSettings || {
-    ch_hd: { bumpers: [] }, ch_way: { bumpers: [] }
+    ch_hd: { broadcastLogoName: 'Semerkand_Tv_Logo_Corner', adLogoName: 'Semerkand_HD_Reklam_Logo', bumpers: [] },
+    ch_way: { broadcastLogoName: 'Semerkand_Way_Logo_Corner', adLogoName: 'Semerkand_WAY_Reklam_Logo', bumpers: [] }
   });
+  const updateChannelPrimaryLogo = usePlanningStore(state => state.updateChannelPrimaryLogo);
   const addBumper = usePlanningStore(state => state.addBumper);
   const updateBumper = usePlanningStore(state => state.updateBumper);
   const removeBumper = usePlanningStore(state => state.removeBumper);
+  const resetChannelLogoSettingsToDefault = usePlanningStore(state => state.resetChannelLogoSettingsToDefault);
 
   const logs = useAdminLogStore(state => state.logs || []);
   const addLog = useAdminLogStore(state => state.addLog);
@@ -496,90 +499,311 @@ const SettingsTab = () => {
         </div>
       </section>
 
-      {/* Reklam ve Jenerik Yönetimi */}
+      {/* Kanal Bazlı Yayın ve Reklam Logo Ayarları (Yayın Liste Kontrol Entegrasyonlu) */}
       <section>
-        <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '16px' }}>Reklam ve Jenerik Ayarları</h3>
-        <div className="glass" style={{ padding: '24px', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '14px' }}>
-            Yayın aralarına eklenecek olan giriş ve çıkış jeneriklerini (ve logolarını) kanal bazında dilediğiniz kadar tanımlayabilirsiniz.
-          </p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+          <div>
+            <h3 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0 }}>
+              Kanal Bazlı Yayın ve Reklam Logo Ayarları (Yayın Liste Kontrol)
+            </h3>
+            <p style={{ margin: '4px 0 0 0', color: 'var(--text-secondary)', fontSize: '13px' }}>
+              Her kanal için <strong>Yayına Girerken Girecek Logo</strong> ve <strong>Reklama Girerken Girecek Logo</strong> isimlerini tanımlayın (Dosya yükleme yoktur, yalnızca logo ismi girilir). Bu logo isimleri <strong>Yayın Liste Kontrol</strong> aşamasında listeye otomatik işlenir.
+            </p>
+          </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '32px' }}>
-            
-            {/* HD Settings */}
-            <div style={{ background: 'var(--bg-tertiary)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h4 style={{ margin: 0, color: '#3b82f6', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3b82f6' }}></span> Semerkand HD
-                </h4>
-                <button 
-                  onClick={() => addBumper('ch_hd')}
-                  style={{ background: 'var(--accent-primary)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof resetChannelLogoSettingsToDefault === 'function') {
+                resetChannelLogoSettingsToDefault();
+                addLog({
+                  category: 'system',
+                  panel: 'system',
+                  module: 'Sistem Ayarları',
+                  action: 'Varsayılan Kanal Logo Ayarları Yüklendi',
+                  details: 'Semerkand HD ve Semerkand WAY yayın/reklam logo isimleri ve jenerik logo eşleştirmeleri varsayılana döndürüldü.',
+                  status: 'success'
+                });
+              }
+            }}
+            style={{
+              padding: '8px 14px',
+              borderRadius: '8px',
+              border: '1px solid var(--border-color)',
+              background: 'var(--bg-secondary)',
+              color: 'var(--text-primary)',
+              fontSize: '12px',
+              fontWeight: '700',
+              cursor: 'pointer'
+            }}
+          >
+            Varsayılan Logo İsimlerini Yükle
+          </button>
+        </div>
+
+        <div className="glass" style={{ padding: '24px', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '28px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(460px, 1fr))', gap: '24px' }}>
+            {[
+              { id: 'ch_hd', name: 'Semerkand HD', color: '#3b82f6', defaultBroadcastLogo: 'Semerkand_Tv_Logo_Corner', defaultAdLogo: 'Semerkand_HD_Reklam_Logo' },
+              { id: 'ch_way', name: 'Semerkand WAY', color: '#8b5cf6', defaultBroadcastLogo: 'Semerkand_Way_Logo_Corner', defaultAdLogo: 'Semerkand_WAY_Reklam_Logo' }
+            ].map(ch => {
+              const chData = adSettings?.[ch.id] || {};
+              const broadcastLogoVal = chData.broadcastLogoName ?? ch.defaultBroadcastLogo;
+              const adLogoVal = chData.adLogoName ?? ch.defaultAdLogo;
+              const bumpersList = Array.isArray(chData.bumpers) ? chData.bumpers : [];
+
+              return (
+                <div
+                  key={ch.id}
+                  style={{
+                    background: 'var(--bg-tertiary)',
+                    padding: '22px',
+                    borderRadius: '14px',
+                    border: `1.5px solid ${ch.color}44`,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '18px'
+                  }}
                 >
-                  <Plus size={14} /> Jenerik Ekle
-                </button>
-              </div>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {adSettings.ch_hd?.bumpers?.length > 0 ? adSettings.ch_hd.bumpers.map(bumper => (
-                  <div key={bumper.id} style={{ display: 'flex', gap: '12px', alignItems: 'center', background: 'var(--bg-secondary)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                    <div style={{ flex: 1 }}>
-                      <input type="text" value={bumper.name} onChange={(e) => updateBumper('ch_hd', bumper.id, 'name', e.target.value)} placeholder="Program / Jenerik Adı" style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', borderRadius: '6px' }} />
+                  {/* Kanal Başlığı */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                    <h4 style={{ margin: 0, color: ch.color, fontSize: '16px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: ch.color }}></span>
+                      {ch.name} — Logo İsim Ayarları
+                    </h4>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button
+                        type="button"
+                        onClick={() => addBumper(ch.id, 'broadcast_in')}
+                        style={{
+                          background: 'rgba(16, 185, 129, 0.14)',
+                          color: '#10b981',
+                          border: '1px solid rgba(16, 185, 129, 0.35)',
+                          padding: '6px 11px',
+                          borderRadius: '7px',
+                          fontSize: '11.5px',
+                          fontWeight: '800',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <Plus size={13} /> Yayına Giriş Logosu Ekle
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => addBumper(ch.id, 'ad_in')}
+                        style={{
+                          background: 'rgba(245, 158, 11, 0.14)',
+                          color: '#d97706',
+                          border: '1px solid rgba(245, 158, 11, 0.35)',
+                          padding: '6px 11px',
+                          borderRadius: '7px',
+                          fontSize: '11.5px',
+                          fontWeight: '800',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <Plus size={13} /> Reklama Giriş Logosu Ekle
+                      </button>
                     </div>
-                    <div style={{ width: '120px' }}>
-                      <select value={bumper.type} onChange={(e) => updateBumper('ch_hd', bumper.id, 'type', e.target.value)} style={{ width: '100%', padding: '8px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', borderRadius: '6px' }}>
-                        <option value="in">Giriş</option>
-                        <option value="out">Çıkış</option>
-                      </select>
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <input type="text" value={bumper.logoName} onChange={(e) => updateBumper('ch_hd', bumper.id, 'logoName', e.target.value)} placeholder="Logo Dosya Adı" style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', borderRadius: '6px' }} />
-                    </div>
-                    <button onClick={() => removeBumper('ch_hd', bumper.id)} style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '8px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Sil">
-                      <Trash2 size={16} />
-                    </button>
                   </div>
-                )) : <div style={{ color: 'var(--text-muted)', fontSize: '13px', fontStyle: 'italic' }}>Tanımlı jenerik yok. Eklemek için butona tıklayın.</div>}
-              </div>
-            </div>
 
-            {/* WAY Settings */}
-            <div style={{ background: 'var(--bg-tertiary)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h4 style={{ margin: 0, color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#8b5cf6' }}></span> Semerkand WAY
-                </h4>
-                <button 
-                  onClick={() => addBumper('ch_way')}
-                  style={{ background: 'var(--accent-primary)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
-                >
-                  <Plus size={14} /> Jenerik Ekle
-                </button>
-              </div>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {adSettings.ch_way?.bumpers?.length > 0 ? adSettings.ch_way.bumpers.map(bumper => (
-                  <div key={bumper.id} style={{ display: 'flex', gap: '12px', alignItems: 'center', background: 'var(--bg-secondary)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                    <div style={{ flex: 1 }}>
-                      <input type="text" value={bumper.name} onChange={(e) => updateBumper('ch_way', bumper.id, 'name', e.target.value)} placeholder="Program / Jenerik Adı" style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', borderRadius: '6px' }} />
+                  {/* ANA KANAL LOGO İSİMLERİ: 1) Yayına Girerken Girecek Logo 2) Reklama Girerken Girecek Logo */}
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: '12px',
+                      padding: '14px',
+                      borderRadius: '11px',
+                      background: 'var(--bg-secondary)',
+                      border: '1px solid var(--border-color)'
+                    }}
+                  >
+                    {/* 1. Yayına Girerken Girecek Logo */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '12px', fontWeight: '800', color: '#10b981', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        📺 Yayına Girerken Girecek Logo İsmi:
+                      </label>
+                      <input
+                        type="text"
+                        value={broadcastLogoVal}
+                        onChange={e =>
+                          typeof updateChannelPrimaryLogo === 'function' &&
+                          updateChannelPrimaryLogo(ch.id, 'broadcastLogoName', e.target.value, true)
+                        }
+                        placeholder="Örn: Semerkand_Tv_Logo_Corner"
+                        style={{
+                          width: '100%',
+                          padding: '9px 12px',
+                          background: 'var(--bg-primary)',
+                          border: '1.5px solid rgba(16, 185, 129, 0.45)',
+                          color: 'var(--text-primary)',
+                          borderRadius: '8px',
+                          fontSize: '13px',
+                          fontWeight: '700',
+                          fontFamily: 'monospace'
+                        }}
+                      />
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        Programlara, canlı yayınlara, introlara ve reklam çıkışına girerken listeye yazılır.
+                      </span>
                     </div>
-                    <div style={{ width: '120px' }}>
-                      <select value={bumper.type} onChange={(e) => updateBumper('ch_way', bumper.id, 'type', e.target.value)} style={{ width: '100%', padding: '8px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', borderRadius: '6px' }}>
-                        <option value="in">Giriş</option>
-                        <option value="out">Çıkış</option>
-                      </select>
+
+                    {/* 2. Reklama Girerken Girecek Logo */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '12px', fontWeight: '800', color: '#d97706', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        📢 Reklama Girerken Girecek Logo İsmi:
+                      </label>
+                      <input
+                        type="text"
+                        value={adLogoVal}
+                        onChange={e =>
+                          typeof updateChannelPrimaryLogo === 'function' &&
+                          updateChannelPrimaryLogo(ch.id, 'adLogoName', e.target.value, true)
+                        }
+                        placeholder="Örn: Semerkand_HD_Reklam_Logo"
+                        style={{
+                          width: '100%',
+                          padding: '9px 12px',
+                          background: 'var(--bg-primary)',
+                          border: '1.5px solid rgba(245, 158, 11, 0.45)',
+                          color: 'var(--text-primary)',
+                          borderRadius: '8px',
+                          fontSize: '13px',
+                          fontWeight: '700',
+                          fontFamily: 'monospace'
+                        }}
+                      />
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        Reklam giriş jeneriğinde ve reklam kuşağı spotlarında listeye yazılır.
+                      </span>
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <input type="text" value={bumper.logoName} onChange={(e) => updateBumper('ch_way', bumper.id, 'logoName', e.target.value)} placeholder="Logo Dosya Adı" style={{ width: '100%', padding: '8px 12px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', borderRadius: '6px' }} />
-                    </div>
-                    <button onClick={() => removeBumper('ch_way', bumper.id)} style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '8px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Sil">
-                      <Trash2 size={16} />
-                    </button>
                   </div>
-                )) : <div style={{ color: 'var(--text-muted)', fontSize: '13px', fontStyle: 'italic' }}>Tanımlı jenerik yok. Eklemek için butona tıklayın.</div>}
-              </div>
-            </div>
 
+                  {/* Jenerik / Program Bazlı Özel Giriş-Çıkış Logo Eşleştirmeleri */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '12px', fontWeight: '800', color: 'var(--text-secondary)' }}>
+                        Jenerik &amp; Program Bazlı Logo İsim Eşleştirmeleri ({bumpersList.length} Kayıt)
+                      </span>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        Jenerik / Program Adı &rarr; Geçiş Türü &rarr; Logo İsmi
+                      </span>
+                    </div>
+
+                    {bumpersList.length > 0 ? (
+                      bumpersList.map(bumper => {
+                        const normalizedType =
+                          bumper.type === 'in'
+                            ? 'ad_in'
+                            : bumper.type === 'out'
+                            ? 'broadcast_in'
+                            : bumper.type || 'broadcast_in';
+                        const isAdLogoRow = normalizedType === 'ad_in';
+
+                        return (
+                          <div
+                            key={bumper.id}
+                            style={{
+                              display: 'grid',
+                              gridTemplateColumns: '1.35fr 185px 1.25fr 36px',
+                              gap: '8px',
+                              alignItems: 'center',
+                              background: 'var(--bg-secondary)',
+                              padding: '10px 12px',
+                              borderRadius: '9px',
+                              border: `1px solid ${isAdLogoRow ? 'rgba(245, 158, 11, 0.35)' : 'rgba(16, 185, 129, 0.35)'}`
+                            }}
+                          >
+                            <input
+                              type="text"
+                              value={bumper.name || ''}
+                              onChange={e => updateBumper(ch.id, bumper.id, 'name', e.target.value)}
+                              placeholder="Jenerik veya Program Adı (Örn: reklam_dini_giris_2014)"
+                              style={{
+                                width: '100%',
+                                padding: '7px 10px',
+                                background: 'var(--bg-primary)',
+                                border: '1px solid var(--border-color)',
+                                color: 'var(--text-primary)',
+                                borderRadius: '6px',
+                                fontSize: '12.5px',
+                                fontFamily: 'monospace'
+                              }}
+                            />
+
+                            <select
+                              value={normalizedType}
+                              onChange={e => updateBumper(ch.id, bumper.id, 'type', e.target.value)}
+                              style={{
+                                width: '100%',
+                                padding: '7px 8px',
+                                background: 'var(--bg-primary)',
+                                border: '1px solid var(--border-color)',
+                                color: isAdLogoRow ? '#d97706' : '#10b981',
+                                fontWeight: '800',
+                                borderRadius: '6px',
+                                fontSize: '12px'
+                              }}
+                            >
+                              <option value="broadcast_in">📺 Yayına Girerken Logo</option>
+                              <option value="ad_in">📢 Reklama Girerken Logo</option>
+                            </select>
+
+                            <input
+                              type="text"
+                              value={bumper.logoName || ''}
+                              onChange={e => updateBumper(ch.id, bumper.id, 'logoName', e.target.value)}
+                              placeholder="Logo İsmi (Örn: Semerkand_Tv_Logo_Corner)"
+                              style={{
+                                width: '100%',
+                                padding: '7px 10px',
+                                background: 'var(--bg-primary)',
+                                border: '1px solid var(--border-color)',
+                                color: 'var(--text-primary)',
+                                borderRadius: '6px',
+                                fontSize: '12.5px',
+                                fontWeight: '700',
+                                fontFamily: 'monospace'
+                              }}
+                            />
+
+                            <button
+                              type="button"
+                              onClick={() => removeBumper(ch.id, bumper.id)}
+                              style={{
+                                background: 'rgba(239, 68, 68, 0.1)',
+                                color: '#ef4444',
+                                border: '1px solid rgba(239, 68, 68, 0.2)',
+                                padding: '7px',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}
+                              title="Sil"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div style={{ color: 'var(--text-muted)', fontSize: '13px', fontStyle: 'italic' }}>
+                        Özel jenerik logo kuralı yok. Üstteki ana Yayın ve Reklam logo isimleri tüm satırlara otomatik uygulanır.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>

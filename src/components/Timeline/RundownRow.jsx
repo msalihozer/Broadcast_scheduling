@@ -15,6 +15,7 @@ import { ChevronRight, PlaySquare, Type, Wifi, Film, ChevronDown, PlayCircle } f
 import usePlanningStore from '../../store/planningStore';
 import useThemeStore from '../../store/themeStore';
 import { getCategoryDetails } from '../../utils/categoryColors';
+import { resolveProgramLogoForChannel } from '../../store/slices/ads/adsCatalogHelpers';
 
 import { formatTime } from '../../utils/timeFormat';
 
@@ -191,10 +192,27 @@ const RundownRow = ({ program, index, channelId, date, variant, isEditing, onFin
   };
 
   const adPlacements = usePlanningStore(state => state.adPlacements || {});
+  const adSettings = usePlanningStore(state => state.adSettings || {});
   const reservations = usePlanningStore(state => state.reservations || []);
   const materials = usePlanningStore(state => state.materials || []);
   const companies = usePlanningStore(state => state.companies || []);
   const products = usePlanningStore(state => state.products || []);
+
+  const resolvedLogoName = React.useMemo(
+    () => program.logo || resolveProgramLogoForChannel(program, channelId, adSettings) || '-',
+    [program, channelId, adSettings]
+  );
+
+  const isOutroBumperRow =
+    (program.isBumperAd && program.bumperType === 'outro') ||
+    /reklam_.*_cikis/i.test(String(program.title || ''));
+  const isAdLogoActive =
+    !isOutroBumperRow &&
+    ((program.isBumperAd && program.bumperType === 'intro') ||
+      /reklam_.*_giris/i.test(String(program.title || '')) ||
+      Boolean(program.isAdClip || program.isFromAds) ||
+      String(program.id || '').toUpperCase() === 'TPL-3' ||
+      program.type === 'ad_break');
   
   const currentMode = usePlanningStore(state => state.currentMode) || 'draft';
   const dataMode = currentMode;
@@ -301,8 +319,44 @@ const RundownRow = ({ program, index, channelId, date, variant, isEditing, onFin
           {formatSeconds(program.trimOut)}
         </div>
 
-        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {program.logo || '-'}
+        <div
+          style={{
+            fontSize: '11.5px',
+            color: 'var(--text-secondary)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
+          }}
+          title={
+            isAdLogoActive
+              ? `Reklama Girerken Girecek Logo: ${resolvedLogoName}`
+              : `Yayına Girerken Girecek Logo: ${resolvedLogoName}`
+          }
+        >
+          {resolvedLogoName && resolvedLogoName !== '-' ? (
+            <span
+              style={{
+                padding: '2px 8px',
+                borderRadius: '6px',
+                fontFamily: 'monospace',
+                fontWeight: 700,
+                fontSize: '11px',
+                background: isAdLogoActive ? 'rgba(245, 158, 11, 0.14)' : 'rgba(16, 185, 129, 0.14)',
+                color: isAdLogoActive ? '#d97706' : '#10b981',
+                border: `1px solid ${isAdLogoActive ? 'rgba(245, 158, 11, 0.35)' : 'rgba(16, 185, 129, 0.35)'}`,
+                maxWidth: '100%',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
+              }}
+            >
+              {resolvedLogoName}
+            </span>
+          ) : (
+            '-'
+          )}
         </div>
 
         <div style={{ textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>

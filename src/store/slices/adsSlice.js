@@ -33,7 +33,12 @@ import {
   buildDefaultAdBreakBumperRules,
   getBumperJingleClipsFromAdsMedia,
   saveAdBreakBumperRulesBackup,
-  loadAdBreakBumperRulesBackup
+  loadAdBreakBumperRulesBackup,
+  DEFAULT_CHANNEL_LOGO_SETTINGS,
+  buildDefaultChannelLogoSettings,
+  saveChannelLogoSettingsBackup,
+  loadChannelLogoSettingsBackup,
+  resolveProgramLogoForChannel
 } from './ads/adsCatalogHelpers';
 
 import {
@@ -747,65 +752,187 @@ export const createAdsSlice = (set, get) => ({
   }),
 
   // ============================================================================
-  // 6. BUMPER VE LOGO EŞLEŞTİRME AYARLARI
+  // 6. KANAL BAZLI YAYIN VE REKLAM LOGO AYARLARI (YAYIN LİSTE KONTROL ENTEGRASYONLU)
   // ============================================================================
-  adSettings: {
-    ch_hd: { bumpers: [] },
-    ch_way: { bumpers: [] }
-  },
+  adSettings: loadChannelLogoSettingsBackup(),
 
-  addBumper: (channelId) => set(state => ({
-    adSettings: {
+  /**
+   * Kanalın ana "Yayına Girerken Girecek Logo" (`broadcastLogoName`) veya
+   * "Reklama Girerken Girecek Logo" (`adLogoName`) ismini günceller.
+   * syncBumpers=true ise o kanaldaki aynı türdeki (`broadcast_in` / `ad_in`) kuralların logo ismini de otomatik günceller.
+   */
+  updateChannelPrimaryLogo: (channelId, field, value, syncBumpers = true) => set(state => {
+    const chCurrent = state.adSettings?.[channelId] || DEFAULT_CHANNEL_LOGO_SETTINGS[channelId] || {
+      broadcastLogoName: '',
+      adLogoName: '',
+      bumpers: []
+    };
+    const oldVal = chCurrent[field] || '';
+    const targetType = field === 'adLogoName' ? 'ad_in' : 'broadcast_in';
+
+    const nextBumpers = (chCurrent.bumpers || []).map(b => {
+      if (!syncBumpers) return b;
+      const bType = b.type === 'in' ? 'ad_in' : b.type === 'out' ? 'broadcast_in' : b.type;
+      if (bType === targetType && (!b.logoName || b.logoName === oldVal)) {
+        return { ...b, logoName: value };
+      }
+      return b;
+    });
+
+    const nextAdSettings = {
       ...state.adSettings,
       [channelId]: {
-        ...state.adSettings[channelId],
-        bumpers: [...(state.adSettings[channelId]?.bumpers || []), { id: Date.now().toString(), name: '', type: 'in', logoName: '' }]
+        ...chCurrent,
+        [field]: value,
+        bumpers: nextBumpers
       }
-    }
-  })),
+    };
+    saveChannelLogoSettingsBackup(nextAdSettings);
+    return { adSettings: nextAdSettings };
+  }),
 
-  updateBumper: (channelId, bumperId, field, value) => set(state => ({
-    adSettings: {
+  addBumper: (channelId, defaultType = 'broadcast_in') => set(state => {
+    const chCurrent = state.adSettings?.[channelId] || DEFAULT_CHANNEL_LOGO_SETTINGS[channelId] || {
+      broadcastLogoName: '',
+      adLogoName: '',
+      bumpers: []
+    };
+    const defaultLogo =
+      defaultType === 'ad_in' || defaultType === 'in'
+        ? (chCurrent.adLogoName || '')
+        : (chCurrent.broadcastLogoName || '');
+    const nextAdSettings = {
       ...state.adSettings,
       [channelId]: {
-        ...state.adSettings[channelId],
-        bumpers: state.adSettings[channelId].bumpers.map(b => b.id === bumperId ? { ...b, [field]: value } : b)
+        ...chCurrent,
+        bumpers: [
+          ...(chCurrent.bumpers || []),
+          { id: `logo-${channelId}-${Date.now()}`, name: '', type: defaultType, logoName: defaultLogo }
+        ]
       }
-    }
-  })),
+    };
+    saveChannelLogoSettingsBackup(nextAdSettings);
+    return { adSettings: nextAdSettings };
+  }),
 
-  removeBumper: (channelId, bumperId) => set(state => ({
-    adSettings: {
+  updateBumper: (channelId, bumperId, field, value) => set(state => {
+    const chCurrent = state.adSettings?.[channelId] || DEFAULT_CHANNEL_LOGO_SETTINGS[channelId] || { bumpers: [] };
+    const nextAdSettings = {
       ...state.adSettings,
       [channelId]: {
-        ...state.adSettings[channelId],
-        bumpers: state.adSettings[channelId].bumpers.filter(b => b.id !== bumperId)
+        ...chCurrent,
+        bumpers: (chCurrent.bumpers || []).map(b => {
+          if (b.id !== bumperId) return b;
+          const updated = { ...b, [field]: value };
+          // Eğer giriş türü (Yayına Girerken / Reklama Girerken) değiştiyse ilgili varsayılan logo ismini öner
+          if (field === 'type') {
+            if ((value === 'ad_in' || value === 'in') && chCurrent.adLogoName) {
+              updated.logoName = chCurrent.adLogoName;
+            } else if ((value === 'broadcast_in' || value === 'out') && chCurrent.broadcastLogoName) {
+              updated.logoName = chCurrent.broadcastLogoName;
+            }
+          }
+          return updated;
+        })
       }
+    };
+    saveChannelLogoSettingsBackup(nextAdSettings);
+    return { adSettings: nextAdSettings };
+  }),
+
+  removeBumper: (channelId, bumperId) => set(state => {
+    const chCurrent = state.adSettings?.[channelId] || DEFAULT_CHANNEL_LOGO_SETTINGS[channelId] || { bumpers: [] };
+    const nextAdSettings = {
+      ...state.adSettings,
+      [channelId]: {
+        ...chCurrent,
+        bumpers: (chCurrent.bumpers || []).filter(b => b.id !== bumperId)
+      }
+    };
+    saveChannelLogoSettingsBackup(nextAdSettings);
+    return { adSettings: nextAdSettings };
+  }),
+
+  resetChannelLogoSettingsToDefault: () => set(() => {
+    const defaults = buildDefaultChannelLogoSettings();
+    saveChannelLogoSettingsBackup(defaults);
+    return { adSettings: defaults };
+  }),
+
+  /**
+   * Seçili kanal ve günün Yayın Liste Kontrol (`listControlDays`) ve Ready (`days`) listelerindeki
+   * tüm satırlara kanalın "Yayına Girerken Logo" ve "Reklama Girerken Logo" isimlerini işler.
+   */
+  applyChannelLogosToListControl: (channelId, dateStr) => set(state => {
+    const targetCh = channelId || state.selectedChannel || 'ch_hd';
+    const targetDate = dateStr || state.selectedDate;
+    const lcKey = `list-control-${targetCh}-${targetDate}`;
+    const readyKey = `ready-${targetCh}-${targetDate}`;
+
+    const nextListControlDays = { ...(state.listControlDays || {}) };
+    const lcDay = nextListControlDays[lcKey];
+    if (lcDay && lcDay.variants) {
+      const updatedVariants = { ...lcDay.variants };
+      Object.keys(updatedVariants).forEach(vId => {
+        const varObj = updatedVariants[vId];
+        if (!varObj || !Array.isArray(varObj.programs)) return;
+        updatedVariants[vId] = {
+          ...varObj,
+          programs: varObj.programs.map(prog => ({
+            ...prog,
+            logo: resolveProgramLogoForChannel({ ...prog, isManualLogo: false }, targetCh, state.adSettings),
+            isManualLogo: false
+          }))
+        };
+      });
+      nextListControlDays[lcKey] = {
+        ...lcDay,
+        variants: updatedVariants
+      };
     }
-  })),
+
+    const nextDays = { ...(state.days || {}) };
+    const readyDay = nextDays[readyKey];
+    if (readyDay && readyDay.variants) {
+      const updatedVariants = { ...readyDay.variants };
+      Object.keys(updatedVariants).forEach(vId => {
+        const varObj = updatedVariants[vId];
+        if (!varObj || !Array.isArray(varObj.programs)) return;
+        updatedVariants[vId] = {
+          ...varObj,
+          programs: varObj.programs.map(prog => ({
+            ...prog,
+            logo: resolveProgramLogoForChannel({ ...prog, isManualLogo: false }, targetCh, state.adSettings)
+          }))
+        };
+      });
+      nextDays[readyKey] = {
+        ...readyDay,
+        variants: updatedVariants
+      };
+    }
+
+    return {
+      listControlDays: nextListControlDays,
+      days: nextDays
+    };
+  }),
 
   matchAdLogosForReady: () => set(state => {
     const { selectedChannel, selectedDate, days, adSettings } = state;
     const key = `ready-${selectedChannel}-${selectedDate}`;
     const dayData = days[key];
-    const bumpers = adSettings[selectedChannel]?.bumpers || [];
-
-    if (!dayData || bumpers.length === 0) return state;
+    if (!dayData) return state;
 
     const newDays = { ...days };
     const newDayData = { ...dayData, variants: { ...dayData.variants } };
 
     Object.keys(newDayData.variants).forEach(vId => {
       const variant = newDayData.variants[vId];
-      const newPrograms = variant.programs.map(prog => {
-        const cleanTitle = (prog.title || '').replace(/\.mxf$/i, '').trim();
-        const matchedBumper = bumpers.find(b => b.name && b.name.trim() && cleanTitle.toLowerCase().includes(b.name.trim().toLowerCase()));
-
-        if (matchedBumper && matchedBumper.logoName) {
-          return { ...prog, logo: matchedBumper.logoName };
-        }
-        return prog;
-      });
+      const newPrograms = (variant.programs || []).map(prog => ({
+        ...prog,
+        logo: resolveProgramLogoForChannel(prog, selectedChannel, adSettings)
+      }));
       newDayData.variants[vId] = { ...variant, programs: newPrograms };
     });
 

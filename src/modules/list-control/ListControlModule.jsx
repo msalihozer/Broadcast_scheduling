@@ -46,6 +46,7 @@ import useDialogStore from '../../store/dialogStore';
 import useBroadcastStore from '../broadcast/store/broadcastStore';
 import { getDraftProgramsForDay } from '../broadcast/utils/draftDataLoader';
 import { isDraftSlotAddedToRundown } from '../broadcast/components/DraftProgramSlotItem';
+import { resolveProgramLogoForChannel } from '../../store/slices/ads/adsCatalogHelpers';
 
 const ListControlModule = ({ date, channelId }) => {
   const safeDate = date || format(new Date(), 'yyyy-MM-dd');
@@ -61,6 +62,8 @@ const ListControlModule = ({ date, channelId }) => {
   const setSelectedDate = usePlanningStore(state => state.setSelectedDate);
   const setViewMode = usePlanningStore(state => state.setViewMode);
   const currentMode = usePlanningStore(state => state.currentMode) || 'draft';
+  const adSettings = usePlanningStore(state => state.adSettings || {});
+  const applyChannelLogosToListControl = usePlanningStore(state => state.applyChannelLogosToListControl);
   const dataMode = currentMode;
   
   const key = `list-control-${selectedChannelId}-${safeDate}`;
@@ -92,19 +95,26 @@ const ListControlModule = ({ date, channelId }) => {
             if (bp && bp.ads) {
               bp.ads.forEach(ad => {
                 const material = materials.find(m => String(m.id) === String(ad.materialId));
-                newPrograms.push({
+                const adRow = {
                   ...prog,
-                  id: material ? (material.clipId || material.code || material.id) : ad.materialId,
-                  title: material ? (material.clipName || material.name) : 'Reklam Klibi',
+                  id: material ? (material.clipId || material.code || material.id) : (ad.clipId || ad.code || ad.materialId),
+                  title: material ? (material.clipName || material.name) : (ad.clipName || ad.name || 'Reklam Klibi'),
                   duration: (parseFloat(ad.duration) || 0) / 60,
                   instanceId: `ad-${Math.random().toString(36).substr(2, 9)}`,
                   isAdClip: true,
+                  isBumperAd: Boolean(ad.isBumperAd),
+                  bumperType: ad.bumperType || null,
+                  bumperCategoryName: ad.bumperCategoryName || null,
                   isFromAds: true
-                });
+                };
+                adRow.logo = resolveProgramLogoForChannel(adRow, selectedChannelId, state.adSettings);
+                newPrograms.push(adRow);
               });
             }
           } else {
-            newPrograms.push({ ...prog });
+            const progRow = { ...prog };
+            progRow.logo = resolveProgramLogoForChannel(progRow, selectedChannelId, state.adSettings);
+            newPrograms.push(progRow);
           }
         });
         
@@ -241,6 +251,52 @@ const ListControlModule = ({ date, channelId }) => {
               fontWeight: 600
             }}>
               <span>Nihai Yayın Listesi Denetimi</span>
+            </div>
+
+            {/* Aktif Kanal Yayın ve Reklam Logo Bilgisi + Listeye İşle Butonu */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '5px 10px',
+              borderRadius: '8px',
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border-color)',
+              fontSize: '11.5px',
+              flexWrap: 'wrap'
+            }}>
+              <span style={{ color: '#10b981', fontWeight: 700, fontFamily: 'monospace' }}>
+                📺 Yayın Logo: {adSettings?.[selectedChannelId]?.broadcastLogoName || 'Semerkand_Tv_Logo_Corner'}
+              </span>
+              <span style={{ color: 'var(--text-muted)' }}>•</span>
+              <span style={{ color: '#d97706', fontWeight: 700, fontFamily: 'monospace' }}>
+                📢 Reklam Logo: {adSettings?.[selectedChannelId]?.adLogoName || 'Semerkand_HD_Reklam_Logo'}
+              </span>
+              {programs.length > 0 && typeof applyChannelLogosToListControl === 'function' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    applyChannelLogosToListControl(selectedChannelId, safeDate);
+                    useDialogStore.getState().showAlert(
+                      'Logolar Listeye İşlendi',
+                      `${selectedChannelId === 'ch_way' ? 'Semerkand WAY' : 'Semerkand HD'} kanalının Yayına Giriş ve Reklama Giriş logo isimleri listedeki tüm satırlara güncellendi.`
+                    );
+                  }}
+                  style={{
+                    padding: '3px 9px',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(16, 185, 129, 0.4)',
+                    background: 'rgba(16, 185, 129, 0.12)',
+                    color: '#10b981',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                  title="Admin Panel'deki kanal logo isimlerini listedeki tüm yayın ve reklam satırlarına uygula"
+                >
+                  Logoları Listeye İşle
+                </button>
+              )}
             </div>
           </div>
 

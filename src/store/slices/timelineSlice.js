@@ -5,6 +5,7 @@
 import { calculateTotalCount, _recalculateStartTimes, createEmptyDay, _propagateOverflows } from '../storeHelpers';
 import { dialog } from '../dialogStore';
 import useAdminLogStore from '../adminLogStore';
+import { resolveProgramLogoForChannel } from './ads/adsCatalogHelpers';
 
 export const createTimelineSlice = (set, get) => ({
   days: {},
@@ -280,6 +281,7 @@ export const createTimelineSlice = (set, get) => ({
       let currentStartMinute = day.startTime || 0;
       newPrograms.forEach(p => {
         p.startMinute = currentStartMinute;
+        p.logo = resolveProgramLogoForChannel(p, channelId, state.adSettings);
         currentStartMinute += (parseFloat(p.duration) || 0);
       });
 
