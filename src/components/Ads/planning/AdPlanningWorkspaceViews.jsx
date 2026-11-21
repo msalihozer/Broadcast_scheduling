@@ -1514,7 +1514,7 @@ export const AdQuickSpotPoolPanel = ({
                           <strong>{item.companyName}</strong> • {item.durationSec} sn
                         </div>
                         <div style={{ fontSize: '10px', color: isMaxReached ? '#d97706' : '#0d9488', fontWeight: '700', marginTop: '1px' }}>
-                          Bugün: {item.todayPlaced} (Min:{item.dailyMinSpots}/Max:{item.dailyMaxSpots})
+                          Bugün: {item.todayPlaced} • Hedef: {item.smartDailyTarget ?? item.dailyMinSpots} (Min:{item.dailyMinSpots}/Max:{item.dailyMaxSpots}{item.smartRatioPct !== undefined ? ` • %${item.smartRatioPct}` : ''})
                         </div>
                       </div>
                     </div>
@@ -2420,7 +2420,7 @@ export const AdManualSpotModal = ({
                       )}
                     </div>
                     <div style={{ fontSize: '11.5px', color: 'var(--ads-text-muted)', marginTop: '2px' }}>
-                      <strong>{item.companyName}</strong> • {item.productName} • Günlük: {item.todayPlaced} / Min {item.dailyMinSpots} - Max {item.dailyMaxSpots}
+                      <strong>{item.companyName}</strong> • {item.productName} • Günlük: {item.todayPlaced} / Akıllı Hedef: {item.smartDailyTarget ?? item.dailyMinSpots} (Min {item.dailyMinSpots} - Max {item.dailyMaxSpots}{item.smartRatioPct !== undefined ? ` • Oran %${item.smartRatioPct}` : ''})
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>

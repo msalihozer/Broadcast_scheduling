@@ -522,6 +522,7 @@ const USER_AUTO_FILL_SETTINGS_STORAGE_KEY = 'yayin_ads_autofill_settings_v1';
 export const DEFAULT_ADS_AUTO_FILL_SETTINGS = {
   minBreakFillSec: 120,
   uniquenessRule: 'same_clip', // 'same_clip' | 'same_company' | 'none'
+  minBreakGap: 1, // 1: En az 1 kuşak ara bırak (ardışık kuşağa giremez) | 2: En az 2 kuşak ara bırak | 0: Serbest
   strictTimeBlocks: true,
   quotaStrategy: 'smart_pacing', // 'smart_pacing' | 'min_plus_2min' | 'up_to_max'
   strictMaxSpot: true,
@@ -536,6 +537,7 @@ export function loadAdsAutoFillSettingsBackup() {
       if (raw) {
         const parsed = JSON.parse(raw);
         if (parsed && typeof parsed === 'object') {
+          const parsedGap = Number(parsed.minBreakGap);
           return {
             ...DEFAULT_ADS_AUTO_FILL_SETTINGS,
             ...parsed,
@@ -543,6 +545,7 @@ export function loadAdsAutoFillSettingsBackup() {
             uniquenessRule: ['same_clip', 'same_company', 'none'].includes(parsed.uniquenessRule)
               ? parsed.uniquenessRule
               : 'same_clip',
+            minBreakGap: [0, 1, 2, 3].includes(parsedGap) ? parsedGap : 1,
             strictTimeBlocks: parsed.strictTimeBlocks !== false,
             quotaStrategy: ['smart_pacing', 'min_plus_2min', 'up_to_max'].includes(parsed.quotaStrategy)
               ? parsed.quotaStrategy

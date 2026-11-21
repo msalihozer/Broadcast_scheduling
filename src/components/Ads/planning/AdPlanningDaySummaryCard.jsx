@@ -55,6 +55,8 @@ const AdPlanningDaySummaryCard = ({
 
   const minBreakFillSec = Number(adsAutoFillSettings?.minBreakFillSec ?? 120);
   const uniquenessRule = adsAutoFillSettings?.uniquenessRule || 'same_clip';
+  const parsedGap = Number(adsAutoFillSettings?.minBreakGap);
+  const minBreakGap = [0, 1, 2, 3].includes(parsedGap) ? parsedGap : 1;
   const strictTimeBlocks = adsAutoFillSettings?.strictTimeBlocks !== false;
   const quotaStrategy = adsAutoFillSettings?.quotaStrategy || 'smart_pacing';
   const varyOrderAcrossBreaks = adsAutoFillSettings?.varyOrderAcrossBreaks !== false;
@@ -470,7 +472,7 @@ const AdPlanningDaySummaryCard = ({
               </div>
             </div>
 
-            {/* 3. Günlük Spot Kullanım Stratejisi (Min / Optimal / Max) */}
+            {/* 3. Günlük Spot Kullanım Stratejisi (Min / Akıllı Ortalama / Max) */}
             <div
               style={{
                 flex: '1.3 1 300px',
@@ -484,19 +486,19 @@ const AdPlanningDaySummaryCard = ({
               }}
             >
               <span style={{ fontSize: '11.5px', fontWeight: '800', color: 'var(--ads-text-main)' }}>
-                3. Günlük Spot Kullanım Stratejisi (Min / Max Dengesi)
+                3. Akıllı Ortalama Yayınlanma Sistemi (Min / Ortalama / Max)
               </span>
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                 {[
                   {
                     id: 'smart_pacing',
-                    label: 'Akıllı Kampanya Dağılımı',
-                    desc: 'Her reklamı her gün direkt Max Spota dayamaz; kalan toplam spotu kampanya günlerine bölerek (Min ≤ Hedef ≤ Max) dengeli kullanır.'
+                    label: 'Akıllı Ortalama Sistem (Varsayılan)',
+                    desc: 'Spot sayısı + gün sayısı + min/max + öncelik + sponsorluk ve kuşak kapasitesinden akıllı oran çıkarır; her reklamı Max Spota dayamaz, Min ile Max arasında akıllı ortalamada yayınlar.'
                   },
                   {
                     id: 'min_plus_2min',
-                    label: 'Min Spot + En Az 2 Dk Taban',
-                    desc: 'Önce her reklamın Günlük Min Spotunu ve kuşakların en az 2 dk taban süresini doldurur, üzerinde gereksiz Max tüketimi yapmaz.'
+                    label: 'Min Spot + 2 Dk Taban',
+                    desc: 'Önce her reklamın Günlük Min Spotunu ve kuşakların 2 dk taban süresini akıllı hedef içinde doldurur.'
                   },
                   {
                     id: 'up_to_max',
@@ -531,17 +533,17 @@ const AdPlanningDaySummaryCard = ({
               </div>
               <div style={{ fontSize: '10.5px', color: 'var(--ads-text-muted)', lineHeight: 1.35 }}>
                 {quotaStrategy === 'smart_pacing'
-                  ? 'Kalan toplam spotu kampanya bitiş tarihine kadar kalan gün sayısına böler; tüm reklamları aynı gün Max Spota dayamaz.'
+                  ? 'Spot + Gün + Min/Max + Öncelik + Sponsorluk oranına göre Min ile Max arasında akıllı ortalama hedef belirler (Her seferinde Max giriş vermez!).'
                   : quotaStrategy === 'min_plus_2min'
                   ? 'Yalnızca Günlük Min Spotları ve kuşakların en az 2 dk taban doluluğunu sağlar.'
                   : 'Kuşaklarda boş süre oldukça Günlük Max Spot sınırına kadar yerleştirir.'}
               </div>
             </div>
 
-            {/* 4. Yayın Kuşağı (Sabah/Öğle/Akşam/Gece) Eşleşmesi & Varyasyon */}
+            {/* 4. Ardışık Kuşak Kuralı (En Az 1 Kuşak Aralık) & Yayın Kuşağı Eşleşmesi */}
             <div
               style={{
-                flex: '1 1 240px',
+                flex: '1.2 1 280px',
                 padding: '10px 12px',
                 borderRadius: '10px',
                 background: 'var(--ads-canvas-bg)',
@@ -553,8 +555,40 @@ const AdPlanningDaySummaryCard = ({
               }}
             >
               <span style={{ fontSize: '11.5px', fontWeight: '800', color: 'var(--ads-text-main)' }}>
-                4. Yayın Kuşağı &amp; Dizilim Kuralları
+                4. Ardışık Kuşak Aralığı &amp; Yayın Kuşağı Kuralları
               </span>
+
+              <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                {[
+                  { gap: 1, label: 'En Az 1 Kuşak Ara Bırak (Ardışık Giremez)' },
+                  { gap: 2, label: 'En Az 2 Kuşak Ara' },
+                  { gap: 0, label: 'Ardışık Serbest' }
+                ].map(gOpt => {
+                  const activeGap = minBreakGap === gOpt.gap;
+                  return (
+                    <button
+                      key={gOpt.gap}
+                      type="button"
+                      onClick={() => onUpdateAutoFillSettings && onUpdateAutoFillSettings({ minBreakGap: gOpt.gap })}
+                      style={{
+                        flex: '1 1 90px',
+                        padding: '5px 8px',
+                        borderRadius: '7px',
+                        border: activeGap ? '1.5px solid var(--ads-brand)' : '1px solid var(--ads-border)',
+                        background: activeGap ? 'var(--ads-brand-soft)' : 'var(--ads-card-subtle)',
+                        color: activeGap ? 'var(--ads-brand)' : 'var(--ads-text-main)',
+                        fontSize: '10.5px',
+                        fontWeight: '800',
+                        cursor: 'pointer'
+                      }}
+                      title="Aynı reklamın bir sonraki kuşakta tekrar girmesini engeller, araya en az seçilen sayıda kuşak boşluk bırakır."
+                    >
+                      {activeGap ? '✓ ' : ''}{gOpt.label}
+                    </button>
+                  );
+                })}
+              </div>
+
               <label
                 style={{
                   display: 'flex',

@@ -41,7 +41,10 @@ import {
 } from './planning/AdPlanningWorkspaceViews';
 import { isRamadanFeatureWindowOpen, filterAndSortPrefixFirst } from './reservation/reservationConstants';
 import AdMaterialDetailModal from './AdMaterialDetailModal';
-import { resolveAdBreakBumpersForPrecedingProgram } from '../../store/slices/ads/adsPlacementEngine';
+import {
+  resolveAdBreakBumpersForPrecedingProgram,
+  computeSmartDailyTarget
+} from '../../store/slices/ads/adsPlacementEngine';
 
 export { PRIORITY_BADGES, formatTcClock, formatSecToReadable, getMondayStr };
 
@@ -687,14 +690,40 @@ const AdPlanningTab = () => {
         const todayPlaced = dailyPlacedCountByMaterial[String(mat.id)] || 0;
         const minSpots = Number(it.dailyMinSpots ?? res.dailyMinSpots ?? 1);
         const maxSpots = Number(it.dailyMaxSpots ?? res.dailyMaxSpots ?? 4);
+        const plannedSpots = Number(it.plannedSpots || res.totalPlannedSpots || 20);
+        const itemPriority = Number(it.priority || res.priority) || 700;
+        const itemBlocks =
+          Array.isArray(it.timeBlockIds) && it.timeBlockIds.length > 0
+            ? it.timeBlockIds
+            : res.timeBlockIds || ['tb-1', 'tb-2', 'tb-3'];
 
         const itemIsSponsor = it.isSponsor !== undefined ? Boolean(it.isSponsor) : Boolean(res.isSponsor);
         const itemSponsorProg = it.sponsorProgramTitle !== undefined ? it.sponsorProgramTitle : res.sponsorProgramTitle;
 
+        const eligibleBreaksCount =
+          itemBlocks.length > 0
+            ? adBreaksList.filter(b => itemBlocks.includes(b.timeBlockId)).length
+            : adBreaksList.length;
+
+        const smartMetrics = computeSmartDailyTarget({
+          plannedSpots,
+          itemRemainingTotal: plannedSpots,
+          startDate: startStr,
+          endDate: endStr,
+          targetDate: selectedDayInfo.date,
+          dailyMinSpots: minSpots,
+          dailyMaxSpots: maxSpots,
+          priority: itemPriority,
+          isSponsor: itemIsSponsor,
+          eligibleBreaksCount: Math.max(1, eligibleBreaksCount),
+          totalBreaksToday: Math.max(1, adBreaksList.length),
+          minBreakGap: Number(adsAutoFillSettings?.minBreakGap ?? 1)
+        });
+
         itemsList.push({
           uniqueKey: `${res.id}-${it.id || idx}`,
           reservationId: res.id,
-          priority: Number(it.priority || res.priority) || 700,
+          priority: itemPriority,
           isSponsor: itemIsSponsor,
           sponsorProgramTitle: itemSponsorProg || null,
           sponsorPositions: it.sponsorPositions || res.sponsorPositions || [],
@@ -707,11 +736,10 @@ const AdPlanningTab = () => {
           durationSec: Number(mat.duration) || 20,
           dailyMinSpots: minSpots,
           dailyMaxSpots: maxSpots,
-          plannedSpots: Number(it.plannedSpots || res.totalPlannedSpots || 20),
-          timeBlockIds:
-            Array.isArray(it.timeBlockIds) && it.timeBlockIds.length > 0
-              ? it.timeBlockIds
-              : res.timeBlockIds || ['tb-1', 'tb-2', 'tb-3'],
+          smartDailyTarget: smartMetrics.smartDailyTarget,
+          smartRatioPct: smartMetrics.smartRatioPct,
+          plannedSpots,
+          timeBlockIds: itemBlocks,
           isDateActive,
           todayPlaced
         });
@@ -723,7 +751,7 @@ const AdPlanningTab = () => {
       if (!a.isSponsor && b.isSponsor) return 1;
       return b.priority - a.priority;
     });
-  }, [selectedDayInfo, reservations, materials, companies, products, dailyPlacedCountByMaterial]);
+  }, [selectedDayInfo, reservations, materials, companies, products, dailyPlacedCountByMaterial, adBreaksList, adsAutoFillSettings]);
 
   const dayKpiSummary = useMemo(() => {
     const totalBreaks = adBreaksList.length;
@@ -796,19 +824,27 @@ const AdPlanningTab = () => {
       const chName = channels.find(c => String(c.id) === String(channelId))?.name || 'Semerkand HD';
       const minSec = Number(adsAutoFillSettings?.minBreakFillSec ?? 120);
       const uRule = adsAutoFillSettings?.uniquenessRule || 'same_clip';
+      const gapRule = Number(adsAutoFillSettings?.minBreakGap ?? 1);
       const uText =
         uRule === 'same_company'
           ? 'Aynı Firma Giremez (Klip de Giremez)'
           : uRule === 'none'
           ? 'İkisi de Geçersiz'
           : 'Aynı Klip Bir Daha Giremez';
+      const gapText =
+        gapRule >= 2
+          ? `En Az ${gapRule} Kuşak Ara Bırakıldı`
+          : gapRule === 1
+          ? 'En Az 1 Kuşak Ara Bırakıldı (Ardışık Kuşağa Girmedi)'
+          : 'Ardışık Serbest';
       dialog.success(
-        'Günlük Otomatik Planlama Tamamlandı',
-        `${formattedDay} (Liste ${activeListCode}) yayın akışı için tüm reklam kuşakları yeni algoritmayla yerleştirildi.\n` +
+        '6 Adımlı Akıllı Otomatik Planlama Tamamlandı',
+        `${formattedDay} (Liste ${activeListCode}) yayın akışı için tüm reklam kuşakları akıllı ortalama algoritmayla yerleştirildi.\n` +
           `Seçili Kanal: ${chName}\n` +
-          `En Az Kuşak Doluluk Hedefi: ${Math.floor(minSec / 60)} dk ${minSec % 60 > 0 ? `${minSec % 60} sn` : ''} (${minSec} sn)\n` +
+          `Günlük Kota Sistemi: Akıllı Ortalama Hedef (Spot + Gün + Min/Max + Öncelik + Sponsorluk Oranı)\n` +
+          `Ardışık Kuşak Kuralı: ${gapText}\n` +
           `Kuşak İçi Tekrar Kuralı: ${uText}\n` +
-          `Max Spot Koruması: Aktif (Hiçbir Rezervasyon Max Spotu Aşmadı)`
+          `En Az Kuşak Doluluk Hedefi: ${Math.floor(minSec / 60)} dk ${minSec % 60 > 0 ? `${minSec % 60} sn` : ''} (${minSec} sn)`
       );
     }
   };

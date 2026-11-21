@@ -734,7 +734,170 @@ export function finalizeBucketAdsOrder(bucket, orderOpts = {}) {
 }
 
 /**
- * Seçili kanal ve gün için 6 aşamalı Akıllı Otomatik Reklam Yerleştirme Algoritmasını çalıştırır.
+ * ADIM 1: REZERVASYON ANALİZİ VE AKILLI GÜNLÜK ORTALAMA YAYINLANMA HEDEFİ HESAPLAYICI (`computeSmartDailyTarget`)
+ *
+ * Her bir rezervasyon kalemi için aşağıdaki 6 parametreyi birlikte analiz ederek `0.00 - 1.00` arasında
+ * bir Akıllı Yayınlanma Oranı (`compositeRatio`) ve `Min` ile `Max` arasında dengeli bir
+ * **Akıllı Günlük Ortalama Spot Hedefi (`smartDailyTarget`)** üretir:
+ * 1. `plannedSpots` & `itemRemainingTotal` (Toplam Planlanan ve Kalan Kampanya Spotu)
+ * 2. `totalCampaignDays` & `remainingCampaignDays` (Kampanya Toplam ve Kalan Gün Sayısı)
+ * 3. `dailyMinSpots` & `dailyMaxSpots` (Günlük Alt ve Üst Spot Sınırları)
+ * 4. `priority` (Öncelik: 1000 Zorunlu, 700 Yüksek, 400 Normal, 100 Dolgu)
+ * 5. `isSponsor` / `isRamadanSpecial` (Sponsorluk ve Özel Kuşak Durumu)
+ * 6. `eligibleBreaksCount` & `minBreakGap` (Rezervasyonun seçili Yayın Kuşaklarına düşen bugünkü kuşak sayısı
+ *    ve ardışık kuşak yasağına göre fiziksel yerleşebileceği maksimum kuşak kapasitesi)
+ *
+ * ÖNEMLİ KURAL: `smart_pacing` (Akıllı Ortalama Yayınlanma) modunda `dailyMaxSpots > dailyMinSpots` olduğunda
+ * her seferinde `dailyMaxSpots` (Max) değerine dayamaz; öncelik, gün/spot oranı ve kuşak kapasitesine göre
+ * Min ile Max arasında gerçek bir ağırlıklı ortalama hedef üretir.
+ */
+export function computeSmartDailyTarget({
+  plannedSpots = 20,
+  itemRemainingTotal = 20,
+  startDate = '',
+  endDate = '',
+  targetDate = '',
+  dailyMinSpots = 1,
+  dailyMaxSpots = 4,
+  priority = 700,
+  isSponsor = false,
+  isRamadanSpecial = false,
+  eligibleBreaksCount = 12,
+  totalBreaksToday = 24,
+  minBreakGap = 1,
+  dayVariationNoise = 0.5 // 0.0 .. 1.0
+}) {
+  const rawMax = Math.max(1, Number(dailyMaxSpots) || 4);
+  const effectiveMax = Math.max(1, Math.min(rawMax, Number(itemRemainingTotal) || rawMax));
+  const rawMin = Math.max(0, Number(dailyMinSpots) ?? 1);
+  const effectiveMin = Math.min(rawMin, effectiveMax);
+
+  // Kampanya toplam gün ve kalan gün hesabı
+  const targetDateObj = targetDate ? new Date(`${targetDate}T12:00:00`) : new Date();
+  let totalCampaignDays = 7;
+  let remainingCampaignDays = 7;
+
+  if (startDate && endDate) {
+    const sObj = new Date(`${startDate}T00:00:00`);
+    const eObj = new Date(`${endDate}T23:59:59`);
+    if (!isNaN(sObj.getTime()) && !isNaN(eObj.getTime()) && eObj >= sObj) {
+      totalCampaignDays = Math.max(1, Math.ceil((eObj.getTime() - sObj.getTime()) / (1000 * 60 * 60 * 24)));
+      const fromObj = targetDateObj > sObj ? targetDateObj : sObj;
+      remainingCampaignDays = Math.max(1, Math.ceil((eObj.getTime() - fromObj.getTime()) / (1000 * 60 * 60 * 24)));
+    }
+  } else {
+    const midSpot = Math.max(1, (effectiveMin + effectiveMax) / 2);
+    totalCampaignDays = Math.max(3, Math.ceil(plannedSpots / midSpot));
+    remainingCampaignDays = Math.max(2, Math.ceil(itemRemainingTotal / midSpot));
+  }
+
+  // Eğer başlangıç ve bitiş aynı gün girilmiş ama toplam spot yüksekse (örn. 20 spot),
+  // tek günde Max'a kilitlememek için sanal kampanya gününü ortalama kapasiteye göre normalize et
+  const midDaily = Math.max(1, (effectiveMin + effectiveMax) / 2);
+  const realisticDays =
+    totalCampaignDays <= 1 && itemRemainingTotal > effectiveMax
+      ? Math.max(3, Math.ceil(itemRemainingTotal / midDaily))
+      : remainingCampaignDays;
+
+  // 1. Öncelik ve Sponsorluk Ağırlık Oranı (0.15 .. 0.72)
+  const prioNum = Number(priority) || 400;
+  let priorityRatio = 0.36; // 400 (Normal) -> Min ile Orta arası
+  if (prioNum >= 1000) {
+    priorityRatio = 0.64; // 1000 (Zorunlu / Kesin) -> Orta-Üst
+  } else if (prioNum >= 700) {
+    priorityRatio = 0.48; // 700 (Yüksek) -> Tam Ortalama ((Min + Max) / 2)
+  } else if (prioNum <= 100) {
+    priorityRatio = 0.16; // 100 (Dolgu / Esnek) -> Min veya Min+1
+  }
+  if (isSponsor || isRamadanSpecial) {
+    priorityRatio = Math.min(0.72, priorityRatio + 0.10);
+  }
+
+  // 2. Spot Sayısı / Gün Sayısı Kampanya Temposu Oranı (0.00 .. 0.75)
+  const dailyPaceAvg = itemRemainingTotal / Math.max(1, realisticDays);
+  const span = Math.max(1, effectiveMax - effectiveMin);
+  const rawPaceNorm = Math.max(0, Math.min(1, (dailyPaceAvg - effectiveMin) / span));
+  const paceRatio = rawPaceNorm * 0.72;
+
+  // 3. Seçili Yayın Kuşağı (TimeBlock) ve En Az 1 Kuşak Aralık (minBreakGap) Fiziksel Kapasite Oranı
+  const safeEligibleBreaks = Math.max(1, Number(eligibleBreaksCount) || Math.ceil(totalBreaksToday * 0.5));
+  const maxPossibleWithGap = Math.max(
+    1,
+    Math.ceil(safeEligibleBreaks / Math.max(1, (Number(minBreakGap) || 0) + 1))
+  );
+  const breakAvailabilityRatio = Math.max(
+    0.15,
+    Math.min(0.70, maxPossibleWithGap / Math.max(1, effectiveMax * 1.4))
+  );
+
+  // 4. Günlük Küçük Varyasyon Salınımı (-0.11 .. +0.11): Her gün birebir aynı sayıda çakılı kalmaması için
+  const jitter = (Math.max(0, Math.min(1, Number(dayVariationNoise) || 0.5)) - 0.5) * 0.22;
+
+  // Bileşik Akıllı Oran (0.10 .. 0.78)
+  const compositeRatio = Math.max(
+    0.10,
+    Math.min(0.78, priorityRatio * 0.50 + paceRatio * 0.35 + breakAvailabilityRatio * 0.15 + jitter)
+  );
+  const smartRatioPct = Math.round(compositeRatio * 100);
+
+  if (effectiveMax <= effectiveMin) {
+    return {
+      dailyMinSpots: effectiveMin,
+      dailyMaxSpots: effectiveMax,
+      smartDailyTarget: effectiveMax,
+      smartRatioPct,
+      compositeRatio,
+      dailyPaceAvg: Number(dailyPaceAvg.toFixed(1)),
+      totalCampaignDays,
+      remainingCampaignDays: realisticDays,
+      maxPossibleWithGap
+    };
+  }
+
+  let calculatedTarget = Math.round(effectiveMin + (effectiveMax - effectiveMin) * compositeRatio);
+
+  // AKILLI TAVAN KORUMASI:
+  // Rezervasyonun Min ve Max değerleri farklıysa (örn: Min 1 - Max 4, Min 1 - Max 5, Min 2 - Max 6),
+  // her seferinde Max giriş vermemek için akıllı hedefi Max'ın en az 1 altında (Min ile Max arasındaki ortalamada) tut!
+  if (effectiveMax - effectiveMin >= 2) {
+    calculatedTarget = Math.min(effectiveMax - 1, calculatedTarget);
+  } else if (effectiveMax - effectiveMin === 1) {
+    // Min: 1, Max: 2 gibi sadece 1 fark olan durumda: Normal/Dolgu reklamlar 1 (Min) alır, Yüksek/Zorunlu olanlar güne göre 1 veya 2 alır
+    calculatedTarget = compositeRatio >= 0.52 ? effectiveMax : effectiveMin;
+  }
+
+  // Ardışık kuşak boşluğu (minBreakGap) nedeniyle seçili kuşaklara sığabilecek fiziksel sınırı da aşmasın
+  calculatedTarget = Math.min(calculatedTarget, maxPossibleWithGap);
+  const smartDailyTarget = Math.max(effectiveMin, Math.min(effectiveMax, calculatedTarget));
+
+  return {
+    dailyMinSpots: effectiveMin,
+    dailyMaxSpots: effectiveMax,
+    smartDailyTarget,
+    smartRatioPct,
+    compositeRatio,
+    dailyPaceAvg: Number(dailyPaceAvg.toFixed(1)),
+    totalCampaignDays,
+    remainingCampaignDays: realisticDays,
+    maxPossibleWithGap
+  };
+}
+
+/**
+ * Seçili kanal ve gün için 6 Adımlı Akıllı Otomatik Reklam Yerleştirme Algoritmasını çalıştırır.
+ *
+ * ADIM 1: Rezervasyon Analizi & Akıllı Oran Hesabı (`computeSmartDailyTarget`)
+ *         Spot sayısı + gün sayısı + min spot + max spot + öncelik + sponsorluk + uygun kuşak sayısına bakarak
+ *         her reklam için Min ile Max arasında akıllı ortalama yayınlanma hedefi (`smartDailyTarget`) çıkarır.
+ * ADIM 2: Kuşak Uygunluk Matrisi & Kısıt Doğrulayıcı (`canPlaceCandidateInBucket`)
+ *         - Aynı reklam aynı kuşakta birden fazla kez OLAMAZ.
+ *         - Aynı reklam bir sonraki (ardışık) kuşakta GİREMEZ; en az `minBreakGap` (varsayılan 1) kuşak ara bırakır.
+ *         - Her reklam yalnızca kendi seçili Yayın Kuşağı (`Sabah`, `Öğle`, `Akşam Prime Time`, `Gece`) içine girer.
+ *         - Günlük Max Spot (`dailyMaxSpots`) ve Kalan Toplam Spot kesinlikle AŞILAMAZ.
+ * ADIM 3: Ramazan Özel & Program Sponsorlukları (`Sunar`, `Devam Edecek`, `Devam Ediyor`, `Sundu`, `Öncesi/Arası/Sonrası`)
+ * ADIM 4: Günlük Minimum Spot Garantisi (`dailyMinSpots`) — Çoklu Kuşak Opsiyonu & İdeal Aralık Seçimiyle
+ * ADIM 5: Akıllı Ortalama Hedef Dağılımı (`smartDailyTarget`) — Çoklu Opsiyon Matrisiyle (Max'a dayamadan!)
+ * ADIM 6: Kuşak İçi Sıra Kilitleri, RTÜK Giriş/Çıkış Jenerikleri ve Firma Ayrıştırma (`finalizeBucketAdsOrder`)
  *
  * @param {Object} state - Zustand store state nesnesi
  * @param {string} channelId - Kanal kimliği (`ch_hd` veya `ch_way`)
@@ -966,7 +1129,7 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
     return (targetDateObj >= s && targetDateObj <= e) || hasRamadanTaggedItemsToday;
   })();
 
-  // Otomatik Doldurma Ayarları (En Az Kuşak Doluluk Süresi, Kuşak İçi Tekillik Kuralı, Varyasyon ve Max Spot Kilidi)
+  // Otomatik Doldurma Ayarları (En Az Kuşak Doluluk Süresi, Kuşak İçi Tekillik, Ardışık Kuşak Aralığı, Varyasyon ve Max Spot Kilidi)
   const autoFillCfg = {
     ...DEFAULT_ADS_AUTO_FILL_SETTINGS,
     ...(state.adsAutoFillSettings || loadAdsAutoFillSettingsBackup() || {})
@@ -975,6 +1138,8 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
   const uniquenessRule = ['same_clip', 'same_company', 'none'].includes(autoFillCfg.uniquenessRule)
     ? autoFillCfg.uniquenessRule
     : 'same_clip';
+  const parsedGap = Number(autoFillCfg.minBreakGap);
+  const minBreakGap = [0, 1, 2, 3].includes(parsedGap) ? parsedGap : 1; // Varsayılan: 1 (En az 1 kuşak ara bırak, ardışık kuşağa giremez)
   const strictTimeBlocks = autoFillCfg.strictTimeBlocks !== false;
   const quotaStrategy = ['smart_pacing', 'min_plus_2min', 'up_to_max'].includes(autoFillCfg.quotaStrategy)
     ? autoFillCfg.quotaStrategy
@@ -992,12 +1157,19 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
     }
     return h >>> 0;
   };
-  const baseDaySeed = hashString32(`${channelId}__${date}__v${ varyOrderAcrossBreaks ? nextVariationCounter : 1 }`);
+  const baseDaySeed = hashString32(`${channelId}__${date}__v${varyOrderAcrossBreaks ? nextVariationCounter : 1}`);
   const pseudoNoise = (a, b = 0, c = 0) => {
     let x = (baseDaySeed ^ Math.imul(a + 1, 374761393) ^ Math.imul(b + 1, 668265263) ^ Math.imul(c + 1, 2147483647)) >>> 0;
     x = Math.imul(x ^ (x >>> 13), 1274126177) >>> 0;
     return ((x ^ (x >>> 16)) >>> 0) / 4294967296;
   };
+
+  // Bugünkü reklam kuşaklarının Yayın Kuşağı (Sabah / Öğle / Akşam Prime / Gece) bazında dağılımı
+  const totalBucketsCount = adBreakBuckets.length;
+  const breaksCountByTimeBlockId = {};
+  adBreakBuckets.forEach(b => {
+    breaksCountByTimeBlockId[b.timeBlockId] = (breaksCountByTimeBlockId[b.timeBlockId] || 0) + 1;
+  });
 
   // Diğer tüm günlerde (bugün hariç) her bir rezervasyon ve materyal kaleminin kaç kez yerleştiğini gerçek zamanlı hesapla
   // Böylece kampanya toplam `plannedSpots` (Max Toplam Spot) kotası da kesinlikle aşılmaz!
@@ -1016,7 +1188,9 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
     });
   });
 
-  // 2) Uygun Rezervasyon Kalemlerini (Items) Topla (Yalnızca aktif ve kotası dolmamış rezervasyonlar)
+  // ============================================================================
+  // ADIM 1: REZERVASYON ANALİZİ VE AKILLI GÜNLÜK ORTALAMA HEDEF (`smartDailyTarget`) HESABI
+  // ============================================================================
   const collectCandidateItems = (strictDate = true) => {
     const list = [];
     state.reservations.forEach(res => {
@@ -1057,17 +1231,15 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
           return;
         }
 
-        if (strictDate) {
-          const startStr = it.startDate || res.startDate;
-          const endStr = it.endDate || res.endDate;
-          if (startStr && endStr) {
-            const sDate = new Date(startStr);
-            sDate.setHours(0, 0, 0, 0);
-            const eDate = new Date(endStr);
-            eDate.setHours(23, 59, 59, 999);
-            if (targetDateObj < sDate || targetDateObj > eDate) {
-              return;
-            }
+        const startStr = it.startDate || res.startDate;
+        const endStr = it.endDate || res.endDate;
+        if (strictDate && startStr && endStr) {
+          const sDate = new Date(startStr);
+          sDate.setHours(0, 0, 0, 0);
+          const eDate = new Date(endStr);
+          eDate.setHours(23, 59, 59, 999);
+          if (targetDateObj < sDate || targetDateObj > eDate) {
+            return;
           }
         }
 
@@ -1084,39 +1256,17 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
           return; // Bu ürünün/klibin toplam planlanan spotu dolmuş -> AŞILAMAZ!
         }
 
-        const rawDailyMax = Math.max(1, Number(it.dailyMaxSpots ?? res.dailyMaxSpots ?? 4));
-        // Günlük Max Spot hiçbir zaman kalan toplam kampanya spotunu aşamaz!
-        const effectiveDailyMax = Math.min(rawDailyMax, itemRemainingTotal);
-        const rawDailyMin = Math.max(0, Number(it.dailyMinSpots ?? res.dailyMinSpots ?? 1));
-        const effectiveDailyMin = Math.min(rawDailyMin, effectiveDailyMax);
-
-        // Akıllı Kampanya Günlük Hedef (Smart Pacing):
-        // Reklamın her gün direkt `dailyMaxSpots` sınırına dayanmaması için, kalan toplam spotu (`itemRemainingTotal`)
-        // kampanya bitiş tarihine kadar kalan gün sayısına (`remainingCampaignDays`) böler:
-        // `dailyMinSpots <= dailyOptimalTarget <= dailyMaxSpots`
-        const startStrForPacing = it.startDate || res.startDate;
-        const endStrForPacing = it.endDate || res.endDate;
-        let remainingCampaignDays = 1;
-        if (endStrForPacing) {
-          const eDateObj = new Date(endStrForPacing);
-          eDateObj.setHours(23, 59, 59, 999);
-          const refStartObj = startStrForPacing ? new Date(startStrForPacing) : targetDateObj;
-          refStartObj.setHours(0, 0, 0, 0);
-          const effectiveFrom = targetDateObj > refStartObj ? targetDateObj : refStartObj;
-          const diffMs = eDateObj.getTime() - effectiveFrom.getTime();
-          remainingCampaignDays = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
-        }
-        const pacedDailyTarget = Math.ceil(itemRemainingTotal / remainingCampaignDays);
-        const dailyOptimalTarget = Math.max(
-          effectiveDailyMin,
-          Math.min(effectiveDailyMax, pacedDailyTarget)
-        );
-
         const durationSec = normalizeAdDurationSeconds(material.duration, material.clipName);
         const itemBlocks =
           Array.isArray(it.timeBlockIds) && it.timeBlockIds.length > 0
             ? it.timeBlockIds
             : res.timeBlockIds || ['tb-1', 'tb-2', 'tb-3'];
+
+        // Bu reklamın seçili Yayın Kuşaklarına (Sabah, Öğle, Akşam Prime, Gece) bugün kaç reklam kuşağı düşüyor?
+        const eligibleBreaksCount =
+          itemBlocks.length > 0
+            ? itemBlocks.reduce((acc, tbId) => acc + (breaksCountByTimeBlockId[tbId] || 0), 0)
+            : totalBucketsCount;
 
         const itemIsSponsor =
           it.isSponsor !== undefined ? Boolean(it.isSponsor) : Boolean(res.isSponsor);
@@ -1135,6 +1285,28 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
         if (itemIsRamadanSpecial && !isDateWithinRamadanRange) {
           return;
         }
+
+        const candHash = hashString32(`${res.id}__${material.id}`);
+        const itemPriority = Number(it.priority || res.priority) || 700;
+
+        // Spot sayısı + gün sayısı + min spot + max spot + öncelik + sponsorluk + uygun kuşak sayısına göre
+        // Akıllı Ortalama Yayınlanma Hedefi (smartDailyTarget) hesapla
+        const smartMetrics = computeSmartDailyTarget({
+          plannedSpots: itemPlannedTotal,
+          itemRemainingTotal,
+          startDate: startStr,
+          endDate: endStr,
+          targetDate: date,
+          dailyMinSpots: it.dailyMinSpots ?? res.dailyMinSpots ?? 1,
+          dailyMaxSpots: it.dailyMaxSpots ?? res.dailyMaxSpots ?? 4,
+          priority: itemPriority,
+          isSponsor: itemIsSponsor,
+          isRamadanSpecial: itemIsRamadanSpecial,
+          eligibleBreaksCount: Math.max(1, eligibleBreaksCount),
+          totalBreaksToday: totalBucketsCount,
+          minBreakGap,
+          dayVariationNoise: varyOrderAcrossBreaks ? pseudoNoise(candHash, 7) : 0.5
+        });
 
         const itemSponsorProgram = String(
           it.sponsorProgramTitle !== undefined ? it.sponsorProgramTitle : res.sponsorProgramTitle || ''
@@ -1158,7 +1330,7 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
           reservationId: res.id,
           resRemainingCampaignTotal,
           itemRemainingTotal,
-          priority: Number(it.priority || res.priority) || 700,
+          priority: itemPriority,
           isSponsor: itemIsSponsor,
           sponsorProgramTitle: itemSponsorProgram,
           sponsorPositions: itemSponsorPositions,
@@ -1171,13 +1343,17 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
           materialId: material.id,
           materialName: material.name,
           durationSec,
-          dailyMinSpots: effectiveDailyMin,
-          dailyOptimalTarget,
-          dailyMaxSpots: effectiveDailyMax,
-          remainingCampaignDays,
+          dailyMinSpots: smartMetrics.dailyMinSpots,
+          dailyOptimalTarget: smartMetrics.smartDailyTarget,
+          smartDailyTarget: smartMetrics.smartDailyTarget,
+          smartRatioPct: smartMetrics.smartRatioPct,
+          dailyMaxSpots: smartMetrics.dailyMaxSpots,
+          remainingCampaignDays: smartMetrics.remainingCampaignDays,
+          totalCampaignDays: smartMetrics.totalCampaignDays,
+          eligibleBreaksCount: Math.max(1, eligibleBreaksCount),
           plannedSpots: itemPlannedTotal,
           timeBlockIds: itemBlocks,
-          candHash: hashString32(`${res.id}__${material.id}`)
+          candHash
         });
       });
     });
@@ -1186,7 +1362,7 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
 
   const candidates = collectCandidateItems(true);
 
-  // Önceliğe ve günlük varyasyon gürültüsüne göre sırala (aynı öncelik grubundakiler her gün farklı sırada başlar!)
+  // Önceliğe, akıllı orana ve günlük varyasyona göre sırala (aynı öncelik grubundakiler her gün farklı sırada başlar!)
   candidates.sort((a, b) => {
     const aTier = (a.isRamadanSpecial ? 2000 : 0) + (a.isSponsor ? 1500 : 0) + a.priority;
     const bTier = (b.isRamadanSpecial ? 2000 : 0) + (b.isSponsor ? 1500 : 0) + b.priority;
@@ -1197,14 +1373,22 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
   const dailyCountMap = {};
   const addedSpotsByResId = {};
 
-  // Her kuşağa firma tekilliği takibi için `usedCompanyIds` ve son yerleştiği kuşak indeksi takibi ekle
+  // Her kuşağa sıra numarası (`bucketOrderIdx`), firma tekilliği takibi ve rotasyon tohumu ekle
   adBreakBuckets.forEach((b, bIdx) => {
     b.bucketOrderIdx = bIdx;
     b.usedCompanyIds = new Set();
     b.uniquenessRule = uniquenessRule;
     b.rotationSeed = (baseDaySeed + bIdx * 7) % 97;
   });
-  const lastPlacedBucketIdxByItemKey = {};
+
+  // ============================================================================
+  // ADIM 2: KUŞAK UYGUNLUK MATRİSİ, AYNI KUŞAK TEKİLLİĞİ VE ARDIŞIK KUŞAK YASAĞI
+  // ============================================================================
+  // Bir reklamın o gün içinde yerleştiği TÜM kuşak sıra numaralarını (`bucketOrderIdx`) Set içinde tutar.
+  // Böylece kuşaklar hangi sırayla gezilirse gezilsin, Kuşak #k'da olan bir reklam Kuşak #(k-1) veya #(k+1)'e GİREMEZ!
+  const placedBucketIndicesByMatId = new Map(); // matIdStr -> Set<number>
+  const placedBucketIndicesByItemKey = new Map(); // itemKey -> Set<number>
+  const placedTimeBlockCountsByItemKey = new Map(); // itemKey -> Record<timeBlockId, number>
 
   const getBucketTotalCount = (bucket) =>
     bucket.openingPinnedAds.length + bucket.middleAds.length + bucket.closingPinnedAds.length;
@@ -1213,29 +1397,29 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
     Math.max(0, bucket.usedSec - (Number(bucket.introBumperAd?.duration) || 0) - (Number(bucket.outroBumperAd?.duration) || 0));
 
   /**
-   * KATI KISIT DOĞRULAYICI VE YERLEŞTİRİCİ:
-   * - KURAL 1 (MAX SPOT AŞILAMAZ): `currentDaily >= cand.dailyMaxSpots` veya rezervasyonun kalan toplam kotası dolduysa KESİNLİKLE REDDEDER.
-   * - KURAL 2 (KUŞAK İÇİ TEKİLLİK):
-   *   - `uniquenessRule === 'same_clip'` -> Aynı klip aynı kuşağa bir daha giremez.
-   *   - `uniquenessRule === 'same_company'` -> Aynı firma (ve dolayısıyla aynı klip) aynı kuşağa bir daha giremez.
-   *   - `uniquenessRule === 'none'` -> Kısıtlama yok (ancak aynı kuşağa aynı klibi ancak başka alternatif kalmadıysa `allowDuplicateInNoneMode` ile alır).
+   * KATI KISIT DOĞRULAYICI (`canPlaceCandidateInBucket`):
+   * 1. MAX SPOT & ETKİN KOTA KONTROLÜ: `dailyMaxSpots`, `itemRemainingTotal` ve `maxAllowedForStage` kesinlikle aşılamaz.
+   * 2. AYNI KUŞAKTA BİRDEN FAZLA OLAMAZ: Aynı reklam klibi (veya `same_company` seçiliyse aynı firma) aynı kuşağa ikinci kez giremez.
+   * 3. ARDIŞIK KUŞAK YASAĞI (EN AZ `minBreakGap` KUŞAK ARALIK): Aynı reklam bir önceki veya bir sonraki kuşağa giremez;
+   *    yerleştiği herhangi bir kuşakla arasında en az `minBreakGap` (varsayılan 1) tam kuşak boşluk bırakmak zorundadır.
+   * 4. HANGİ KUŞAKLARDA GİRECEK (`timeBlockIds`): Reklam yalnızca rezervasyonunda seçilen Yayın Kuşağı (`Sabah`, `Öğle`, `Akşam Prime`, `Gece`) kuşaklarına girer.
+   * 5. SÜRE & FİRMA DENGE KONTROLÜ: Kuşak kapasitesini aşamaz ve aynı kuşağa aynı firmanın reklamlarını yığmaz.
    */
-  const tryPlaceCandidateInBucket = (cand, bucket, options = {}) => {
+  const canPlaceCandidateInBucket = (cand, bucket, options = {}) => {
     const {
       ignoreTimeBlock = false,
       ignoreCapacity = false,
       ignoreCompanyBalance = false,
       allowDuplicateInNoneMode = false,
-      targetSlot = 'middle', // 'opening' | 'middle' | 'closing'
-      sponsorRole = null,
-      sponsorRoleLabel = null,
-      lockOrder = null,
-      isRamadanSpot = false
+      targetSlot = 'middle',
+      maxAllowedForStage = cand.dailyMaxSpots,
+      customBreakGap = minBreakGap
     } = options;
 
-    // 1. KATI MAX SPOT KONTROLÜ (HİÇBİR AŞAMADA AŞILAMAZ!)
+    // 1. KATI MAX SPOT VE AŞAMA HEDEF KOTASI KONTROLÜ
     const currentDaily = dailyCountMap[cand.itemKey] || 0;
     if (currentDaily >= cand.dailyMaxSpots) return false;
+    if (currentDaily >= maxAllowedForStage) return false;
     if (currentDaily >= cand.itemRemainingTotal) return false;
     const currentResAdded = addedSpotsByResId[cand.reservationId] || 0;
     if (currentResAdded >= cand.resRemainingCampaignTotal) return false;
@@ -1243,7 +1427,7 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
     const matIdStr = String(cand.materialId);
     const compIdStr = String(cand.companyId || '');
 
-    // 2. KUŞAK İÇİ TEKİLLİK KURALI KONTROLÜ (`same_clip` | `same_company` | `none`)
+    // 2. AYNI KUŞAKTA BİRDEN FAZLA OLAMAZ (KUŞAK İÇİ TEKİLLİK KURALI)
     if (uniquenessRule === 'same_company') {
       if (bucket.usedCompanyIds.has(compIdStr)) return false;
       if (bucket.usedMaterialIds.has(matIdStr)) return false;
@@ -1251,23 +1435,42 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
       if (bucket.usedMaterialIds.has(matIdStr)) return false;
       if (bucket.usedItemKeys.has(cand.itemKey)) return false;
     } else {
-      // 'none' (İkisi de geçersiz): Önce farklı klipler denensin, sadece `allowDuplicateInNoneMode === true` olduğunda aynı klibin aynı kuşağa 2. kez girmesine izin ver
       if (!allowDuplicateInNoneMode && bucket.usedMaterialIds.has(matIdStr)) {
         return false;
       }
     }
 
-    // 3. YAYIN KUŞAĞI (TIME BLOCK) UYUM KONTROLÜ
+    // 3. ARDIŞIK KUŞAK YASAĞI (AYNI REKLAM BİR SONRAKİ / ÖNCEKİ KUŞAKTA GİREMEZ, EN AZ `customBreakGap` KUŞAK ARA BIRAKIR)
+    if (customBreakGap > 0) {
+      const placedMatSet = placedBucketIndicesByMatId.get(matIdStr);
+      if (placedMatSet && placedMatSet.size > 0) {
+        for (const placedIdx of placedMatSet) {
+          if (Math.abs(bucket.bucketOrderIdx - placedIdx) <= customBreakGap) {
+            return false;
+          }
+        }
+      }
+      const placedItemSet = placedBucketIndicesByItemKey.get(cand.itemKey);
+      if (placedItemSet && placedItemSet.size > 0) {
+        for (const placedIdx of placedItemSet) {
+          if (Math.abs(bucket.bucketOrderIdx - placedIdx) <= customBreakGap) {
+            return false;
+          }
+        }
+      }
+    }
+
+    // 4. HANGİ KUŞAKLARDA GİRECEK (YAYIN KUŞAĞI / TIME BLOCK EŞLEŞMESİ)
     if (!ignoreTimeBlock && cand.timeBlockIds.length > 0 && !cand.timeBlockIds.includes(bucket.timeBlockId)) {
       return false;
     }
 
-    // 4. KUŞAK SÜRE KAPASİTESİ KONTROLÜ
+    // 5. KUŞAK SÜRE KAPASİTESİ KONTROLÜ
     if (!ignoreCapacity && bucket.usedSec + cand.durationSec > bucket.capacitySec) {
       return false;
     }
 
-    // 5. AYNI FİRMANIN ÜST ÜSTE GELMEMESİ İÇİN FİRMA DENGE KONTROLÜ (`same_clip` modunda bir firmanın farklı ürünleri varsa araya başka firma girebilmeli)
+    // 6. KUŞAK İÇİ FİRMA DENGESİ KONTROLÜ
     if (targetSlot === 'middle' && !ignoreCompanyBalance && uniquenessRule !== 'none') {
       const allCurrent = [...bucket.openingPinnedAds, ...bucket.middleAds, ...bucket.closingPinnedAds];
       const sameCompCount = allCurrent.filter(a => String(a.companyId) === compIdStr).length;
@@ -1279,6 +1482,31 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
         return false;
       }
     }
+
+    return true;
+  };
+
+  /**
+   * Doğrulanan adayı kuşağa yerleştirir ve yerleştiği kuşak indeksini (`bucket.bucketOrderIdx`)
+   * `placedBucketIndicesByMatId` ve `placedBucketIndicesByItemKey` kümelerine kaydeder.
+   */
+  const tryPlaceCandidateInBucket = (cand, bucket, options = {}) => {
+    if (!canPlaceCandidateInBucket(cand, bucket, options)) {
+      return false;
+    }
+
+    const {
+      targetSlot = 'middle', // 'opening' | 'middle' | 'closing'
+      sponsorRole = null,
+      sponsorRoleLabel = null,
+      lockOrder = null,
+      isRamadanSpot = false
+    } = options;
+
+    const currentDaily = dailyCountMap[cand.itemKey] || 0;
+    const currentResAdded = addedSpotsByResId[cand.reservationId] || 0;
+    const matIdStr = String(cand.materialId);
+    const compIdStr = String(cand.companyId || '');
 
     const adEntry = {
       reservationId: cand.reservationId,
@@ -1305,11 +1533,28 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
     bucket.usedItemKeys.add(cand.itemKey);
     bucket.usedMaterialIds.add(matIdStr);
     if (compIdStr) bucket.usedCompanyIds.add(compIdStr);
+
     dailyCountMap[cand.itemKey] = currentDaily + 1;
-    lastPlacedBucketIdxByItemKey[cand.itemKey] = bucket.bucketOrderIdx;
     if (cand.reservationId) {
       addedSpotsByResId[cand.reservationId] = currentResAdded + 1;
     }
+
+    if (!placedBucketIndicesByMatId.has(matIdStr)) {
+      placedBucketIndicesByMatId.set(matIdStr, new Set());
+    }
+    placedBucketIndicesByMatId.get(matIdStr).add(bucket.bucketOrderIdx);
+
+    if (!placedBucketIndicesByItemKey.has(cand.itemKey)) {
+      placedBucketIndicesByItemKey.set(cand.itemKey, new Set());
+    }
+    placedBucketIndicesByItemKey.get(cand.itemKey).add(bucket.bucketOrderIdx);
+
+    const prevTbCounts = placedTimeBlockCountsByItemKey.get(cand.itemKey) || {};
+    placedTimeBlockCountsByItemKey.set(cand.itemKey, {
+      ...prevTbCounts,
+      [bucket.timeBlockId]: (prevTbCounts[bucket.timeBlockId] || 0) + 1
+    });
+
     return true;
   };
 
@@ -1419,7 +1664,9 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
     };
   };
 
-  // AŞAMA 0: RAMAZAN ÖZEL (SAHUR VE İFTAR) KUŞAKLARINI ÇÖZÜMLE VE YERLEŞTİR (Max Spot koruyarak)
+  // ============================================================================
+  // ADIM 3: RAMAZAN ÖZEL VE PROGRAM SPONSORLUKLARININ HEDEF KUŞAKLARA YERLEŞTİRİLMESİ
+  // ============================================================================
   const resolveRamadanTargetBreaks = (ramadanTargetType) => {
     const targetTypes = ramadanTargetType === 'both' ? ['sahur', 'iftar'] : [ramadanTargetType || 'iftar'];
     const openingBreaks = [];
@@ -1487,6 +1734,7 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
         if (bucket.usedSingularRoles.has(singularKey)) return;
         const placed = tryPlaceCandidateInBucket(rc, bucket, {
           ignoreTimeBlock: true,
+          customBreakGap: 0,
           targetSlot: meta.slot,
           sponsorRole: roleId,
           sponsorRoleLabel: `${rLabelPrefix} • ${meta.label}`,
@@ -1501,6 +1749,7 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
       rTargets.openingBreaks.forEach(bucket => {
         tryPlaceCandidateInBucket(rc, bucket, {
           ignoreTimeBlock: true,
+          customBreakGap: 0,
           targetSlot: 'middle',
           sponsorRole: 'ramadan_before',
           sponsorRoleLabel: `${rLabelPrefix} Öncesi`,
@@ -1512,6 +1761,7 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
       rTargets.allMidBreaks.forEach(bucket => {
         tryPlaceCandidateInBucket(rc, bucket, {
           ignoreTimeBlock: true,
+          customBreakGap: 0,
           targetSlot: 'middle',
           sponsorRole: 'ramadan_middle',
           sponsorRoleLabel: `${rLabelPrefix} Arası`,
@@ -1523,6 +1773,7 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
       rTargets.closingBreaks.forEach(bucket => {
         tryPlaceCandidateInBucket(rc, bucket, {
           ignoreTimeBlock: true,
+          customBreakGap: 0,
           targetSlot: 'middle',
           sponsorRole: 'ramadan_after',
           sponsorRoleLabel: `${rLabelPrefix} Sonrası`,
@@ -1532,7 +1783,7 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
     }
   });
 
-  // AŞAMA 1: ÖZEL SUNUM & GEÇİŞ BANTLARI (TEKİL SIRA KİLİTLİ — Max Spot Koruyarak)
+  // 3B: ÖZEL SUNUM & GEÇİŞ BANTLARI (TEKİL SIRA KİLİTLİ — Max Spot Koruyarak)
   const sponsorCandidates = candidates.filter(c => c.isSponsor && c.sponsorProgramTitle);
 
   sponsorCandidates.forEach(cand => {
@@ -1558,6 +1809,7 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
 
         const placed = tryPlaceCandidateInBucket(cand, bucket, {
           ignoreTimeBlock: true,
+          customBreakGap: 0,
           targetSlot: meta.slot,
           sponsorRole: roleId,
           sponsorRoleLabel: meta.label,
@@ -1570,7 +1822,7 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
     });
   });
 
-  // AŞAMA 2: STANDART PROGRAM SPONSORLUKLARI ('before', 'middle', 'after' — Max Spot Koruyarak)
+  // 3C: STANDART PROGRAM SPONSORLUKLARI ('before', 'middle', 'after' — Max Spot Koruyarak)
   sponsorCandidates.forEach(sp => {
     const targets = resolveProgramBreakTargets(sp.sponsorProgramTitle);
 
@@ -1578,6 +1830,7 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
       targets.openingBreaks.forEach(bucket => {
         tryPlaceCandidateInBucket(sp, bucket, {
           ignoreTimeBlock: true,
+          customBreakGap: 0,
           targetSlot: 'middle',
           sponsorRole: 'before',
           sponsorRoleLabel: 'Program Öncesi'
@@ -1589,6 +1842,7 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
       targets.allMidBreaks.forEach(bucket => {
         tryPlaceCandidateInBucket(sp, bucket, {
           ignoreTimeBlock: true,
+          customBreakGap: 0,
           targetSlot: 'middle',
           sponsorRole: 'middle',
           sponsorRoleLabel: 'Program Arası'
@@ -1600,6 +1854,7 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
       targets.closingBreaks.forEach(bucket => {
         tryPlaceCandidateInBucket(sp, bucket, {
           ignoreTimeBlock: true,
+          customBreakGap: 0,
           targetSlot: 'middle',
           sponsorRole: 'after',
           sponsorRoleLabel: 'Program Sonrası'
@@ -1609,232 +1864,257 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
   });
 
   const standardCandidates = candidates.filter(c => !c.isRamadanSpecial);
-  const totalBucketsCount = adBreakBuckets.length;
 
   /**
-   * Bir aday reklamın (`cand`) belirli bir kuşağa (`bucket`) ne kadar uygun olduğunu puanlayan
-   * Akıllı Uygunluk ve Yayılım (Spacing + Priority + Jitter) fonksiyonu:
-   * - Aynı reklamın art arda kuşaklara (örn: Kuşak 1, Kuşak 2, Kuşak 3) yığılmasını engeller;
-   *   günün toplam kuşak sayısına (`totalBucketsCount / cand.dailyMaxSpots`) göre ideal aralığa yayar.
-   * - Öncelik (`1000 Zorunlu > 700 Yüksek > 400 Normal > 100 Dolgu`) ve `dailyMinSpots` açığını hesaba katar.
-   * - `pseudoNoise` ile her kuşakta ve her günde farklı bir kombinasyon üretir.
+   * ÇOKLU OPSİYON DEĞERLENDİRİCİ (`evaluateCandidateBucketOption`):
+   * Bir aday reklamın (`cand`) girebileceği uygun kuşak opsiyonlarını (`bucket`) 6 farklı boyutta puanlar:
+   * 1. Mevcut Yerleşimlere En Yakın Mesafe (`minDistScore`):
+   *    Reklamın o gün yerleştiği TÜM diğer kuşaklara olan en kısa mesafesini hesaplar;
+   *    gün içine homojen yayılmasını (`idealStride`) ödüllendirir.
+   * 2. Yayın Kuşağı (Sabah / Öğle / Akşam / Gece) Çeşitliliği (`timeBlockSpreadBonus`):
+   *    Birden fazla saat dilimi seçiliyse tüm spotların sadece Sabah'a yığılmasını önler; henüz girmediği saat dilimine öncelik verir.
+   * 3. Kuşak Doluluk Dengesi & 2 Dk Taban İhtiyacı (`breakNeedScore`):
+   *    Süresi `minBreakFillSec` (2 dk) altında olan ve daha az spot bulunan kuşaklara öncelik verir.
+   * 4. Firma Çeşitliliği (`companyDiversityBonus`):
+   *    Kuşak içinde henüz bu firmanın başka reklamı yoksa ek puan verir.
+   * 5. Rezervasyon Önceliği & Akıllı Hedef Açığı (`candidateUrgencyScore`):
+   *    Zorunlu (1000) > Yüksek (700) > Normal (400) > Dolgu (100) ve `smartDailyTarget` oranına göre puanlar.
+   * 6. Günlük / Kuşak Varyasyonu (`noise`):
+   *    Her kuşağın ve her günün birbirinin kopyası olmaması için deterministik rotasyon ekler.
    */
-  const scoreBucketForCandidate = (cand, bucket, roundNum = 1) => {
+  const evaluateCandidateBucketOption = (cand, bucket, activeCapForCand, stepNum = 1) => {
     const usedSecAds = getBucketAdsDurationSec(bucket);
-    const underMinTargetBonus = usedSecAds < minBreakFillSec ? (minBreakFillSec - usedSecAds) * 8 : 0;
-    const emptinessScore = (1 - bucket.usedSec / Math.max(1, bucket.capacitySec)) * 300;
-    const countPenalty = getBucketTotalCount(bucket) * 45;
+    const currentDaily = dailyCountMap[cand.itemKey] || 0;
+    const matIdStr = String(cand.materialId);
+    const compIdStr = String(cand.companyId || '');
 
-    // İdeal kuşak aralığı (Spacing): örn 28 kuşak ve max 4 spot ise ideal adım = 7 kuşakta bir
-    let spacingBonus = 120;
-    const lastIdx = lastPlacedBucketIdxByItemKey[cand.itemKey];
-    if (lastIdx !== undefined) {
-      const dist = Math.abs(bucket.bucketOrderIdx - lastIdx);
-      const idealGap = Math.max(2, Math.floor(totalBucketsCount / Math.max(1, cand.dailyMaxSpots)));
-      if (dist <= 1) {
-        spacingBonus = -350; // Hemen bir önceki/sonraki kuşağa koymaktan kaçın
-      } else if (dist >= idealGap) {
-        spacingBonus = 220;
+    // 1. Kuşak Doluluk İhtiyacı
+    const under2MinBonus = usedSecAds < minBreakFillSec ? (minBreakFillSec - usedSecAds) * 4.5 : 0;
+    const emptinessScore = (1 - bucket.usedSec / Math.max(1, bucket.capacitySec)) * 240;
+    const spotCountPenalty = getBucketTotalCount(bucket) * 42;
+
+    // 2. Bu reklamın yerleştiği TÜM diğer kuşaklara olan mesafe (Homojen Yayılım)
+    let spacingScore = 180;
+    const placedMatSet = placedBucketIndicesByMatId.get(matIdStr);
+    if (placedMatSet && placedMatSet.size > 0) {
+      let minDist = Infinity;
+      for (const idx of placedMatSet) {
+        const d = Math.abs(bucket.bucketOrderIdx - idx);
+        if (d < minDist) minDist = d;
+      }
+      const targetSpotsForStride = Math.max(1, activeCapForCand || cand.smartDailyTarget || 2);
+      const idealStride = Math.max(
+        minBreakGap + 1,
+        Math.floor(totalBucketsCount / (targetSpotsForStride + 0.5))
+      );
+      if (minDist >= idealStride) {
+        spacingScore = 320 + Math.min(120, (minDist - idealStride) * 14);
       } else {
-        spacingBonus = (dist / idealGap) * 160;
+        spacingScore = (minDist / Math.max(1, idealStride)) * 220;
       }
     }
 
+    // 3. Yayın Kuşağı (Sabah / Öğle / Akşam / Gece) Dengeli Dağılım Bonusu
+    const tbCounts = placedTimeBlockCountsByItemKey.get(cand.itemKey) || {};
+    const countInThisTb = tbCounts[bucket.timeBlockId] || 0;
+    const timeBlockSpreadBonus = countInThisTb === 0 ? 210 : Math.max(0, 110 - countInThisTb * 55);
+
+    // 4. Firma Çeşitliliği Bonusu
+    const companyDiversityBonus = !bucket.usedCompanyIds.has(compIdStr) ? 135 : 0;
+
+    // 5. Adayın Akıllı Hedef Açığı ve Önceliği
+    const usageRatio = currentDaily / Math.max(1, activeCapForCand);
+    const candidateUrgencyScore =
+      (1 - usageRatio) * 340 +
+      cand.priority * 0.35 +
+      (cand.isSponsor ? 180 : 0);
+
+    // 6. Varyasyon Tohumu
     const noise = varyOrderAcrossBreaks
-      ? pseudoNoise(cand.candHash, bucket.bucketOrderIdx + 1, roundNum) * 95
+      ? pseudoNoise(cand.candHash, bucket.bucketOrderIdx + 1, stepNum) * 85
       : 0;
 
-    return underMinTargetBonus + emptinessScore - countPenalty + spacingBonus + noise;
+    return (
+      under2MinBonus +
+      emptinessScore -
+      spotCountPenalty +
+      spacingScore +
+      timeBlockSpreadBonus +
+      companyDiversityBonus +
+      candidateUrgencyScore +
+      noise
+    );
   };
 
-  // AŞAMA 3: KUŞAK TABAN SÜRE GARANTİSİ (Kuşak Boş Kalamaz — En Az `minBreakFillSec` (Varsayılan 120 sn / 2 dk) Doluluk)
-  // Tüm kuşakları en boş olandan başlayarak tarar ve her kuşağı (eldeki reklamların Max Spot sınırını ASLA aşmadan!)
-  // en az `minBreakFillSec` (ör. 2 dakika) ticari reklam süresine ulaştırmaya çalışır.
-  // ÖNEMLİ: Önce adayların `dailyOptimalTarget` (Akıllı Günlük Hedef) sınırını aşmadan 2 dk tabanı doldurur;
-  // eğer 2 dk taban hala dolmadıysa yalnızca o kuşak için `dailyMaxSpots`'a kadar izin verir.
-  let minFillPassActive = true;
-  let minFillRound = 0;
-  while (minFillPassActive && minFillRound < 25) {
-    minFillPassActive = false;
-    minFillRound++;
+  // ============================================================================
+  // ADIM 4: GÜNLÜK MİNİMUM SPOT GARANTİSİ (`dailyMinSpots`) — ÇOKLU OPSİYON SEÇİMİYLE
+  // Her reklamın Günlük Min Spot (`dailyMinSpots`) alt sınırını, girebileceği uygun kuşak opsiyonlarını
+  // karşılaştırıp en ideal aralıklı (`minBreakGap >= 1`) ve en dengeli kuşağa yerleştirerek garanti altına alır.
+  // ============================================================================
+  let minStageActive = true;
+  let minStageStep = 0;
+  while (minStageActive && minStageStep < 250) {
+    minStageActive = false;
+    minStageStep++;
 
-    const underMinBuckets = [...adBreakBuckets]
-      .filter(b => getBucketAdsDurationSec(b) < minBreakFillSec && b.usedSec + 10 <= b.capacitySec)
-      .sort((a, b) => {
-        const diff = getBucketAdsDurationSec(a) - getBucketAdsDurationSec(b);
-        if (diff !== 0) return diff;
-        return pseudoNoise(a.bucketOrderIdx, minFillRound) - pseudoNoise(b.bucketOrderIdx, minFillRound);
+    // Henüz `dailyMinSpots` sayısına ulaşmamış adayları bul
+    const candsNeedingMin = standardCandidates.filter(c => {
+      const cur = dailyCountMap[c.itemKey] || 0;
+      return cur < c.dailyMinSpots && cur < c.dailyMaxSpots && cur < c.itemRemainingTotal;
+    });
+    if (candsNeedingMin.length === 0) break;
+
+    let bestOption = null;
+
+    for (const cand of candsNeedingMin) {
+      for (const bucket of adBreakBuckets) {
+        if (
+          !canPlaceCandidateInBucket(cand, bucket, {
+            ignoreTimeBlock: false,
+            maxAllowedForStage: cand.dailyMinSpots
+          })
+        ) {
+          continue;
+        }
+        const score = evaluateCandidateBucketOption(cand, bucket, cand.dailyMinSpots, minStageStep);
+        if (!bestOption || score > bestOption.score) {
+          bestOption = { cand, bucket, score };
+        }
+      }
+    }
+
+    // Eğer `strictTimeBlocks === false` ise ve kendi kuşağında yer kalmadıysa esnek kuşak opsiyonlarına bak
+    if (!bestOption && !strictTimeBlocks) {
+      for (const cand of candsNeedingMin) {
+        for (const bucket of adBreakBuckets) {
+          if (
+            !canPlaceCandidateInBucket(cand, bucket, {
+              ignoreTimeBlock: true,
+              maxAllowedForStage: cand.dailyMinSpots
+            })
+          ) {
+            continue;
+          }
+          const score = evaluateCandidateBucketOption(cand, bucket, cand.dailyMinSpots, minStageStep);
+          if (!bestOption || score > bestOption.score) {
+            bestOption = { cand, bucket, score, ignoreTimeBlock: true };
+          }
+        }
+      }
+    }
+
+    if (bestOption) {
+      const placed = tryPlaceCandidateInBucket(bestOption.cand, bestOption.bucket, {
+        ignoreTimeBlock: Boolean(bestOption.ignoreTimeBlock),
+        maxAllowedForStage: bestOption.cand.dailyMinSpots
       });
+      if (placed) {
+        minStageActive = true;
+      }
+    }
+  }
 
-    if (underMinBuckets.length === 0) break;
+  // ============================================================================
+  // ADIM 5: AKILLI ORTALAMA YAYINLANMA SİSTEMİ (`smartDailyTarget`) — ÇOKLU OPSİYON MATRİSİ
+  // Rezervasyonları `dailyMinSpots` seviyesinden kendi hesaplanan Akıllı Ortalama Hedeflerine (`smartDailyTarget`)
+  // kadar adım adım yerleştirir:
+  // - `'smart_pacing'` (Varsayılan): Her reklam kendi `smartDailyTarget` (Min ile Max arasındaki akıllı ortalama)
+  //   değerinde durur; HİÇBİR REKLAMI HER SEFERİNDE MAX SPOTA DAYAMAZ!
+  // - `'min_plus_2min'`: Sadece `dailyMinSpots` seviyesinde kalır (yalnızca 2 dk altındaki kuşaklar için `smartDailyTarget`'a kadar destek verir).
+  // - `'up_to_max'`: Kullanıcı özellikle Max seçtiyse `dailyMaxSpots` sınırına kadar izin verir.
+  // ============================================================================
+  const getTargetCapForCandidate = (cand) => {
+    if (quotaStrategy === 'up_to_max') {
+      return cand.dailyMaxSpots;
+    }
+    // Hem 'smart_pacing' hem de 'min_plus_2min' için tavan `cand.smartDailyTarget` (Akıllı Ortalama Hedef) değeridir!
+    return cand.smartDailyTarget;
+  };
 
-    for (const bucket of underMinBuckets) {
+  let smartStageActive = true;
+  let smartStageStep = 0;
+  while (smartStageActive && smartStageStep < 400) {
+    smartStageActive = false;
+    smartStageStep++;
+
+    // `min_plus_2min` modunda yalnızca 2 dk (`minBreakFillSec`) altındaki kuşaklara bak,
+    // `smart_pacing` ve `up_to_max` modlarında ise tüm uygun kuşak opsiyonlarını değerlendir (2 dk altındakiler ekstra puan alır)
+    const candidateBuckets =
+      quotaStrategy === 'min_plus_2min'
+        ? adBreakBuckets.filter(b => getBucketAdsDurationSec(b) < minBreakFillSec && b.usedSec + 10 <= b.capacitySec)
+        : adBreakBuckets.filter(b => b.usedSec + 10 <= b.capacitySec);
+
+    if (candidateBuckets.length === 0) break;
+
+    let bestOption = null;
+
+    for (const bucket of candidateBuckets) {
       const poolForBucket = bucket.ramadanBreakTag
         ? [...ramadanCandidates, ...standardCandidates]
         : standardCandidates;
 
-      const eligibleCands = poolForBucket
-        .filter(c => (dailyCountMap[c.itemKey] || 0) < c.dailyMaxSpots)
-        .sort((a, b) => {
-          const aCount = dailyCountMap[a.itemKey] || 0;
-          const bCount = dailyCountMap[b.itemKey] || 0;
-          const aNeedsMin = aCount < a.dailyMinSpots ? 1 : 0;
-          const bNeedsMin = bCount < b.dailyMinSpots ? 1 : 0;
-          if (bNeedsMin !== aNeedsMin) return bNeedsMin - aNeedsMin;
+      for (const cand of poolForBucket) {
+        const activeCap = getTargetCapForCandidate(cand);
+        const cur = dailyCountMap[cand.itemKey] || 0;
+        if (cur >= activeCap || cur >= cand.dailyMaxSpots) continue;
 
-          // Akıllı hedef (`dailyOptimalTarget`) altında olanlara öncelik ver ki her reklam hemen Max'a dayanmasın
-          const aUnderOptimal = aCount < a.dailyOptimalTarget ? 1 : 0;
-          const bUnderOptimal = bCount < b.dailyOptimalTarget ? 1 : 0;
-          if (bUnderOptimal !== aUnderOptimal) return bUnderOptimal - aUnderOptimal;
-
-          const aUsageRatio = aCount / Math.max(1, a.dailyOptimalTarget || a.dailyMaxSpots);
-          const bUsageRatio = bCount / Math.max(1, b.dailyOptimalTarget || b.dailyMaxSpots);
-
-          const aScore =
-            (1 - aUsageRatio) * 500 +
-            a.priority * 0.45 +
-            scoreBucketForCandidate(a, bucket, minFillRound);
-          const bScore =
-            (1 - bUsageRatio) * 500 +
-            b.priority * 0.45 +
-            scoreBucketForCandidate(b, bucket, minFillRound);
-          return bScore - aScore;
-        });
-
-      let placedInThisBucket = false;
-      // 1. Önce kendi seçili yayın kuşağı (`timeBlockId`: Sabah / Öğle / Akşam Prime / Gece) eşleşen adayları dene
-      for (const cand of eligibleCands) {
-        if (tryPlaceCandidateInBucket(cand, bucket, { ignoreTimeBlock: false })) {
-          placedInThisBucket = true;
-          minFillPassActive = true;
-          break;
-        }
-      }
-
-      // 2. Sadece kullanıcı ayarlarda `strictTimeBlocks === false` (2 dk taban için esnek saat dilimi) seçtiyse diğer saat diliminden destek al
-      if (!placedInThisBucket && !strictTimeBlocks && getBucketAdsDurationSec(bucket) < minBreakFillSec) {
-        for (const cand of eligibleCands) {
-          if (tryPlaceCandidateInBucket(cand, bucket, { ignoreTimeBlock: true })) {
-            placedInThisBucket = true;
-            minFillPassActive = true;
-            break;
-          }
-        }
-      }
-    }
-  }
-
-  // AŞAMA 4: GÜNLÜK MİNİMUM SPOT GARANTİSİ (`dailyMinSpots`)
-  // Kuşakların taban doluluğu sağlandıktan sonra hala `dailyMinSpots` sayısına ulaşmamış rezervasyon varsa
-  // kendi seçili yayın kuşağındaki (`timeBlockIds`) en uygun kuşaklara yerleştir.
-  standardCandidates.forEach((cand, cIdx) => {
-    let guard = 0;
-    while (
-      (dailyCountMap[cand.itemKey] || 0) < cand.dailyMinSpots &&
-      (dailyCountMap[cand.itemKey] || 0) < cand.dailyMaxSpots &&
-      guard < 36
-    ) {
-      guard++;
-      const eligibleBuckets = [...adBreakBuckets]
-        .filter(
-          b =>
-            (cand.timeBlockIds.length === 0 || cand.timeBlockIds.includes(b.timeBlockId)) &&
-            b.usedSec + cand.durationSec <= b.capacitySec
-        )
-        .sort((a, b) => scoreBucketForCandidate(cand, b, guard + cIdx) - scoreBucketForCandidate(cand, a, guard + cIdx));
-
-      if (eligibleBuckets.length === 0) break;
-      let placedAny = false;
-      for (const targetBucket of eligibleBuckets) {
-        if (tryPlaceCandidateInBucket(cand, targetBucket)) {
-          placedAny = true;
-          break;
-        }
-      }
-      if (!placedAny) break;
-    }
-  });
-
-  // AŞAMA 5: GÜNLÜK SPOT STRATEJİSİNE GÖRE DENGELİ DAĞITIM
-  // - `'min_plus_2min'` seçiliyse: Aşama 3 (2 dk taban) ve Aşama 4 (`dailyMinSpots`) tamamlandığı için burada durur; Max'a kadar zorlamaz!
-  // - `'smart_pacing'` (Varsayılan) seçiliyse: Her reklamı `dailyMaxSpots`'a dayamak yerine kampanya günlerine bölünmüş `dailyOptimalTarget` (`Min <= Hedef <= Max`) değerine kadar dengeli dağıtır!
-  // - `'up_to_max'` seçiliyse: Kuşaklarda yer oldukça `dailyMaxSpots` sınırına kadar doldurur (ama Max'ı asla aşmaz).
-  if (quotaStrategy !== 'min_plus_2min') {
-    let placedInRound = true;
-    let roundCount = 0;
-    while (placedInRound && roundCount < 40) {
-      placedInRound = false;
-      roundCount++;
-
-      const bucketsSortedByLeastFilled = [...adBreakBuckets]
-        .filter(b => b.usedSec + 10 <= b.capacitySec)
-        .sort((a, b) => {
-          const ratioA = a.usedSec / Math.max(1, a.capacitySec);
-          const ratioB = b.usedSec / Math.max(1, b.capacitySec);
-          if (Math.abs(ratioA - ratioB) > 0.08) return ratioA - ratioB;
-          return pseudoNoise(a.bucketOrderIdx, roundCount + 50) - pseudoNoise(b.bucketOrderIdx, roundCount + 50);
-        });
-
-      for (const bucket of bucketsSortedByLeastFilled) {
-        const poolForBucket = bucket.ramadanBreakTag
-          ? [...ramadanCandidates, ...standardCandidates]
-          : standardCandidates;
-
-        const availableCands = poolForBucket
-          .filter(c => {
-            const cur = dailyCountMap[c.itemKey] || 0;
-            const capForStrategy =
-              quotaStrategy === 'smart_pacing' ? c.dailyOptimalTarget : c.dailyMaxSpots;
-            return cur < capForStrategy && cur < c.dailyMaxSpots;
+        if (
+          !canPlaceCandidateInBucket(cand, bucket, {
+            ignoreTimeBlock: false,
+            maxAllowedForStage: activeCap
           })
-          .sort((a, b) => {
-            const aCap = Math.max(1, quotaStrategy === 'smart_pacing' ? a.dailyOptimalTarget : a.dailyMaxSpots);
-            const bCap = Math.max(1, quotaStrategy === 'smart_pacing' ? b.dailyOptimalTarget : b.dailyMaxSpots);
-            const aRatio = (dailyCountMap[a.itemKey] || 0) / aCap;
-            const bRatio = (dailyCountMap[b.itemKey] || 0) / bCap;
-            const aScore =
-              (1 - aRatio) * 450 +
-              (a.isSponsor ? 300 : 0) +
-              a.priority * 0.4 +
-              scoreBucketForCandidate(a, bucket, roundCount);
-            const bScore =
-              (1 - bRatio) * 450 +
-              (b.isSponsor ? 300 : 0) +
-              b.priority * 0.4 +
-              scoreBucketForCandidate(b, bucket, roundCount);
-            return bScore - aScore;
-          });
-
-        for (const cand of availableCands) {
-          if (tryPlaceCandidateInBucket(cand, bucket, { ignoreTimeBlock: false })) {
-            placedInRound = true;
-            break;
-          }
+        ) {
+          continue;
         }
+
+        const score = evaluateCandidateBucketOption(cand, bucket, activeCap, smartStageStep + 100);
+        if (!bestOption || score > bestOption.score) {
+          bestOption = { cand, bucket, activeCap, score };
+        }
+      }
+    }
+
+    if (bestOption) {
+      const placed = tryPlaceCandidateInBucket(bestOption.cand, bestOption.bucket, {
+        ignoreTimeBlock: false,
+        maxAllowedForStage: bestOption.activeCap
+      });
+      if (placed) {
+        smartStageActive = true;
       }
     }
   }
 
-  // Eğer yalnızca `'none'` (İkisi de geçersiz) seçiliyse ve hala `dailyMaxSpots` altında kalmış reklamlar +
-  // `minBreakFillSec` altında kalmış kuşaklar varsa, aynı kuşağa tekrar girmesine izin vererek (yine Max Spot'u aşmadan!) tamamla
-  if (uniquenessRule === 'none') {
-    adBreakBuckets
-      .filter(b => getBucketAdsDurationSec(b) < minBreakFillSec)
-      .forEach((bucket, bIdx) => {
-        const availableCands = standardCandidates.filter(
-          c => (dailyCountMap[c.itemKey] || 0) < c.dailyMaxSpots
+  // ADIM 5B: TAMAMEN BOŞ (0 SPOT) KALAN KUŞAK VARSA TEK SPOT KORUMASI
+  // Kuşakların hiçbirinin 0 ticari reklamla tamamen boş geçmemesi için, eğer 0 spotlu kuşak kaldıysa
+  // hala `dailyMaxSpots` altında hakkı olan ve ardışık kuşak yasağını (`minBreakGap`) bozmayan en uygun 1 reklamı ata.
+  adBreakBuckets
+    .filter(b => getBucketTotalCount(b) === 0 && b.usedSec + 10 <= b.capacitySec)
+    .forEach((emptyBucket, ebIdx) => {
+      const eligibleForEmpty = standardCandidates
+        .filter(c =>
+          canPlaceCandidateInBucket(c, emptyBucket, {
+            ignoreTimeBlock: !strictTimeBlocks,
+            maxAllowedForStage: c.dailyMaxSpots
+          })
+        )
+        .sort(
+          (a, b) =>
+            evaluateCandidateBucketOption(b, emptyBucket, b.dailyMaxSpots, ebIdx + 300) -
+            evaluateCandidateBucketOption(a, emptyBucket, a.dailyMaxSpots, ebIdx + 300)
         );
-        for (const cand of availableCands) {
-          if (getBucketAdsDurationSec(bucket) >= minBreakFillSec) break;
-          tryPlaceCandidateInBucket(cand, bucket, {
-            ignoreTimeBlock: true,
-            allowDuplicateInNoneMode: true
-          });
-        }
-      });
-  }
 
-  // AŞAMA 6: KUŞAK İÇİ SIRA KİLİTLERİNİ, TEKİLLİK KURALINI VE FİRMA AYRIŞTIRMASINI UYGULA
+      if (eligibleForEmpty.length > 0) {
+        tryPlaceCandidateInBucket(eligibleForEmpty[0], emptyBucket, {
+          ignoreTimeBlock: !strictTimeBlocks,
+          maxAllowedForStage: eligibleForEmpty[0].dailyMaxSpots
+        });
+      }
+    });
+
+  // ============================================================================
+  // ADIM 6: KUŞAK İÇİ SIRA KİLİTLERİNİ, RTÜK GİRİŞ/ÇIKIŞ JENERİKLERİNİ VE FİRMA AYRIŞTIRMASINI UYGULA
+  // ============================================================================
   const finalPlacements = adBreakBuckets.map((b, bIdx) => {
     const orderedAds = finalizeBucketAdsOrder(b, {
       uniquenessRule,
