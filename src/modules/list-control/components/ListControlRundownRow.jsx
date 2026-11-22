@@ -99,11 +99,12 @@ export default function ListControlRundownRow({
     : (h.fileName || item.code || '-');
   const displayFileCode = archiveNameFileLabel !== '-' ? archiveNameFileLabel : highResIdFileLabel;
 
-  // Logo YALNIZCA Giriş ve Çıkış satırlarında (reklam_giris, reklam_cikis, yayin_giris, yayin_cikis) gösterilir; ara satırlarda tekrarlanmaz!
+  // Logo YALNIZCA Giriş noktalarında gösterilir:
+  // 1) Reklam Girişinde -> Reklam Logosu Girer (reklam_giris)
+  // 2) Reklam Çıkıştan Sonra / Programa Girerken -> Yayın Logosu Girer (yayin_giris)
   const logoEvent = item.logoEvent || 'none';
-  const hasLogoTrigger = logoEvent && logoEvent !== 'none';
-  const isAdLogoEvent = logoEvent === 'reklam_giris' || logoEvent === 'reklam_cikis';
-  const isExitLogoEvent = logoEvent === 'reklam_cikis' || logoEvent === 'yayin_cikis';
+  const hasLogoTrigger = logoEvent === 'reklam_giris' || logoEvent === 'yayin_giris';
+  const isAdLogoEvent = logoEvent === 'reklam_giris';
   const activeLogoName = hasLogoTrigger
     ? (item.logo || (isAdLogoEvent ? defaultAdLogo : defaultBroadcastLogo))
     : '';
@@ -335,7 +336,7 @@ export default function ListControlRundownRow({
         )}
       </div>
 
-      {/* SÜTUN 4: LOGO GİRİŞ / ÇIKIŞ TETİKLEMESİ (Yalnızca Giriş ve Çıkış satırlarında işaretlenir, ara satırlarda tekrarlanmaz!) */}
+      {/* SÜTUN 4: LOGO GİRİŞİ (Reklam Girişte Reklam Logosu Girer • Reklam Çıkıştan Sonra Programa Girerken Yayın Logosu Girer) */}
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
@@ -348,8 +349,8 @@ export default function ListControlRundownRow({
         }}
         title={
           hasLogoTrigger
-            ? `${item.logoEventLabel || 'Logo Tetiklemesi'} → ${activeLogoName} (Değiştirmek için seçin)`
-            : 'Bu satırda logo değişimi (giriş/çıkış) yok. Manuel Giriş/Çıkış işaretlemek için seçebilirsiniz.'
+            ? `${item.logoEventLabel || 'Logo Girişi'} → ${activeLogoName}`
+            : 'Bu satırda yeni logo girişi yok (mevcut logo devam ediyor).'
         }
       >
         {hasLogoTrigger ? (
@@ -360,20 +361,16 @@ export default function ListControlRundownRow({
                 fontWeight: 900,
                 padding: '1px 5px',
                 borderRadius: '4px',
-                background: isExitLogoEvent
-                  ? 'rgba(220, 38, 38, 0.14)'
-                  : isAdLogoEvent
+                background: isAdLogoEvent
                   ? 'rgba(217, 119, 6, 0.16)'
                   : 'rgba(16, 185, 129, 0.16)',
-                color: isExitLogoEvent
-                  ? '#dc2626'
-                  : isAdLogoEvent
+                color: isAdLogoEvent
                   ? '#d97706'
                   : '#059669',
                 textTransform: 'uppercase',
                 whiteSpace: 'nowrap'
               }}>
-                {item.logoEventLabel || (isAdLogoEvent ? '📢 REKLAM GİRİŞ' : '📺 YAYIN GİRİŞ')}
+                {isAdLogoEvent ? '📢 REKLAM LOGOSU GİRİŞ' : '📺 YAYIN LOGOSU GİRİŞ'}
               </span>
 
               {onUpdateLogoEvent && (
@@ -388,15 +385,13 @@ export default function ListControlRundownRow({
                     background: 'var(--bg-primary)',
                     color: 'var(--text-secondary)',
                     cursor: 'pointer',
-                    maxWidth: '54px'
+                    maxWidth: '52px'
                   }}
-                  title="Logo Giriş / Çıkış Tetiklemesini Değiştir"
+                  title="Logo Girişini Değiştir"
                 >
                   <option value="auto">Oto</option>
-                  <option value="yayin_giris">📺 Yayın Giriş</option>
-                  <option value="yayin_cikis">📺 Yayın Çıkış</option>
-                  <option value="reklam_giris">📢 Reklam Giriş</option>
-                  <option value="reklam_cikis">📢 Reklam Çıkış</option>
+                  <option value="yayin_giris">📺 Yayın Logosu Giriş</option>
+                  <option value="reklam_giris">📢 Reklam Logosu Giriş</option>
                   <option value="none">— Kaldır</option>
                 </select>
               )}
@@ -406,14 +401,10 @@ export default function ListControlRundownRow({
               fontWeight: 800,
               fontFamily: 'monospace',
               color: 'var(--text-primary)',
-              background: isExitLogoEvent
-                ? 'rgba(220, 38, 38, 0.08)'
-                : isAdLogoEvent
+              background: isAdLogoEvent
                 ? 'rgba(217, 119, 6, 0.1)'
                 : 'rgba(16, 185, 129, 0.1)',
-              border: isExitLogoEvent
-                ? '1px solid rgba(220, 38, 38, 0.3)'
-                : isAdLogoEvent
+              border: isAdLogoEvent
                 ? '1px solid rgba(217, 119, 6, 0.3)'
                 : '1px solid rgba(16, 185, 129, 0.3)',
               padding: '2px 6px',
@@ -422,7 +413,7 @@ export default function ListControlRundownRow({
               overflow: 'hidden',
               textOverflow: 'ellipsis'
             }}>
-              {isExitLogoEvent ? `ÇIKIŞ: ${activeLogoName}` : `GİRİŞ: ${activeLogoName}`}
+              {activeLogoName}
             </span>
           </>
         ) : (
@@ -447,15 +438,13 @@ export default function ListControlRundownRow({
                   background: 'transparent',
                   color: 'var(--text-muted)',
                   cursor: 'pointer',
-                  maxWidth: '95px'
+                  maxWidth: '92px'
                 }}
-                title="Bu satıra Logo Giriş veya Çıkış işareti ekle"
+                title="Bu satıra manuel Logo Girişi ekle"
               >
-                <option value="auto">+ Giriş/Çıkış</option>
-                <option value="yayin_giris">📺 Yayın Giriş</option>
-                <option value="yayin_cikis">📺 Yayın Çıkış</option>
-                <option value="reklam_giris">📢 Reklam Giriş</option>
-                <option value="reklam_cikis">📢 Reklam Çıkış</option>
+                <option value="auto">+ Logo Giriş</option>
+                <option value="yayin_giris">📺 Yayın Logosu Giriş</option>
+                <option value="reklam_giris">📢 Reklam Logosu Giriş</option>
                 <option value="none">— Yok</option>
               </select>
             )}
