@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Reklam Rezervasyon & Kuşak Doldurma Algoritması ve Ramazan Özel Planlama Taslağı</title>
+  <style>
+    @page { size: A4; margin: 16mm 14mm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif;
+      color: #0f172a;
+      background: #f8fafc;
+      margin: 0;
+      padding: 24px;
+      line-height: 1.55;
+      font-size: 13.5px;
+    }
+    .page-container {
+      max-width: 980px;
+      margin: 0 auto;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 36px 42px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+    }
+    .print-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #0f172a;
+      color: #ffffff;
+      padding: 14px 22px;
+      border-radius: 12px;
+      margin: 0 auto 20px auto;
+      max-width: 980px;
+    }
+    .print-btn {
+      background: #2563eb;
+      color: #ffffff;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    @media print {
+      body { background: #ffffff; padding: 0; }
+      .page-container { box-shadow: none; border: none; padding: 0; max-width: 100%; }
+      .print-bar { display: none !important; }
+    }
+    h1 {
+      font-size: 23px;
+      font-weight: 900;
+      color: #0f172a;
+      margin: 0 0 6px 0;
+      letter-spacing: -0.4px;
+    }
+    .subtitle {
+      color: #475569;
+      font-size: 13.5px;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    h2 {
+      font-size: 17px;
+      font-weight: 800;
+      color: #1e3a8a;
+      margin: 28px 0 12px 0;
+      padding: 8px 14px;
+      background: #eff6ff;
+      border-left: 4px solid #2563eb;
+      border-radius: 6px;
+    }
+    h2.ramadan-title {
+      color: #065f46;
+      background: #ecfdf5;
+      border-left-color: #059669;
+    }
+    h3 {
+      font-size: 14.5px;
+      font-weight: 800;
+      color: #0f172a;
+      margin: 18px 0 8px 0;
+    }
+    p { margin: 6px 0 10px 0; }
+    ul, ol { margin: 6px 0 14px 0; padding-left: 22px; }
+    li { margin-bottom: 5px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 18px 0;
+      font-size: 12.5px;
+    }
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 9px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #f1f5f9;
+      font-weight: 800;
+      color: #1e293b;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .b-red { background: #fee2e2; color: #991b1b; }
+    .b-amber { background: #fef3c7; color: #92400e; }
+    .b-blue { background: #dbeafe; color: #1e40af; }
+    .b-purple { background: #f3e8ff; color: #6b21a8; }
+    .b-green { background: #d1fae5; color: #065f46; }
+    .formula-box {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-left: 4px solid #4f46e5;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 12.5px;
+      margin: 10px 0 14px 0;
+    }
+    .ramadan-card {
+      background: #f0fdf4;
+      border: 1.5px solid #86efac;
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin: 14px 0;
+    }
+    .warning-card {
+      background: #fffbeb;
+      border: 1.5px solid #fde68a;
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin: 14px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="print-bar">
+    <div>
+      <strong>Yayın Planlama Sistemi</strong> — Reklam Algoritması &amp; Ramazan Özel Mimari Raporu
+    </div>
+    <button class="print-btn" onclick="window.print()">PDF Olarak Kaydet / Yazdır (Ctrl+P)</button>
+  </div>
+
+  <div class="page-container">
+    <h1>REKLAM REZERVASYON &amp; OTOMATİK KUŞAK DOLDURMA ALGORİTMASI VE RAMAZAN ÖZEL PLANLAMA TASLAĞI</h1>
+    <div class="subtitle">
+      Doküman Sürümü: v2.4 • Kapsam: Spot/Bütçe Hesaplama Motoru, 6 Aşamalı Kuşak Yerleştirme Algoritması, Sponsorluk Kuralları ve <strong>Ramazan Özel (Sahur / İftar)</strong> Mimari Taslağı
+    </div>
+
+    <!-- BÖLÜM 1 -->
+    <h2>1. Spot Miktarı, Bütçe ve Kuşak Kapasitesi Hesaplama Mantığı</h2>
+    <p>
+      Reklam Rezervasyon modülünde her bir reklam/klip satırı (<code>ProductPlanItem</code>) için 3 farklı hesaplama modu ve günlük kota parametreleri bulunur:
+    </p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Hesaplama Modu</th>
+          <th>Kod Karşılığı</th>
+          <th>Matematiksel Formül &amp; Çalışma Mantığı</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>1. Sadece Spot Adedi</strong></td>
+          <td><code>spots_only</code></td>
+          <td>Ücret hesabı yapılmaz. Kullanıcının girdiği <code>Planlanan Spot Adedi</code> (Varsayılan: <strong>20 Spot</strong>) doğrudan hedef kota olarak alınır.</td>
+        </tr>
+        <tr>
+          <td><strong>2. Spot Ücreti İle</strong></td>
+          <td><code>by_spot_price</code></td>
+          <td><code>Toplam Tutar = Planlanan Spot Adedi × Birim Spot Ücreti</code><br/>Efektif spot sayısı kullanıcı tarafından girilen <code>plannedSpots</code> değeridir.</td>
+        </tr>
+        <tr>
+          <td><strong>3. Toplam Bütçe İle</strong></td>
+          <td><code>by_total_budget</code></td>
+          <td><code>Efektif Spot Adedi = ⌊ Toplam Bütçe ÷ Birim Spot Ücreti ⌋</code> (Aşağı yuvarlanmış tam spot sayısı otomatik hesaplanır).</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="formula-box">
+      • Günlük Minimum Spot (dailyMinSpots, Varsayılan = 1): O gün içinde reklama kesin garantilenen taban spot adedi.<br/>
+      • Günlük Maksimum Spot (dailyMaxSpots, Varsayılan = 4): Reklamın bir günde en fazla girebileceği kuşak sayısı.<br/>
+      • Kuşak Süre Kapasitesi (capacitySec): max(30 sn, KuşakDakikası × 60) → Varsayılan 6 dk = 360 saniye.
+    </div>
+
+    <!-- BÖLÜM 2 -->
+    <h2>2. Kuşak Doldurma Öncelik Sıralaması (Priority Hiyerarşisi)</h2>
+    <p>
+      Otomatik yerleştirme motoru (<code>runAutoPlanAdsForDay</code>) o güne ait tüm uygun rezervasyon kalemlerini topladıktan sonra kuşaklara dağıtmadan önce aşağıdaki kesin öncelik sırasına göre dizmektedir:
+    </p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Öncelik Sırası</th>
+          <th>Kategori / Rol</th>
+          <th>Öncelik Puanı</th>
+          <th>Kuşak İçi Konumu &amp; Kuralı</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>1. Sıra (En Yüksek)</strong></td>
+          <td><strong>Özel Sunum &amp; Geçiş Bantları</strong><br/>(Sunar, Devam Edecek, Devam Ediyor, Sundu)</td>
+          <td><span class="badge b-red">TEKİL KİLİTLİ</span></td>
+          <td>Kuşağın <strong>en başına (1. sıra)</strong> veya <strong>en sonuna (Son sıra)</strong> kilitlenir. Zaman bloğu ve günlük max sınırından muaftır.</td>
+        </tr>
+        <tr>
+          <td><strong>2. Sıra</strong></td>
+          <td><strong>Standart Program Sponsorlukları</strong><br/>(Program Öncesi, Arası, Sonrası)</td>
+          <td><span class="badge b-green">SPONSOR</span></td>
+          <td>Sponsor olunan programın hemen önceki, part arası veya hemen sonraki kuşağının orta havuzuna öncelikli yerleşir.</td>
+        </tr>
+        <tr>
+          <td><strong>3. Sıra</strong></td>
+          <td><strong>Zorunlu Reklamlar</strong></td>
+          <td><span class="badge b-red">1000 Puan</span></td>
+          <td>Sözleşmeli / kesin yayın garantili ticari spotlar.</td>
+        </tr>
+        <tr>
+          <td><strong>4. Sıra</strong></td>
+          <td><strong>Yüksek Öncelikli Reklamlar</strong></td>
+          <td><span class="badge b-amber">700 Puan</span></td>
+          <td>Varsayılan standart üstü ticari spotlar.</td>
+        </tr>
+        <tr>
+          <td><strong>5. Sıra</strong></td>
+          <td><strong>Normal Reklamlar</strong></td>
+          <td><span class="badge b-blue">400 Puan</span></td>
+          <td>Standart ticari reklam spotları.</td>
+        </tr>
+        <tr>
+          <td><strong>6. Sıra</strong></td>
+          <td><strong>Dolgu Reklamları</strong></td>
+          <td><span class="badge b-purple">100 Puan</span></td>
+          <td>Kuşakta kalan boş süreleri dolduran kurumsal tanıtım / dolgu spotları.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- BÖLÜM 3 -->
+    <h2>3. 6 Aşamalı Otomatik Kuşak Yerleştirme Algoritması</h2>
+    <ol>
+      <li>
+        <strong>Aşama 1 — Özel Sunum &amp; Geçiş Sponsorlukları (Tekil &amp; Sıra Kilitli):</strong>
+        <ul>
+          <li><code>Program Öncesi (Sunar)</code> → Programın 1. Partı başlamadan önceki son kuşağın <strong>EN SON</strong> reklamı olur.</li>
+          <li><code>Program Arası (Devam Edecek)</code> → Son part hariç her part bitişindeki ilk kuşağın <strong>İLK</strong> reklamı olur.</li>
+          <li><code>Program Arası (Devam Ediyor)</code> → Bir sonraki parta (1→2, 2→3...) geçmeden önceki son kuşağın <strong>EN SON</strong> reklamı olur.</li>
+          <li><code>Program Sonrası (Sundu)</code> → Son part bittikten hemen sonraki ilk kuşağın <strong>İLK</strong> reklamı olur.</li>
+        </ul>
+      </li>
+      <li>
+        <strong>Aşama 2 — Standart Program Sponsorlukları (Çoklu Olabilir):</strong>
+        <code>before</code> (Program Öncesi), <code>middle</code> (Partlar Arası) ve <code>after</code> (Program Sonrası) sponsorlukları ilgili programın komşu kuşaklarının orta havuzuna (<code>middleAds</code>) yerleştirilir.
+      </li>
+      <li>
+        <strong>Aşama 3 — Günlük Minimum Spot Garantisi (<code>dailyMinSpots</code>):</strong>
+        Her reklam kendi <code>dailyMinSpots</code> sayısına ulaşana kadar, seçili zaman dilimindeki (Sabah / Öğle / Akşam / Gece) kuşaklar arasından <strong>doluluk oranı (<code>usedSec / capacitySec</code>) en düşük (en boş) olan kuşağa</strong> atanır.
+      </li>
+      <li>
+        <strong>Aşama 4A &amp; 4B — Tüm 26–30 Kuşak Arasında Dengeli &amp; Maksimum Kapasite Doldurma (1 Kuşak Dolunca Durmaz!):</strong>
+        <ul>
+          <li><strong>Aşama 4A (Paralel Dengeli Doldurma):</strong> Kuşaklar her turda en az dolu olandan (<code>getBucketTotalCount</code> ve <code>usedSec / capacitySec</code>) en çok dolu olana doğru sıralanır. Her turda en az dolu kuşağa 1 spot eklenip hemen sıradaki en az dolu kuşağa geçilir; böylece günlük <strong>26–30 kuşağın tamamı</strong> eşzamanlı ve dengeli doldurulur.</li>
+          <li><strong>Aşama 4B (Kapasite Maksimizasyonu):</strong> <code>dailyMaxSpots</code> sınırına ulaşıldıktan sonra 26–30 kuşakta hala boş süre kapasitesi varsa, benzersiz adaylar tükenene veya kuşak süresi dolana kadar en az dolu kuşaklara dağıtım devam eder.</li>
+        </ul>
+      </li>
+      <li>
+        <strong>Aşama 5 — Boş Kuşak Kesinlikle Olamaz Garantisi:</strong>
+        Günlük 26–30 reklam kuşağının <strong>hiçbiri</strong> boş (0 spot) kalamaz. Kapasite elverdiği sürece her kuşağa birden fazla spot, katalog çok küçük olsa dahi en az 1–3 spot zorunlu yerleştirilir.
+      </li>
+      <li>
+        <strong>Aşama 6 — Kuşak İçi Sıra Kilitleri, Firma Ayrıştırma ve Eksi (<code>-</code>) Aşım Takibi:</strong>
+        <ul>
+          <li><strong>Tekrar Yasağı:</strong> Aynı reklam klibi (<code>materialId</code>) aynı kuşakta 2. kez yer alamaz.</li>
+          <li><strong>Aynı Firma Üst Üste Gelemez:</strong> Aynı firmanın (<code>companyId</code>) iki reklamı kesinlikle arka arkaya gelemez; araya başka bir firmanın reklamı dizilir.</li>
+          <li><strong>Spot, Gün Süresi ve Fiyat Aşım Uyarısı (<code>Devam Et</code> &amp; <code>-</code> Eksi Fark Takibi):</strong> Rezervasyonda veya manuel spot eklemede spot sayısı, gün süresi veya bütçe aşıldığında kullanıcıya uyarı verilir; <strong>"Devam Et"</strong> denildiğinde işlem devam eder ve ne kadar aşıldığı eksi (<code>-</code>) bakiye olarak (Örn: <code>-6 Spot Aşım</code>, <code>-3 Gün Aşım</code>, <code>-1.500 ₺</code>) kaydedilip tabloda gösterilir.</li>
+        </ul>
+      </li>
+    </ol>
+
+    <!-- BÖLÜM 4: RAMAZAN ÖZEL TASLAĞI -->
+    <h2 class="ramadan-title">4. YENİ ÖZELLİK TASLAĞI: RAMAZAN ÖZEL (SAHUR &amp; İFTAR) REKLAM VE SPONSORLUK MİMARİSİ</h2>
+    <p>
+      Ramazan ayında normal yayın ve normal reklam rezervasyonları hiç bozulmadan devam ederken, <strong>yalnızca Ramazan ayına ve Sahur / İftar programlarına özel</strong> reklamların ve sponsorlukların yönetilmesi için aşağıdaki 5 adımlı mimari taslak hazırlanmıştır:
+    </p>
+
+    <div class="ramadan-card">
+      <h3>Adım 1 — Ramazan Ayı Tarih ve Vakit Aralığı Tanımı (Ramazan Takvimi Ayarı)</h3>
+      <ul>
+        <li><strong>Ramazan Tarih Aralığı:</strong> Reklam Rezervasyon üst kontrol çubuğuna ve ayarlarına <code>Ramazan Dönemi</code> tarih aralığı tanımlanır (Örn: <code>Başlangıç: YYYY-AA-GG</code> – <code>Bitiş: YYYY-AA-GG</code>) ve günlük veya genel <strong>Sahur Vakti / İmsak Saati</strong> ile <strong>İftar Vakti / Akşam Ezanı Saati</strong> aralığı girilir.</li>
+        <li><strong>İzolasyon Kuralı:</strong> <code>Ramazan Özel</code> olarak işaretlenen rezervasyonlar <strong>yalnızca bu tarih aralığındaki günlerde</strong> değerlendirilir; Ramazan dışındaki aylarda veya günlerde listeye kesinlikle girmez.</li>
+      </ul>
+    </div>
+
+    <div class="ramadan-card">
+      <h3>Adım 2 — Yayın Akışında Program Başlangıç Saati Çekimi ve Doğrudan Reklam Kuşağı İşaretleme</h3>
+      <p>Sabit sahur/iftar saati yerine doğrudan yayın akışı listesindeki <strong>Sahur ve İftar programlarının başlangıç saati</strong> ve işaretlenen reklam kuşakları baz alınır:</p>
+      <ol>
+        <li>
+          <strong>Program Üzerinden Başlangıç Saati Tespiti:</strong>
+          Yayın akışında (Yayına Hazır listesinde) <code>🌙 Sahur Programı</code> veya <code>🕌 İftar Programı</code> olarak işaretlenen (veya adında Sahur/İftar geçen) programın <strong>hesaplanan yayın başlangıç saati (<code>exactStartClock</code>)</strong> otomatik çekilir ve bu programın hemen önceki, part arası ve hemen sonraki reklam kuşakları otomatik olarak <code>Sahur / İftar (Öncesi, Arası, Sonrası)</code> olarak tanınır.
+        </li>
+        <li>
+          <strong>Reklam Kuşağı Eklenirken veya Eklendikten Sonra Doğrudan Kuşak İşaretleme:</strong>
+          Hem <code>+ Reklam Kuşağı Ekle</code> modalında, hem Yayın Akışı tablosundaki her reklam kuşağı satırında, hem de Reklam Planlama ekranındaki kuşak kartlarında kuşağı doğrudan <strong><code>🌙 Sahur (Öncesi / Arası / Sonrası)</code></strong> veya <strong><code>🕌 İftar (Öncesi / Arası / Sonrası)</code></strong> olarak işaretleme seçeneği bulunur.
+        </li>
+      </ol>
+    </div>
+
+    <div class="ramadan-card">
+      <h3>Adım 3 — Rezervasyon Ekranında "Ramazan Özel" Seçeneği ve Konumları</h3>
+      <p>Rezervasyon formunda her klip/kampanya kartına <strong><code>🌙 Ramazan Özel Rezervasyon / Sponsorluk</code></strong> anahtarı eklenir. Bu anahtar açıldığında:</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Ramazan Hedef Programı</th>
+            <th>Seçilebilecek Kuşak Konumları</th>
+            <th>Sponsorluk &amp; Spot Desteği</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>🌙 Sahur Programı</strong></td>
+            <td>
+              • <strong>Sahur Öncesi Kuşak</strong> (Sahur programı başlamadan önceki son kuşak)<br/>
+              • <strong>Sahur Arası Kuşak(lar)</strong> (Canlı sahur yayını part aralarındaki kuşaklar)<br/>
+              • <strong>Sahur Sonrası / İmsak Kuşağı</strong> (Sahur biter bitmez giren ilk kuşak)
+            </td>
+            <td>
+              • <strong>Standart Ramazan Spotu</strong> (Çoklu)<br/>
+              • <strong>Sahur Sponsoru:</strong> <em>Sunar / Devam Edecek / Devam Ediyor / Sundu</em> (Tekil &amp; Sıra Kilitli)
+            </td>
+          </tr>
+          <tr>
+            <td><strong>🕌 İftar Programı</strong></td>
+            <td>
+              • <strong>İftar Öncesi Kuşak</strong> (İftar programı başlamadan önceki son kuşak)<br/>
+              • <strong>İftar Arası / Ezan Öncesi-Sonrası Kuşak(lar)</strong> (Canlı iftar yayını part arası kuşaklar)<br/>
+              • <strong>İftar Sonrası Kuşak</strong> (İftar programı bitimindeki ilk kuşak)
+            </td>
+            <td>
+              • <strong>Standart Ramazan Spotu</strong> (Çoklu)<br/>
+              • <strong>İftar Sponsoru:</strong> <em>Sunar / Devam Edecek / Devam Ediyor / Sundu</em> (Tekil &amp; Sıra Kilitli)
+            </td>
+          </tr>
+          <tr>
+            <td><strong>🌙+🕌 Hem Sahur Hem İftar</strong></td>
+            <td>Her iki canlı yayın kuşağının seçilen Öncesi / Arası / Sonrası reklam kuşakları</td>
+            <td>Günlük Min/Max spot dağılımı hem Sahur hem İftar kuşaklarına dengeli paylaştırılır.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="warning-card">
+      <h3>Adım 4 — Normal Reklamlarla Ramazan Özel Reklamlarının Birlikte Çalışma Kuralı (Dokunulmazlık İlkesi)</h3>
+      <ul>
+        <li><strong>Normal Reklamlara Dokunulmaz:</strong> Ramazan harici normal yıllık/aylık spotları bulunan firmaların reklamları günün diğer tüm kuşaklarında (Sabah, Öğle, Akşam, Gece) mevcut 6 aşamalı algoritmayla **hiç etkilenmeden** çalışmaya devam eder.</li>
+        <li><strong>Sahur ve İftar Kuşaklarında Öncelik Sırası:</strong>
+          <ol>
+            <li><strong>1. Öncelik:</strong> Sahur / İftar <strong>Özel Sunum Sponsorları</strong> (Sunar, Devam Edecek, Devam Ediyor, Sundu — İlk/Son sıra kilitli).</li>
+            <li><strong>2. Öncelik:</strong> Sahur / İftar <strong>Standart Program Sponsorları</strong> ve <strong>Ramazan Özel Spotları</strong> (Öncesi / Arası / Sonrası).</li>
+            <li><strong>3. Öncelik:</strong> Eğer Sahur veya İftar reklam kuşağında hala boş süre (kapasite) kalmışsa, kalan boşluğa normal aktif reklam rezervasyonları (1000 → 700 → 400 → 100 öncelik sırasıyla) yerleştirilir.</li>
+          </ol>
+        </li>
+        <li><strong>Ayrı Kategorizasyon &amp; Raporlama:</strong> Ramazan özel reklamları ve Ramazan sponsorlukları hem Rezervasyon listesinde hem Sponsorluklar sekmesinde hem de Raporlarda <strong><code>🌙 Ramazan Özel</code></strong> başlığı/filtresi altında ayrı takip edilir.</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>

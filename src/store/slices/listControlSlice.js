@@ -1,26 +1,118 @@
 /**
- * @file listControlSlice.js
- * @description Yayın Liste Kontrol Durum Dilimi.
- * 
- * Temel Sorumluluklar:
- * 1. listControlDays nesnesi: Liste kontrol ekranına özel gün ve varyant kayıtları
- * 2. lcAddProgramToDay / lcRemovePrograms: Operatör müdahaleleri
- * 3. 2. Aşama Kilidi (Stage 2 Lock): Kesinleşen akışın dondurulması
+ * @file src/store/slices/listControlSlice.js
+ * @description Yayın Liste Kontrol Modülü Zustand Durum Dilimi.
+ *
+ * Sorumluluklar:
+ * 1. Reklam Rezervasyondan iletilen (`ready-*` + `adPlacements`) veya Yayın Planlamadan gelen listelerin
+ *    `listControlDays` içine otomatik ve düzleştirilmiş (klip + reklam spotları) olarak senkronize edilmesi.
+ * 2. Klip ve Reklam ekleme, değiştirme (bölüm/klip swap), silme, sıra taşıma ve süre güncelleme.
+ * 3. Akıllı Revize İsteme (`lcRequestRevision`):
+ *    - Klip / Program için: Operatörün seçimine göre `Taslak Planlama ('draft')`, `Yayın Planlama ('broadcast')` veya her ikisine (`'both'`) revize gönderir.
+ *    - Reklam için: Doğrudan `Reklam Rezervasyon ('ads')` aşamasına revize gönderir.
+ * 4. Tüm kontrol, hata, değişiklik ve revize işlemlerinin kalıcı `listControlLogs` altında tutulması ve sunucuyla (`/api/ads-store`) senkronize edilmesi.
  */
-import { calculateTotalCount, _recalculateStartTimes, createEmptyDay, _propagateOverflows } from '../storeHelpers';
+import { _recalculateStartTimes, createEmptyDay } from '../storeHelpers';
 import { pushAdsStoreToServer, resolveProgramLogoForChannel } from './ads/adsCatalogHelpers';
+import useAdminLogStore from '../adminLogStore';
+import useBroadcastStore from '../../modules/broadcast/store/broadcastStore';
 
-const syncListControlDayToServer = (key, dayObj) => {
+const LC_LOGS_STORAGE_KEY = 'yayin_list_control_logs_v1';
+
+const loadSavedListControlLogs = () => {
+  try {
+    const raw = localStorage.getItem(LC_LOGS_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (_) {}
+  return [];
+};
+
+const saveListControlLogsLocal = (logs = []) => {
+  try {
+    const trimmed = (Array.isArray(logs) ? logs : []).slice(0, 1000);
+    localStorage.setItem(LC_LOGS_STORAGE_KEY, JSON.stringify(trimmed));
+  } catch (_) {}
+};
+
+const syncListControlDayToServer = (key, dayObj, logsToSync = null) => {
   if (!key || !dayObj) return;
-  pushAdsStoreToServer({
+  const payload = {
     listControlDays: {
       [key]: dayObj
     }
-  });
+  };
+  if (Array.isArray(logsToSync)) {
+    payload.listControlLogs = logsToSync.slice(0, 500);
+  }
+  pushAdsStoreToServer(payload);
+};
+
+/**
+ * Saniyeyi okunabilir "X dk Y sn" veya "MM:SS" formatına çevirir.
+ */
+const formatSecLabel = (sec) => {
+  const s = Math.max(0, Math.round(Number(sec) || 0));
+  const m = Math.floor(s / 60);
+  const rem = s % 60;
+  if (m > 0 && rem > 0) return `${m} dk ${rem} sn`;
+  if (m > 0) return `${m} dk`;
+  return `${rem} sn`;
 };
 
 export const createListControlSlice = (set, get) => ({
   listControlDays: {},
+  listControlLogs: loadSavedListControlLogs(),
+
+  /**
+   * Kalıcı Liste Kontrol log kaydı ekler (Hem localStorage, hem `/api/ads-store`, hem de Admin Log Store'a yazar).
+   */
+  lcAddAuditLog: (entry = {}) => {
+    const nowIso = new Date().toISOString();
+    const channelId = entry.channelId || get().selectedChannel || 'ch_hd';
+    const channelName = channelId === 'ch_way' ? 'Semerkand WAY' : 'Semerkand HD';
+    const newLog = {
+      id: entry.id || `lclog-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      timestamp: entry.timestamp || nowIso,
+      channelId,
+      channelName,
+      date: entry.date || get().selectedDate || '',
+      actionType: entry.actionType || 'info', // 'clip_replace' | 'clip_add' | 'clip_delete' | 'duration_edit' | 'ad_replace' | 'ad_add' | 'ad_delete' | 'revision_request' | 'health_check' | 'approve_list' | 'sync_from_ads'
+      actionLabel: entry.actionLabel || 'Liste Kontrol İşlemi',
+      itemType: entry.itemType || 'clip', // 'clip' | 'ad' | 'system'
+      itemTitle: entry.itemTitle || '',
+      itemCode: entry.itemCode || '',
+      oldValue: entry.oldValue || '',
+      newValue: entry.newValue || '',
+      targetStage: entry.targetStage || '', // 'draft' | 'broadcast' | 'ads' | 'both' | ''
+      details: entry.details || '',
+      status: entry.status || 'success', // 'success' | 'warning' | 'error'
+      operator: entry.operator || 'Liste Kontrol Operatörü'
+    };
+
+    set((state) => {
+      const nextLogs = [newLog, ...(Array.isArray(state.listControlLogs) ? state.listControlLogs : [])].slice(0, 1000);
+      saveListControlLogsLocal(nextLogs);
+      pushAdsStoreToServer({ listControlLogs: nextLogs.slice(0, 400) });
+      return { listControlLogs: nextLogs };
+    });
+
+    try {
+      useAdminLogStore.getState().addLog({
+        category: 'lists',
+        panel: 'lists',
+        module: 'Yayın Liste Kontrol',
+        action: newLog.actionLabel,
+        details: newLog.details || `${channelName} (${newLog.date}): ${newLog.itemTitle}`,
+        target: `${channelId}/${newLog.date}`,
+        count: 1,
+        status: newLog.status === 'error' ? 'error' : newLog.status === 'warning' ? 'warning' : 'success'
+      });
+    } catch (_) {}
+
+    return newLog;
+  },
 
   lcEnsureDayExists: (channelId, dateStr) => {
     const key = `list-control-${channelId}-${dateStr}`;
@@ -33,72 +125,697 @@ export const createListControlSlice = (set, get) => ({
     return key;
   },
 
-  lcAddProgramToDay: (channelId, date, variant, program, insertIndex = -1, providedInstanceId) => {
+  /**
+   * Reklam Rezervasyondan iletilen (`ready-<channelId>-<date>` + `adPlacements`) veya
+   * Yayın Planlama (`useBroadcastStore`) üzerinde hazırlanan akışı Liste Kontrol gününe düzleştirerek aktarır.
+   */
+  lcSyncFromAdsOrReady: (channelId, dateStr, { forceOverwrite = false, silent = false } = {}) => {
+    const state = get();
+    const lcKey = `list-control-${channelId}-${dateStr}`;
+    const readyKey = `ready-${channelId}-${dateStr}`;
+    const finalKey = `final-${channelId}-${dateStr}`;
+
+    const existingLcDay = state.listControlDays?.[lcKey];
+    const activeVariant = existingLcDay?.activeVariant || 'v1';
+    const existingPrograms = existingLcDay?.variants?.[activeVariant]?.programs || [];
+    const hasLegacyTpl3 = existingPrograms.some(p => String(p.id).toUpperCase() === 'TPL-3' || String(p.id).toUpperCase() === 'TPL-4');
+
+    if (existingPrograms.length > 0 && !hasLegacyTpl3 && !forceOverwrite) {
+      return { synced: false, count: existingPrograms.length, source: 'existing' };
+    }
+
+    const readyDay = state.days?.[readyKey] || state.days?.[finalKey];
+    const placements = state.adPlacements?.[readyKey] || [];
+    const materials = state.materials || [];
+    const companies = state.companies || [];
+    const products = state.products || [];
+
+    // 1. Kaynak program listesini belirle: Önce readyDay, yoksa BroadcastStore'daki Liste A
+    let sourcePrograms = [];
+    let sourceLabel = 'Reklam Rezervasyon';
+    let dayStartTime = readyDay?.startTime || 0;
+
+    if (readyDay && readyDay.variants) {
+      const rVar = readyDay.activeVariant || 'v1';
+      sourcePrograms = readyDay.variants[rVar]?.programs || [];
+    }
+
+    if (sourcePrograms.length === 0) {
+      try {
+        const bStore = useBroadcastStore.getState();
+        const bProgs = bStore.getComputedDayPrograms(channelId, dateStr, 'A') || [];
+        if (bProgs.length > 0) {
+          sourceLabel = 'Yayın Planlama & Reklam Havuzu';
+          sourcePrograms = bProgs.map((bp, idx) => {
+            const durSec = Number(bp.durationSec) || Math.round((Number(bp.durationFrames) || 0) / 25) || 60;
+            return {
+              ...bp,
+              id: bp.fileId || bp.clipId || bp.id || `prog-${idx + 1}`,
+              fileId: bp.fileId || null,
+              title: bp.clipName || bp.title || bp.name || 'Program',
+              clipName: bp.clipName || bp.title || bp.name || '',
+              fileName: bp.fileName || (bp.fileId ? `${bp.fileId}.mxf` : ''),
+              duration: durSec / 60,
+              durationSec: durSec,
+              categoryName: bp.category || bp.categoryName || 'Genel',
+              categoryColor: bp.categoryColor || '#3b82f6',
+              instanceId: bp.instanceId || `bprog-${idx}-${Date.now()}`
+            };
+          });
+        }
+      } catch (_) {}
+    }
+
+    if (sourcePrograms.length === 0) {
+      return { synced: false, count: 0, source: 'empty' };
+    }
+
+    let allocatedAdDuration = 0;
+    const flattenedPrograms = [];
+    let runningMinute = dayStartTime;
+    let breakCounter = 0;
+
+    sourcePrograms.forEach((prog, pIdx) => {
+      if (String(prog.id).toUpperCase() === 'TPL-4') return; // Eski boş kuşak dolgusunu atla
+
+      const progStartMin = prog.startMinute !== undefined ? Number(prog.startMinute) : runningMinute;
+      const h = Math.floor(progStartMin / 60) % 24;
+      const m = Math.floor(progStartMin % 60);
+      const shortTime = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      const progDurMin = parseFloat(prog.duration) || ((Number(prog.durationSec) || 0) / 60) || 0;
+      runningMinute = progStartMin + progDurMin;
+
+      const isAdBreak =
+        prog.type === 'ad_break' ||
+        String(prog.id).toUpperCase() === 'TPL-3' ||
+        (prog.title && String(prog.title).toUpperCase().includes('REKLAM KUŞAĞI'));
+
+      if (isAdBreak && !prog.isAdClip) {
+        breakCounter++;
+        allocatedAdDuration += progDurMin;
+
+        // Eşleşen reklam kuşağı yerleşimini bul
+        const bp =
+          placements.find(p => prog.instanceId && p.blockId === prog.instanceId) ||
+          placements.find(p => p.time === shortTime) ||
+          placements[breakCounter - 1];
+
+        const breakLabel = bp?.label || prog.title || `${breakCounter}. Reklam Kuşağı`;
+        const breakBlockId = bp?.blockId || prog.instanceId || `break-${breakCounter}`;
+
+        if (bp && Array.isArray(bp.ads) && bp.ads.length > 0) {
+          bp.ads.forEach((ad, adIdx) => {
+            const material = materials.find(mat => String(mat.id) === String(ad.materialId));
+            const company = companies.find(c => String(c.id) === String(ad.companyId || material?.companyId));
+            const product = products.find(pr => String(pr.id) === String(ad.productId || material?.productId));
+            const adDurSec = Math.max(1, parseFloat(ad.duration) || parseFloat(material?.duration) || 15);
+            const resolvedClipId = material?.clipId || ad.clipId || material?.code || ad.code || ad.materialId || ad.id;
+            const resolvedCode = material?.code || ad.code || (resolvedClipId ? `${String(resolvedClipId).replace(/\.[^.]+$/, '')}.mxf` : '');
+
+            const adRow = {
+              ...prog,
+              id: resolvedClipId || `AD-${breakCounter}-${adIdx + 1}`,
+              fileId: String(resolvedClipId || '').replace(/\D+/g, '') || null,
+              clipId: resolvedClipId || null,
+              code: resolvedCode,
+              fileName: resolvedCode,
+              materialId: ad.materialId || material?.id || null,
+              companyId: ad.companyId || material?.companyId || null,
+              companyName: ad.companyName || company?.name || '',
+              productId: ad.productId || material?.productId || null,
+              productName: ad.productName || product?.name || '',
+              title: material
+                ? (material.clipName || material.name)
+                : (ad.clipName || ad.name || ad.materialName || 'Reklam Klibi'),
+              clipName: material?.clipName || ad.clipName || ad.name || '',
+              duration: adDurSec / 60,
+              durationSec: adDurSec,
+              instanceId: ad.instanceId || `lc-ad-${breakCounter}-${adIdx}-${Math.random().toString(36).slice(2, 7)}`,
+              type: 'ad_spot',
+              isAdClip: true,
+              isFromAds: true,
+              isBumperAd: Boolean(ad.isBumperAd),
+              bumperType: ad.bumperType || null,
+              bumperCategoryName: ad.bumperCategoryName || null,
+              isSponsor: Boolean(ad.isSponsor || ad.sponsorRole),
+              sponsorRole: ad.sponsorRole || null,
+              parentBreakId: breakBlockId,
+              parentBreakOrder: breakCounter,
+              parentBreakTitle: breakLabel,
+              adOrderInBreak: adIdx + 1,
+              adTotalInBreak: bp.ads.length,
+              stageOrigin: 'ads'
+            };
+            adRow.logo = resolveProgramLogoForChannel(adRow, channelId, state.adSettings);
+            flattenedPrograms.push(adRow);
+          });
+        } else {
+          // Eğer reklam kuşağının içi boş bırakılmışsa uyarı satırı olarak koru ki operatör reklam ekleyebilsin veya revize isteyebilsin
+          const emptyBreakRow = {
+            ...prog,
+            id: prog.id || `EMPTY-BREAK-${breakCounter}`,
+            title: `${breakLabel} (Spot Yerleştirilmemiş Boş Kuşak)`,
+            duration: progDurMin || 3,
+            durationSec: Math.round((progDurMin || 3) * 60),
+            instanceId: prog.instanceId || `lc-empty-break-${breakCounter}`,
+            type: 'ad_break',
+            isAdClip: true,
+            isFromAds: true,
+            isEmptyAdBreak: true,
+            parentBreakId: breakBlockId,
+            parentBreakOrder: breakCounter,
+            parentBreakTitle: breakLabel,
+            stageOrigin: 'ads'
+          };
+          emptyBreakRow.logo = resolveProgramLogoForChannel(emptyBreakRow, channelId, state.adSettings);
+          flattenedPrograms.push(emptyBreakRow);
+        }
+      } else {
+        const durSec = Math.max(1, Math.round(Number(prog.durationSec) || progDurMin * 60 || 60));
+        const rawNumericId = String(prog.fileId || prog.clipId || prog.id || '').replace(/\D+/g, '');
+        const progRow = {
+          ...prog,
+          fileId: prog.fileId || (rawNumericId.length >= 4 ? Number(rawNumericId) : null),
+          clipId: prog.clipId || prog.fileId || prog.id,
+          code: prog.code || prog.fileName || (rawNumericId.length >= 4 ? `${rawNumericId}.mxf` : ''),
+          fileName: prog.fileName || prog.code || (rawNumericId.length >= 4 ? `${rawNumericId}.mxf` : ''),
+          duration: durSec / 60,
+          durationSec: durSec,
+          instanceId: prog.instanceId || `lc-prog-${pIdx}-${Math.random().toString(36).slice(2, 7)}`,
+          stageOrigin: prog.isAdClip || prog.isFromAds ? 'ads' : (prog.isFromDraft ? 'draft' : 'broadcast')
+        };
+        progRow.logo = resolveProgramLogoForChannel(progRow, channelId, state.adSettings);
+        flattenedPrograms.push(progRow);
+      }
+    });
+
+    const recalculated = _recalculateStartTimes(flattenedPrograms, dayStartTime);
+    const updatedDay = {
+      ...(readyDay || createEmptyDay(dateStr)),
+      date: dateStr,
+      startTime: dayStartTime,
+      activeVariant: 'v1',
+      allocatedAdDuration,
+      syncedFromSource: sourceLabel,
+      syncedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      variants: {
+        ...(readyDay?.variants || {}),
+        v1: {
+          programs: recalculated
+        }
+      }
+    };
+
+    set((s) => ({
+      listControlDays: {
+        ...s.listControlDays,
+        [lcKey]: updatedDay
+      }
+    }));
+
+    syncListControlDayToServer(lcKey, updatedDay);
+
+    if (!silent) {
+      get().lcAddAuditLog({
+        channelId,
+        date: dateStr,
+        actionType: 'sync_from_ads',
+        actionLabel: 'Liste Reklam Rezervasyondan Senkronize Edildi',
+        itemType: 'system',
+        itemTitle: `${recalculated.length} Satır (${breakCounter} Reklam Kuşağı)`,
+        details: `${sourceLabel} üzerinden gelen yayın ve reklam listesi (${recalculated.length} öğe) Liste Kontrol ekranına aktarıldı.`,
+        status: 'success'
+      });
+    }
+
+    return { synced: true, count: recalculated.length, source: sourceLabel };
+  },
+
+  /**
+   * Listedeki bir klibi veya reklamı yeni bir klip/bölüm veya reklam materyali ile değiştirir (Swap).
+   */
+  lcReplaceItem: (channelId, dateStr, variant = 'v1', targetInstanceId, newItemPayload = {}) => {
+    get()._saveSnapshot();
+    const lcKey = `list-control-${channelId}-${dateStr}`;
+    let replacedOldItem = null;
+    let replacedNewItem = null;
+
+    set((state) => {
+      const day = state.listControlDays[lcKey];
+      if (!day) return state;
+      const vKey = day.variants?.[variant] ? variant : (day.activeVariant || 'v1');
+      const programs = [...(day.variants?.[vKey]?.programs || [])];
+      const idx = programs.findIndex(p => p.instanceId === targetInstanceId);
+      if (idx === -1) return state;
+
+      const oldItem = programs[idx];
+      replacedOldItem = oldItem;
+
+      const isReplacingWithAd = Boolean(newItemPayload.isAdClip || newItemPayload.isFromAds || oldItem.isAdClip);
+      const durSec = Math.max(
+        1,
+        Math.round(
+          Number(newItemPayload.durationSec) ||
+          (Number(newItemPayload.duration) ? Number(newItemPayload.duration) * 60 : 0) ||
+          Number(oldItem.durationSec) ||
+          (Number(oldItem.duration) || 1) * 60
+        )
+      );
+
+      const rawId = newItemPayload.fileId || newItemPayload.clipId || newItemPayload.id || oldItem.id;
+      const numericId = String(rawId || '').replace(/\D+/g, '');
+      const resolvedCode =
+        newItemPayload.code ||
+        newItemPayload.fileName ||
+        (numericId.length >= 4 ? `${numericId}.mxf` : oldItem.code || '');
+
+      const updatedItem = {
+        ...oldItem,
+        ...newItemPayload,
+        id: rawId,
+        fileId: newItemPayload.fileId || (numericId.length >= 4 ? Number(numericId) : null),
+        clipId: newItemPayload.clipId || rawId,
+        code: resolvedCode,
+        fileName: resolvedCode,
+        title: newItemPayload.title || newItemPayload.clipName || newItemPayload.name || oldItem.title,
+        clipName: newItemPayload.clipName || newItemPayload.name || newItemPayload.title || oldItem.clipName,
+        duration: durSec / 60,
+        durationSec: durSec,
+        instanceId: oldItem.instanceId, // Aynı satır kimliğini koru
+        isAdClip: isReplacingWithAd,
+        isFromAds: isReplacingWithAd,
+        isEmptyAdBreak: false,
+        modifiedInListControl: true,
+        previousItemSnapshot: {
+          id: oldItem.id,
+          fileId: oldItem.fileId,
+          code: oldItem.code || oldItem.fileName,
+          title: oldItem.title,
+          durationSec: oldItem.durationSec || Math.round((Number(oldItem.duration) || 0) * 60),
+          episodeNo: oldItem.episodeNo
+        },
+        modifiedAt: new Date().toISOString()
+      };
+      updatedItem.logo = resolveProgramLogoForChannel(updatedItem, channelId, state.adSettings);
+      replacedNewItem = updatedItem;
+
+      programs[idx] = updatedItem;
+      const recalculated = _recalculateStartTimes(programs, day.startTime || 0);
+
+      const updatedDay = {
+        ...day,
+        updatedAt: new Date().toISOString(),
+        variants: {
+          ...day.variants,
+          [vKey]: {
+            ...day.variants[vKey],
+            programs: recalculated
+          }
+        }
+      };
+
+      syncListControlDayToServer(lcKey, updatedDay);
+
+      return {
+        listControlDays: {
+          ...state.listControlDays,
+          [lcKey]: updatedDay
+        }
+      };
+    });
+
+    if (replacedOldItem && replacedNewItem) {
+      const isAd = Boolean(replacedNewItem.isAdClip);
+      get().lcAddAuditLog({
+        channelId,
+        date: dateStr,
+        actionType: isAd ? 'ad_replace' : 'clip_replace',
+        actionLabel: isAd ? 'Reklam Spotu Değiştirildi' : 'Program Klibi / Bölümü Değiştirildi',
+        itemType: isAd ? 'ad' : 'clip',
+        itemTitle: replacedNewItem.title,
+        itemCode: replacedNewItem.code || String(replacedNewItem.id || ''),
+        oldValue: `${replacedOldItem.title} (${replacedOldItem.code || replacedOldItem.id || '-'} • ${formatSecLabel(replacedOldItem.durationSec || (replacedOldItem.duration || 0) * 60)})`,
+        newValue: `${replacedNewItem.title} (${replacedNewItem.code || replacedNewItem.id || '-'} • ${formatSecLabel(replacedNewItem.durationSec)})`,
+        details: `"${replacedOldItem.title}" öğesi Liste Kontrol'de "${replacedNewItem.title}" ile değiştirildi.`,
+        status: 'success'
+      });
+    }
+  },
+
+  /**
+   * Listedeki bir klibin veya reklamın süresini (saniye bazında) günceller ve tüm başlangıç/bitiş saatlerini yeniden hesaplar.
+   */
+  lcUpdateItemDurationSec: (channelId, dateStr, variant = 'v1', targetInstanceId, newDurationSec) => {
+    const safeSec = Math.max(1, Math.round(Number(newDurationSec) || 0));
+    get()._saveSnapshot();
+    const lcKey = `list-control-${channelId}-${dateStr}`;
+    let oldItemSnap = null;
+    let oldDurSec = 0;
+
+    set((state) => {
+      const day = state.listControlDays[lcKey];
+      if (!day) return state;
+      const vKey = day.variants?.[variant] ? variant : (day.activeVariant || 'v1');
+      const programs = [...(day.variants?.[vKey]?.programs || [])];
+      const idx = programs.findIndex(p => p.instanceId === targetInstanceId);
+      if (idx === -1) return state;
+
+      oldItemSnap = programs[idx];
+      oldDurSec = Math.round(Number(oldItemSnap.durationSec) || (Number(oldItemSnap.duration) || 0) * 60);
+
+      programs[idx] = {
+        ...oldItemSnap,
+        duration: safeSec / 60,
+        durationSec: safeSec,
+        durationModifiedInListControl: true,
+        originalDurationSec: oldItemSnap.originalDurationSec || oldDurSec,
+        modifiedAt: new Date().toISOString()
+      };
+
+      const recalculated = _recalculateStartTimes(programs, day.startTime || 0);
+      const updatedDay = {
+        ...day,
+        updatedAt: new Date().toISOString(),
+        variants: {
+          ...day.variants,
+          [vKey]: {
+            ...day.variants[vKey],
+            programs: recalculated
+          }
+        }
+      };
+
+      syncListControlDayToServer(lcKey, updatedDay);
+
+      return {
+        listControlDays: {
+          ...state.listControlDays,
+          [lcKey]: updatedDay
+        }
+      };
+    });
+
+    if (oldItemSnap && oldDurSec !== safeSec) {
+      const isAd = Boolean(oldItemSnap.isAdClip);
+      get().lcAddAuditLog({
+        channelId,
+        date: dateStr,
+        actionType: 'duration_edit',
+        actionLabel: isAd ? 'Reklam Süresi Güncellendi' : 'Klip Süresi Güncellendi',
+        itemType: isAd ? 'ad' : 'clip',
+        itemTitle: oldItemSnap.title,
+        itemCode: oldItemSnap.code || String(oldItemSnap.id || ''),
+        oldValue: formatSecLabel(oldDurSec),
+        newValue: formatSecLabel(safeSec),
+        details: `"${oldItemSnap.title}" süresi ${formatSecLabel(oldDurSec)} -> ${formatSecLabel(safeSec)} olarak güncellendi.`,
+        status: 'success'
+      });
+    }
+  },
+
+  /**
+   * Akıllı Revize İsteme Sistemi:
+   * - Klip / Program ise: Operatörün seçtiği aşamaya ('draft' = Taslak Planlama, 'broadcast' = Yayın Planlama, 'both' = Her İkisi) revize gönderir.
+   * - Reklam ise: Doğrudan Reklam Rezervasyon ('ads') aşamasına revize gönderir.
+   */
+  lcRequestRevision: ({
+    channelId,
+    date,
+    variant = 'v1',
+    item = null,
+    targetStage = 'broadcast', // 'draft' | 'broadcast' | 'ads' | 'both'
+    reason = '',
+    operator = 'Liste Kontrol Operatörü'
+  }) => {
+    const cleanReason = String(reason || '').trim() || 'Liste Kontrol aşamasında revize talep edildi.';
+    const nowIso = new Date().toISOString();
+    const lcKey = `list-control-${channelId}-${date}`;
+    const readyKey = `ready-${channelId}-${date}`;
+    const finalKey = `final-${channelId}-${date}`;
+    const draftKey = `draft-${channelId}-${date}`;
+
+    const isAdItem = Boolean(item?.isAdClip || item?.isFromAds || item?.type === 'ad_break' || targetStage === 'ads');
+    const effectiveStage = isAdItem ? 'ads' : targetStage;
+
+    const stageLabelMap = {
+      draft: 'Taslak Planlama Aşaması',
+      broadcast: 'Yayın Planlama Aşaması',
+      both: 'Taslak Planlama + Yayın Planlama Aşamaları',
+      ads: 'Reklam Rezervasyon Aşaması'
+    };
+    const stageLabel = stageLabelMap[effectiveStage] || 'Yayın Planlama Aşaması';
+
+    const revisionRecord = {
+      id: `rev-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      requestedAt: nowIso,
+      channelId,
+      date,
+      targetStage: effectiveStage,
+      targetStageLabel: stageLabel,
+      reason: cleanReason,
+      operator,
+      itemInstanceId: item?.instanceId || null,
+      itemId: item?.id || item?.fileId || item?.clipId || null,
+      itemCode: item?.code || item?.fileName || '',
+      itemTitle: item?.title || 'Tüm Gün Listesi',
+      isAd: isAdItem,
+      status: 'pending'
+    };
+
+    set((state) => {
+      const lcDay = state.listControlDays[lcKey] || createEmptyDay(date);
+      const vKey = lcDay.variants?.[variant] ? variant : (lcDay.activeVariant || 'v1');
+      const currentProgs = [...(lcDay.variants?.[vKey]?.programs || [])];
+
+      const updatedProgs = currentProgs.map(p => {
+        if (item?.instanceId && p.instanceId === item.instanceId) {
+          return {
+            ...p,
+            revisionRequested: true,
+            revisionTargetStage: effectiveStage,
+            revisionTargetLabel: stageLabel,
+            revisionReason: cleanReason,
+            revisionRequestedAt: nowIso
+          };
+        }
+        return p;
+      });
+
+      const prevRevisions = Array.isArray(lcDay.revisions) ? lcDay.revisions : [];
+      const updatedLcDay = {
+        ...lcDay,
+        isRevised: true,
+        lastRevision: revisionRecord,
+        revisions: [revisionRecord, ...prevRevisions],
+        updatedAt: nowIso,
+        variants: {
+          ...lcDay.variants,
+          [vKey]: {
+            ...(lcDay.variants?.[vKey] || {}),
+            programs: updatedProgs
+          }
+        }
+      };
+
+      const nextDays = { ...state.days };
+
+      // 1. Eğer Reklam Rezervasyona revize gittiyse ready ve final günlerini 'revised' olarak işaretle
+      if (effectiveStage === 'ads') {
+        const rDay = nextDays[readyKey] || createEmptyDay(date);
+        nextDays[readyKey] = {
+          ...rDay,
+          isRevised: true,
+          adsStatus: 'revised',
+          revisionCount: (Number(rDay.revisionCount) || 0) + 1,
+          revisionReason: cleanReason,
+          revisionItemTitle: revisionRecord.itemTitle,
+          revisionRequestedAt: nowIso,
+          updatedAt: nowIso
+        };
+        if (nextDays[finalKey]) {
+          nextDays[finalKey] = {
+            ...nextDays[finalKey],
+            isRevised: true,
+            adsStatus: 'revised',
+            revisionReason: cleanReason,
+            revisionRequestedAt: nowIso
+          };
+        }
+      }
+
+      // 2. Eğer Taslak Planlama aşamasına revize gittiyse draft gününü işaretle
+      if (effectiveStage === 'draft' || effectiveStage === 'both') {
+        const dDay = nextDays[draftKey] || createEmptyDay(date);
+        nextDays[draftKey] = {
+          ...dDay,
+          isRevised: true,
+          revisionFromListControl: revisionRecord,
+          revisionReason: cleanReason,
+          revisionRequestedAt: nowIso,
+          updatedAt: nowIso
+        };
+      }
+
+      // 3. Eğer Yayın Planlama aşamasına revize gittiyse ready gününü ve BroadcastStore'u işaretle
+      if (effectiveStage === 'broadcast' || effectiveStage === 'both') {
+        const rDay = nextDays[readyKey] || createEmptyDay(date);
+        nextDays[readyKey] = {
+          ...rDay,
+          isRevised: true,
+          broadcastRevisionRequested: true,
+          revisionFromListControl: revisionRecord,
+          revisionReason: cleanReason,
+          revisionRequestedAt: nowIso,
+          updatedAt: nowIso
+        };
+      }
+
+      pushAdsStoreToServer({
+        planningDays: nextDays,
+        listControlDays: {
+          [lcKey]: updatedLcDay
+        }
+      });
+
+      return {
+        days: nextDays,
+        listControlDays: {
+          ...state.listControlDays,
+          [lcKey]: updatedLcDay
+        }
+      };
+    });
+
+    get().lcAddAuditLog({
+      channelId,
+      date,
+      actionType: 'revision_request',
+      actionLabel: `Revize Talebi Gönderildi → ${stageLabel}`,
+      itemType: isAdItem ? 'ad' : 'clip',
+      itemTitle: revisionRecord.itemTitle,
+      itemCode: revisionRecord.itemCode,
+      targetStage: effectiveStage,
+      oldValue: 'Kontrol Bekliyor',
+      newValue: `Revize: ${stageLabel}`,
+      details: `[${stageLabel}] "${revisionRecord.itemTitle}" için revize istendi. Not: ${cleanReason}`,
+      status: 'warning',
+      operator
+    });
+
+    return revisionRecord;
+  },
+
+  lcAddProgramToDay: (channelId, date, variant = 'v1', program, insertIndex = -1, providedInstanceId) => {
     get()._saveSnapshot();
     const key = get().lcEnsureDayExists(channelId, date);
+    let addedProgramObj = null;
+
     set((state) => {
       const day = state.listControlDays[key];
       if (!day) return state;
 
-      const newInstanceId = providedInstanceId || `${program.id}-${Date.now()}`;
+      const vKey = day.variants?.[variant] ? variant : (day.activeVariant || 'v1');
+      const durSec = Math.max(
+        1,
+        Math.round(
+          Number(program.durationSec) ||
+          (Number(program.duration) ? Number(program.duration) * 60 : 60)
+        )
+      );
+      const rawId = program.fileId || program.clipId || program.id || `item-${Date.now()}`;
+      const numericId = String(rawId || '').replace(/\D+/g, '');
+      const resolvedCode =
+        program.code ||
+        program.fileName ||
+        (numericId.length >= 4 ? `${numericId}.mxf` : '');
+
+      const newInstanceId = providedInstanceId || `lc-${rawId}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
       const newProgram = {
         ...program,
+        id: rawId,
+        fileId: program.fileId || (numericId.length >= 4 ? Number(numericId) : null),
+        clipId: program.clipId || rawId,
+        code: resolvedCode,
+        fileName: resolvedCode,
+        title: program.title || program.clipName || program.name || 'Yeni Öğe',
+        clipName: program.clipName || program.name || program.title || '',
+        duration: durSec / 60,
+        durationSec: durSec,
         instanceId: newInstanceId,
+        addedInListControl: true,
+        stageOrigin: program.isAdClip || program.isFromAds ? 'ads' : 'list-control',
         logo: program.logo || resolveProgramLogoForChannel(program, channelId, state.adSettings)
       };
-      
-      let currentPrograms = [...day.variants[variant].programs];
-      
+      addedProgramObj = newProgram;
+
+      const currentPrograms = [...(day.variants?.[vKey]?.programs || [])];
       let finalIndex = insertIndex;
       if (finalIndex === -1) {
-         if (state.insertPosition === 'en_ust') {
-           finalIndex = 0;
-         } else if (state.insertPosition === 'ust') {
-           finalIndex = state.lastSelectedIndex !== -1 ? state.lastSelectedIndex : 0;
-         } else if (state.insertPosition === 'alt') {
-           finalIndex = state.lastSelectedIndex !== -1 ? state.lastSelectedIndex + 1 : currentPrograms.length;
-         } else {
-           finalIndex = currentPrograms.length;
-         }
+        if (state.insertPosition === 'en_ust') {
+          finalIndex = 0;
+        } else if (state.insertPosition === 'ust') {
+          finalIndex = state.lastSelectedIndex !== -1 ? state.lastSelectedIndex : 0;
+        } else if (state.insertPosition === 'alt') {
+          finalIndex = state.lastSelectedIndex !== -1 ? state.lastSelectedIndex + 1 : currentPrograms.length;
+        } else {
+          finalIndex = currentPrograms.length;
+        }
       }
 
-      if (finalIndex >= currentPrograms.length) {
+      if (finalIndex >= currentPrograms.length || finalIndex < 0) {
         currentPrograms.push(newProgram);
       } else {
         currentPrograms.splice(finalIndex, 0, newProgram);
       }
-      
+
       const updatedPrograms = _recalculateStartTimes(currentPrograms, day.startTime || 0);
       const updatedDay = {
         ...day,
         updatedAt: new Date().toISOString(),
         variants: {
           ...day.variants,
-          [variant]: { ...day.variants[variant], programs: updatedPrograms }
+          [vKey]: { ...day.variants[vKey], programs: updatedPrograms }
         }
       };
 
       syncListControlDayToServer(key, updatedDay);
 
-      const newState = {
+      return {
         listControlDays: {
           ...state.listControlDays,
           [key]: updatedDay
         }
       };
-      
-      return newState;
     });
+
+    if (addedProgramObj) {
+      const isAd = Boolean(addedProgramObj.isAdClip || addedProgramObj.isFromAds);
+      get().lcAddAuditLog({
+        channelId,
+        date,
+        actionType: isAd ? 'ad_add' : 'clip_add',
+        actionLabel: isAd ? 'Listeye Reklam Spotu Eklendi' : 'Listeye Klip / Bölüm Eklendi',
+        itemType: isAd ? 'ad' : 'clip',
+        itemTitle: addedProgramObj.title,
+        itemCode: addedProgramObj.code || String(addedProgramObj.id || ''),
+        oldValue: '-',
+        newValue: `${addedProgramObj.title} (${formatSecLabel(addedProgramObj.durationSec)})`,
+        details: `Liste Kontrol ekranında "${addedProgramObj.title}" akışa eklendi.`,
+        status: 'success'
+      });
+    }
   },
 
-  lcMoveProgramUp: (channelId, date, variant, instanceId) => {
+  lcMoveProgramUp: (channelId, date, variant = 'v1', instanceId) => {
     get()._saveSnapshot();
     set((state) => {
       const key = `list-control-${channelId}-${date}`;
       const day = state.listControlDays[key];
       if (!day) return state;
+      const vKey = day.variants?.[variant] ? variant : (day.activeVariant || 'v1');
 
-      const programs = [...day.variants[variant].programs];
+      const programs = [...(day.variants?.[vKey]?.programs || [])];
       const index = programs.findIndex(p => p.instanceId === instanceId);
       if (index <= 0) return state;
 
@@ -110,7 +827,7 @@ export const createListControlSlice = (set, get) => ({
       const updatedDay = {
         ...day,
         updatedAt: new Date().toISOString(),
-        variants: { ...day.variants, [variant]: { ...day.variants[variant], programs: updatedPrograms } }
+        variants: { ...day.variants, [vKey]: { ...day.variants[vKey], programs: updatedPrograms } }
       };
       syncListControlDayToServer(key, updatedDay);
 
@@ -123,14 +840,15 @@ export const createListControlSlice = (set, get) => ({
     });
   },
 
-  lcMoveProgramDown: (channelId, date, variant, instanceId) => {
+  lcMoveProgramDown: (channelId, date, variant = 'v1', instanceId) => {
     get()._saveSnapshot();
     set((state) => {
       const key = `list-control-${channelId}-${date}`;
       const day = state.listControlDays[key];
       if (!day) return state;
+      const vKey = day.variants?.[variant] ? variant : (day.activeVariant || 'v1');
 
-      const programs = [...day.variants[variant].programs];
+      const programs = [...(day.variants?.[vKey]?.programs || [])];
       const index = programs.findIndex(p => p.instanceId === instanceId);
       if (index === -1 || index >= programs.length - 1) return state;
 
@@ -142,7 +860,7 @@ export const createListControlSlice = (set, get) => ({
       const updatedDay = {
         ...day,
         updatedAt: new Date().toISOString(),
-        variants: { ...day.variants, [variant]: { ...day.variants[variant], programs: updatedPrograms } }
+        variants: { ...day.variants, [vKey]: { ...day.variants[vKey], programs: updatedPrograms } }
       };
       syncListControlDayToServer(key, updatedDay);
 
@@ -155,14 +873,15 @@ export const createListControlSlice = (set, get) => ({
     });
   },
 
-  lcReorderProgram: (channelId, date, variant, oldIndex, newIndex) => {
+  lcReorderProgram: (channelId, date, variant = 'v1', oldIndex, newIndex) => {
     get()._saveSnapshot();
     set((state) => {
       const key = `list-control-${channelId}-${date}`;
       const day = state.listControlDays[key];
       if (!day) return state;
+      const vKey = day.variants?.[variant] ? variant : (day.activeVariant || 'v1');
 
-      const programs = [...day.variants[variant].programs];
+      const programs = [...(day.variants?.[vKey]?.programs || [])];
       if (oldIndex < 0 || oldIndex >= programs.length || newIndex < 0 || newIndex >= programs.length) return state;
 
       const [movedItem] = programs.splice(oldIndex, 1);
@@ -172,7 +891,7 @@ export const createListControlSlice = (set, get) => ({
       const updatedDay = {
         ...day,
         updatedAt: new Date().toISOString(),
-        variants: { ...day.variants, [variant]: { ...day.variants[variant], programs: updatedPrograms } }
+        variants: { ...day.variants, [vKey]: { ...day.variants[vKey], programs: updatedPrograms } }
       };
       syncListControlDayToServer(key, updatedDay);
 
@@ -185,14 +904,15 @@ export const createListControlSlice = (set, get) => ({
     });
   },
 
-  lcDuplicateProgram: (channelId, date, variant, instanceId) => {
+  lcDuplicateProgram: (channelId, date, variant = 'v1', instanceId) => {
     get()._saveSnapshot();
     set((state) => {
       const key = `list-control-${channelId}-${date}`;
       const day = state.listControlDays[key];
       if (!day) return state;
+      const vKey = day.variants?.[variant] ? variant : (day.activeVariant || 'v1');
 
-      const programs = [...day.variants[variant].programs];
+      const programs = [...(day.variants?.[vKey]?.programs || [])];
       const index = programs.findIndex(p => p.instanceId === instanceId);
       if (index === -1) return state;
 
@@ -204,7 +924,7 @@ export const createListControlSlice = (set, get) => ({
       const updatedDay = {
         ...day,
         updatedAt: new Date().toISOString(),
-        variants: { ...day.variants, [variant]: { ...day.variants[variant], programs: updatedPrograms } }
+        variants: { ...day.variants, [vKey]: { ...day.variants[vKey], programs: updatedPrograms } }
       };
       syncListControlDayToServer(key, updatedDay);
 
@@ -217,48 +937,50 @@ export const createListControlSlice = (set, get) => ({
     });
   },
 
-  lcUpdateProgramTime: (channelId, date, variant, instanceId, newDuration, newStartMinute, newTitle) => {
+  lcUpdateProgramTime: (channelId, date, variant = 'v1', instanceId, newDuration, newStartMinute, newTitle) => {
     get()._saveSnapshot();
     set((state) => {
       const key = `list-control-${channelId}-${date}`;
       const day = state.listControlDays[key];
       if (!day) return state;
+      const vKey = day.variants?.[variant] ? variant : (day.activeVariant || 'v1');
 
-      const programs = [...day.variants[variant].programs];
+      const programs = [...(day.variants?.[vKey]?.programs || [])];
       const index = programs.findIndex(p => p.instanceId === instanceId);
       if (index === -1) return state;
 
       if (newDuration !== undefined) {
         programs[index].duration = newDuration;
+        programs[index].durationSec = Math.round(Number(newDuration) * 60);
       }
-      
+
       if (newTitle !== undefined) {
         programs[index].title = newTitle;
       }
-      
+
       let updatedPrograms;
       let newDayStartTime = day.startTime;
-      
+
       if (newStartMinute !== undefined) {
-         if (index === 0) {
-           newDayStartTime = newStartMinute;
-         }
-         programs[index].startMinute = newStartMinute;
-         updatedPrograms = [...programs];
-         let currentStart = newStartMinute + updatedPrograms[index].duration;
-         for (let i = index + 1; i < updatedPrograms.length; i++) {
-             updatedPrograms[i].startMinute = currentStart;
-             currentStart += updatedPrograms[i].duration;
-         }
+        if (index === 0) {
+          newDayStartTime = newStartMinute;
+        }
+        programs[index].startMinute = newStartMinute;
+        updatedPrograms = [...programs];
+        let currentStart = newStartMinute + updatedPrograms[index].duration;
+        for (let i = index + 1; i < updatedPrograms.length; i++) {
+          updatedPrograms[i].startMinute = currentStart;
+          currentStart += updatedPrograms[i].duration;
+        }
       } else {
-         updatedPrograms = _recalculateStartTimes(programs, newDayStartTime || 0);
+        updatedPrograms = _recalculateStartTimes(programs, newDayStartTime || 0);
       }
 
       const updatedDay = {
         ...day,
         startTime: newDayStartTime,
         updatedAt: new Date().toISOString(),
-        variants: { ...day.variants, [variant]: { ...day.variants[variant], programs: updatedPrograms } }
+        variants: { ...day.variants, [vKey]: { ...day.variants[vKey], programs: updatedPrograms } }
       };
       syncListControlDayToServer(key, updatedDay);
 
@@ -271,21 +993,31 @@ export const createListControlSlice = (set, get) => ({
     });
   },
 
-  lcRemovePrograms: (channelId, date, variant, instanceIds, programIds) => {
+  lcRemovePrograms: (channelId, date, variant = 'v1', instanceIds = []) => {
     get()._saveSnapshot();
+    const removedItems = [];
+
     set((state) => {
       const key = `list-control-${channelId}-${date}`;
       const day = state.listControlDays[key];
       if (!day) return state;
+      const vKey = day.variants?.[variant] ? variant : (day.activeVariant || 'v1');
 
-      const programs = day.variants[variant].programs.filter(p => !instanceIds.includes(p.instanceId));
+      const currentProgs = day.variants?.[vKey]?.programs || [];
+      currentProgs.forEach(p => {
+        if (instanceIds.includes(p.instanceId)) {
+          removedItems.push(p);
+        }
+      });
+
+      const programs = currentProgs.filter(p => !instanceIds.includes(p.instanceId));
       const updatedPrograms = _recalculateStartTimes(programs, day.startTime || 0);
       const updatedDay = {
         ...day,
         updatedAt: new Date().toISOString(),
         variants: {
           ...day.variants,
-          [variant]: { ...day.variants[variant], programs: updatedPrograms }
+          [vKey]: { ...day.variants[vKey], programs: updatedPrograms }
         }
       };
       syncListControlDayToServer(key, updatedDay);
@@ -299,19 +1031,103 @@ export const createListControlSlice = (set, get) => ({
         selectedTimelineBlock: null
       };
     });
+
+    removedItems.forEach(item => {
+      const isAd = Boolean(item.isAdClip || item.isFromAds);
+      get().lcAddAuditLog({
+        channelId,
+        date,
+        actionType: isAd ? 'ad_delete' : 'clip_delete',
+        actionLabel: isAd ? 'Reklam Spotu Silindi' : 'Klip / Program Silindi',
+        itemType: isAd ? 'ad' : 'clip',
+        itemTitle: item.title,
+        itemCode: item.code || String(item.id || ''),
+        oldValue: `${item.title} (${formatSecLabel(item.durationSec || (item.duration || 0) * 60)})`,
+        newValue: 'Silindi',
+        details: `Liste Kontrol ekranından "${item.title}" silindi.`,
+        status: 'warning'
+      });
+    });
   },
 
-  lcClearDay: (channelId, date, variant) => {
+  lcApproveDayList: (channelId, dateStr, summaryNotes = '') => {
+    const nowIso = new Date().toISOString();
+    const lcKey = `list-control-${channelId}-${dateStr}`;
+    const finalKey = `final-${channelId}-${dateStr}`;
+    const readyKey = `ready-${channelId}-${dateStr}`;
+
+    set((state) => {
+      const lcDay = state.listControlDays[lcKey];
+      if (!lcDay) return state;
+
+      const updatedLcDay = {
+        ...lcDay,
+        isApprovedInListControl: true,
+        approvedAt: nowIso,
+        isRevised: false,
+        adsStatus: 'sent_to_master',
+        approvalNotes: summaryNotes,
+        updatedAt: nowIso
+      };
+
+      const nextDays = { ...state.days };
+      if (nextDays[readyKey]) {
+        nextDays[readyKey] = {
+          ...nextDays[readyKey],
+          adsStatus: 'sent_to_master',
+          isApprovedInListControl: true,
+          approvedAt: nowIso
+        };
+      }
+      if (nextDays[finalKey]) {
+        nextDays[finalKey] = {
+          ...nextDays[finalKey],
+          adsStatus: 'sent_to_master',
+          isApprovedInListControl: true,
+          approvedAt: nowIso
+        };
+      }
+
+      pushAdsStoreToServer({
+        planningDays: nextDays,
+        listControlDays: { [lcKey]: updatedLcDay }
+      });
+
+      return {
+        days: nextDays,
+        listControlDays: {
+          ...state.listControlDays,
+          [lcKey]: updatedLcDay
+        }
+      };
+    });
+
+    get().lcAddAuditLog({
+      channelId,
+      date: dateStr,
+      actionType: 'approve_list',
+      actionLabel: 'Yayın Listesi Kontrol Edildi ve Onaylandı',
+      itemType: 'system',
+      itemTitle: `${dateStr} Nihai Yayın Listesi`,
+      oldValue: 'Kontrol Aşamasında',
+      newValue: 'Onaylandı (Dönüşüme Hazır)',
+      details: summaryNotes || `${dateStr} günü yayın ve reklam listesi tüm kontrollerden geçerek onaylandı.`,
+      status: 'success'
+    });
+  },
+
+  lcClearDay: (channelId, date, variant = 'v1') => {
     get()._saveSnapshot();
     set((state) => {
       const key = `list-control-${channelId}-${date}`;
       const day = state.listControlDays[key];
       if (!day) return state;
+      const vKey = day.variants?.[variant] ? variant : (day.activeVariant || 'v1');
 
       const updatedDay = {
         ...day,
         updatedAt: new Date().toISOString(),
-        variants: { ...day.variants, [variant]: { ...day.variants[variant], programs: [] } }
+        variants: { ...day.variants, [vKey]: { ...day.variants[vKey], programs: [] } }
       };
       syncListControlDayToServer(key, updatedDay);
 

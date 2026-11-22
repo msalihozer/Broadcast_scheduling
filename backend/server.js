@@ -957,6 +957,295 @@ app.get('/api/media-info', async (req, res) => {
     }
 });
 
+// Toplu Medya, Veritabanı ve Dosya Yolu / Bozukluk Kontrol Uç Noktası (Yayın Liste Kontrol Modülü İçin)
+app.post('/api/media/verify-batch', async (req, res) => {
+    try {
+        const items = Array.isArray(req.body?.items) ? req.body.items : [];
+        const deepProbe = Boolean(req.body?.deepProbe);
+
+        if (mamByStemMap.size === 0 && arsivByStemMap.size === 0 && cacheReadyPromise) {
+            await Promise.race([
+                cacheReadyPromise,
+                new Promise(resolve => setTimeout(resolve, 2000))
+            ]);
+        }
+
+        // 1. Tüm sayısal fileId adaylarını ve dosya adı adaylarını topla
+        const numericIdsSet = new Set();
+        const fileNameSet = new Set();
+
+        items.forEach(item => {
+            if (!item) return;
+            const rawIds = [item.fileId, item.clipId, item.id, item.code];
+            rawIds.forEach(val => {
+                if (!val) return;
+                const s = String(val).trim();
+                const numMatch = s.match(/^(\d{4,10})(?:\.[a-zA-Z0-9]+)?$/);
+                if (numMatch) {
+                    const n = parseInt(numMatch[1], 10);
+                    if (n > 0) numericIdsSet.add(n);
+                }
+            });
+            [item.fileName, item.clipName, item.code, item.title].forEach(fn => {
+                if (!fn) return;
+                const clean = String(fn).trim().toLowerCase();
+                if (clean.length >= 3) {
+                    fileNameSet.add(clean);
+                    fileNameSet.add(clean.replace(/\.[^.]+$/, ''));
+                }
+            });
+        });
+
+        const dbByFileId = new Map();
+        const dbByLowerName = new Map();
+
+        // 2. PostgreSQL archive_clips üzerinden toplu sorgu
+        if (isPostgresReady() && (numericIdsSet.size > 0 || fileNameSet.size > 0)) {
+            try {
+                const numArr = Array.from(numericIdsSet);
+                const nameArr = Array.from(fileNameSet).slice(0, 500);
+                const pgRes = await pgQuery(`
+                    SELECT file_id as "fileId", name, file_name as "fileName", duration_sec as "durationSec", category_id as "categoryId"
+                    FROM archive_clips
+                    WHERE (cardinality($1::int[]) > 0 AND file_id = ANY($1::int[]))
+                       OR (cardinality($2::text[]) > 0 AND (LOWER(file_name) = ANY($2::text[]) OR LOWER(name) = ANY($2::text[])))
+                `, [numArr, nameArr]);
+
+                (pgRes.rows || []).forEach(r => {
+                    const rec = {
+                        fileId: r.fileId,
+                        name: r.name,
+                        fileName: r.fileName,
+                        durationSec: Number(r.durationSec) || 0,
+                        categoryId: r.categoryId,
+                        source: 'PostgreSQL MAM'
+                    };
+                    if (r.fileId) dbByFileId.set(String(r.fileId), rec);
+                    if (r.fileName) {
+                        const fnLow = String(r.fileName).toLowerCase();
+                        dbByLowerName.set(fnLow, rec);
+                        dbByLowerName.set(fnLow.replace(/\.[^.]+$/, ''), rec);
+                    }
+                    if (r.name) {
+                        dbByLowerName.set(String(r.name).toLowerCase(), rec);
+                    }
+                });
+            } catch (pgErr) {
+                console.warn('[VERIFY-BATCH PG WARN]:', pgErr.message);
+            }
+        }
+
+        // 3. Eğer PG'de bulunamayan sayısal ID'ler varsa ve MSSQL aktifse MSSQL Files tablosundan tamamla
+        const missingNumericIds = Array.from(numericIdsSet).filter(n => !dbByFileId.has(String(n)));
+        if (missingNumericIds.length > 0 && isMssqlConnected) {
+            try {
+                const pool = await poolPromise;
+                if (pool) {
+                    const idListSql = missingNumericIds.slice(0, 200).map(n => parseInt(n, 10)).filter(n => n > 0).join(',');
+                    if (idListSql) {
+                        const msRes = await pool.request().query(`
+                            SELECT fileId, name, fileName, duration, deleted, publicFileAddress
+                            FROM Files
+                            WHERE fileId IN (${idListSql})
+                        `);
+                        (msRes.recordset || []).forEach(r => {
+                            const rec = {
+                                fileId: r.fileId,
+                                name: r.name,
+                                fileName: r.fileName,
+                                durationSec: (Number(r.duration) || 0) / 1000,
+                                deleted: Boolean(r.deleted),
+                                publicFileAddress: r.publicFileAddress,
+                                source: 'MSSQL MAM'
+                            };
+                            dbByFileId.set(String(r.fileId), rec);
+                            if (r.fileName) {
+                                const fnLow = String(r.fileName).toLowerCase();
+                                dbByLowerName.set(fnLow, rec);
+                                dbByLowerName.set(fnLow.replace(/\.[^.]+$/, ''), rec);
+                            }
+                        });
+                    }
+                }
+            } catch (msErr) {
+                console.warn('[VERIFY-BATCH MSSQL WARN]:', msErr.message);
+            }
+        }
+
+        // 4. Her bir öğe için DB, Dosya Yolu ve Bozukluk kontrolü yap
+        const results = {};
+        for (const item of items) {
+            if (!item) continue;
+            const key = item.instanceId || item.id || item.code || item.title;
+            if (!key) continue;
+
+            // Canlı yayın veya kuşak başlığı ise medya dosyası gerektirmez
+            const isLiveOrStructural =
+                item.type === 'live' ||
+                item.isLive ||
+                item.type === 'ad_break' ||
+                String(item.id || '').toUpperCase() === 'TPL-3';
+
+            if (isLiveOrStructural) {
+                results[key] = {
+                    instanceId: key,
+                    isStructural: true,
+                    inDatabase: true,
+                    fileExists: true,
+                    isCorrupted: false,
+                    status: 'healthy',
+                    dbSource: 'Canlı / Yapısal Kuşak',
+                    resolvedPath: 'Canlı Yayın Akışı',
+                    issues: []
+                };
+                continue;
+            }
+
+            // Aday ID ve İsimler
+            let matchedDb = null;
+            const idCandidates = [item.fileId, item.clipId, item.id, item.code];
+            let extractedNumericId = '';
+
+            for (const c of idCandidates) {
+                if (!c) continue;
+                const s = String(c).trim();
+                const m = s.match(/^(\d{4,10})(?:\.[a-zA-Z0-9]+)?$/);
+                if (m) {
+                    if (!extractedNumericId) extractedNumericId = m[1];
+                    if (dbByFileId.has(m[1])) {
+                        matchedDb = dbByFileId.get(m[1]);
+                        break;
+                    }
+                }
+            }
+
+            if (!matchedDb) {
+                const nameCandidates = [item.fileName, item.code, item.clipName, item.title];
+                for (const nc of nameCandidates) {
+                    if (!nc) continue;
+                    const low = String(nc).trim().toLowerCase();
+                    const stem = low.replace(/\.[^.]+$/, '');
+                    if (dbByLowerName.has(low)) {
+                        matchedDb = dbByLowerName.get(low);
+                        break;
+                    }
+                    if (dbByLowerName.has(stem)) {
+                        matchedDb = dbByLowerName.get(stem);
+                        break;
+                    }
+                }
+            }
+
+            // Dosya yolu kontrolü (Önbellek indexi + Disk)
+            const lookupCandidates = [
+                extractedNumericId,
+                item.fileId,
+                item.clipId,
+                item.code,
+                item.fileName,
+                item.clipName,
+                matchedDb?.fileName,
+                matchedDb?.name,
+                item.id
+            ].filter(Boolean);
+
+            const cachedOrDiskPath = lookupCachedVideoPath(lookupCandidates);
+            let physicalExists = false;
+            let fileSize = null;
+            if (cachedOrDiskPath) {
+                try {
+                    if (fs.existsSync(cachedOrDiskPath)) {
+                        physicalExists = true;
+                        const st = fs.statSync(cachedOrDiskPath);
+                        fileSize = st.size;
+                    } else if (mamByStemMap.size > 0 || arsivByStemMap.size > 0) {
+                        // Önbellek haritasında kayıtlı (mount geçici kapalıysa bile index'te var)
+                        physicalExists = true;
+                    }
+                } catch (_) {
+                    physicalExists = Boolean(cachedOrDiskPath);
+                }
+            }
+
+            const itemDurationSec = Number(item.durationSec) || (Number(item.duration) || 0) * 60 || matchedDb?.durationSec || 0;
+            const hasValidCodeOrId = Boolean(extractedNumericId || matchedDb || (item.code && MEDIA_EXT_REGEX.test(String(item.code))));
+            const inDatabase = Boolean(
+                matchedDb ||
+                (item.isAd && hasValidCodeOrId && (physicalExists || extractedNumericId)) ||
+                (extractedNumericId && physicalExists)
+            );
+            const fileExists = Boolean(cachedOrDiskPath && physicalExists);
+
+            // Klip Bozukluk Kontrolü
+            const issues = [];
+            let isCorrupted = Boolean(item.isCorruptedSimulated);
+
+            if (!inDatabase) {
+                issues.push("Veritabanında (MAM / Katalog DB) klip kaydı bulunamadı");
+            }
+            if (!fileExists) {
+                issues.push("Medya sunucusu dosya yolunda (.mxf / .mp4) fiziksel dosya bulunamadı");
+            }
+            if (matchedDb?.deleted) {
+                isCorrupted = true;
+                issues.push("Klip veritabanında silinmiş (deleted=1) olarak işaretli");
+            }
+            if (itemDurationSec <= 0) {
+                isCorrupted = true;
+                issues.push("Klip süresi 0 sn veya geçersiz (bozuk zaman kodu)");
+            }
+            if (fileSize !== null && fileSize <= 1024) {
+                isCorrupted = true;
+                issues.push(`Dosya boyutu bozuk veya 0 Byte (${fileSize} byte)`);
+            }
+            if (!hasValidCodeOrId) {
+                isCorrupted = true;
+                issues.push("Eksik veya hatalı medya klip kodu / FileID");
+            }
+
+            if (deepProbe && cachedOrDiskPath && fs.existsSync(cachedOrDiskPath) && !isCorrupted) {
+                const probe = await probeMediaFileWithFfprobe(cachedOrDiskPath);
+                const hasVideo = Array.isArray(probe?.streams) && probe.streams.some(s => s.codec_type === 'video');
+                if (probe && !hasVideo) {
+                    isCorrupted = true;
+                    issues.push("FFprobe analizinde geçerli video akışı (stream) bulunamadı");
+                }
+            }
+
+            const status = isCorrupted
+                ? 'corrupted'
+                : (!inDatabase || !fileExists)
+                ? 'missing'
+                : 'healthy';
+
+            results[key] = {
+                instanceId: key,
+                inDatabase,
+                fileExists,
+                isCorrupted,
+                status,
+                dbSource: matchedDb?.source || (inDatabase ? (item.isAd ? 'Reklam & MAM Kataloğu' : 'MAM Arşiv Index') : null),
+                dbFileId: matchedDb?.fileId || extractedNumericId || null,
+                dbDurationSec: matchedDb?.durationSec || itemDurationSec || 0,
+                resolvedPath: cachedOrDiskPath || null,
+                fileName: cachedOrDiskPath ? path.basename(cachedOrDiskPath) : (matchedDb?.fileName || item.code || item.fileName || null),
+                fileSize,
+                issues
+            };
+        }
+
+        res.json({
+            success: true,
+            checkedAt: new Date().toISOString(),
+            totalChecked: items.length,
+            results
+        });
+    } catch (err) {
+        console.error('[VERIFY-BATCH ERROR]:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 const STREAM_CACHE_DIR = path.join(os.tmpdir(), 'yayin_video_stream_cache');
 try {
     if (!fs.existsSync(STREAM_CACHE_DIR)) {

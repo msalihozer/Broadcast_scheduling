@@ -254,6 +254,9 @@ export const createAdsSlice = (set, get) => ({
       const localListControlDays = state.listControlDays && typeof state.listControlDays === 'object'
         ? state.listControlDays
         : {};
+      const localListControlLogs = Array.isArray(state.listControlLogs)
+        ? state.listControlLogs.slice(0, 400)
+        : [];
 
       const mergedStore = await pushAdsStoreToServer({
         reservations: localReservations,
@@ -267,7 +270,8 @@ export const createAdsSlice = (set, get) => ({
         manualProducts,
         manualMaterials,
         planningDays: localPlanningDays,
-        listControlDays: localListControlDays
+        listControlDays: localListControlDays,
+        listControlLogs: localListControlLogs
       });
 
       if (!mergedStore) return null;
@@ -302,7 +306,11 @@ export const createAdsSlice = (set, get) => ({
         listControlDays:
           mergedStore.listControlDays && typeof mergedStore.listControlDays === 'object'
             ? { ...(cur.listControlDays || {}), ...mergedStore.listControlDays }
-            : cur.listControlDays
+            : cur.listControlDays,
+        listControlLogs:
+          Array.isArray(mergedStore.listControlLogs) && mergedStore.listControlLogs.length > 0
+            ? [...mergedStore.listControlLogs].sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0))
+            : cur.listControlLogs
       }));
 
       return mergedStore;

@@ -913,6 +913,7 @@ export function createDraftRouter() {
             manualMaterials: mergeByIdList(base.manualMaterials, inc.manualMaterials),
             planningDays: mergeDayObjectsMap(base.planningDays, inc.planningDays),
             listControlDays: mergeDayObjectsMap(base.listControlDays, inc.listControlDays),
+            listControlLogs: mergeByIdList(base.listControlLogs, inc.listControlLogs).slice(-1000),
             updatedAt: new Date().toISOString()
         };
     };

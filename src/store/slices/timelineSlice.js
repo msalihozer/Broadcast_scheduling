@@ -211,12 +211,16 @@ export const createTimelineSlice = (set, get) => ({
       let allocatedAdDuration = 0;
       const newPrograms = [];
       const materials = get().materials || [];
+      const companies = get().companies || [];
+      const products = get().products || [];
       
       const activeVariant = day.activeVariant || 'v1';
       const programs = day.variants[activeVariant]?.programs || [];
       let runningMinute = day.startTime || 0;
+      let breakCounter = 0;
 
-      programs.forEach(prog => {
+      programs.forEach((prog, pIdx) => {
+        if (String(prog.id).toUpperCase() === 'TPL-4') return;
         const progStartMin = prog.startMinute !== undefined ? prog.startMinute : runningMinute;
         const h = Math.floor(progStartMin / 60) % 24;
         const m = Math.floor(progStartMin % 60);
@@ -228,53 +232,98 @@ export const createTimelineSlice = (set, get) => ({
           String(prog.id).toUpperCase() === 'TPL-3' ||
           (prog.id && String(prog.id).toUpperCase().startsWith('T'));
 
-        if (isAdBreak) {
-          const originalDurationSec = (parseFloat(prog.duration) || 0) * 60;
+        if (isAdBreak && !prog.isAdClip) {
+          breakCounter++;
           allocatedAdDuration += (parseFloat(prog.duration) || 0);
 
-          let usedSec = 0;
+          const bp =
+            placements.find(
+              p => (prog.instanceId && p.blockId === prog.instanceId) || p.time === shortTime
+            ) || placements[breakCounter - 1];
 
-          const bp = placements.find(
-            p => (prog.instanceId && p.blockId === prog.instanceId) || p.time === shortTime
-          );
-          if (bp && bp.ads) {
-            bp.ads.forEach(ad => {
-              const durMin = (parseFloat(ad.duration) || 0) / 60;
-              usedSec += (parseFloat(ad.duration) || 0);
+          const breakLabel = bp?.label || prog.title || `${breakCounter}. Reklam Kuşağı`;
+          const breakBlockId = bp?.blockId || prog.instanceId || `break-${breakCounter}`;
+
+          if (bp && Array.isArray(bp.ads) && bp.ads.length > 0) {
+            bp.ads.forEach((ad, adIdx) => {
               const material = materials.find(mat => String(mat.id) === String(ad.materialId));
+              const company = companies.find(c => String(c.id) === String(ad.companyId || material?.companyId));
+              const product = products.find(pr => String(pr.id) === String(ad.productId || material?.productId));
+              const adDurSec = Math.max(1, parseFloat(ad.duration) || parseFloat(material?.duration) || 15);
+              const durMin = adDurSec / 60;
+              const resolvedClipId = material
+                ? (material.clipId || material.code || material.id)
+                : (ad.clipId || ad.code || ad.materialId);
+              const resolvedCode = material?.code || ad.code || (resolvedClipId ? `${String(resolvedClipId).replace(/\.[^.]+$/, '')}.mxf` : '');
+
               newPrograms.push({
                 ...prog,
-                id: material
-                  ? (material.clipId || material.code || material.id)
-                  : (ad.clipId || ad.code || ad.materialId),
+                id: resolvedClipId,
+                fileId: String(resolvedClipId || '').replace(/\D+/g, '') || null,
+                clipId: resolvedClipId || null,
+                code: resolvedCode,
+                fileName: resolvedCode,
+                materialId: ad.materialId || material?.id || null,
+                companyId: ad.companyId || material?.companyId || null,
+                companyName: ad.companyName || company?.name || '',
+                productId: ad.productId || material?.productId || null,
+                productName: ad.productName || product?.name || '',
                 title: material
                   ? (material.clipName || material.name)
                   : (ad.clipName || ad.name || ad.materialName || 'Reklam Klibi'),
-                fileName: material?.code || ad.code || '',
-                duration: durMin, // Saniyeyi dakikaya çevir
-                instanceId: `ad-${Math.random().toString(36).substr(2, 9)}`,
+                clipName: material?.clipName || ad.clipName || ad.name || '',
+                duration: durMin,
+                durationSec: adDurSec,
+                instanceId: `ad-${breakCounter}-${adIdx}-${Math.random().toString(36).substr(2, 6)}`,
+                type: 'ad_spot',
                 isAdClip: true,
                 isBumperAd: Boolean(ad.isBumperAd),
                 bumperType: ad.bumperType || null,
                 bumperCategoryName: ad.bumperCategoryName || null,
-                isFromAds: true
+                isSponsor: Boolean(ad.isSponsor || ad.sponsorRole),
+                sponsorRole: ad.sponsorRole || null,
+                parentBreakId: breakBlockId,
+                parentBreakOrder: breakCounter,
+                parentBreakTitle: breakLabel,
+                adOrderInBreak: adIdx + 1,
+                adTotalInBreak: bp.ads.length,
+                isFromAds: true,
+                stageOrigin: 'ads'
               });
             });
-          }
-
-          // Eğer reklamların toplam süresi orjinal TPL-3 bloğundan kısaysa, boşluk ekle (TPL-4)
-          if (usedSec < originalDurationSec) {
-            const freeMin = (originalDurationSec - usedSec) / 60;
+          } else {
+            const durMin = parseFloat(prog.duration) || 3;
             newPrograms.push({
-              id: 'TPL-4',
-              title: 'BOŞ KUŞAK',
-              duration: freeMin,
-              instanceId: `tpl4-${Math.random().toString(36).substr(2, 9)}`,
-              categoryName: 'Jenerik'
+              ...prog,
+              id: prog.id || `EMPTY-BREAK-${breakCounter}`,
+              title: `${breakLabel} (Spot Yerleştirilmemiş Boş Kuşak)`,
+              duration: durMin,
+              durationSec: Math.round(durMin * 60),
+              instanceId: prog.instanceId || `lc-empty-break-${breakCounter}`,
+              type: 'ad_break',
+              isAdClip: true,
+              isFromAds: true,
+              isEmptyAdBreak: true,
+              parentBreakId: breakBlockId,
+              parentBreakOrder: breakCounter,
+              parentBreakTitle: breakLabel,
+              stageOrigin: 'ads'
             });
           }
         } else {
-          newPrograms.push({ ...prog });
+          const durSec = Math.max(1, Math.round(Number(prog.durationSec) || (parseFloat(prog.duration) || 1) * 60));
+          const rawNum = String(prog.fileId || prog.clipId || prog.id || '').replace(/\D+/g, '');
+          newPrograms.push({
+            ...prog,
+            fileId: prog.fileId || (rawNum.length >= 4 ? Number(rawNum) : null),
+            clipId: prog.clipId || prog.fileId || prog.id,
+            code: prog.code || prog.fileName || (rawNum.length >= 4 ? `${rawNum}.mxf` : ''),
+            fileName: prog.fileName || prog.code || (rawNum.length >= 4 ? `${rawNum}.mxf` : ''),
+            duration: durSec / 60,
+            durationSec: durSec,
+            instanceId: prog.instanceId || `lc-prog-${pIdx}-${Math.random().toString(36).substr(2, 6)}`,
+            stageOrigin: prog.isAdClip || prog.isFromAds ? 'ads' : (prog.isFromDraft ? 'draft' : 'broadcast')
+          });
         }
       });
 
