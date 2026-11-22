@@ -17,6 +17,94 @@ import useAdminLogStore from '../adminLogStore';
 import useBroadcastStore from '../../modules/broadcast/store/broadcastStore';
 
 const LC_LOGS_STORAGE_KEY = 'yayin_list_control_logs_v1';
+const LC_SETTINGS_STORAGE_KEY = 'yayin_list_control_settings_v1';
+
+const DEFAULT_LC_SETTINGS = {
+  primaryFormat: 'mxf',
+  allowedFormats: ['mxf'], // Varsayılan genel yayın formatı .mxf; ayarlardan .mp4, .mov, .avi, .ts, .mpg vb. eklenebilir
+  strictFormatCheck: true
+};
+
+const loadSavedListControlSettings = () => {
+  try {
+    const raw = localStorage.getItem(LC_SETTINGS_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        const fmts = Array.isArray(parsed.allowedFormats) && parsed.allowedFormats.length > 0
+          ? parsed.allowedFormats.map(f => String(f || '').trim().toLowerCase().replace(/^\./, '')).filter(Boolean)
+          : ['mxf'];
+        return {
+          ...DEFAULT_LC_SETTINGS,
+          ...parsed,
+          allowedFormats: fmts.length > 0 ? Array.from(new Set(fmts)) : ['mxf']
+        };
+      }
+    }
+  } catch (_) {}
+  return DEFAULT_LC_SETTINGS;
+};
+
+const saveListControlSettingsLocal = (settings) => {
+  try {
+    localStorage.setItem(LC_SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+  } catch (_) {}
+};
+
+/**
+ * Yalnızca saf sayısal MAM FileID değerlerini (örn. "248192" veya "110480.mxf") yakalar.
+ * "Tecvid_70_270722" gibi içinde harf bulunan klip adlarından rakamları birleştirerek sahte ID üretmez!
+ */
+const extractPureNumericId = (...candidates) => {
+  for (const c of candidates) {
+    if (!c) continue;
+    const s = String(c).trim();
+    const m = s.match(/^(\d{3,10})(?:\.[a-zA-Z0-9]+)?$/);
+    if (m) return Number(m[1]);
+  }
+  return null;
+};
+
+/**
+ * Daha önce yanlışlıkla klip adındaki rakamların birleştirilmesiyle ("Tecvid_70_270722" -> "70270722.mxf")
+ * oluşmuş bozuk code / fileId alanlarını otomatik onarır ve varsayılan .mxf uzantısını korur.
+ */
+const sanitizeProgramCodeAndFileId = (prog = {}) => {
+  const titleStr = String(prog.clipName || prog.title || '').trim();
+  const titleDigitsOnly = titleStr.replace(/\D+/g, '');
+  const titleHasLetters = /[a-zA-ZğüşıöçĞÜŞİÖÇ]/.test(titleStr);
+
+  let currentFileId = extractPureNumericId(prog.fileId, prog.clipId, prog.id);
+  let currentCode = String(prog.code || prog.fileName || '').trim();
+
+  // Eğer başlık harf içeriyorsa (örn: "Tecvid_70_270722") ve fileId/code sadece başlıktaki rakamların birleşimiyse ("70270722"), sıfırla
+  if (titleHasLetters && titleDigitsOnly.length >= 4) {
+    if (currentFileId && String(currentFileId) === titleDigitsOnly) {
+      currentFileId = null;
+    }
+    const codeStem = currentCode.replace(/\.[^.]+$/, '');
+    if (codeStem === titleDigitsOnly) {
+      currentCode = '';
+    }
+  }
+
+  if (!currentCode) {
+    if (currentFileId) {
+      currentCode = `${currentFileId}.mxf`;
+    } else if (titleStr && !prog.isEmptyAdBreak) {
+      const stem = titleStr.replace(/\.[^.]+$/, '');
+      currentCode = `${stem}.mxf`;
+    }
+  } else if (!/\.[a-zA-Z0-9]{2,5}$/.test(currentCode)) {
+    currentCode = `${currentCode}.mxf`;
+  }
+
+  return {
+    fileId: currentFileId,
+    code: currentCode,
+    fileName: currentCode
+  };
+};
 
 const loadSavedListControlLogs = () => {
   try {
@@ -64,6 +152,38 @@ const formatSecLabel = (sec) => {
 export const createListControlSlice = (set, get) => ({
   listControlDays: {},
   listControlLogs: loadSavedListControlLogs(),
+  listControlSettings: loadSavedListControlSettings(),
+
+  /**
+   * Liste Kontrol Format & Denetim Ayarlarını günceller (Varsayılan format: .mxf; ek formatlar eklenip çıkarılabilir).
+   */
+  lcUpdateFormatSettings: (updates = {}) => {
+    set((state) => {
+      const cur = state.listControlSettings || DEFAULT_LC_SETTINGS;
+      let nextAllowed = Array.isArray(updates.allowedFormats)
+        ? updates.allowedFormats
+        : cur.allowedFormats;
+      nextAllowed = Array.from(
+        new Set(
+          nextAllowed
+            .map(f => String(f || '').trim().toLowerCase().replace(/^\./, ''))
+            .filter(Boolean)
+        )
+      );
+      if (nextAllowed.length === 0) nextAllowed = ['mxf'];
+
+      const nextSettings = {
+        ...cur,
+        ...updates,
+        primaryFormat: updates.primaryFormat
+          ? String(updates.primaryFormat).trim().toLowerCase().replace(/^\./, '')
+          : nextAllowed[0] || 'mxf',
+        allowedFormats: nextAllowed
+      };
+      saveListControlSettingsLocal(nextSettings);
+      return { listControlSettings: nextSettings };
+    });
+  },
 
   /**
    * Kalıcı Liste Kontrol log kaydı ekler (Hem localStorage, hem `/api/ads-store`, hem de Admin Log Store'a yazar).
@@ -141,6 +261,35 @@ export const createListControlSlice = (set, get) => ({
     const hasLegacyTpl3 = existingPrograms.some(p => String(p.id).toUpperCase() === 'TPL-3' || String(p.id).toUpperCase() === 'TPL-4');
 
     if (existingPrograms.length > 0 && !hasLegacyTpl3 && !forceOverwrite) {
+      // Mevcut satırlarda daha önce harf+rakam birleşimiyle oluşmuş bozuk code/fileId varsa otomatik onar
+      let needsSanitize = false;
+      const sanitizedPrograms = existingPrograms.map(p => {
+        if (p.isEmptyAdBreak) return p;
+        const fixed = sanitizeProgramCodeAndFileId(p);
+        if (fixed.fileId !== p.fileId || fixed.code !== p.code) {
+          needsSanitize = true;
+          return { ...p, ...fixed };
+        }
+        return p;
+      });
+      if (needsSanitize) {
+        const sanitizedDay = {
+          ...existingLcDay,
+          variants: {
+            ...existingLcDay.variants,
+            [activeVariant]: {
+              ...existingLcDay.variants[activeVariant],
+              programs: sanitizedPrograms
+            }
+          }
+        };
+        set((s) => ({
+          listControlDays: {
+            ...s.listControlDays,
+            [lcKey]: sanitizedDay
+          }
+        }));
+      }
       return { synced: false, count: existingPrograms.length, source: 'existing' };
     }
 
@@ -230,12 +379,16 @@ export const createListControlSlice = (set, get) => ({
             const product = products.find(pr => String(pr.id) === String(ad.productId || material?.productId));
             const adDurSec = Math.max(1, parseFloat(ad.duration) || parseFloat(material?.duration) || 15);
             const resolvedClipId = material?.clipId || ad.clipId || material?.code || ad.code || ad.materialId || ad.id;
-            const resolvedCode = material?.code || ad.code || (resolvedClipId ? `${String(resolvedClipId).replace(/\.[^.]+$/, '')}.mxf` : '');
+            const pureAdFileId = extractPureNumericId(material?.clipId, ad.clipId, material?.code, ad.code);
+            const rawCodeBase = material?.code || ad.code || resolvedClipId || (material?.clipName || ad.clipName || 'reklam');
+            const resolvedCode = /\.[a-zA-Z0-9]{2,5}$/.test(String(rawCodeBase))
+              ? String(rawCodeBase)
+              : `${String(rawCodeBase).replace(/\.[^.]+$/, '')}.mxf`;
 
             const adRow = {
               ...prog,
               id: resolvedClipId || `AD-${breakCounter}-${adIdx + 1}`,
-              fileId: String(resolvedClipId || '').replace(/\D+/g, '') || null,
+              fileId: pureAdFileId,
               clipId: resolvedClipId || null,
               code: resolvedCode,
               fileName: resolvedCode,
@@ -292,13 +445,13 @@ export const createListControlSlice = (set, get) => ({
         }
       } else {
         const durSec = Math.max(1, Math.round(Number(prog.durationSec) || progDurMin * 60 || 60));
-        const rawNumericId = String(prog.fileId || prog.clipId || prog.id || '').replace(/\D+/g, '');
+        const sanitized = sanitizeProgramCodeAndFileId(prog);
         const progRow = {
           ...prog,
-          fileId: prog.fileId || (rawNumericId.length >= 4 ? Number(rawNumericId) : null),
-          clipId: prog.clipId || prog.fileId || prog.id,
-          code: prog.code || prog.fileName || (rawNumericId.length >= 4 ? `${rawNumericId}.mxf` : ''),
-          fileName: prog.fileName || prog.code || (rawNumericId.length >= 4 ? `${rawNumericId}.mxf` : ''),
+          fileId: sanitized.fileId,
+          clipId: prog.clipId || sanitized.fileId || prog.id,
+          code: sanitized.code,
+          fileName: sanitized.fileName,
           duration: durSec / 60,
           durationSec: durSec,
           instanceId: prog.instanceId || `lc-prog-${pIdx}-${Math.random().toString(36).slice(2, 7)}`,
@@ -384,20 +537,16 @@ export const createListControlSlice = (set, get) => ({
       );
 
       const rawId = newItemPayload.fileId || newItemPayload.clipId || newItemPayload.id || oldItem.id;
-      const numericId = String(rawId || '').replace(/\D+/g, '');
-      const resolvedCode =
-        newItemPayload.code ||
-        newItemPayload.fileName ||
-        (numericId.length >= 4 ? `${numericId}.mxf` : oldItem.code || '');
+      const sanitizedNew = sanitizeProgramCodeAndFileId({ ...oldItem, ...newItemPayload, id: rawId });
 
       const updatedItem = {
         ...oldItem,
         ...newItemPayload,
         id: rawId,
-        fileId: newItemPayload.fileId || (numericId.length >= 4 ? Number(numericId) : null),
-        clipId: newItemPayload.clipId || rawId,
-        code: resolvedCode,
-        fileName: resolvedCode,
+        fileId: sanitizedNew.fileId,
+        clipId: newItemPayload.clipId || sanitizedNew.fileId || rawId,
+        code: sanitizedNew.code,
+        fileName: sanitizedNew.fileName,
         title: newItemPayload.title || newItemPayload.clipName || newItemPayload.name || oldItem.title,
         clipName: newItemPayload.clipName || newItemPayload.name || newItemPayload.title || oldItem.clipName,
         duration: durSec / 60,
@@ -724,20 +873,16 @@ export const createListControlSlice = (set, get) => ({
         )
       );
       const rawId = program.fileId || program.clipId || program.id || `item-${Date.now()}`;
-      const numericId = String(rawId || '').replace(/\D+/g, '');
-      const resolvedCode =
-        program.code ||
-        program.fileName ||
-        (numericId.length >= 4 ? `${numericId}.mxf` : '');
+      const sanitizedAdd = sanitizeProgramCodeAndFileId({ ...program, id: rawId });
 
       const newInstanceId = providedInstanceId || `lc-${rawId}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
       const newProgram = {
         ...program,
         id: rawId,
-        fileId: program.fileId || (numericId.length >= 4 ? Number(numericId) : null),
-        clipId: program.clipId || rawId,
-        code: resolvedCode,
-        fileName: resolvedCode,
+        fileId: sanitizedAdd.fileId,
+        clipId: program.clipId || sanitizedAdd.fileId || rawId,
+        code: sanitizedAdd.code,
+        fileName: sanitizedAdd.fileName,
         title: program.title || program.clipName || program.name || 'Yeni Öğe',
         clipName: program.clipName || program.name || program.title || '',
         duration: durSec / 60,

@@ -5,13 +5,12 @@
  * Özellikler:
  * 1. Açılış ekranı her zaman **Günlük (Daily)** ve **Bugün (Today)** olarak başlar;
  *    Günlük, Haftalık, Aylık ve Raporlar & Denetim Logları görünümleri arasında geçiş yapılabilir.
- * 2. Reklam Rezervasyondan iletilen listeyi (`listControlDays` / `ready-*` + `adPlacements`) otomatik yükler.
- * 3. Sol panelde Yayın Planlama gibi çalışan (fakat Dolgu Kuşağı ekleme içermeyen) Medya, Bölüm ve Reklam Kütüphanesi yer alır;
- *    sağdaki listeden bir klibe tıklandığında sol panelde o programın tüm bölümleri açılır ve tek tıkla klip/bölüm değiştirilebilir.
- * 4. Klip ve reklam süresi doğrudan satır üzerinden değiştirilebilir; reklam ekleme, değiştirme ve silme yapılabilir.
- * 5. Akıllı Revize İsteme: Klip için Taslak mı Yayın Planlama mı seçtirir; Reklam için doğrudan Reklam Rezervasyona gönderir.
- * 6. 3 Aşamalı Çapraz Kontrol (Taslak ↔ Yayın Planlama ↔ Reklamlar) ve Teknik Sağlık Kontrolü (DB'de var mı? • Dosya yolunda var mı? • Klip bozuk mu?).
- * 7. ⓘ İzle & Bilgi (Video Önizleme + Künye), Uyarı & Sorunlar Alanı, Raporlar ve Kalıcı Denetim Logları.
+ * 2. Sağ çalışma alanı tek bir akıcı kaydırılabilir (scrollable) kapsayıcı içindedir; sayfa her noktadan rahatça aşağı-yukarı kayar.
+ * 3. Liste hizalı **Flexbox Tablo** yapısındadır ve hem satırlar arası **Sürükle-Bırak (Drag & Drop)** sıralamayı,
+ *    hem de sol kütüphaneden sürüklenen klip/reklamları tabloya bırakarak ekleme/değiştirmeyi destekler.
+ * 4. Kliplerin ve reklamların dosya yolu kontrolü, video oynatıcı (`/api/stream`) ile birebir aynı mekanizmayla çalışır.
+ * 5. Dosya formatı kontrolü varsayılan `.mxf` olarak çalışır ve Format Ayarlarından yeni formatlar eklenebilir.
+ * 6. Tekrar eden kliplerin hataları alt alta yazılmaz; aynı klip tek satırda gruplanıp yanına geçtiği satır numaraları ve saatler yazılır.
  */
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { format, parseISO, addDays, addMonths } from 'date-fns';
@@ -23,15 +22,9 @@ import {
   Check,
   RefreshCw,
   Search,
-  Film,
   Megaphone,
-  AlertTriangle,
-  CheckCircle2,
-  FileText,
   Send,
-  Layers,
-  Clock,
-  Sparkles,
+  ArrowUp,
   X
 } from 'lucide-react';
 import usePlanningStore from '../../store/planningStore';
@@ -71,6 +64,11 @@ export default function ListControlModule() {
   const adPlacements = usePlanningStore(state => state.adPlacements) || {};
   const listControlDays = usePlanningStore(state => state.listControlDays) || {};
   const listControlLogs = usePlanningStore(state => state.listControlLogs) || [];
+  const listControlSettings = usePlanningStore(state => state.listControlSettings) || {
+    primaryFormat: 'mxf',
+    allowedFormats: ['mxf']
+  };
+  const lcUpdateFormatSettings = usePlanningStore(state => state.lcUpdateFormatSettings);
 
   const lcSyncFromAdsOrReady = usePlanningStore(state => state.lcSyncFromAdsOrReady);
   const lcReplaceItem = usePlanningStore(state => state.lcReplaceItem);
@@ -78,6 +76,7 @@ export default function ListControlModule() {
   const lcUpdateItemDurationSec = usePlanningStore(state => state.lcUpdateItemDurationSec);
   const lcMoveProgramUp = usePlanningStore(state => state.lcMoveProgramUp);
   const lcMoveProgramDown = usePlanningStore(state => state.lcMoveProgramDown);
+  const lcReorderProgram = usePlanningStore(state => state.lcReorderProgram);
   const lcRemovePrograms = usePlanningStore(state => state.lcRemovePrograms);
   const lcRequestRevision = usePlanningStore(state => state.lcRequestRevision);
   const lcApproveDayList = usePlanningStore(state => state.lcApproveDayList);
@@ -104,20 +103,33 @@ export default function ListControlModule() {
   const activeVariant = day?.activeVariant || 'v1';
   const programs = day?.variants?.[activeVariant]?.programs || [];
 
-  // Seçili satır, filtre, arama ve modal durumları
+  // Seçili satır, sürükle-bırak, filtre, arama ve modal durumları
   const [selectedInstanceId, setSelectedInstanceId] = useState(null);
+  const [draggedRowIndex, setDraggedRowIndex] = useState(null);
+  const [dragOverRowIndex, setDragOverRowIndex] = useState(null);
+  const [dropMode, setDropMode] = useState('insert'); // 'insert' | 'replace'
+  const [showScrollTopBtn, setShowScrollTopBtn] = useState(false);
+
   const [activeFilterCategory, setActiveFilterCategory] = useState('all'); // 'all' | 'clips' | 'ads' | 'broadcast_diff' | 'errors_only' | 'revisions'
   const [rundownSearch, setRundownSearch] = useState('');
   const [previewClip, setPreviewClip] = useState(null);
   const [revisionModalItem, setRevisionModalItem] = useState(null);
   const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false);
 
-  // Teknik sağlık haritası (DB • Dosya Yolu • Bozukluk)
+  // Teknik sağlık haritası (DB • Dosya Yolu • Format • Bozukluk)
   const [healthMap, setHealthMap] = useState({});
   const [verifyingHealth, setVerifyingHealth] = useState(false);
   const [draftVersionTick, setDraftVersionTick] = useState(0);
 
   const rowRefs = useRef({});
+  const rightScrollContainerRef = useRef(null);
+
+  const allowedFormats = useMemo(
+    () => (Array.isArray(listControlSettings?.allowedFormats) && listControlSettings.allowedFormats.length > 0
+      ? listControlSettings.allowedFormats
+      : ['mxf']),
+    [listControlSettings]
+  );
 
   // Taslak verisini backend'den senkronize et
   useEffect(() => {
@@ -180,15 +192,19 @@ export default function ListControlModule() {
     });
   }, [draftSlotsForDay, broadcastRawProgs, adPlacements, readyKey, programs]);
 
-  // Klipler ve Reklamlar için DB, Dosya Yolu ve Bozukluk Kontrolünü Çalıştır
-  const runHealthVerification = useCallback(async (deepProbe = false) => {
+  // Klipler ve Reklamlar için Video Oynatıcı (/api/stream) ile aynı dosya yolundan DB, Dosya Yolu ve Format/Bozukluk Kontrolü
+  const runHealthVerification = useCallback(async (deepProbe = false, customFormats = null) => {
     if (!programs || programs.length === 0) {
       setHealthMap({});
       return;
     }
     setVerifyingHealth(true);
     try {
-      const results = await verifyBatchClipsAndAdsHealth(programs, { deepProbe });
+      const fmts = customFormats || allowedFormats;
+      const results = await verifyBatchClipsAndAdsHealth(programs, {
+        deepProbe,
+        allowedFormats: fmts
+      });
       setHealthMap(results);
 
       if (deepProbe && typeof lcAddAuditLog === 'function') {
@@ -200,23 +216,28 @@ export default function ListControlModule() {
           actionType: 'health_check',
           actionLabel: 'Teknik Klip & Reklam Kontrolü Tamamlandı',
           itemType: 'system',
-          itemTitle: `${programs.length} Öğe Denetlendi`,
+          itemTitle: `${programs.length} Öğe Denetlendi (${fmts.map(f => '.' + f.toUpperCase()).join('/')})`,
           oldValue: '-',
-          newValue: badCount === 0 ? 'Tüm Klipler & Reklamlar Sağlam' : `${badCount} Öğede Hata Tespit Edildi`,
-          details: `DB, Dosya Yolu ve Klip Bozukluk taraması tamamlandı. (${programs.length - badCount} Sağlam, ${badCount} Sorunlu)`,
+          newValue: badCount === 0 ? 'Tüm Klipler & Reklamlar Sağlam' : `${badCount} Satırda Hata Tespit Edildi`,
+          details: `Video oynatıcı dosya yolu üzerinden DB, Dosya Yolu ve Format (${fmts.join(', ')}) taraması tamamlandı.`,
           status: badCount === 0 ? 'success' : 'warning'
         });
       }
     } finally {
       setVerifyingHealth(false);
     }
-  }, [programs, selectedChannel, safeDate, lcAddAuditLog]);
+  }, [programs, allowedFormats, selectedChannel, safeDate, lcAddAuditLog]);
+
+  const programsIdentitySignature = useMemo(
+    () => programs.map(p => `${p.instanceId}:${p.code || p.id}:${p.durationSec}`).join('|'),
+    [programs]
+  );
 
   useEffect(() => {
     runHealthVerification(false);
-  }, [programs.length, selectedChannel, safeDate]);
+  }, [programsIdentitySignature, selectedChannel, safeDate, allowedFormats]);
 
-  // Birleşik Hatalar, Sorunlar ve Uyarılar Listesi
+  // Tekrar eden klipleri tek satırda gruplayan ve yanında satır/saat rozetlerini gösteren Hata ve Uyarı Listesi
   const unifiedIssues = useMemo(() => {
     return buildUnifiedIssuesList({
       programs,
@@ -225,20 +246,17 @@ export default function ListControlModule() {
     });
   }, [programs, healthMap, stageAnalysis]);
 
-  // Seçili satır nesnesi ve index'i
   const selectedIndex = useMemo(
     () => programs.findIndex(p => p.instanceId === selectedInstanceId),
     [programs, selectedInstanceId]
   );
   const selectedItem = selectedIndex >= 0 ? programs[selectedIndex] : null;
 
-  // Seçili klibin/reklamın aynı gün içinde başka yerlerdeki tekrarlarını vurgulamak için kod/başlık
   const selectedClipSignature = useMemo(() => {
     if (!selectedItem) return null;
     return String(selectedItem.code || selectedItem.fileId || selectedItem.title || '').trim().toLowerCase();
   }, [selectedItem]);
 
-  // Filtrelenmiş akış satırları
   const filteredProgramsWithIndex = useMemo(() => {
     return programs
       .map((item, originalIndex) => ({ item, originalIndex }))
@@ -275,6 +293,74 @@ export default function ListControlModule() {
     () => programs.reduce((s, p) => s + (Number(p.durationSec) || Math.round((Number(p.duration) || 0) * 60)), 0),
     [programs]
   );
+
+  // Sürükle-Bırak (Drag & Drop) İşleyicileri
+  const handleRowDragStart = (e, rowIndex, item) => {
+    setDraggedRowIndex(rowIndex);
+    e.dataTransfer.setData(
+      'application/json',
+      JSON.stringify({ source: 'lc_table_row', fromIndex: rowIndex, instanceId: item.instanceId })
+    );
+    e.dataTransfer.effectAllowed = 'copyMove';
+  };
+
+  const handleRowDragOver = (e, rowIndex) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverRowIndex !== rowIndex) {
+      setDragOverRowIndex(rowIndex);
+    }
+  };
+
+  const handleRowDragLeave = () => {
+    setDragOverRowIndex(null);
+  };
+
+  const handleRowDrop = (e, targetIndex, targetItem) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverRowIndex(null);
+
+    try {
+      const raw = e.dataTransfer.getData('application/json');
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+
+      // 1. Tablo içi satır sıralama (Reorder)
+      if (parsed.source === 'lc_table_row' && typeof parsed.fromIndex === 'number') {
+        if (parsed.fromIndex !== targetIndex) {
+          lcReorderProgram(selectedChannel, safeDate, activeVariant, parsed.fromIndex, targetIndex);
+        }
+        setDraggedRowIndex(null);
+        return;
+      }
+
+      // 2. Sol Kütüphaneden (Medya veya Reklam) sürüklenip tabloya bırakılan öğe
+      if ((parsed.source === 'lc_library_clip' || parsed.source === 'lc_library_ad') && parsed.payload) {
+        if (dropMode === 'replace' && targetItem) {
+          lcReplaceItem(selectedChannel, safeDate, activeVariant, targetItem.instanceId, parsed.payload);
+        } else {
+          lcAddProgramToDay(selectedChannel, safeDate, activeVariant, parsed.payload, targetIndex);
+        }
+        setDraggedRowIndex(null);
+      }
+    } catch (_) {
+      setDraggedRowIndex(null);
+    }
+  };
+
+  const handleTableEndDrop = (e) => {
+    e.preventDefault();
+    setDragOverRowIndex(null);
+    try {
+      const raw = e.dataTransfer.getData('application/json');
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if ((parsed.source === 'lc_library_clip' || parsed.source === 'lc_library_ad') && parsed.payload) {
+        lcAddProgramToDay(selectedChannel, safeDate, activeVariant, parsed.payload, programs.length);
+      }
+    } catch (_) {}
+  };
 
   const handleFocusRow = (instanceId) => {
     if (!instanceId) return;
@@ -335,11 +421,11 @@ export default function ListControlModule() {
   const handleApproveList = () => {
     const errorCount = unifiedIssues.filter(i => i.severity === 'error').length;
     const missingDrafts = stageAnalysis?.missingDraftSlots?.length || 0;
-    const notes = `Toplam ${programs.length} satır (${formatSecondsReadable(totalDurationSec)}) kontrol edildi. Kritik Hata: ${errorCount}, Eksik Taslak Kuşağı: ${missingDrafts}.`;
+    const notes = `Toplam ${programs.length} satır (${formatSecondsReadable(totalDurationSec)}) kontrol edildi. Kritik Hata Grubu: ${errorCount}, Eksik Taslak Kuşağı: ${missingDrafts}.`;
     lcApproveDayList(selectedChannel, safeDate, notes);
     useDialogStore.getState().showAlert(
       'Yayın Listesi Onaylandı',
-      `${selectedChannel === 'ch_way' ? 'Semerkand WAY' : 'Semerkand HD'} (${safeDate}) yayın ve reklam listesi kontrol edilerek onaylandı. Liste dönüşüm aşamasına hazırdır.`
+      `${selectedChannel === 'ch_way' ? 'Semerkand WAY' : 'Semerkand HD'} (${safeDate}) yayın ve reklam listesi kontrol edilerek onaylandı.`
     );
   };
 
@@ -360,29 +446,28 @@ export default function ListControlModule() {
     }}>
       {/* 1. ÜST KONTROL VE NAVİGASYON ÇUBUĞU */}
       <div style={{
-        padding: '10px 16px',
+        padding: '9px 16px',
         background: 'var(--bg-secondary)',
         borderBottom: '1.5px solid var(--border-color)',
         display: 'flex',
         flexDirection: 'column',
-        gap: '8px',
+        gap: '7px',
         flexShrink: 0
       }}>
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: '12px',
+          gap: '10px',
           flexWrap: 'wrap'
         }}>
-          {/* Sol: Kanal Seçici + Görünüm Seçici (Günlük [Bugün] / Haftalık / Aylık / Raporlar & Loglar) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-            {/* Kanal Seçici */}
+          {/* Sol: Kanal Seçici + Görünüm Seçici */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             <div style={{
               display: 'flex',
               background: 'var(--bg-tertiary)',
               padding: '3px',
-              borderRadius: '10px',
+              borderRadius: '9px',
               border: '1px solid var(--border-color)',
               gap: '3px'
             }}>
@@ -392,8 +477,8 @@ export default function ListControlModule() {
                   type="button"
                   onClick={() => setSelectedChannel(ch.id)}
                   style={{
-                    padding: '6px 12px',
-                    borderRadius: '7px',
+                    padding: '5px 11px',
+                    borderRadius: '6px',
                     border: 'none',
                     background: selectedChannel === ch.id ? 'var(--accent-primary)' : 'transparent',
                     color: selectedChannel === ch.id ? '#ffffff' : 'var(--text-secondary)',
@@ -407,12 +492,11 @@ export default function ListControlModule() {
               ))}
             </div>
 
-            {/* Görünüm Modu Seçici */}
             <div style={{
               display: 'flex',
               background: 'var(--bg-tertiary)',
               padding: '3px',
-              borderRadius: '10px',
+              borderRadius: '9px',
               border: '1px solid var(--border-color)',
               gap: '3px'
             }}>
@@ -427,8 +511,8 @@ export default function ListControlModule() {
                   type="button"
                   onClick={() => setLcViewMode(vm.id)}
                   style={{
-                    padding: '6px 12px',
-                    borderRadius: '7px',
+                    padding: '5px 11px',
+                    borderRadius: '6px',
                     border: 'none',
                     background: lcViewMode === vm.id ? '#2563eb' : 'transparent',
                     color: lcViewMode === vm.id ? '#ffffff' : 'var(--text-secondary)',
@@ -442,7 +526,6 @@ export default function ListControlModule() {
               ))}
             </div>
 
-            {/* Bugün Hızlı Butonu */}
             <button
               type="button"
               onClick={() => {
@@ -450,12 +533,12 @@ export default function ListControlModule() {
                 setLcViewMode('daily');
               }}
               style={{
-                padding: '6px 12px',
+                padding: '5px 11px',
                 borderRadius: '8px',
                 border: safeDate === todayStr ? '1.5px solid #2563eb' : '1px solid var(--border-color)',
                 background: safeDate === todayStr ? 'rgba(37, 99, 235, 0.14)' : 'var(--bg-primary)',
                 color: safeDate === todayStr ? '#2563eb' : 'var(--text-primary)',
-                fontSize: '12px',
+                fontSize: '11.5px',
                 fontWeight: 800,
                 cursor: 'pointer'
               }}
@@ -464,8 +547,8 @@ export default function ListControlModule() {
             </button>
           </div>
 
-          {/* Orta: Tarih Gezgini */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* Orta: Tarih Seçici */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <button
               type="button"
               onClick={() => {
@@ -474,8 +557,8 @@ export default function ListControlModule() {
                 setSelectedDate(format(next, 'yyyy-MM-dd'));
               }}
               style={{
-                width: '32px',
-                height: '32px',
+                width: '30px',
+                height: '30px',
                 borderRadius: '8px',
                 border: '1px solid var(--border-color)',
                 background: 'var(--bg-primary)',
@@ -486,27 +569,27 @@ export default function ListControlModule() {
                 cursor: 'pointer'
               }}
             >
-              <ChevronLeft size={16} />
+              <ChevronLeft size={15} />
             </button>
 
             <CustomDatePicker selectedDate={safeDate} onDateChange={(d) => setSelectedDate(d)}>
               <div style={{
-                padding: '6px 14px',
-                borderRadius: '10px',
+                padding: '5px 12px',
+                borderRadius: '9px',
                 background: 'var(--bg-primary)',
                 border: '1px solid var(--border-color)',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
+                gap: '7px',
                 cursor: 'pointer'
               }}>
                 <Calendar size={14} color="var(--accent-primary)" />
-                <span style={{ fontSize: '13.5px', fontWeight: 900, color: 'var(--text-primary)', textTransform: 'uppercase' }}>
+                <span style={{ fontSize: '13px', fontWeight: 900, color: 'var(--text-primary)', textTransform: 'uppercase' }}>
                   {format(parseISO(safeDate), 'd MMMM yyyy EEEE', { locale: tr })}
                 </span>
                 {safeDate === todayStr && (
                   <span style={{
-                    fontSize: '10px',
+                    fontSize: '9.5px',
                     fontWeight: 900,
                     padding: '1px 6px',
                     borderRadius: '999px',
@@ -527,8 +610,8 @@ export default function ListControlModule() {
                 setSelectedDate(format(next, 'yyyy-MM-dd'));
               }}
               style={{
-                width: '32px',
-                height: '32px',
+                width: '30px',
+                height: '30px',
                 borderRadius: '8px',
                 border: '1px solid var(--border-color)',
                 background: 'var(--bg-primary)',
@@ -539,12 +622,12 @@ export default function ListControlModule() {
                 cursor: 'pointer'
               }}
             >
-              <ChevronRight size={16} />
+              <ChevronRight size={15} />
             </button>
           </div>
 
-          {/* Sağ: Reklam Rezervasyondan Yenile + Logoları İşle + Toplam Süre + Listeyi Onayla */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          {/* Sağ: Senkronizasyon + Süre + Onay */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '7px', flexWrap: 'wrap' }}>
             <button
               type="button"
               onClick={() => {
@@ -562,7 +645,7 @@ export default function ListControlModule() {
                 }
               }}
               style={{
-                padding: '6px 11px',
+                padding: '5px 10px',
                 borderRadius: '8px',
                 border: '1px solid var(--border-color)',
                 background: 'var(--bg-primary)',
@@ -574,9 +657,8 @@ export default function ListControlModule() {
                 alignItems: 'center',
                 gap: '5px'
               }}
-              title="Reklam Rezervasyondan iletilen güncel listeyi yeniden çek"
             >
-              <RefreshCw size={13} />
+              <RefreshCw size={12} />
               <span>Reklam Rezervasyondan Çek</span>
             </button>
 
@@ -585,23 +667,13 @@ export default function ListControlModule() {
                 type="button"
                 onClick={() => {
                   applyChannelLogosToListControl(selectedChannel, safeDate);
-                  lcAddAuditLog({
-                    channelId: selectedChannel,
-                    date: safeDate,
-                    actionType: 'info',
-                    actionLabel: 'Kanal Yayın & Reklam Logoları İşlendi',
-                    itemType: 'system',
-                    itemTitle: `${channelName} Logoları`,
-                    details: `Yayın Logo: ${adSettings?.[selectedChannel]?.broadcastLogoName || 'Varsayılan'} • Reklam Logo: ${adSettings?.[selectedChannel]?.adLogoName || 'Varsayılan'}`,
-                    status: 'success'
-                  });
                   useDialogStore.getState().showAlert(
                     'Logolar Listeye İşlendi',
                     `${channelName} kanalının Yayına Giriş ve Reklama Giriş logo isimleri listedeki tüm satırlara uygulandı.`
                   );
                 }}
                 style={{
-                  padding: '6px 11px',
+                  padding: '5px 10px',
                   borderRadius: '8px',
                   border: '1px solid rgba(16, 185, 129, 0.4)',
                   background: 'rgba(16, 185, 129, 0.1)',
@@ -616,11 +688,11 @@ export default function ListControlModule() {
             )}
 
             <div style={{
-              padding: '6px 12px',
+              padding: '5px 10px',
               borderRadius: '8px',
               background: 'var(--bg-tertiary)',
               border: '1px solid var(--border-color)',
-              fontSize: '12px',
+              fontSize: '11.5px',
               fontFamily: 'monospace',
               fontWeight: 800
             }}>
@@ -635,8 +707,8 @@ export default function ListControlModule() {
               onClick={handleApproveList}
               disabled={programs.length === 0}
               style={{
-                padding: '7px 15px',
-                borderRadius: '9px',
+                padding: '6px 14px',
+                borderRadius: '8px',
                 border: 'none',
                 background: isApproved
                   ? 'linear-gradient(135deg, #059669 0%, #10b981 100%)'
@@ -648,12 +720,11 @@ export default function ListControlModule() {
                 opacity: programs.length === 0 ? 0.5 : 1,
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '6px',
-                boxShadow: '0 4px 14px rgba(37, 99, 235, 0.25)'
+                gap: '5px'
               }}
             >
               <Check size={14} />
-              <span>{isApproved ? '✓ Liste Onaylandı' : 'Listeyi Onayla'}</span>
+              <span>{isApproved ? '✓ Onaylandı' : 'Listeyi Onayla'}</span>
             </button>
           </div>
         </div>
@@ -670,7 +741,7 @@ export default function ListControlModule() {
             fontSize: '11px'
           }}>
             <span style={{ fontWeight: 800, color: 'var(--text-secondary)', flexShrink: 0 }}>
-              Reklam Rezervasyondan İletilen / Hazır Günler:
+              Hazır / İletilen Günler:
             </span>
             {availableTransmittedDates.map(dStr => {
               const isCurr = dStr === safeDate;
@@ -690,7 +761,7 @@ export default function ListControlModule() {
                     setLcViewMode('daily');
                   }}
                   style={{
-                    padding: '3px 9px',
+                    padding: '2px 8px',
                     borderRadius: '999px',
                     border: isCurr ? '1.5px solid #2563eb' : '1px solid var(--border-color)',
                     background: isCurr ? 'rgba(37, 99, 235, 0.14)' : 'var(--bg-primary)',
@@ -701,14 +772,14 @@ export default function ListControlModule() {
                     flexShrink: 0,
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '5px'
+                    gap: '4px'
                   }}
                 >
                   <span>{format(parseISO(dStr), 'd MMM EEE', { locale: tr })}</span>
                   {isTod && <strong style={{ color: '#10b981' }}>(Bugün)</strong>}
                   {count > 0 && (
                     <span style={{
-                      fontSize: '10px',
+                      fontSize: '9.5px',
                       padding: '0 5px',
                       borderRadius: '999px',
                       background: isCurr ? '#2563eb' : 'var(--bg-tertiary)',
@@ -724,7 +795,7 @@ export default function ListControlModule() {
         )}
       </div>
 
-      {/* 2. ANA İÇERİK ALANI (GÜNLÜK / HAFTALIK / AYLIK / RAPORLAR & LOGLAR) */}
+      {/* 2. ANA İÇERİK ALANI */}
       {lcViewMode === 'weekly' ? (
         <ListControlWeekView
           selectedChannel={selectedChannel}
@@ -755,15 +826,16 @@ export default function ListControlModule() {
           onRequestRevision={handleOpenRevisionModal}
         />
       ) : (
-        /* GÜNLÜK (DAILY) ANA KONTROL EKRANI: SOLDA MEDYA/BÖLÜM/REKLAM KÜTÜPHANESİ + SAĞDA UYARILAR VE AKIŞ LİSTESİ */
+        /* GÜNLÜK ANA KONTROL EKRANI: SOLDA MEDYA/BÖLÜM/REKLAM KÜTÜPHANESİ + SAĞDA TEK PARÇA KAYDIRILABİLİR FLEXBOX TABLO ALANI */
         <div style={{
           flex: 1,
           minHeight: 0,
           minWidth: 0,
           display: 'flex',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          position: 'relative'
         }}>
-          {/* SOL PANEL: YAYIN PLANLAMA GİBİ ÇALIŞAN MEDYA, BÖLÜM VE REKLAM KÜTÜPHANESİ (DOLGU KUŞAĞI YOK) */}
+          {/* SOL PANEL: MEDYA, BÖLÜM VE REKLAM KÜTÜPHANESİ (SÜRÜKLE-BIRAK DESTEKLİ, DOLGU KUŞAĞI YOK) */}
           <ListControlSidebar
             selectedChannel={selectedChannel}
             selectedDate={safeDate}
@@ -779,22 +851,37 @@ export default function ListControlModule() {
             onOpenClipPreview={(clipObj) => setPreviewClip(clipObj)}
           />
 
-          {/* SAĞ PANEL: UYARILAR & 3 AŞAMALI KONTROL MERKEZİ + FLEXBOX YAYIN VE REKLAM LİSTESİ */}
-          <div style={{
-            flex: 1,
-            minHeight: 0,
-            minWidth: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden'
-          }}>
-            {/* Üst Uyarılar, Sorunlar, Taslak/Yayın Planlama/Reklam ve DB/Dosya/Bozukluk Kontrol Paneli */}
+          {/* SAĞ PANEL: TEK PARÇA KAYDIRILABİLİR (SCROLLABLE) ÇALIŞMA ALANI */}
+          <div
+            ref={rightScrollContainerRef}
+            onScroll={(e) => {
+              const top = e.currentTarget.scrollTop;
+              if (top > 220 && !showScrollTopBtn) setShowScrollTopBtn(true);
+              else if (top <= 220 && showScrollTopBtn) setShowScrollTopBtn(false);
+            }}
+            style={{
+              flex: 1,
+              minHeight: 0,
+              minWidth: 0,
+              height: '100%',
+              overflowY: 'auto',
+              overflowX: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              position: 'relative'
+            }}
+          >
+            {/* Üst Uyarılar, Sorunlar (Aynı Klipler Tek Satırda Gruplanmış) ve Format Ayarları (.mxf) */}
             <ListControlWarningsPanel
               stageAnalysis={stageAnalysis}
               healthMap={healthMap}
               programs={programs}
               issues={unifiedIssues}
               verifyingHealth={verifyingHealth}
+              allowedFormats={allowedFormats}
+              onUpdateAllowedFormats={(nextFormats) => {
+                lcUpdateFormatSettings({ allowedFormats: nextFormats });
+              }}
               onRunDeepHealthCheck={() => runHealthVerification(true)}
               onFocusRow={handleFocusRow}
               onAddMissingDraftSlot={handleAddMissingDraftSlot}
@@ -803,7 +890,7 @@ export default function ListControlModule() {
               onSelectFilterCategory={setActiveFilterCategory}
             />
 
-            {/* Akış Filtre & Arama Araç Çubuğu */}
+            {/* Akış Filtre, Sürükle-Bırak Modu & Arama Çubuğu */}
             <div style={{
               padding: '8px 16px',
               background: 'var(--bg-tertiary)',
@@ -812,10 +899,9 @@ export default function ListControlModule() {
               alignItems: 'center',
               justifyContent: 'space-between',
               gap: '10px',
-              flexWrap: 'wrap',
-              flexShrink: 0
+              flexWrap: 'wrap'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
                 {[
                   { id: 'all', label: `Tümü (${programs.length})` },
                   {
@@ -832,14 +918,14 @@ export default function ListControlModule() {
                   },
                   {
                     id: 'errors_only',
-                    label: `🔴 Hatalı DB/Dosya/Bozuk (${programs.filter(p => {
+                    label: `🔴 Hatalı Satırlar (${programs.filter(p => {
                       const h = healthMap[p.instanceId];
                       return (h && (!h.inDatabase || !h.fileExists || h.isCorrupted)) || p.isEmptyAdBreak;
                     }).length})`
                   },
                   {
                     id: 'revisions',
-                    label: `⚠️ Revize İstendi (${programs.filter(p => p.revisionRequested).length})`
+                    label: `⚠️ Revize (${programs.filter(p => p.revisionRequested).length})`
                   }
                 ].map(f => (
                   <button
@@ -847,12 +933,12 @@ export default function ListControlModule() {
                     type="button"
                     onClick={() => setActiveFilterCategory(f.id)}
                     style={{
-                      padding: '5px 10px',
-                      borderRadius: '8px',
+                      padding: '4px 10px',
+                      borderRadius: '7px',
                       border: activeFilterCategory === f.id ? 'none' : '1px solid var(--border-color)',
                       background: activeFilterCategory === f.id ? 'var(--accent-primary)' : 'var(--bg-primary)',
                       color: activeFilterCategory === f.id ? '#ffffff' : 'var(--text-secondary)',
-                      fontSize: '11.5px',
+                      fontSize: '11px',
                       fontWeight: 800,
                       cursor: 'pointer'
                     }}
@@ -862,23 +948,69 @@ export default function ListControlModule() {
                 ))}
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                {/* Sol Panelden Sürükle-Bırak Davranışı Seçici */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  background: 'var(--bg-primary)',
+                  padding: '2px',
+                  borderRadius: '7px',
+                  border: '1px solid var(--border-color)',
+                  fontSize: '10.5px',
+                  fontWeight: 800
+                }}>
+                  <span style={{ padding: '2px 6px', color: 'var(--text-muted)' }}>Sürükle-Bırak:</span>
+                  <button
+                    type="button"
+                    onClick={() => setDropMode('insert')}
+                    style={{
+                      padding: '3px 7px',
+                      borderRadius: '5px',
+                      border: 'none',
+                      background: dropMode === 'insert' ? '#10b981' : 'transparent',
+                      color: dropMode === 'insert' ? '#fff' : 'var(--text-secondary)',
+                      fontSize: '10.5px',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    + Araya Ekle
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDropMode('replace')}
+                    style={{
+                      padding: '3px 7px',
+                      borderRadius: '5px',
+                      border: 'none',
+                      background: dropMode === 'replace' ? '#2563eb' : 'transparent',
+                      color: dropMode === 'replace' ? '#fff' : 'var(--text-secondary)',
+                      fontSize: '10.5px',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    🔄 Üzerine Bırakınca Değiştir
+                  </button>
+                </div>
+
                 <div style={{ position: 'relative' }}>
-                  <Search size={13} color="var(--text-muted)" style={{ position: 'absolute', left: '9px', top: '8px' }} />
+                  <Search size={13} color="var(--text-muted)" style={{ position: 'absolute', left: '8px', top: '7px' }} />
                   <input
                     type="text"
                     value={rundownSearch}
                     onChange={(e) => setRundownSearch(e.target.value)}
-                    placeholder="Listede klip, reklam, firma veya kod ara..."
+                    placeholder="Tabloda klip, reklam, firma veya .mxf ara..."
                     style={{
-                      padding: '5px 24px 5px 28px',
-                      borderRadius: '8px',
+                      padding: '4px 22px 4px 26px',
+                      borderRadius: '7px',
                       border: '1px solid var(--border-color)',
                       background: 'var(--bg-primary)',
                       color: 'var(--text-primary)',
-                      fontSize: '12px',
+                      fontSize: '11.5px',
                       outline: 'none',
-                      width: '240px'
+                      width: '220px'
                     }}
                   />
                   {rundownSearch && (
@@ -887,15 +1019,15 @@ export default function ListControlModule() {
                       onClick={() => setRundownSearch('')}
                       style={{
                         position: 'absolute',
-                        right: '6px',
-                        top: '6px',
+                        right: '5px',
+                        top: '5px',
                         border: 'none',
                         background: 'none',
                         color: 'var(--text-muted)',
                         cursor: 'pointer'
                       }}
                     >
-                      <X size={13} />
+                      <X size={12} />
                     </button>
                   )}
                 </div>
@@ -911,38 +1043,38 @@ export default function ListControlModule() {
                     })
                   }
                   style={{
-                    padding: '5px 11px',
-                    borderRadius: '8px',
+                    padding: '4px 10px',
+                    borderRadius: '7px',
                     border: '1px solid rgba(217, 119, 6, 0.45)',
                     background: 'rgba(217, 119, 6, 0.12)',
                     color: '#d97706',
-                    fontSize: '11.5px',
+                    fontSize: '11px',
                     fontWeight: 800,
                     cursor: 'pointer',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '5px'
+                    gap: '4px'
                   }}
                 >
-                  <Send size={12} />
-                  <span>Genel Revize İste</span>
+                  <Send size={11} />
+                  <span>Genel Revize</span>
                 </button>
               </div>
             </div>
 
-            {/* ANA AKIŞ LİSTESİ (FLEXBOX SATIRLARI) */}
-            <div style={{
-              flex: 1,
-              minHeight: 0,
-              overflowY: 'auto',
-              padding: '12px 16px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px'
-            }}>
+            {/* FLEXBOX TABLO ALANI */}
+            <div
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={handleTableEndDrop}
+              style={{
+                padding: '12px 16px 36px 16px',
+                display: 'flex',
+                flexDirection: 'column'
+              }}
+            >
               {programs.length === 0 ? (
                 <div style={{
-                  margin: 'auto',
+                  margin: '32px auto',
                   maxWidth: '520px',
                   padding: '32px 24px',
                   borderRadius: '16px',
@@ -959,78 +1091,150 @@ export default function ListControlModule() {
                     {format(parseISO(safeDate), 'd MMMM yyyy EEEE', { locale: tr })} Günü İçin İletilen Liste Bekleniyor
                   </h3>
                   <p style={{ margin: 0, fontSize: '12.5px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                    Reklam Rezervasyon modülünden tamamlanıp iletilen listeler burada otomatik olarak açılır.
-                    Yukarıdaki <strong>"Reklam Rezervasyondan İletilen / Hazır Günler"</strong> şeridinden hazır bir güne geçebilir,
-                    <strong>"Reklam Rezervasyondan Çek"</strong> butonuna tıklayabilir veya sol paneldeki kütüphaneden doğrudan klip ve reklam ekleyebilirsiniz.
+                    Reklam Rezervasyon modülünden tamamlanıp iletilen listeler burada otomatik açılır.
+                    Yukarıdaki <strong>"Hazır / İletilen Günler"</strong> şeridinden hazır bir güne geçebilir,
+                    <strong>"Reklam Rezervasyondan Çek"</strong> butonuna tıklayabilir veya sol panelden sürükleyip bırakarak klip/reklam ekleyebilirsiniz.
                   </p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                    <button
-                      type="button"
-                      onClick={() => lcSyncFromAdsOrReady(selectedChannel, safeDate, { forceOverwrite: true, silent: false })}
-                      style={{
-                        padding: '8px 16px',
-                        borderRadius: '10px',
-                        border: 'none',
-                        background: 'var(--accent-primary)',
-                        color: '#ffffff',
-                        fontSize: '12.5px',
-                        fontWeight: 800,
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px'
-                      }}
-                    >
-                      <RefreshCw size={14} />
-                      <span>Reklam Rezervasyondan Listeyi Çek</span>
-                    </button>
-                  </div>
-                </div>
-              ) : filteredProgramsWithIndex.length === 0 ? (
-                <div style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
-                  Seçili filtre veya arama kriterine uygun satır bulunamadı.
+                  <button
+                    type="button"
+                    onClick={() => lcSyncFromAdsOrReady(selectedChannel, safeDate, { forceOverwrite: true, silent: false })}
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: '10px',
+                      border: 'none',
+                      background: 'var(--accent-primary)',
+                      color: '#ffffff',
+                      fontSize: '12.5px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <RefreshCw size={14} />
+                    <span>Reklam Rezervasyondan Listeyi Çek</span>
+                  </button>
                 </div>
               ) : (
-                filteredProgramsWithIndex.map(({ item, originalIndex }) => {
-                  const isSelected = item.instanceId === selectedInstanceId;
-                  const itemSig = String(item.code || item.fileId || item.title || '').trim().toLowerCase();
-                  const isSameClipHighlighted =
-                    !isSelected &&
-                    Boolean(selectedClipSignature && itemSig && itemSig === selectedClipSignature);
+                <div style={{
+                  border: '1.5px solid var(--border-color)',
+                  borderRadius: '12px',
+                  background: 'var(--bg-secondary)',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.06)'
+                }}>
+                  {/* FLEXBOX TABLO BAŞLIĞI (STICKY) */}
+                  <div style={{
+                    padding: '9px 12px',
+                    background: 'var(--bg-tertiary)',
+                    borderBottom: '1.5px solid var(--border-color)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    fontSize: '11px',
+                    fontWeight: 900,
+                    color: 'var(--text-secondary)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.3px'
+                  }}>
+                    <div style={{ width: '64px', flexShrink: 0 }}>SIRA</div>
+                    <div style={{ width: '142px', flexShrink: 0 }}>YAYIN SAATİ</div>
+                    <div style={{ flex: '2 1 210px', minWidth: '180px' }}>KLİP / REKLAM ADI & DOSYA KODU (.MXF)</div>
+                    <div style={{ width: '155px', flexShrink: 0 }}>AŞAMA & KAYNAK</div>
+                    <div style={{ flex: '1.5 1 250px', minWidth: '230px' }}>TEKNİK KONTROL (DB • DOSYA YOLU • DETAYLI DURUM)</div>
+                    <div style={{ width: '118px', flexShrink: 0 }}>SÜRE</div>
+                    <div style={{ width: '210px', flexShrink: 0, textAlign: 'right' }}>İŞLEMLER</div>
+                  </div>
 
-                  return (
-                    <ListControlRundownRow
-                      key={item.instanceId}
-                      item={item}
-                      index={originalIndex}
-                      totalCount={programs.length}
-                      isSelected={isSelected}
-                      isSameClipHighlighted={isSameClipHighlighted}
-                      health={healthMap[item.instanceId]}
-                      stageInfo={stageAnalysis?.itemVerificationMap?.[item.instanceId]}
-                      rowRef={(el) => {
-                        if (el) rowRefs.current[item.instanceId] = el;
-                      }}
-                      onSelectRow={(clickedItem) => setSelectedInstanceId(clickedItem.instanceId)}
-                      onUpdateDurationSec={(instId, newSec) =>
-                        lcUpdateItemDurationSec(selectedChannel, safeDate, activeVariant, instId, newSec)
-                      }
-                      onMoveUp={(instId) =>
-                        lcMoveProgramUp(selectedChannel, safeDate, activeVariant, instId)
-                      }
-                      onMoveDown={(instId) =>
-                        lcMoveProgramDown(selectedChannel, safeDate, activeVariant, instId)
-                      }
-                      onDeleteRow={(rowItem) =>
-                        lcRemovePrograms(selectedChannel, safeDate, activeVariant, [rowItem.instanceId])
-                      }
-                      onOpenClipPreview={(clipObj) => setPreviewClip(clipObj)}
-                      onRequestRevision={handleOpenRevisionModal}
-                    />
-                  );
-                })
+                  {/* FLEXBOX TABLO SATIRLARI */}
+                  {filteredProgramsWithIndex.length === 0 ? (
+                    <div style={{ padding: '28px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                      Seçili filtre veya arama kriterine uygun satır bulunamadı.
+                    </div>
+                  ) : (
+                    filteredProgramsWithIndex.map(({ item, originalIndex }) => {
+                      const isSelected = item.instanceId === selectedInstanceId;
+                      const itemSig = String(item.code || item.fileId || item.title || '').trim().toLowerCase();
+                      const isSameClipHighlighted =
+                        !isSelected &&
+                        Boolean(selectedClipSignature && itemSig && itemSig === selectedClipSignature);
+
+                      return (
+                        <ListControlRundownRow
+                          key={item.instanceId}
+                          item={item}
+                          index={originalIndex}
+                          totalCount={programs.length}
+                          isSelected={isSelected}
+                          isSameClipHighlighted={isSameClipHighlighted}
+                          isDragOver={dragOverRowIndex === originalIndex}
+                          health={healthMap[item.instanceId]}
+                          stageInfo={stageAnalysis?.itemVerificationMap?.[item.instanceId]}
+                          rowRef={(el) => {
+                            if (el) rowRefs.current[item.instanceId] = el;
+                          }}
+                          onSelectRow={(clickedItem) => setSelectedInstanceId(clickedItem.instanceId)}
+                          onUpdateDurationSec={(instId, newSec) =>
+                            lcUpdateItemDurationSec(selectedChannel, safeDate, activeVariant, instId, newSec)
+                          }
+                          onMoveUp={(instId) =>
+                            lcMoveProgramUp(selectedChannel, safeDate, activeVariant, instId)
+                          }
+                          onMoveDown={(instId) =>
+                            lcMoveProgramDown(selectedChannel, safeDate, activeVariant, instId)
+                          }
+                          onDeleteRow={(rowItem) =>
+                            lcRemovePrograms(selectedChannel, safeDate, activeVariant, [rowItem.instanceId])
+                          }
+                          onOpenClipPreview={(clipObj) => setPreviewClip(clipObj)}
+                          onRequestRevision={handleOpenRevisionModal}
+                          onRowDragStart={handleRowDragStart}
+                          onRowDragOver={handleRowDragOver}
+                          onRowDragLeave={handleRowDragLeave}
+                          onRowDrop={handleRowDrop}
+                        />
+                      );
+                    })
+                  )}
+                </div>
               )}
             </div>
+
+            {/* YÜZEN EN ÜSTE ÇIK BUTONU */}
+            {showScrollTopBtn && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (rightScrollContainerRef.current) {
+                    rightScrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+                  }
+                }}
+                style={{
+                  position: 'fixed',
+                  right: '24px',
+                  bottom: '24px',
+                  padding: '9px 14px',
+                  borderRadius: '999px',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #2563eb 0%, #4f46e5 100%)',
+                  color: '#ffffff',
+                  fontSize: '12px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: '0 8px 24px rgba(37, 99, 235, 0.38)',
+                  zIndex: 90
+                }}
+              >
+                <ArrowUp size={14} />
+                <span>En Üste Çık</span>
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -1042,7 +1246,7 @@ export default function ListControlModule() {
         clip={previewClip}
       />
 
-      {/* 4. AKILLI REVİZE İSTEME MODALI (KLİP -> TASLAK / YAYIN PLANLAMA SEÇİMİ, REKLAM -> REKLAM REZERVASYON) */}
+      {/* 4. AKILLI REVİZE İSTEME MODALI */}
       <ListControlRevisionModal
         isOpen={isRevisionModalOpen}
         onClose={() => {

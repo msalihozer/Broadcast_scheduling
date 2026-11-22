@@ -254,12 +254,16 @@ export const createTimelineSlice = (set, get) => ({
               const resolvedClipId = material
                 ? (material.clipId || material.code || material.id)
                 : (ad.clipId || ad.code || ad.materialId);
-              const resolvedCode = material?.code || ad.code || (resolvedClipId ? `${String(resolvedClipId).replace(/\.[^.]+$/, '')}.mxf` : '');
+              const pureNumAd = String(resolvedClipId || '').trim().match(/^(\d{3,10})(?:\.[a-zA-Z0-9]+)?$/);
+              const resolvedCode =
+                material?.code ||
+                ad.code ||
+                (resolvedClipId ? `${String(resolvedClipId).replace(/\.[^.]+$/, '')}.mxf` : '');
 
               newPrograms.push({
                 ...prog,
                 id: resolvedClipId,
-                fileId: String(resolvedClipId || '').replace(/\D+/g, '') || null,
+                fileId: pureNumAd ? Number(pureNumAd[1]) : null,
                 clipId: resolvedClipId || null,
                 code: resolvedCode,
                 fileName: resolvedCode,
@@ -312,13 +316,16 @@ export const createTimelineSlice = (set, get) => ({
           }
         } else {
           const durSec = Math.max(1, Math.round(Number(prog.durationSec) || (parseFloat(prog.duration) || 1) * 60));
-          const rawNum = String(prog.fileId || prog.clipId || prog.id || '').replace(/\D+/g, '');
+          const pureMatch = String(prog.fileId || prog.clipId || prog.id || '').trim().match(/^(\d{3,10})(?:\.[a-zA-Z0-9]+)?$/);
+          const pureFileId = pureMatch ? Number(pureMatch[1]) : null;
+          const cleanStem = String(prog.code || prog.fileName || (pureFileId ? pureFileId : (prog.clipName || prog.title || ''))).trim().replace(/\.[^.]+$/, '');
+          const defaultMxfCode = cleanStem ? `${cleanStem}.mxf` : '';
           newPrograms.push({
             ...prog,
-            fileId: prog.fileId || (rawNum.length >= 4 ? Number(rawNum) : null),
-            clipId: prog.clipId || prog.fileId || prog.id,
-            code: prog.code || prog.fileName || (rawNum.length >= 4 ? `${rawNum}.mxf` : ''),
-            fileName: prog.fileName || prog.code || (rawNum.length >= 4 ? `${rawNum}.mxf` : ''),
+            fileId: pureFileId,
+            clipId: prog.clipId || pureFileId || prog.id,
+            code: prog.code || prog.fileName || defaultMxfCode,
+            fileName: prog.fileName || prog.code || defaultMxfCode,
             duration: durSec / 60,
             durationSec: durSec,
             instanceId: prog.instanceId || `lc-prog-${pIdx}-${Math.random().toString(36).substr(2, 6)}`,

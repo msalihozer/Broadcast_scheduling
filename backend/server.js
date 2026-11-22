@@ -678,6 +678,16 @@ function isSafeReachableUncPath(p) {
     return MEDIA_EXT_REGEX.test(p);
 }
 
+function extractPureNumericFileId(...candidates) {
+    for (const c of candidates) {
+        if (!c) continue;
+        const s = String(c).trim();
+        const m = s.match(/^(\d{3,10})(?:\.[a-zA-Z0-9]+)?$/);
+        if (m) return m[1];
+    }
+    return '';
+}
+
 async function resolveFinalVideoAndDbRecord({ id, fileName, clipName, code, publicAddress }) {
     if (mamByStemMap.size === 0 && arsivByStemMap.size === 0 && cacheReadyPromise) {
         await Promise.race([
@@ -686,7 +696,7 @@ async function resolveFinalVideoAndDbRecord({ id, fileName, clipName, code, publ
         ]);
     }
 
-    const cleanNumericId = id ? String(id).replace(/\D+/g, '') : '';
+    const cleanNumericId = extractPureNumericFileId(id, code, fileName);
     let finalVideoPath = lookupCachedVideoPath([cleanNumericId, id, code, fileName, clipName]);
     let dbRecord = null;
 
@@ -695,15 +705,29 @@ async function resolveFinalVideoAndDbRecord({ id, fileName, clipName, code, publ
         finalVideoPath = normalizedPublicAddr;
     }
 
-    // 1. PostgreSQL archive_clips kontrolü
-    if (cleanNumericId && isPostgresReady()) {
+    const nameCandidates = [code, fileName, clipName, id]
+        .filter(Boolean)
+        .map(s => String(s).trim().toLowerCase())
+        .filter(s => s.length >= 3);
+    const stemCandidates = nameCandidates.map(s => s.replace(/\.[^.]+$/, ''));
+    const allNameTerms = Array.from(new Set([...nameCandidates, ...stemCandidates]));
+
+    // 1. PostgreSQL archive_clips kontrolü (Hem file_id hem de klip adı / dosya adı ile)
+    if (isPostgresReady() && (cleanNumericId || allNameTerms.length > 0)) {
         try {
+            const numVal = cleanNumericId ? parseInt(cleanNumericId, 10) : -1;
             const pgRes = await pgQuery(`
                 SELECT file_id as "fileId", name, file_name as "fileName", duration_sec as "durationSec", file_create_time as "fileCreateTime"
                 FROM archive_clips
-                WHERE file_id = $1
+                WHERE ($1 > 0 AND file_id = $1)
+                   OR (cardinality($2::text[]) > 0 AND (
+                        LOWER(file_name) = ANY($2::text[])
+                        OR LOWER(name) = ANY($2::text[])
+                        OR LOWER(REGEXP_REPLACE(file_name, '\\.[^.]+$', '')) = ANY($2::text[])
+                   ))
+                ORDER BY CASE WHEN file_id = $1 THEN 0 ELSE 1 END, file_id DESC
                 LIMIT 1
-            `, [parseInt(cleanNumericId, 10)]);
+            `, [numVal, allNameTerms]);
             const pgRow = pgRes.rows?.[0];
             if (pgRow) {
                 dbRecord = {
@@ -711,50 +735,67 @@ async function resolveFinalVideoAndDbRecord({ id, fileName, clipName, code, publ
                     name: pgRow.name,
                     fileName: pgRow.fileName,
                     durationMs: (Number(pgRow.durationSec) || 0) * 1000,
-                    fileCreateTime: pgRow.fileCreateTime
+                    fileCreateTime: pgRow.fileCreateTime,
+                    source: 'PostgreSQL MAM'
                 };
                 if (!finalVideoPath) {
-                    finalVideoPath = lookupCachedVideoPath([pgRow.fileName, pgRow.name]);
+                    finalVideoPath = lookupCachedVideoPath([pgRow.fileId, pgRow.fileName, pgRow.name]);
                 }
             }
         } catch (_) {}
     }
 
-    // 2. MSSQL Files kontrolü
-    if (cleanNumericId && (!finalVideoPath || !dbRecord)) {
+    // 2. MSSQL Files kontrolü (Hem fileId hem de name / fileName ile)
+    if ((!finalVideoPath || !dbRecord) && (cleanNumericId || allNameTerms.length > 0)) {
         try {
             const pool = await poolPromise;
             if (pool) {
-                const dbRes = await pool.request()
-                    .input('fileId', sql.Int, parseInt(cleanNumericId, 10))
-                    .query(`
-                        SELECT TOP 1 fileId, name, fileName, extension, duration, fileCreateTime, publicFileAddress, fileServerPath, trimIn, trimOut
+                const req = pool.request();
+                const whereParts = [];
+                if (cleanNumericId) {
+                    req.input('fileId', sql.Int, parseInt(cleanNumericId, 10));
+                    whereParts.push('fileId = @fileId');
+                }
+                const primaryName = stemCandidates[0] || nameCandidates[0] || '';
+                if (primaryName && primaryName.length >= 3) {
+                    req.input('clipName', sql.NVarChar, primaryName);
+                    req.input('clipFileMxf', sql.NVarChar, `${primaryName}.mxf`);
+                    whereParts.push('(LOWER(name) = @clipName OR LOWER(fileName) = @clipName OR LOWER(fileName) = @clipFileMxf)');
+                }
+                if (whereParts.length > 0) {
+                    const dbRes = await req.query(`
+                        SELECT TOP 1 fileId, name, fileName, extension, duration, deleted, fileCreateTime, publicFileAddress, fileServerPath, trimIn, trimOut
                         FROM Files
-                        WHERE fileId = @fileId
+                        WHERE ${whereParts.join(' OR ')}
+                        ORDER BY fileId DESC
                     `);
-                const row = dbRes.recordset?.[0];
-                if (row) {
-                    dbRecord = {
-                        fileId: row.fileId,
-                        name: row.name,
-                        fileName: row.fileName,
-                        extension: row.extension,
-                        durationMs: Number(row.duration) || dbRecord?.durationMs || 0,
-                        fileCreateTime: row.fileCreateTime || dbRecord?.fileCreateTime,
-                        publicFileAddress: row.publicFileAddress,
-                        fileServerPath: row.fileServerPath,
-                        trimIn: row.trimIn,
-                        trimOut: row.trimOut
-                    };
-                    if (!finalVideoPath) {
-                        const rowAddr = normalizeUncPathForCurrentOs(row.publicFileAddress);
-                        finalVideoPath = lookupCachedVideoPath([
-                            row.fileName,
-                            row.name,
-                            rowAddr
-                        ]);
-                        if (!finalVideoPath && isSafeReachableUncPath(rowAddr) && fs.existsSync(rowAddr)) {
-                            finalVideoPath = rowAddr;
+                    const row = dbRes.recordset?.[0];
+                    if (row) {
+                        dbRecord = {
+                            fileId: row.fileId,
+                            name: row.name,
+                            fileName: row.fileName,
+                            extension: row.extension,
+                            deleted: Boolean(row.deleted),
+                            durationMs: Number(row.duration) || dbRecord?.durationMs || 0,
+                            fileCreateTime: row.fileCreateTime || dbRecord?.fileCreateTime,
+                            publicFileAddress: row.publicFileAddress,
+                            fileServerPath: row.fileServerPath,
+                            trimIn: row.trimIn,
+                            trimOut: row.trimOut,
+                            source: 'MSSQL MAM'
+                        };
+                        if (!finalVideoPath) {
+                            const rowAddr = normalizeUncPathForCurrentOs(row.publicFileAddress);
+                            finalVideoPath = lookupCachedVideoPath([
+                                row.fileId,
+                                row.fileName,
+                                row.name,
+                                rowAddr
+                            ]);
+                            if (!finalVideoPath && isSafeReachableUncPath(rowAddr) && fs.existsSync(rowAddr)) {
+                                finalVideoPath = rowAddr;
+                            }
                         }
                     }
                 }
@@ -764,9 +805,17 @@ async function resolveFinalVideoAndDbRecord({ id, fileName, clipName, code, publ
         }
     }
 
-    // 3. Kısmi isim eşleşmesi (son çare)
+    // 3. Kısmi isim eşleşmesi (Video oynatıcı /api/stream ile birebir aynı dosya yolu çözümlemesi)
     if (!finalVideoPath) {
-        const searchTerms = [code, fileName, clipName, dbRecord?.fileName, dbRecord?.name]
+        const searchTerms = [
+            dbRecord?.fileName,
+            dbRecord?.name,
+            dbRecord?.fileId ? String(dbRecord.fileId) : null,
+            code,
+            fileName,
+            clipName,
+            id
+        ]
             .filter(Boolean)
             .map(s => String(s).trim().toLowerCase().replace(/\.[^.]+$/, ''))
             .filter(s => s.length >= 4);
@@ -785,9 +834,11 @@ async function resolveFinalVideoAndDbRecord({ id, fileName, clipName, code, publ
         }
     }
 
-    const exists = Boolean(finalVideoPath && fs.existsSync(finalVideoPath));
+    const existsOnDisk = Boolean(finalVideoPath && fs.existsSync(finalVideoPath));
+    const existsInIndex = Boolean(finalVideoPath && (mamByStemMap.size > 0 || arsivByStemMap.size > 0));
     return {
-        finalVideoPath: exists ? finalVideoPath : null,
+        finalVideoPath: (existsOnDisk || existsInIndex) ? finalVideoPath : null,
+        existsOnDisk,
         dbRecord
     };
 }
@@ -957,11 +1008,19 @@ app.get('/api/media-info', async (req, res) => {
     }
 });
 
-// Toplu Medya, Veritabanı ve Dosya Yolu / Bozukluk Kontrol Uç Noktası (Yayın Liste Kontrol Modülü İçin)
+// Toplu Medya, Veritabanı ve Dosya Yolu / Format / Bozukluk Kontrol Uç Noktası (Yayın Liste Kontrol Modülü İçin)
+// Not: Dosya yolu kontrolü, klibi oynatan (/api/stream) `resolveFinalVideoAndDbRecord` mekanizması ile birebir aynı şekilde çalışır.
 app.post('/api/media/verify-batch', async (req, res) => {
     try {
         const items = Array.isArray(req.body?.items) ? req.body.items : [];
         const deepProbe = Boolean(req.body?.deepProbe);
+        const rawAllowedFormats = Array.isArray(req.body?.allowedFormats) && req.body.allowedFormats.length > 0
+            ? req.body.allowedFormats
+            : ['mxf'];
+        const allowedFormats = rawAllowedFormats
+            .map(f => String(f || '').trim().toLowerCase().replace(/^\./, ''))
+            .filter(Boolean);
+        if (allowedFormats.length === 0) allowedFormats.push('mxf');
 
         if (mamByStemMap.size === 0 && arsivByStemMap.size === 0 && cacheReadyPromise) {
             await Promise.race([
@@ -970,28 +1029,24 @@ app.post('/api/media/verify-batch', async (req, res) => {
             ]);
         }
 
-        // 1. Tüm sayısal fileId adaylarını ve dosya adı adaylarını topla
+        // 1. Önce toplu hızlı DB sorgusu için tüm saf sayısal fileId ve isim adaylarını topla
         const numericIdsSet = new Set();
         const fileNameSet = new Set();
 
         items.forEach(item => {
             if (!item) return;
-            const rawIds = [item.fileId, item.clipId, item.id, item.code];
-            rawIds.forEach(val => {
-                if (!val) return;
-                const s = String(val).trim();
-                const numMatch = s.match(/^(\d{4,10})(?:\.[a-zA-Z0-9]+)?$/);
-                if (numMatch) {
-                    const n = parseInt(numMatch[1], 10);
-                    if (n > 0) numericIdsSet.add(n);
-                }
-            });
-            [item.fileName, item.clipName, item.code, item.title].forEach(fn => {
+            const pureId = extractPureNumericFileId(item.fileId, item.clipId, item.id, item.code);
+            if (pureId) {
+                const n = parseInt(pureId, 10);
+                if (n > 0) numericIdsSet.add(n);
+            }
+            [item.fileName, item.clipName, item.code, item.title, item.id].forEach(fn => {
                 if (!fn) return;
                 const clean = String(fn).trim().toLowerCase();
-                if (clean.length >= 3) {
+                if (clean.length >= 3 && !clean.startsWith('lc-') && !clean.startsWith('ad-')) {
                     fileNameSet.add(clean);
                     fileNameSet.add(clean.replace(/\.[^.]+$/, ''));
+                    fileNameSet.add(`${clean.replace(/\.[^.]+$/, '')}.mxf`);
                 }
             });
         });
@@ -1003,12 +1058,16 @@ app.post('/api/media/verify-batch', async (req, res) => {
         if (isPostgresReady() && (numericIdsSet.size > 0 || fileNameSet.size > 0)) {
             try {
                 const numArr = Array.from(numericIdsSet);
-                const nameArr = Array.from(fileNameSet).slice(0, 500);
+                const nameArr = Array.from(fileNameSet).slice(0, 600);
                 const pgRes = await pgQuery(`
                     SELECT file_id as "fileId", name, file_name as "fileName", duration_sec as "durationSec", category_id as "categoryId"
                     FROM archive_clips
                     WHERE (cardinality($1::int[]) > 0 AND file_id = ANY($1::int[]))
-                       OR (cardinality($2::text[]) > 0 AND (LOWER(file_name) = ANY($2::text[]) OR LOWER(name) = ANY($2::text[])))
+                       OR (cardinality($2::text[]) > 0 AND (
+                            LOWER(file_name) = ANY($2::text[])
+                            OR LOWER(name) = ANY($2::text[])
+                            OR LOWER(REGEXP_REPLACE(file_name, '\\.[^.]+$', '')) = ANY($2::text[])
+                       ))
                 `, [numArr, nameArr]);
 
                 (pgRes.rows || []).forEach(r => {
@@ -1027,7 +1086,9 @@ app.post('/api/media/verify-batch', async (req, res) => {
                         dbByLowerName.set(fnLow.replace(/\.[^.]+$/, ''), rec);
                     }
                     if (r.name) {
-                        dbByLowerName.set(String(r.name).toLowerCase(), rec);
+                        const nLow = String(r.name).toLowerCase();
+                        dbByLowerName.set(nLow, rec);
+                        dbByLowerName.set(`${nLow}.mxf`, rec);
                     }
                 });
             } catch (pgErr) {
@@ -1035,55 +1096,17 @@ app.post('/api/media/verify-batch', async (req, res) => {
             }
         }
 
-        // 3. Eğer PG'de bulunamayan sayısal ID'ler varsa ve MSSQL aktifse MSSQL Files tablosundan tamamla
-        const missingNumericIds = Array.from(numericIdsSet).filter(n => !dbByFileId.has(String(n)));
-        if (missingNumericIds.length > 0 && isMssqlConnected) {
-            try {
-                const pool = await poolPromise;
-                if (pool) {
-                    const idListSql = missingNumericIds.slice(0, 200).map(n => parseInt(n, 10)).filter(n => n > 0).join(',');
-                    if (idListSql) {
-                        const msRes = await pool.request().query(`
-                            SELECT fileId, name, fileName, duration, deleted, publicFileAddress
-                            FROM Files
-                            WHERE fileId IN (${idListSql})
-                        `);
-                        (msRes.recordset || []).forEach(r => {
-                            const rec = {
-                                fileId: r.fileId,
-                                name: r.name,
-                                fileName: r.fileName,
-                                durationSec: (Number(r.duration) || 0) / 1000,
-                                deleted: Boolean(r.deleted),
-                                publicFileAddress: r.publicFileAddress,
-                                source: 'MSSQL MAM'
-                            };
-                            dbByFileId.set(String(r.fileId), rec);
-                            if (r.fileName) {
-                                const fnLow = String(r.fileName).toLowerCase();
-                                dbByLowerName.set(fnLow, rec);
-                                dbByLowerName.set(fnLow.replace(/\.[^.]+$/, ''), rec);
-                            }
-                        });
-                    }
-                }
-            } catch (msErr) {
-                console.warn('[VERIFY-BATCH MSSQL WARN]:', msErr.message);
-            }
-        }
-
-        // 4. Her bir öğe için DB, Dosya Yolu ve Bozukluk kontrolü yap
+        // 3. Her bir öğe için (Video Oynatma `/api/stream` ile aynı çözümleyiciyi kullanarak) DB, Dosya Yolu (.mxf) ve Detaylı Bütünlük kontrolü yap
         const results = {};
         for (const item of items) {
             if (!item) continue;
             const key = item.instanceId || item.id || item.code || item.title;
             if (!key) continue;
 
-            // Canlı yayın veya kuşak başlığı ise medya dosyası gerektirmez
             const isLiveOrStructural =
                 item.type === 'live' ||
                 item.isLive ||
-                item.type === 'ad_break' ||
+                (item.type === 'ad_break' && !item.isEmptyAdBreak) ||
                 String(item.id || '').toUpperCase() === 'TPL-3';
 
             if (isLiveOrStructural) {
@@ -1092,35 +1115,44 @@ app.post('/api/media/verify-batch', async (req, res) => {
                     isStructural: true,
                     inDatabase: true,
                     fileExists: true,
+                    isFormatValid: true,
+                    detectedFormat: 'live',
                     isCorrupted: false,
                     status: 'healthy',
-                    dbSource: 'Canlı / Yapısal Kuşak',
+                    dbSource: 'Canlı Yayın / Kuşak',
                     resolvedPath: 'Canlı Yayın Akışı',
+                    dbStatusText: 'Canlı Yayın',
+                    fileStatusText: 'Canlı Akış',
+                    integrityStatusText: 'Sağlam (Canlı Yayın Kuşağı)',
                     issues: []
                 };
                 continue;
             }
 
-            // Aday ID ve İsimler
-            let matchedDb = null;
-            const idCandidates = [item.fileId, item.clipId, item.id, item.code];
-            let extractedNumericId = '';
-
-            for (const c of idCandidates) {
-                if (!c) continue;
-                const s = String(c).trim();
-                const m = s.match(/^(\d{4,10})(?:\.[a-zA-Z0-9]+)?$/);
-                if (m) {
-                    if (!extractedNumericId) extractedNumericId = m[1];
-                    if (dbByFileId.has(m[1])) {
-                        matchedDb = dbByFileId.get(m[1]);
-                        break;
-                    }
-                }
+            if (item.isEmptyAdBreak) {
+                results[key] = {
+                    instanceId: key,
+                    inDatabase: false,
+                    fileExists: false,
+                    isFormatValid: false,
+                    detectedFormat: null,
+                    isCorrupted: false,
+                    status: 'missing',
+                    dbSource: null,
+                    resolvedPath: null,
+                    dbStatusText: 'Spot Seçilmemiş',
+                    fileStatusText: 'Dosya Yok',
+                    integrityStatusText: 'Boş Reklam Kuşağı: Kuşak içine henüz reklam spotu yerleştirilmemiş',
+                    issues: ['Boş Reklam Kuşağı: İçine henüz reklam spotu yerleştirilmemiş']
+                };
+                continue;
             }
 
+            const pureNumericId = extractPureNumericFileId(item.fileId, item.clipId, item.id, item.code);
+            let matchedDb = pureNumericId && dbByFileId.has(pureNumericId) ? dbByFileId.get(pureNumericId) : null;
+
             if (!matchedDb) {
-                const nameCandidates = [item.fileName, item.code, item.clipName, item.title];
+                const nameCandidates = [item.fileName, item.code, item.clipName, item.title, item.id];
                 for (const nc of nameCandidates) {
                     if (!nc) continue;
                     const low = String(nc).trim().toLowerCase();
@@ -1136,20 +1168,43 @@ app.post('/api/media/verify-batch', async (req, res) => {
                 }
             }
 
-            // Dosya yolu kontrolü (Önbellek indexi + Disk)
-            const lookupCandidates = [
-                extractedNumericId,
-                item.fileId,
-                item.clipId,
+            // Video oynatıcı (/api/stream) nasıl buluyorsa birebir aynı şekilde dosya yolunu bul:
+            let cachedOrDiskPath = lookupCachedVideoPath([
+                matchedDb?.fileId,
+                matchedDb?.fileName,
+                matchedDb?.name,
+                pureNumericId,
                 item.code,
                 item.fileName,
                 item.clipName,
-                matchedDb?.fileName,
-                matchedDb?.name,
+                item.title,
                 item.id
-            ].filter(Boolean);
+            ]);
 
-            const cachedOrDiskPath = lookupCachedVideoPath(lookupCandidates);
+            // Eğer hızlı önbellek eşleşmesinde çıkmadıysa, tıpkı /api/stream gibi resolveFinalVideoAndDbRecord çağır
+            if (!cachedOrDiskPath || !matchedDb) {
+                const resolved = await resolveFinalVideoAndDbRecord({
+                    id: matchedDb?.fileId || pureNumericId || item.fileId || item.clipId || item.id,
+                    fileName: matchedDb?.fileName || item.fileName || item.code || item.title,
+                    clipName: item.clipName || item.title,
+                    code: item.code || item.title,
+                    publicAddress: item.publicFileAddress || matchedDb?.publicFileAddress
+                });
+                if (!cachedOrDiskPath && resolved.finalVideoPath) {
+                    cachedOrDiskPath = resolved.finalVideoPath;
+                }
+                if (!matchedDb && resolved.dbRecord) {
+                    matchedDb = {
+                        fileId: resolved.dbRecord.fileId,
+                        name: resolved.dbRecord.name,
+                        fileName: resolved.dbRecord.fileName,
+                        durationSec: (Number(resolved.dbRecord.durationMs) || 0) / 1000,
+                        deleted: Boolean(resolved.dbRecord.deleted),
+                        source: resolved.dbRecord.source || 'MAM Veritabanı'
+                    };
+                }
+            }
+
             let physicalExists = false;
             let fileSize = null;
             if (cachedOrDiskPath) {
@@ -1159,7 +1214,6 @@ app.post('/api/media/verify-batch', async (req, res) => {
                         const st = fs.statSync(cachedOrDiskPath);
                         fileSize = st.size;
                     } else if (mamByStemMap.size > 0 || arsivByStemMap.size > 0) {
-                        // Önbellek haritasında kayıtlı (mount geçici kapalıysa bile index'te var)
                         physicalExists = true;
                     }
                 } catch (_) {
@@ -1167,40 +1221,60 @@ app.post('/api/media/verify-batch', async (req, res) => {
                 }
             }
 
+            // Dosya uzantısını / formatını tespit et (Varsayılan genel format: .mxf)
+            const effectiveFileName = cachedOrDiskPath
+                ? path.basename(cachedOrDiskPath)
+                : (matchedDb?.fileName || item.code || item.fileName || (pureNumericId ? `${pureNumericId}.mxf` : ''));
+            const extMatch = String(effectiveFileName || '').match(/\.([a-zA-Z0-9]+)$/);
+            const detectedFormat = extMatch ? extMatch[1].toLowerCase() : (physicalExists || matchedDb ? 'mxf' : '');
+            const isFormatValid = !detectedFormat || allowedFormats.includes(detectedFormat);
+
             const itemDurationSec = Number(item.durationSec) || (Number(item.duration) || 0) * 60 || matchedDb?.durationSec || 0;
-            const hasValidCodeOrId = Boolean(extractedNumericId || matchedDb || (item.code && MEDIA_EXT_REGEX.test(String(item.code))));
+            const effectiveFileId = matchedDb?.fileId || pureNumericId || null;
+
+            // Eğer dosya sunucuda bulunduysa (/api/stream oynatabiliyorsa) veya DB'de kaydı varsa:
+            const fileExists = Boolean(cachedOrDiskPath && physicalExists);
             const inDatabase = Boolean(
                 matchedDb ||
-                (item.isAd && hasValidCodeOrId && (physicalExists || extractedNumericId)) ||
-                (extractedNumericId && physicalExists)
+                (effectiveFileId && fileExists) ||
+                (item.isAd && fileExists)
             );
-            const fileExists = Boolean(cachedOrDiskPath && physicalExists);
 
-            // Klip Bozukluk Kontrolü
+            // Detaylı ve Açıklamalı Hata / Bozukluk Kontrolü
             const issues = [];
+            const corruptionReasons = [];
             let isCorrupted = Boolean(item.isCorruptedSimulated);
 
             if (!inDatabase) {
-                issues.push("Veritabanında (MAM / Katalog DB) klip kaydı bulunamadı");
+                issues.push(`DB Kaydı Yok: MAM Veritabanında "${item.title || item.code}" kaydı bulunamadı`);
             }
             if (!fileExists) {
-                issues.push("Medya sunucusu dosya yolunda (.mxf / .mp4) fiziksel dosya bulunamadı");
+                const expectedFileLabel = effectiveFileName || `${item.title || item.id || 'klip'}.mxf`;
+                issues.push(`Dosya Yolu Eksik: Sunucu arşiv dizininde (${expectedFileLabel}) fiziksel dosya bulunamadı`);
+            }
+            if (fileExists && !isFormatValid) {
+                isCorrupted = true;
+                const fmtMsg = `Format Uyumsuz: Dosya formatı (.${detectedFormat}), izin verilen formatlar (${allowedFormats.map(f => '.' + f).join(', ')}) dışında`;
+                corruptionReasons.push(fmtMsg);
+                issues.push(fmtMsg);
             }
             if (matchedDb?.deleted) {
                 isCorrupted = true;
-                issues.push("Klip veritabanında silinmiş (deleted=1) olarak işaretli");
+                const delMsg = 'DB Silinmiş Kayıt: Klip MAM veritabanında silinmiş (deleted=1) olarak işaretli';
+                corruptionReasons.push(delMsg);
+                issues.push(delMsg);
             }
             if (itemDurationSec <= 0) {
                 isCorrupted = true;
-                issues.push("Klip süresi 0 sn veya geçersiz (bozuk zaman kodu)");
+                const durMsg = 'Süre Hatası: Klip süresi 00:00 (0 sn) görünüyor, zaman kodu geçersiz';
+                corruptionReasons.push(durMsg);
+                issues.push(durMsg);
             }
             if (fileSize !== null && fileSize <= 1024) {
                 isCorrupted = true;
-                issues.push(`Dosya boyutu bozuk veya 0 Byte (${fileSize} byte)`);
-            }
-            if (!hasValidCodeOrId) {
-                isCorrupted = true;
-                issues.push("Eksik veya hatalı medya klip kodu / FileID");
+                const sizeMsg = `Dosya Boyutu Hatası: Fiziksel dosya boyutu ${fileSize} Byte (0 Byte / Eksik kopyalanmış dosya)`;
+                corruptionReasons.push(sizeMsg);
+                issues.push(sizeMsg);
             }
 
             if (deepProbe && cachedOrDiskPath && fs.existsSync(cachedOrDiskPath) && !isCorrupted) {
@@ -1208,7 +1282,9 @@ app.post('/api/media/verify-batch', async (req, res) => {
                 const hasVideo = Array.isArray(probe?.streams) && probe.streams.some(s => s.codec_type === 'video');
                 if (probe && !hasVideo) {
                     isCorrupted = true;
-                    issues.push("FFprobe analizinde geçerli video akışı (stream) bulunamadı");
+                    const streamMsg = 'Video Akışı Hatası: FFprobe analizinde dosya içinde video stream okunamadı';
+                    corruptionReasons.push(streamMsg);
+                    issues.push(streamMsg);
                 }
             }
 
@@ -1218,18 +1294,43 @@ app.post('/api/media/verify-batch', async (req, res) => {
                 ? 'missing'
                 : 'healthy';
 
+            const sizeMbText = fileSize && fileSize > 1024 ? ` • ${(fileSize / (1024 * 1024)).toFixed(1)} MB` : '';
+            const formatBadge = (detectedFormat || 'mxf').toUpperCase();
+
+            const dbStatusText = inDatabase
+                ? `DB Kayıtlı (${effectiveFileId ? `#${effectiveFileId}` : 'MAM'})`
+                : 'DB Kaydı Bulunamadı';
+
+            const fileStatusText = fileExists
+                ? `Dosya Mevcut (${effectiveFileName || `${formatBadge} Dosyası`})`
+                : `Dosya Yolunda Yok (${effectiveFileName || '.mxf'})`;
+
+            const integrityStatusText = isCorrupted
+                ? corruptionReasons.join(' • ') || 'Klip Bütünlük Hatası'
+                : !fileExists
+                ? 'Dosya sunucu dizininde bulunamadığı için oynatılamaz'
+                : !inDatabase
+                ? 'Veritabanı künyesi eksik'
+                : `Sağlam (.${formatBadge} • ${Math.round(itemDurationSec)} sn${sizeMbText} • Oynatılabilir)`;
+
             results[key] = {
                 instanceId: key,
                 inDatabase,
                 fileExists,
+                isFormatValid,
+                detectedFormat: detectedFormat || 'mxf',
                 isCorrupted,
                 status,
-                dbSource: matchedDb?.source || (inDatabase ? (item.isAd ? 'Reklam & MAM Kataloğu' : 'MAM Arşiv Index') : null),
-                dbFileId: matchedDb?.fileId || extractedNumericId || null,
+                dbSource: matchedDb?.source || (inDatabase ? (item.isAd ? 'Reklam & MAM DB' : 'MAM Arşiv DB') : null),
+                dbFileId: effectiveFileId,
                 dbDurationSec: matchedDb?.durationSec || itemDurationSec || 0,
                 resolvedPath: cachedOrDiskPath || null,
-                fileName: cachedOrDiskPath ? path.basename(cachedOrDiskPath) : (matchedDb?.fileName || item.code || item.fileName || null),
+                fileName: effectiveFileName || null,
                 fileSize,
+                dbStatusText,
+                fileStatusText,
+                integrityStatusText,
+                corruptionReason: corruptionReasons.join(' | ') || null,
                 issues
             };
         }
@@ -1238,6 +1339,7 @@ app.post('/api/media/verify-batch', async (req, res) => {
             success: true,
             checkedAt: new Date().toISOString(),
             totalChecked: items.length,
+            allowedFormats,
             results
         });
     } catch (err) {

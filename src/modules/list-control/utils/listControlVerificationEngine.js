@@ -2,8 +2,8 @@
  * @file src/modules/list-control/utils/listControlVerificationEngine.js
  * @description Yayın Liste Kontrol Modülü için:
  * 1. 3 Aşamalı Çapraz Kontrol Motoru (Taslak Planlama ↔ Yayın Planlama ↔ Reklam Rezervasyon ↔ Liste Kontrol)
- * 2. Klip ve Reklam Teknik Sağlık Doğrulaması (DB'de var mı? • Dosya yolunda var mı? • Klip bozuk mu?)
- * 3. Hatalar, Sorunlar ve Uyarılar Merkezi Üreticisi
+ * 2. Klip ve Reklam Teknik Sağlık Doğrulaması (Video oynatıcı /api/stream ile aynı dosya yolu çözümlemesi, .mxf ve ayarlanabilir format kontrolü, detaylı bozukluk açıklaması)
+ * 3. Tekrar Eden Klipleri Tek Satırda Gruplayan (Satır No + Saat Rozetli) Hata ve Uyarı Merkezi Üreticisi
  */
 import {
   normalizeProgramText,
@@ -65,14 +65,13 @@ export function analyzeThreeStageVerification({
   const safeBroadcast = Array.isArray(broadcastPrograms) ? broadcastPrograms : [];
   const safeLc = Array.isArray(lcPrograms) ? lcPrograms : [];
 
-  // 1. Taslak Planlamadaki her bir kuşağın listede var olup olmadığını ve Yayın Planlama tarafından değiştirilip değiştirilmediğini kontrol et
   const draftSlotComparison = safeDraftSlots.map((slot, sIdx) => {
     const matchedLcItems = safeLc.filter(
       item => !item.isAdClip && !item.isFromAds && doesDraftSlotMatchRundownItem(slot, item, safeDraftSlots)
     );
     const isAdded = matchedLcItems.length > 0 || isDraftSlotAddedToRundown(slot, safeLc, safeDraftSlots);
 
-    let status = 'missing'; // 'matched' | 'modified_by_broadcast' | 'modified_in_lc' | 'missing'
+    let status = 'missing';
     let modificationDetail = '';
     const primaryMatch = matchedLcItems[0] || null;
 
@@ -82,12 +81,6 @@ export function analyzeThreeStageVerification({
         const draftEp = slot.episode ? Number(slot.episode) : null;
         const matchMeta = extractClipMeta(primaryMatch.clipName || primaryMatch.title || '');
         const lcEp = primaryMatch.episodeNo ? Number(primaryMatch.episodeNo) : matchMeta.episodeNo;
-
-        const draftDurSec = Number(slot.durationSec) || (Number(slot.duration) || 30) * 60;
-        const matchedTotalSec = matchedLcItems.reduce(
-          (sum, it) => sum + (Number(it.durationSec) || Math.round((Number(it.duration) || 0) * 60)),
-          0
-        );
 
         const changes = [];
         if (draftEp && lcEp && draftEp !== lcEp) {
@@ -115,7 +108,7 @@ export function analyzeThreeStageVerification({
       status,
       matchedItemsCount: matchedLcItems.length,
       primaryMatchInstanceId: primaryMatch?.instanceId || null,
-       primaryMatchTitle: primaryMatch?.title || null,
+      primaryMatchTitle: primaryMatch?.title || null,
       modificationDetail
     };
   });
@@ -124,7 +117,6 @@ export function analyzeThreeStageVerification({
   const modifiedDraftSlots = draftSlotComparison.filter(d => d.status === 'modified_by_broadcast' || d.status === 'modified_in_lc');
   const matchedDraftSlots = draftSlotComparison.filter(d => d.isPresentInList);
 
-  // 2. Liste Kontroldeki her bir satırın aşama kökenini (Taslakta Var / Yayın Planlama Ekledi / Yayın Planlama Değiştirdi / Reklam Rezervasyon / Liste Kontrol) belirle
   const itemVerificationMap = {};
   const addedByBroadcastItems = [];
   const modifiedByBroadcastItems = [];
@@ -139,12 +131,12 @@ export function analyzeThreeStageVerification({
       itemVerificationMap[instId] = {
         originStage: 'ads',
         badgeLabel: item.isEmptyAdBreak
-          ? '⚠️ Boş Reklam Kuşağı'
+          ? '⚠️ Boş Kuşak'
           : item.isBumperAd
-          ? `📢 RTÜK ${item.bumperType === 'intro' ? 'Giriş' : 'Çıkış'} Jeneriği`
+          ? `📢 RTÜK ${item.bumperType === 'intro' ? 'Giriş' : 'Çıkış'}`
           : item.isSponsor
-          ? '🏆 Sponsor Reklam'
-          : '📢 Reklam Rezervasyon',
+          ? '🏆 Sponsor'
+          : '📢 Reklam',
         badgeColor: item.isEmptyAdBreak ? '#dc2626' : item.isSponsor ? '#7c3aed' : '#d97706',
         badgeBg: item.isEmptyAdBreak
           ? 'rgba(220, 38, 38, 0.12)'
@@ -161,11 +153,9 @@ export function analyzeThreeStageVerification({
       return;
     }
 
-    // Bu klip/program Taslak Planlamadaki herhangi bir kuşakla eşleşiyor mu?
     const matchedDraftSlot = safeDraftSlots.find(slot => doesDraftSlotMatchRundownItem(slot, item, safeDraftSlots));
     const isIntro = Boolean(item.isIntroClip || item.unitType === 'intro' || String(item.categoryName || item.category || '').toLowerCase().includes('jenerik'));
 
-    // Yayın Planlamadaki karşılığını kontrol et
     const matchedBroadcastItem = safeBroadcast.find(
       bp =>
         (bp.fileId && item.fileId && String(bp.fileId) === String(item.fileId)) ||
@@ -191,7 +181,7 @@ export function analyzeThreeStageVerification({
       const prevTitle = item.previousItemSnapshot?.title || 'Önceki Klip';
       itemVerificationMap[instId] = {
         originStage: 'list-control-modified',
-        badgeLabel: '✏️ Liste Kontrolde Değiştirildi',
+        badgeLabel: '✏️ Liste Kontrolde Değişti',
         badgeColor: '#0284c7',
         badgeBg: 'rgba(2, 132, 199, 0.14)',
         detailText: `Eski: ${prevTitle} → Yeni: ${item.title}`,
@@ -211,7 +201,7 @@ export function analyzeThreeStageVerification({
       if (epChanged) {
         const infoObj = {
           originStage: 'broadcast-modified',
-          badgeLabel: `🔄 Yayın Planlama Değiştirdi (Taslak Bl.${draftEp} → Bl.${itemEp})`,
+          badgeLabel: `🔄 Yayın Planlama (Bl.${draftEp}→${itemEp})`,
           badgeColor: '#2563eb',
           badgeBg: 'rgba(37, 99, 235, 0.12)',
           detailText: `Taslakta "${matchedDraftSlot.title}" Bl.${draftEp} planlanmıştı, Yayın Planlama Bl.${itemEp} seçti.`,
@@ -238,24 +228,23 @@ export function analyzeThreeStageVerification({
     } else if (isIntro) {
       itemVerificationMap[instId] = {
         originStage: 'broadcast-intro',
-        badgeLabel: '🎬 Yayın Planlama (İntro / Jenerik)',
+        badgeLabel: '🎬 Program İntrosu',
         badgeColor: '#6366f1',
         badgeBg: 'rgba(99, 102, 241, 0.12)',
-        detailText: 'Yayın Planlama aşamasında otomatik program introsu olarak eklendi',
+        detailText: 'Yayın Planlama aşamasında program introsu olarak eklendi',
         isInDraft: false,
         isAddedByBroadcast: true,
         isModifiedByBroadcast: false
       };
     } else {
-      // Taslakta yok ama Yayın Planlama tarafından eklenmiş!
       const infoObj = {
         originStage: 'broadcast-added',
-        badgeLabel: '➕ Taslakta Yok • Yayın Planlama Ekledi',
+        badgeLabel: '➕ Yayın Planlama Ekledi',
         badgeColor: '#7c3aed',
         badgeBg: 'rgba(124, 58, 237, 0.12)',
         detailText: matchedBroadcastItem
           ? 'Taslak listesinde yer almıyor; Yayın Planlama aşamasında akışa eklendi.'
-          : 'Taslak listesinde yer almıyor; Yayın Planlama / Akış üzerinden eklendi.',
+          : 'Taslak listesinde yer almıyor; Yayın Planlama üzerinden eklendi.',
         isInDraft: false,
         isAddedByBroadcast: true,
         isModifiedByBroadcast: false
@@ -265,7 +254,6 @@ export function analyzeThreeStageVerification({
     }
   });
 
-  // 3. Reklam Kuşakları Özeti
   const adItemsInLc = safeLc.filter(p => p.isAdClip || p.isFromAds || p.type === 'ad_break' || p.type === 'ad_spot');
   const commercialAdsInLc = adItemsInLc.filter(p => !p.isBumperAd && !p.isEmptyAdBreak);
   const bumperAdsInLc = adItemsInLc.filter(p => p.isBumperAd);
@@ -297,15 +285,19 @@ export function analyzeThreeStageVerification({
 
 /**
  * Listedeki tüm klipleri ve reklamları `/api/media/verify-batch` uç noktasına göndererek
- * 1. DB'de var mı? (`inDatabase`)
- * 2. Dosya yolunda var mı? (`fileExists`)
- * 3. Klip bozuk mu? (`isCorrupted`)
- * kontrollerini gerçekleştirir.
+ * video oynatıcı (`/api/stream`) ile birebir aynı dosya yolu üzerinden DB, Dosya Yolu (.mxf) ve Detaylı Bütünlük kontrolü yapar.
  */
-export async function verifyBatchClipsAndAdsHealth(programs = [], { deepProbe = false } = {}) {
+export async function verifyBatchClipsAndAdsHealth(
+  programs = [],
+  { deepProbe = false, allowedFormats = ['mxf'] } = {}
+) {
   if (!Array.isArray(programs) || programs.length === 0) {
     return {};
   }
+
+  const normalizedFormats = Array.isArray(allowedFormats) && allowedFormats.length > 0
+    ? allowedFormats.map(f => String(f || '').trim().toLowerCase().replace(/^\./, '')).filter(Boolean)
+    : ['mxf'];
 
   const payloadItems = programs.map(p => ({
     instanceId: p.instanceId,
@@ -316,6 +308,7 @@ export async function verifyBatchClipsAndAdsHealth(programs = [], { deepProbe = 
     fileName: p.fileName || p.code || '',
     clipName: p.clipName || p.title || '',
     title: p.title || '',
+    publicFileAddress: p.publicFileAddress || '',
     durationSec: Number(p.durationSec) || Math.round((Number(p.duration) || 0) * 60),
     type: p.type || (p.isAdClip ? 'ad_spot' : 'clip'),
     isAd: Boolean(p.isAdClip || p.isFromAds),
@@ -328,7 +321,11 @@ export async function verifyBatchClipsAndAdsHealth(programs = [], { deepProbe = 
     const res = await fetch('/api/media/verify-batch', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items: payloadItems, deepProbe })
+      body: JSON.stringify({
+        items: payloadItems,
+        deepProbe,
+        allowedFormats: normalizedFormats
+      })
     });
     if (res.ok) {
       const data = await res.json();
@@ -340,7 +337,7 @@ export async function verifyBatchClipsAndAdsHealth(programs = [], { deepProbe = 
     console.warn('[LIST-CONTROL VERIFY BATCH FALLBACK]:', err.message);
   }
 
-  // Sunucuya ulaşılamazsa istemci taraflı hızlı doğrulama fallback'i
+  // Çevrimdışı / yerel fallback
   const fallbackMap = {};
   payloadItems.forEach(item => {
     if (item.isEmptyAdBreak) {
@@ -348,31 +345,51 @@ export async function verifyBatchClipsAndAdsHealth(programs = [], { deepProbe = 
         instanceId: item.instanceId,
         inDatabase: false,
         fileExists: false,
+        isFormatValid: false,
+        detectedFormat: null,
         isCorrupted: false,
         status: 'missing',
         dbSource: null,
         resolvedPath: null,
-        issues: ['Boş reklam kuşağı — içine reklam spotu yerleştirilmemiş']
+        dbStatusText: 'Spot Seçilmemiş',
+        fileStatusText: 'Dosya Yok',
+        integrityStatusText: 'Boş Reklam Kuşağı: İçine henüz reklam spotu yerleştirilmemiş',
+        issues: ['Boş Reklam Kuşağı: İçine henüz reklam spotu yerleştirilmemiş']
       };
       return;
     }
-    const rawNum = String(item.fileId || item.clipId || item.id || item.code || '').replace(/\D+/g, '');
-    const hasValidId = rawNum.length >= 4 || /\.(mxf|mp4|mov|avi)$/i.test(String(item.code || item.fileName || ''));
+
+    const rawCode = String(item.code || item.fileName || item.title || '').trim();
+    const extMatch = rawCode.match(/\.([a-zA-Z0-9]{2,5})$/);
+    const detectedFormat = extMatch ? extMatch[1].toLowerCase() : 'mxf';
+    const isFormatValid = normalizedFormats.includes(detectedFormat);
+    const hasIdentity = Boolean(item.fileId || item.clipId || rawCode.length >= 3);
     const validDur = Number(item.durationSec) > 0;
-    const isCorrupted = !validDur || Boolean(item.isCorruptedSimulated);
+    const isCorrupted = !validDur || !isFormatValid || Boolean(item.isCorruptedSimulated);
+
+    const issues = [];
+    if (!hasIdentity) issues.push('DB Kaydı Yok: Klip adı veya FileID tanımlı değil');
+    if (!validDur) issues.push('Süre Hatası: Klip süresi 00:00 (0 sn) görünüyor');
+    if (!isFormatValid) {
+      issues.push(`Format Uyumsuz: Dosya uzantısı (.${detectedFormat}), aktif formatlar (${normalizedFormats.map(f => '.' + f).join(', ')}) dışında`);
+    }
 
     fallbackMap[item.instanceId] = {
       instanceId: item.instanceId,
-      inDatabase: hasValidId,
-      fileExists: hasValidId,
+      inDatabase: hasIdentity,
+      fileExists: hasIdentity,
+      isFormatValid,
+      detectedFormat,
       isCorrupted,
-      status: isCorrupted ? 'corrupted' : hasValidId ? 'healthy' : 'missing',
-      dbSource: hasValidId ? (item.isAd ? 'Reklam Kataloğu' : 'MAM Arşiv DB') : null,
-      resolvedPath: hasValidId ? (item.code || item.fileName || `${rawNum}.mxf`) : null,
-      issues: [
-        ...(!hasValidId ? ['DB ve dosya kodu eksik'] : []),
-        ...(!validDur ? ['Klip süresi 0 sn veya geçersiz'] : [])
-      ]
+      status: isCorrupted ? 'corrupted' : hasIdentity ? 'healthy' : 'missing',
+      dbSource: hasIdentity ? (item.isAd ? 'Reklam Kataloğu' : 'MAM Arşiv DB') : null,
+      resolvedPath: hasIdentity ? (rawCode.includes('.') ? rawCode : `${rawCode}.mxf`) : null,
+      dbStatusText: hasIdentity ? 'DB Kayıtlı' : 'DB Kaydı Yok',
+      fileStatusText: hasIdentity ? `Dosya Mevcut (.${detectedFormat.toUpperCase()})` : 'Dosya Yolunda Yok',
+      integrityStatusText: isCorrupted
+        ? issues.join(' • ')
+        : `Sağlam (.${detectedFormat.toUpperCase()} • ${Math.round(item.durationSec)} sn • Oynatılabilir)`,
+      issues
     };
   });
 
@@ -380,7 +397,8 @@ export async function verifyBatchClipsAndAdsHealth(programs = [], { deepProbe = 
 }
 
 /**
- * Tüm teknik ve editoryal kontrollerden Uyarılar, Hatalar ve Sorunlar listesini üretir.
+ * Aynı klipler için hataları alt alta tekrar tekrar yazmak yerine,
+ * aynı klibi TEK SATIRDA gruplar ve yanına hangi satırlarda / saatlerde (`occurrences`) geçtiğini ekler!
  */
 export function buildUnifiedIssuesList({
   programs = [],
@@ -394,112 +412,158 @@ export function buildUnifiedIssuesList({
     stageAnalysis.missingDraftSlots.forEach((slot) => {
       issues.push({
         id: `issue-draft-missing-${slot.slotId}`,
-        severity: 'warning', // 'error' | 'warning' | 'info'
+        severity: 'warning',
         category: 'draft_missing',
-        categoryLabel: 'Taslak Kontrolü',
-        title: `Taslakta Planlanan "${slot.title}" Listede Yok`,
-        description: `Taslak Planlamada saat ${slot.startTime} için planlanan "${slot.title}"${slot.draftEpisode ? ` (Bölüm ${slot.draftEpisode})` : ''} yayın listesinde bulunamadı.`,
+        categoryLabel: 'Eksik Taslak Programı',
+        title: `${slot.title}${slot.draftEpisode ? ` (Bölüm ${slot.draftEpisode})` : ''}`,
+        code: `Taslak Saati: ${slot.startTime}`,
+        description: `Taslak Planlama listesinde saat ${slot.startTime} için planlanan "${slot.title}" yayın akışında yer almıyor.`,
         draftSlot: slot,
-        instanceId: null
+        instanceId: null,
+        occurrences: [
+          {
+            instanceId: null,
+            rowIndex: null,
+            clockStr: slot.startTime,
+            label: `Taslak ${slot.startTime}`
+          }
+        ]
       });
     });
   }
 
-  // 2. Satır bazlı DB, Dosya Yolu, Bozukluk ve Revize sorunları (Hem Klipler Hem Reklamlar İçin)
+  // 2. Klip ve Reklam Teknik Hatalarını (DB / Dosya Yolu / Format / Bozukluk / Revize) Aynı Klipler İçin Grupla
+  const groupedClipIssuesMap = new Map();
+
   programs.forEach((prog, idx) => {
     const instId = prog.instanceId;
     const health = healthMap[instId];
     const isAd = Boolean(prog.isAdClip || prog.isFromAds);
     const typeText = isAd ? 'Reklam' : 'Program Klibi';
     const clockStr = formatMinuteToClock(prog.startMinute || 0);
+    const rowNumber = idx + 1;
+
+    const rowReasons = [];
+    let highestSeverity = null; // 'error' | 'warning'
+    let primaryCategory = '';
+    let primaryCategoryLabel = '';
 
     if (prog.isEmptyAdBreak) {
-      issues.push({
-        id: `issue-empty-break-${instId}`,
-        severity: 'error',
-        category: 'ad_empty_break',
-        categoryLabel: 'Reklam Kuşağı Hatası',
-        title: `${clockStr} • Boş Reklam Kuşağı (${prog.parentBreakTitle || prog.title})`,
-        description: 'Bu reklam kuşağına hiçbir reklam spotu yerleştirilmemiş. Sol panelden reklam ekleyebilir veya Reklam Rezervasyondan revize isteyebilirsiniz.',
-        instanceId: instId,
-        rowIndex: idx + 1,
-        item: prog
-      });
-      return;
-    }
-
-    if (health) {
+      highestSeverity = 'error';
+      primaryCategory = 'ad_empty_break';
+      primaryCategoryLabel = 'Boş Reklam Kuşağı';
+      rowReasons.push('Bu reklam kuşağına henüz hiçbir reklam spotu yerleştirilmemiş.');
+    } else if (health) {
       if (!health.inDatabase) {
-        issues.push({
-          id: `issue-db-${instId}`,
-          severity: 'error',
-          category: 'db_missing',
-          categoryLabel: `${typeText} DB Hatası`,
-          title: `${clockStr} • #${idx + 1} "${prog.title}" Veritabanında (DB) Bulunamadı`,
-          description: `${typeText} (${prog.code || prog.id || 'Kodsuz'}) MAM / Katalog veritabanında kayıtlı değil.`,
-          instanceId: instId,
-          rowIndex: idx + 1,
-          item: prog
-        });
+        highestSeverity = 'error';
+        primaryCategory = 'db_missing';
+        primaryCategoryLabel = `${typeText} • DB Kaydı Yok`;
+        rowReasons.push(`MAM Veritabanında (${prog.code || prog.title}) klip kaydı bulunamadı`);
       }
       if (!health.fileExists) {
-        issues.push({
-          id: `issue-file-${instId}`,
-          severity: 'error',
-          category: 'file_missing',
-          categoryLabel: `${typeText} Dosya Yolu Hatası`,
-          title: `${clockStr} • #${idx + 1} "${prog.title}" Fiziksel Dosya Yolunda Yok`,
-          description: `${typeText} (${prog.code || prog.fileName || prog.id || 'Dosya Adı Yok'}) medya sunucusu dosya yolunda (/mnt/tv_mam/HighRes veya Arşiv) bulunamadı.`,
-          instanceId: instId,
-          rowIndex: idx + 1,
-          item: prog
-        });
+        highestSeverity = 'error';
+        primaryCategory = primaryCategory || 'file_missing';
+        primaryCategoryLabel = !health.inDatabase
+          ? `${typeText} • DB ve Dosya Yolu Eksik`
+          : `${typeText} • Dosya Yolunda Yok`;
+        rowReasons.push(`Sunucu medya dizininde (${health.fileName || prog.code || `${prog.title}.mxf`}) fiziksel dosya bulunamadı`);
       }
       if (health.isCorrupted) {
-        issues.push({
-          id: `issue-corrupt-${instId}`,
-          severity: 'error',
-          category: 'corrupted',
-          categoryLabel: `${typeText} Bozuk Klip`,
-          title: `${clockStr} • #${idx + 1} "${prog.title}" Klip Bozuk / Geçersiz Süre`,
-          description: (health.issues && health.issues.join(' • ')) || 'Klip süresi 0 sn, dosya boyutu 0 byte veya video akışı bozuk.',
-          instanceId: instId,
-          rowIndex: idx + 1,
-          item: prog
-        });
+        highestSeverity = 'error';
+        primaryCategory = primaryCategory || 'corrupted';
+        primaryCategoryLabel = primaryCategoryLabel || `${typeText} • Bütünlük / Format Hatası`;
+        if (health.corruptionReason) {
+          rowReasons.push(health.corruptionReason);
+        } else if (Array.isArray(health.issues) && health.issues.length > 0) {
+          rowReasons.push(health.issues.join(' • '));
+        } else {
+          rowReasons.push('Klip süresi 0 sn, dosya boyutu 0 Byte veya dosya formatı uyumsuz');
+        }
       }
     }
 
     if (prog.revisionRequested) {
-      issues.push({
-        id: `issue-rev-${instId}`,
-        severity: 'warning',
-        category: 'revision_pending',
-        categoryLabel: 'Revize Bekliyor',
-        title: `${clockStr} • #${idx + 1} "${prog.title}" İçin Revize İstendi (${prog.revisionTargetLabel || 'İlgili Birim'})`,
-        description: `Revize Notu: ${prog.revisionReason || '-'}`,
+      if (!highestSeverity) highestSeverity = 'warning';
+      primaryCategory = primaryCategory || 'revision_pending';
+      primaryCategoryLabel = primaryCategoryLabel || 'Revize Bekliyor';
+      rowReasons.push(`Revize İstendi (${prog.revisionTargetLabel || 'İlgili Birim'}): ${prog.revisionReason || '-'}`);
+    }
+
+    if (!highestSeverity || rowReasons.length === 0) return;
+
+    // Aynı klibin gün içindeki tüm tekrarlarını tek anahtarda birleştir
+    const clipGroupKey = prog.isEmptyAdBreak
+      ? `empty-break-${instId}`
+      : `${isAd ? 'ad' : 'clip'}::${String(prog.code || prog.fileId || prog.title || instId).trim().toLowerCase()}::${primaryCategory}`;
+
+    const occurrenceObj = {
+      instanceId: instId,
+      rowIndex: rowNumber,
+      clockStr,
+      breakTitle: prog.parentBreakTitle || '',
+      label: `#${rowNumber} • ${clockStr.slice(0, 5)}`
+    };
+
+    if (!groupedClipIssuesMap.has(clipGroupKey)) {
+      groupedClipIssuesMap.set(clipGroupKey, {
+        id: `grouped-issue-${clipGroupKey}`,
+        severity: highestSeverity,
+        category: primaryCategory,
+        categoryLabel: primaryCategoryLabel,
+        isAd,
+        title: prog.title || 'İsimsiz Klip',
+        code: prog.code || prog.fileName || String(prog.id || ''),
+        companyName: prog.companyName || '',
+        description: Array.from(new Set(rowReasons)).join(' | '),
         instanceId: instId,
-        rowIndex: idx + 1,
-        item: prog
+        rowIndex: rowNumber,
+        item: prog,
+        occurrences: [occurrenceObj]
       });
+    } else {
+      const existingGroup = groupedClipIssuesMap.get(clipGroupKey);
+      existingGroup.occurrences.push(occurrenceObj);
     }
   });
 
-  // 3. Yayın Planlama tarafından değiştirilen veya taslak dışı eklenenlerin bilgilendirme özeti
+  groupedClipIssuesMap.forEach(group => {
+    issues.push(group);
+  });
+
+  // 3. Yayın Planlama tarafından değiştirilenleri de aynı program/klip bazında grupla
   if (stageAnalysis?.modifiedByBroadcastItems?.length > 0) {
+    const bcastDiffMap = new Map();
     stageAnalysis.modifiedByBroadcastItems.forEach(({ item, info }) => {
+      const idx = programs.findIndex(p => p.instanceId === item.instanceId);
+      const rowNumber = idx >= 0 ? idx + 1 : 1;
       const clockStr = formatMinuteToClock(item.startMinute || 0);
-      issues.push({
-        id: `issue-bcast-mod-${item.instanceId}`,
-        severity: 'info',
-        category: 'broadcast_diff',
-        categoryLabel: 'Taslak ↔ Yayın Planlama Farkı',
-        title: `${clockStr} • "${item.title}" Yayın Planlama Tarafından Değiştirildi`,
-        description: info.detailText,
+      const key = `bcast-diff::${String(item.title || item.instanceId).toLowerCase()}`;
+      const occ = {
         instanceId: item.instanceId,
-        item
-      });
+        rowIndex: rowNumber,
+        clockStr,
+        label: `#${rowNumber} • ${clockStr.slice(0, 5)}`
+      };
+
+      if (!bcastDiffMap.has(key)) {
+        bcastDiffMap.set(key, {
+          id: `issue-bcast-mod-${item.instanceId}`,
+          severity: 'info',
+          category: 'broadcast_diff',
+          categoryLabel: 'Taslak ↔ Yayın Planlama Farkı',
+          title: item.title,
+          code: item.code || item.fileName || '',
+          description: info.detailText,
+          instanceId: item.instanceId,
+          rowIndex: rowNumber,
+          item,
+          occurrences: [occ]
+        });
+      } else {
+        bcastDiffMap.get(key).occurrences.push(occ);
+      }
     });
+    bcastDiffMap.forEach(val => issues.push(val));
   }
 
   return issues;

@@ -1,17 +1,24 @@
 /**
  * @file src/modules/list-control/components/ListControlRundownRow.jsx
- * @description Yayın Liste Kontrol Modülü — Tekil Klip veya Reklam Flexbox Satırı.
+ * @description Yayın Liste Kontrol Modülü — Hizalı Flexbox Tablo Satırı (Sürükle-Bırak Sıralama & Kütüphaneden Bırakma Destekli).
  *
  * Özellikler:
- * - Tıklandığında satırı seçer ve sol panelde o programın tüm bölümlerini (veya reklam katalogunu) açar.
- * - Satır üzerinde doğrudan Süre Düzenleme (Dakika + Saniye), ⓘ İzle & Bilgi, Revize İste, Yukarı/Aşağı Taşı ve Sil butonları bulunur.
- * - Hem klipler hem reklamlar için DB, Dosya Yolu ve Bozukluk rozetlerini gösterir.
- * - Taslak / Yayın Planlama / Reklam Rezervasyon aşama izleme rozetini gösterir.
+ * 1. Flexbox Tablo Sütunları:
+ *    - Sıra & Sürükle Tutamacı (⋮⋮ #1)
+ *    - Yayın Saati (Giriş → Çıkış)
+ *    - Klip / Reklam Adı & Dosya Kodu (.mxf)
+ *    - Aşama Kaynağı (Taslak ✓ / Yayın Planlama / Reklam)
+ *    - Teknik Kontrol & Açıklamalı Durum (DB • Dosya Yolu (.mxf) • Açıklamalı Bütünlük Bilgisi)
+ *    - Düzenlenebilir Süre (Dakika + Saniye)
+ *    - İşlemler (ⓘ İzle, Revize İste, ↑/↓, Sil)
+ * 2. Sürükle-Bırak (Drag & Drop):
+ *    - Tablo içindeki satırları sürükleyerek sırasını değiştirme.
+ *    - Sol paneldeki Medya veya Reklam kütüphanesinden sürüklenen klibi/reklamı satırın üstüne bırakarak ekleme veya değiştirme.
  */
 import React, { useState, useEffect } from 'react';
 import {
-  Film, Megaphone, Info, Clock, Edit3, Trash2, ArrowUp, ArrowDown,
-  Send, Check, X, AlertTriangle, CheckCircle2, ArrowLeftRight
+  Info, Clock, Edit3, Trash2, ArrowUp, ArrowDown,
+  Send, Check, X, AlertTriangle, GripVertical, ArrowLeftRight
 } from 'lucide-react';
 import {
   formatMinuteToClock,
@@ -24,6 +31,7 @@ export default function ListControlRundownRow({
   totalCount,
   isSelected,
   isSameClipHighlighted,
+  isDragOver,
   health,
   stageInfo,
   rowRef,
@@ -33,7 +41,11 @@ export default function ListControlRundownRow({
   onMoveDown,
   onDeleteRow,
   onOpenClipPreview,
-  onRequestRevision
+  onRequestRevision,
+  onRowDragStart,
+  onRowDragOver,
+  onRowDragLeave,
+  onRowDrop
 }) {
   const isAd = Boolean(item.isAdClip || item.isFromAds || item.type === 'ad_break' || item.type === 'ad_spot');
   const durSec = Math.max(1, Math.round(Number(item.durationSec) || (Number(item.duration) || 0) * 60));
@@ -56,7 +68,17 @@ export default function ListControlRundownRow({
     setIsEditingDuration(false);
   };
 
-  const h = health || { inDatabase: true, fileExists: true, isCorrupted: false, status: 'healthy' };
+  const h = health || {
+    inDatabase: true,
+    fileExists: true,
+    isFormatValid: true,
+    detectedFormat: 'mxf',
+    isCorrupted: false,
+    status: 'healthy',
+    dbStatusText: 'DB Kayıtlı',
+    fileStatusText: 'Dosya Mevcut (.MXF)',
+    integrityStatusText: 'Sağlam (.MXF • Oynatılabilir)'
+  };
   const hasHealthError = !h.inDatabase || !h.fileExists || h.isCorrupted || Boolean(item.isEmptyAdBreak);
 
   const leftBorderColor = hasHealthError
@@ -69,280 +91,250 @@ export default function ListControlRundownRow({
       : '#d97706'
     : item.categoryColor || '#2563eb';
 
+  const displayCode = h.fileName || item.code || item.fileName || (item.id ? `${item.id}.mxf` : '-');
+
   return (
     <div
       ref={rowRef}
+      draggable={!isEditingDuration}
+      onDragStart={(e) => onRowDragStart && onRowDragStart(e, index, item)}
+      onDragOver={(e) => onRowDragOver && onRowDragOver(e, index)}
+      onDragLeave={(e) => onRowDragLeave && onRowDragLeave(e, index)}
+      onDrop={(e) => onRowDrop && onRowDrop(e, index, item)}
       onClick={() => onSelectRow(item, index)}
       style={{
-        padding: '10px 14px',
-        borderRadius: '12px',
-        background: isSelected
+        padding: '8px 12px',
+        borderBottom: '1px solid var(--border-color)',
+        background: isDragOver
+          ? 'rgba(37, 99, 235, 0.18)'
+          : isSelected
           ? isAd
             ? 'rgba(217, 119, 6, 0.13)'
             : 'rgba(37, 99, 235, 0.12)'
           : hasHealthError
-          ? 'rgba(220, 38, 38, 0.06)'
+          ? 'rgba(220, 38, 38, 0.05)'
           : isAd
-          ? 'rgba(217, 119, 6, 0.04)'
+          ? 'rgba(217, 119, 6, 0.035)'
           : 'var(--bg-secondary)',
-        border: isSelected
+        outline: isDragOver
+          ? '2px dashed #2563eb'
+          : isSelected
           ? `2px solid ${isAd ? '#d97706' : '#2563eb'}`
           : isSameClipHighlighted
           ? '2px dashed #f59e0b'
-          : hasHealthError
-          ? '1.5px solid rgba(220, 38, 38, 0.45)'
-          : '1px solid var(--border-color)',
-        borderLeft: `5px solid ${leftBorderColor}`,
+          : 'none',
+        outlineOffset: '-2px',
+        borderLeft: `4px solid ${leftBorderColor}`,
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '12px',
-        flexWrap: 'wrap',
+        gap: '10px',
         cursor: 'pointer',
-        transition: 'all 0.14s ease',
-        boxShadow: isSelected ? '0 6px 18px rgba(0, 0, 0, 0.12)' : 'none'
+        transition: 'background-color 0.12s ease'
       }}
     >
-      {/* SOL BÖLÜM: SIRA NO + SAAT ARALIĞI + BAŞLIK & ROZETLER */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: '280px' }}>
-        {/* Sıra Numarası & Tür İkonu */}
-        <div style={{
+      {/* SÜTUN 1: SÜRÜKLE TUTAMACI & SIRA NO (64px) */}
+      <div
+        style={{
+          width: '64px',
+          flexShrink: 0,
           display: 'flex',
-          flexDirection: 'column',
           alignItems: 'center',
-          justifyContent: 'center',
-          minWidth: '38px',
-          height: '38px',
-          borderRadius: '10px',
-          background: isAd ? 'rgba(217, 119, 6, 0.15)' : 'var(--bg-tertiary)',
-          color: isAd ? '#d97706' : 'var(--text-primary)',
-          fontWeight: 900,
+          gap: '4px'
+        }}
+        title="Sürükleyerek satır sırasını değiştirin"
+      >
+        <GripVertical size={15} color="var(--text-muted)" style={{ cursor: 'grab', flexShrink: 0 }} />
+        <span style={{
           fontSize: '12px',
+          fontWeight: 900,
           fontFamily: 'monospace',
-          flexShrink: 0
+          color: isAd ? '#d97706' : 'var(--text-primary)'
         }}>
-          <span>#{index + 1}</span>
-        </div>
+          #{index + 1}
+        </span>
+      </div>
 
-        {/* Başlangıç - Bitiş Saati */}
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          padding: '4px 9px',
-          borderRadius: '8px',
-          background: 'var(--bg-primary)',
-          border: '1px solid var(--border-color)',
-          fontFamily: 'monospace',
-          flexShrink: 0
-        }}>
-          <span style={{ fontSize: '12.5px', fontWeight: 900, color: 'var(--text-primary)' }}>
-            {startClock}
-          </span>
-          <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)' }}>
-            → {endClock}
-          </span>
-        </div>
+      {/* SÜTUN 2: GİRİŞ - ÇIKIŞ SAATİ (142px) */}
+      <div style={{
+        width: '142px',
+        flexShrink: 0,
+        display: 'flex',
+        alignItems: 'center',
+        gap: '4px',
+        fontFamily: 'monospace',
+        fontSize: '12px',
+        fontWeight: 800,
+        color: 'var(--text-primary)'
+      }}>
+        <span>{startClock}</span>
+        <span style={{ color: 'var(--text-muted)', fontSize: '10.5px' }}>→</span>
+        <span style={{ color: 'var(--text-secondary)', fontSize: '11.5px' }}>{endClock}</span>
+      </div>
 
-        {/* Ana Başlık, Kod, Aşama Kaynağı ve Revize Bilgisi */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0, flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-            {/* Aşama Kaynağı Rozeti (Taslak / Yayın Planlama / Reklam Rezervasyon) */}
-            {stageInfo && (
-              <span
-                style={{
-                  fontSize: '10.5px',
-                  fontWeight: 800,
-                  padding: '2px 7px',
-                  borderRadius: '6px',
-                  background: stageInfo.badgeBg,
-                  color: stageInfo.badgeColor
-                }}
-                title={stageInfo.detailText}
-              >
-                {stageInfo.badgeLabel}
-              </span>
-            )}
-
-            {/* Bölüm / Part Rozeti */}
-            {item.episodeNo != null && (
-              <span style={{
-                fontSize: '10.5px',
-                fontWeight: 800,
-                padding: '2px 7px',
-                borderRadius: '6px',
-                background: 'rgba(37, 99, 235, 0.14)',
-                color: '#2563eb'
-              }}>
-                Bölüm {item.episodeNo}
-              </span>
-            )}
-            {item.partNo != null && (
-              <span style={{
-                fontSize: '10.5px',
-                fontWeight: 800,
-                padding: '2px 7px',
-                borderRadius: '6px',
-                background: 'rgba(124, 58, 237, 0.14)',
-                color: '#7c3aed'
-              }}>
-                Part {item.partNo}
-              </span>
-            )}
-
-            {/* Reklam Firma / Kuşak Rozeti */}
-            {isAd && item.parentBreakTitle && (
-              <span style={{
-                fontSize: '10.5px',
-                fontWeight: 800,
-                padding: '2px 7px',
-                borderRadius: '6px',
-                background: 'rgba(217, 119, 6, 0.12)',
-                color: '#b45309'
-              }}>
-                {item.parentBreakTitle}
-                {item.adOrderInBreak ? ` (${item.adOrderInBreak}/${item.adTotalInBreak})` : ''}
-              </span>
-            )}
-          </div>
-
-          <div style={{
-            fontSize: '13.5px',
+      {/* SÜTUN 3: KLİP / REKLAM ADI & DOSYA KODU (.MXF) (flex: 2, minWidth: 210px) */}
+      <div style={{
+        flex: '2 1 210px',
+        minWidth: '180px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '2px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+          <span style={{
+            fontSize: '13px',
             fontWeight: 800,
             color: 'var(--text-primary)',
-            wordBreak: 'break-word',
-            lineHeight: 1.3
+            wordBreak: 'break-word'
           }}>
             {item.title}
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', fontSize: '11px', color: 'var(--text-secondary)' }}>
-            <span style={{ fontFamily: 'monospace', fontWeight: 700 }}>
-              Kod: {item.code || item.fileName || item.id || '-'}
+          </span>
+          {item.episodeNo != null && (
+            <span style={{
+              fontSize: '10px',
+              fontWeight: 800,
+              padding: '1px 6px',
+              borderRadius: '5px',
+              background: 'rgba(37, 99, 235, 0.14)',
+              color: '#2563eb'
+            }}>
+              Bl.{item.episodeNo}
             </span>
-            {item.companyName && (
-              <>
-                <span>•</span>
-                <strong style={{ color: '#d97706' }}>{item.companyName}</strong>
-              </>
-            )}
-            {item.logo && (
-              <>
-                <span>•</span>
-                <span style={{ fontFamily: 'monospace', color: '#10b981' }}>Logo: {item.logo}</span>
-              </>
-            )}
-            {item.modifiedInListControl && item.previousItemSnapshot?.title && (
-              <span style={{ color: '#0284c7', fontWeight: 700 }}>
-                (Önceki: {item.previousItemSnapshot.title})
-              </span>
-            )}
+          )}
+          {item.partNo != null && (
+            <span style={{
+              fontSize: '10px',
+              fontWeight: 800,
+              padding: '1px 6px',
+              borderRadius: '5px',
+              background: 'rgba(124, 58, 237, 0.14)',
+              color: '#7c3aed'
+            }}>
+              P.{item.partNo}
+            </span>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', fontSize: '11px', color: 'var(--text-secondary)' }}>
+          <span style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--text-muted)' }}>
+            {displayCode}
+          </span>
+          {item.companyName && (
+            <strong style={{ color: '#d97706' }}>• {item.companyName}</strong>
+          )}
+          {item.modifiedInListControl && item.previousItemSnapshot?.title && (
+            <span style={{ color: '#0284c7', fontWeight: 700 }}>
+              (Eski: {item.previousItemSnapshot.title})
+            </span>
+          )}
+        </div>
+
+        {item.revisionRequested && (
+          <div style={{
+            fontSize: '10.5px',
+            fontWeight: 800,
+            color: '#b45309',
+            background: 'rgba(245, 158, 11, 0.14)',
+            padding: '2px 6px',
+            borderRadius: '5px',
+            alignSelf: 'flex-start',
+            marginTop: '2px'
+          }}>
+            ⚠️ Revize ({item.revisionTargetLabel}): {item.revisionReason}
           </div>
+        )}
+      </div>
 
-          {/* Eğer revize istendiyse veya hata varsa satır içi uyarı */}
-          {item.revisionRequested && (
-            <div style={{
-              marginTop: '2px',
-              padding: '4px 8px',
-              borderRadius: '6px',
-              background: 'rgba(245, 158, 11, 0.15)',
-              border: '1px solid rgba(245, 158, 11, 0.4)',
-              color: '#b45309',
-              fontSize: '11px',
+      {/* SÜTUN 4: AŞAMA & KAYNAK (155px) */}
+      <div style={{
+        width: '155px',
+        flexShrink: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '2px'
+      }}>
+        {stageInfo && (
+          <span
+            style={{
+              fontSize: '10.5px',
               fontWeight: 800,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
+              padding: '2px 7px',
+              borderRadius: '6px',
+              background: stageInfo.badgeBg,
+              color: stageInfo.badgeColor,
               alignSelf: 'flex-start'
-            }}>
-              <AlertTriangle size={12} />
-              <span>Revize İstendi ({item.revisionTargetLabel || 'İlgili Birim'}): {item.revisionReason}</span>
-            </div>
-          )}
+            }}
+            title={stageInfo.detailText}
+          >
+            {stageInfo.badgeLabel}
+          </span>
+        )}
+        {isAd && item.parentBreakTitle && (
+          <span style={{ fontSize: '10px', color: 'var(--text-secondary)', fontWeight: 700 }}>
+            {item.parentBreakTitle}
+          </span>
+        )}
+      </div>
 
-          {hasHealthError && Array.isArray(h.issues) && h.issues.length > 0 && (
-            <div style={{
-              marginTop: '2px',
-              padding: '4px 8px',
-              borderRadius: '6px',
-              background: 'rgba(220, 38, 38, 0.12)',
-              border: '1px solid rgba(220, 38, 38, 0.35)',
-              color: '#dc2626',
-              fontSize: '11px',
-              fontWeight: 800,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              alignSelf: 'flex-start'
-            }}>
-              <AlertTriangle size={12} />
-              <span>{h.issues.join(' • ')}</span>
-            </div>
-          )}
+      {/* SÜTUN 5: TEKNİK KONTROL & AÇIKLAMALI DURUM (DB • DOSYA YOLU • DETAYLI BÜTÜNLÜK AÇIKLAMASI) (flex: 1.5, minWidth: 250px) */}
+      <div
+        style={{
+          flex: '1.5 1 250px',
+          minWidth: '230px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '3px'
+        }}
+        title={h.resolvedPath ? `Tam Dosya Yolu: ${h.resolvedPath}` : h.integrityStatusText}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+          <span style={{
+            fontSize: '10px',
+            fontWeight: 800,
+            padding: '1.5px 6px',
+            borderRadius: '5px',
+            background: h.inDatabase ? 'rgba(16, 185, 129, 0.14)' : 'rgba(220, 38, 38, 0.15)',
+            color: h.inDatabase ? '#059669' : '#dc2626'
+          }}>
+            {h.inDatabase ? 'DB: Kayıtlı ✓' : 'DB: Yok ✗'}
+          </span>
+          <span style={{
+            fontSize: '10px',
+            fontWeight: 800,
+            padding: '1.5px 6px',
+            borderRadius: '5px',
+            background: h.fileExists ? 'rgba(16, 185, 129, 0.14)' : 'rgba(220, 38, 38, 0.15)',
+            color: h.fileExists ? '#059669' : '#dc2626'
+          }}>
+            {h.fileExists ? `Dosya: .${(h.detectedFormat || 'mxf').toUpperCase()} ✓` : 'Dosya Yolu: Yok ✗'}
+          </span>
+        </div>
+
+        {/* Açıklamalı Bütünlük / Hata Detayı (Sadece "Bozuk" yazmaz, nedenini açıklar!) */}
+        <div style={{
+          fontSize: '11px',
+          fontWeight: 700,
+          color: hasHealthError ? '#dc2626' : '#059669',
+          lineHeight: 1.3
+        }}>
+          {hasHealthError
+            ? (Array.isArray(h.issues) && h.issues.length > 0
+                ? h.issues.join(' • ')
+                : h.integrityStatusText || 'Dosya yolu veya veritabanı kaydı eksik')
+            : (h.integrityStatusText || `Sağlam (.${(h.detectedFormat || 'mxf').toUpperCase()} • Oynatılabilir)`)}
         </div>
       </div>
 
-      {/* SAĞ BÖLÜM: TEKNİK KONTROL ROZETLERİ (DB • DOSYA • BOZUKLUK) + SÜRE BELİRLEME + AKSİYONLAR */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-        {/* 1. DB / Dosya Yolu / Bozukluk Kontrol Rozetleri (Hem Klipler Hem Reklamlar İçin) */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            padding: '4px 7px',
-            borderRadius: '8px',
-            background: 'var(--bg-primary)',
-            border: '1px solid var(--border-color)'
-          }}
-          title={
-            h.resolvedPath
-              ? `Dosya Yolu: ${h.resolvedPath} (${h.dbSource || 'MAM DB'})`
-              : 'Veritabanı ve Fiziksel Dosya Yolu Durumu'
-          }
-        >
-          <span style={{
-            fontSize: '10.5px',
-            fontWeight: 800,
-            padding: '2px 6px',
-            borderRadius: '5px',
-            background: h.inDatabase ? 'rgba(16, 185, 129, 0.14)' : 'rgba(220, 38, 38, 0.16)',
-            color: h.inDatabase ? '#059669' : '#dc2626'
-          }}>
-            {h.inDatabase ? 'DB ✓' : 'DB ✗'}
-          </span>
-          <span style={{
-            fontSize: '10.5px',
-            fontWeight: 800,
-            padding: '2px 6px',
-            borderRadius: '5px',
-            background: h.fileExists ? 'rgba(16, 185, 129, 0.14)' : 'rgba(220, 38, 38, 0.16)',
-            color: h.fileExists ? '#059669' : '#dc2626'
-          }}>
-            {h.fileExists ? 'Dosya ✓' : 'Dosya ✗'}
-          </span>
-          <span style={{
-            fontSize: '10.5px',
-            fontWeight: 800,
-            padding: '2px 6px',
-            borderRadius: '5px',
-            background: !h.isCorrupted ? 'rgba(16, 185, 129, 0.14)' : 'rgba(220, 38, 38, 0.16)',
-            color: !h.isCorrupted ? '#059669' : '#dc2626'
-          }}>
-            {!h.isCorrupted ? 'Sağlam ✓' : 'Bozuk ⚠️'}
-          </span>
-        </div>
-
-        {/* 2. Klip / Reklam Süresi Belirleme Alanı */}
+      {/* SÜTUN 6: DÜZENLENEBİLİR SÜRE (118px) */}
+      <div style={{ width: '118px', flexShrink: 0, display: 'flex', justifyContent: 'flex-start' }}>
         {isEditingDuration ? (
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '4px',
-              padding: '4px 8px',
-              borderRadius: '8px',
+              gap: '3px',
+              padding: '3px 5px',
+              borderRadius: '7px',
               background: 'var(--bg-primary)',
               border: '1.5px solid var(--accent-primary)'
             }}
@@ -354,19 +346,17 @@ export default function ListControlRundownRow({
               value={editMin}
               onChange={(e) => setEditMin(e.target.value)}
               style={{
-                width: '44px',
-                padding: '3px 5px',
-                borderRadius: '5px',
+                width: '36px',
+                padding: '2px 3px',
+                borderRadius: '4px',
                 border: '1px solid var(--border-color)',
-                background: 'var(--bg-secondary)',
-                color: 'var(--text-primary)',
-                fontSize: '12px',
+                fontSize: '11px',
                 fontWeight: 800,
                 textAlign: 'center'
               }}
               title="Dakika"
             />
-            <span style={{ fontSize: '11px', fontWeight: 700 }}>dk</span>
+            <span style={{ fontSize: '10px' }}>dk</span>
             <input
               type="number"
               min="0"
@@ -374,35 +364,29 @@ export default function ListControlRundownRow({
               value={editSec}
               onChange={(e) => setEditSec(e.target.value)}
               style={{
-                width: '44px',
-                padding: '3px 5px',
-                borderRadius: '5px',
+                width: '36px',
+                padding: '2px 3px',
+                borderRadius: '4px',
                 border: '1px solid var(--border-color)',
-                background: 'var(--bg-secondary)',
-                color: 'var(--text-primary)',
-                fontSize: '12px',
+                fontSize: '11px',
                 fontWeight: 800,
                 textAlign: 'center'
               }}
               title="Saniye"
             />
-            <span style={{ fontSize: '11px', fontWeight: 700 }}>sn</span>
             <button
               type="button"
               onClick={handleSaveDuration}
               style={{
-                padding: '3px 7px',
-                borderRadius: '5px',
+                padding: '2px 5px',
+                borderRadius: '4px',
                 border: 'none',
                 background: '#10b981',
-                color: '#ffffff',
-                fontSize: '11px',
-                fontWeight: 800,
+                color: '#fff',
                 cursor: 'pointer'
               }}
-              title="Süreyi Kaydet"
             >
-              <Check size={12} />
+              <Check size={11} />
             </button>
             <button
               type="button"
@@ -411,16 +395,15 @@ export default function ListControlRundownRow({
                 setIsEditingDuration(false);
               }}
               style={{
-                padding: '3px 6px',
-                borderRadius: '5px',
-                border: '1px solid var(--border-color)',
-                background: 'var(--bg-secondary)',
-                color: 'var(--text-secondary)',
-                fontSize: '11px',
+                padding: '2px 4px',
+                borderRadius: '4px',
+                border: 'none',
+                background: 'transparent',
+                color: 'var(--text-muted)',
                 cursor: 'pointer'
               }}
             >
-              <X size={12} />
+              <X size={11} />
             </button>
           </div>
         ) : (
@@ -431,8 +414,8 @@ export default function ListControlRundownRow({
               setIsEditingDuration(true);
             }}
             style={{
-              padding: '5px 10px',
-              borderRadius: '8px',
+              padding: '4px 9px',
+              borderRadius: '7px',
               border: item.durationModifiedInListControl
                 ? '1.5px solid #0284c7'
                 : '1px solid var(--border-color)',
@@ -440,55 +423,63 @@ export default function ListControlRundownRow({
                 ? 'rgba(2, 132, 199, 0.12)'
                 : 'var(--bg-primary)',
               color: 'var(--text-primary)',
-              fontSize: '12px',
+              fontSize: '11.5px',
               fontWeight: 800,
               fontFamily: 'monospace',
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '5px'
+              gap: '4px'
             }}
-            title="Süreyi değiştirmek için tıklayın"
+            title="Süreyi düzenlemek için tıklayın"
           >
-            <Clock size={12} color="var(--accent-primary)" />
+            <Clock size={11} color="var(--accent-primary)" />
             <span>{formatSecondsReadable(durSec)}</span>
-            <Edit3 size={11} color="var(--text-muted)" />
           </button>
         )}
+      </div>
 
-        {/* 3. ⓘ İzle & Bilgi Butonu */}
+      {/* SÜTUN 7: İŞLEMLER (210px) */}
+      <div style={{
+        width: '210px',
+        flexShrink: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+        gap: '5px'
+      }}>
         <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
             onOpenClipPreview({
-              fileId: item.fileId || String(item.id || '').replace(/\D+/g, ''),
-              name: item.title,
-              fileName: item.code || item.fileName,
+              fileId: h.dbFileId || item.fileId || null,
+              name: item.clipName || item.title,
+              title: item.title,
+              fileName: h.fileName || item.code || item.fileName,
               durationSec: durSec,
               categoryName: isAd ? 'Reklam' : item.categoryName
             });
           }}
           style={{
-            padding: '5px 10px',
-            borderRadius: '8px',
+            padding: '4px 8px',
+            borderRadius: '7px',
             border: '1px solid var(--border-color)',
             background: 'var(--bg-primary)',
             color: 'var(--text-primary)',
-            fontSize: '11.5px',
+            fontSize: '11px',
             fontWeight: 800,
             cursor: 'pointer',
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '5px'
+            gap: '4px'
           }}
-          title="Klibi / Reklamı İzle ve Teknik Veritabanı Künyesini Gör"
+          title="Klibi İzle & Veritabanı Künyesini Gör"
         >
-          <Info size={13} color="#2563eb" />
-          <span>İzle & Bilgi</span>
+          <Info size={12} color="#2563eb" />
+          <span>İzle</span>
         </button>
 
-        {/* 4. Revize İste Butonu (Klip ise Taslak/Yayın Planlama seçtirir, Reklam ise Reklam Rezervasyona gider) */}
         <button
           type="button"
           onClick={(e) => {
@@ -496,105 +487,96 @@ export default function ListControlRundownRow({
             onRequestRevision(item);
           }}
           style={{
-            padding: '5px 10px',
-            borderRadius: '8px',
-            border: isAd
-              ? '1px solid rgba(217, 119, 6, 0.45)'
-              : '1px solid rgba(37, 99, 235, 0.4)',
-            background: isAd
-              ? 'rgba(217, 119, 6, 0.12)'
-              : 'rgba(37, 99, 235, 0.1)',
+            padding: '4px 8px',
+            borderRadius: '7px',
+            border: isAd ? '1px solid rgba(217, 119, 6, 0.45)' : '1px solid rgba(37, 99, 235, 0.4)',
+            background: isAd ? 'rgba(217, 119, 6, 0.12)' : 'rgba(37, 99, 235, 0.1)',
             color: isAd ? '#d97706' : '#2563eb',
-            fontSize: '11.5px',
+            fontSize: '11px',
             fontWeight: 800,
             cursor: 'pointer',
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '5px'
+            gap: '4px'
           }}
-          title={
-            isAd
-              ? 'Bu reklam için Reklam Rezervasyon birimine revize gönder'
-              : 'Bu klip için Taslak Planlama veya Yayın Planlama aşamasına revize gönder'
-          }
+          title={isAd ? 'Reklam Rezervasyona Revize Gönder' : 'Taslak veya Yayın Planlamaya Revize Gönder'}
         >
-          <Send size={12} />
-          <span>Revize İste</span>
+          <Send size={11} />
+          <span>Revize</span>
         </button>
 
-        {/* 5. Yukarı / Aşağı Taşı & Sil Butonları */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-          <button
-            type="button"
-            disabled={index === 0}
-            onClick={(e) => {
-              e.stopPropagation();
-              onMoveUp(item.instanceId);
-            }}
-            style={{
-              width: '28px',
-              height: '28px',
-              borderRadius: '7px',
-              border: '1px solid var(--border-color)',
-              background: 'var(--bg-primary)',
-              color: index === 0 ? 'var(--text-muted)' : 'var(--text-primary)',
-              opacity: index === 0 ? 0.4 : 1,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: index === 0 ? 'default' : 'pointer'
-            }}
-            title="Yukarı Taşı"
-          >
-            <ArrowUp size={13} />
-          </button>
-          <button
-            type="button"
-            disabled={index >= totalCount - 1}
-            onClick={(e) => {
-              e.stopPropagation();
-              onMoveDown(item.instanceId);
-            }}
-            style={{
-              width: '28px',
-              height: '28px',
-              borderRadius: '7px',
-              border: '1px solid var(--border-color)',
-              background: 'var(--bg-primary)',
-              color: index >= totalCount - 1 ? 'var(--text-muted)' : 'var(--text-primary)',
-              opacity: index >= totalCount - 1 ? 0.4 : 1,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: index >= totalCount - 1 ? 'default' : 'pointer'
-            }}
-            title="Aşağı Taşı"
-          >
-            <ArrowDown size={13} />
-          </button>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDeleteRow(item);
-            }}
-            style={{
-              width: '28px',
-              height: '28px',
-              borderRadius: '7px',
-              border: '1px solid rgba(220, 38, 38, 0.35)',
-              background: 'rgba(220, 38, 38, 0.08)',
-              color: '#dc2626',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer'
-            }}
-            title={isAd ? 'Reklamı Listeden Sil' : 'Klibi Listeden Sil'}
-          >
-            <Trash2 size={13} />
-          </button>
-        </div>
+        <button
+          type="button"
+          disabled={index === 0}
+          onClick={(e) => {
+            e.stopPropagation();
+            onMoveUp(item.instanceId);
+          }}
+          style={{
+            width: '26px',
+            height: '26px',
+            borderRadius: '6px',
+            border: '1px solid var(--border-color)',
+            background: 'var(--bg-primary)',
+            color: 'var(--text-primary)',
+            opacity: index === 0 ? 0.35 : 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: index === 0 ? 'default' : 'pointer'
+          }}
+          title="Yukarı Taşı"
+        >
+          <ArrowUp size={12} />
+        </button>
+
+        <button
+          type="button"
+          disabled={index >= totalCount - 1}
+          onClick={(e) => {
+            e.stopPropagation();
+            onMoveDown(item.instanceId);
+          }}
+          style={{
+            width: '26px',
+            height: '26px',
+            borderRadius: '6px',
+            border: '1px solid var(--border-color)',
+            background: 'var(--bg-primary)',
+            color: 'var(--text-primary)',
+            opacity: index >= totalCount - 1 ? 0.35 : 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: index >= totalCount - 1 ? 'default' : 'pointer'
+          }}
+          title="Aşağı Taşı"
+        >
+          <ArrowDown size={12} />
+        </button>
+
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDeleteRow(item);
+          }}
+          style={{
+            width: '26px',
+            height: '26px',
+            borderRadius: '6px',
+            border: '1px solid rgba(220, 38, 38, 0.35)',
+            background: 'rgba(220, 38, 38, 0.08)',
+            color: '#dc2626',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer'
+          }}
+          title="Satırı Sil"
+        >
+          <Trash2 size={12} />
+        </button>
       </div>
     </div>
   );

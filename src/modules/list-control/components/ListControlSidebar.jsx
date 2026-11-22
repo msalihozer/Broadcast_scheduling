@@ -362,10 +362,11 @@ export default function ListControlSidebar({
   const buildAdPayload = (mat) => {
     const durSec = Math.max(1, Number(mat.duration) || Number(mat.durationSec) || 15);
     const clipId = mat.clipId || mat.code || mat.id;
+    const pureMatch = String(clipId || '').trim().match(/^(\d{3,10})(?:\.[a-zA-Z0-9]+)?$/);
     const code = mat.code || (clipId ? `${String(clipId).replace(/\.[^.]+$/, '')}.mxf` : '');
     return {
       id: clipId,
-      fileId: Number(String(clipId).replace(/\D+/g, '')) || null,
+      fileId: pureMatch ? Number(pureMatch[1]) : null,
       clipId,
       code,
       fileName: code,
@@ -396,6 +397,12 @@ export default function ListControlSidebar({
     return (
       <div
         key={`${isFocusedSection ? 'foc' : 'lib'}-${clip.fileId || clip.id}-${clip.name}`}
+        draggable={true}
+        onDragStart={(e) => {
+          const payload = buildClipPayload(clip);
+          e.dataTransfer.setData('application/json', JSON.stringify({ source: 'lc_library_clip', payload }));
+          e.dataTransfer.effectAllowed = 'copyMove';
+        }}
         style={{
           padding: '10px 12px',
           borderRadius: '11px',
@@ -406,8 +413,10 @@ export default function ListControlSidebar({
           display: 'flex',
           flexDirection: 'column',
           gap: '7px',
+          cursor: 'grab',
           transition: 'all 0.15s ease'
         }}
+        title="Sağdaki tabloya sürükleyip bırakabilir veya butonlarla ekleyip değiştirebilirsiniz"
       >
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', minWidth: 0, flex: 1 }}>
@@ -1053,6 +1062,12 @@ export default function ListControlSidebar({
               return (
                 <div
                   key={mat.id}
+                  draggable={true}
+                  onDragStart={(e) => {
+                    const payload = buildAdPayload(mat);
+                    e.dataTransfer.setData('application/json', JSON.stringify({ source: 'lc_library_ad', payload }));
+                    e.dataTransfer.effectAllowed = 'copyMove';
+                  }}
                   style={{
                     padding: '10px 12px',
                     borderRadius: '11px',
@@ -1061,8 +1076,10 @@ export default function ListControlSidebar({
                     borderLeft: '3.5px solid #d97706',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '7px'
+                    gap: '7px',
+                    cursor: 'grab'
                   }}
+                  title="Sağdaki tabloya sürükleyip bırakabilir veya butonlarla ekleyip değiştirebilirsiniz"
                 >
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
                     <div style={{ minWidth: 0, flex: 1 }}>
