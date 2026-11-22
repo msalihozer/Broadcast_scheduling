@@ -1,6 +1,7 @@
 /**
  * @file src/components/Ads/ProductsTab.jsx
- * @description Modern SaaS Temalı, O(N) İndeksli ve Sayfalamalı Ürünler & Markalar Sekmesi.
+ * @description Kurumsal Flexbox Tablo Mimarili, O(N) İndeksli ve Sayfalamalı Ürünler Sekmesi.
+ * Ekrana %100 sığan esnek (Flex) satır yapısı ve üst özet KPI kartlarıyla tüm ürünleri listeler.
  */
 import React, { useState, useMemo, useEffect } from 'react';
 import {
@@ -13,7 +14,8 @@ import {
   Search,
   Calendar,
   FileBarChart2,
-  FilterX
+  FilterX,
+  Clock
 } from 'lucide-react';
 import usePlanningStore from '../../store/planningStore';
 import ProductForm from './ProductForm';
@@ -106,6 +108,17 @@ const ProductsTab = ({ setActiveTab }) => {
     });
   }, [products, companies, materials]);
 
+  const kpiStats = useMemo(() => {
+    const uniqueCompSet = new Set(enrichedProducts.map(p => String(p.companyId)).filter(Boolean));
+    const totalSec = enrichedProducts.reduce((acc, p) => acc + (Number(p.totalDurationSec) || 0), 0);
+    return {
+      totalProducts: products.length,
+      companiesWithProducts: uniqueCompSet.size || companies.length,
+      totalMaterials: materials.length,
+      totalMinutes: Math.round(totalSec / 60)
+    };
+  }, [enrichedProducts, products.length, companies.length, materials.length]);
+
   const filteredAndSorted = useMemo(() => {
     let list = enrichedProducts;
 
@@ -176,25 +189,112 @@ const ProductsTab = ({ setActiveTab }) => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-      {/* MODERN SAAS ÜST ARAÇ ÇUBUĞU */}
-      <div className="ads-saas-toolbar">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '14px', fontWeight: '800', color: 'var(--ads-text-main)' }}>
-            Ürünler &amp; Markalar
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', minWidth: 0 }}>
+      {/* 1. ÜST KURUMSAL KPI ÖZET ŞERİDİ (FLEXBOX) */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+        <div
+          className="ta-card"
+          style={{
+            flex: '1 1 200px',
+            padding: '14px 16px',
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: '12px'
+          }}
+        >
+          <div className="ta-icon-box warning" style={{ width: '42px', height: '42px' }}>
+            <Package size={20} />
+          </div>
+          <div>
+            <div style={{ fontSize: '11.5px', fontWeight: '700', color: 'var(--ads-text-muted)' }}>Toplam Ürün</div>
+            <div style={{ fontSize: '19px', fontWeight: '900', color: 'var(--ads-text-main)' }}>
+              {kpiStats.totalProducts} Ürün
+            </div>
+          </div>
+        </div>
+
+        <div
+          className="ta-card"
+          style={{
+            flex: '1 1 200px',
+            padding: '14px 16px',
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: '12px'
+          }}
+        >
+          <div className="ta-icon-box brand" style={{ width: '42px', height: '42px' }}>
+            <Building2 size={20} />
+          </div>
+          <div>
+            <div style={{ fontSize: '11.5px', fontWeight: '700', color: 'var(--ads-text-muted)' }}>Bağlı Firma</div>
+            <div style={{ fontSize: '19px', fontWeight: '900', color: 'var(--ads-brand)' }}>
+              {kpiStats.companiesWithProducts} Firma
+            </div>
+          </div>
+        </div>
+
+        <div
+          className="ta-card"
+          style={{
+            flex: '1 1 200px',
+            padding: '14px 16px',
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: '12px'
+          }}
+        >
+          <div className="ta-icon-box info" style={{ width: '42px', height: '42px' }}>
+            <Film size={20} />
+          </div>
+          <div>
+            <div style={{ fontSize: '11.5px', fontWeight: '700', color: 'var(--ads-text-muted)' }}>Toplam Materyal</div>
+            <div style={{ fontSize: '19px', fontWeight: '900', color: '#0284c7' }}>
+              {kpiStats.totalMaterials} Materyal
+            </div>
+          </div>
+        </div>
+
+        <div
+          className="ta-card"
+          style={{
+            flex: '1 1 200px',
+            padding: '14px 16px',
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: '12px'
+          }}
+        >
+          <div className="ta-icon-box success" style={{ width: '42px', height: '42px' }}>
+            <Clock size={20} />
+          </div>
+          <div>
+            <div style={{ fontSize: '11.5px', fontWeight: '700', color: 'var(--ads-text-muted)' }}>Toplam Arşiv Süresi</div>
+            <div style={{ fontSize: '19px', fontWeight: '900', color: '#059669' }}>
+              {kpiStats.totalMinutes} Dakika
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. FİLTRE VE ARAMA ARAÇ ÇUBUĞU (FLEXBOX) */}
+      <div className="ads-saas-toolbar" style={{ padding: '14px 18px', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '15px', fontWeight: '900', color: 'var(--ads-text-main)' }}>
+            Ürünler
           </span>
-          <span className="ads-saas-chip active" style={{ cursor: 'default' }}>
+          <span className="ads-saas-chip active" style={{ cursor: 'default', fontWeight: '800' }}>
             {filteredAndSorted.length} / {products.length} Ürün
           </span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', flex: 1, flexWrap: 'wrap' }}>
-          <div style={{ position: 'relative', minWidth: '200px', maxWidth: '280px', flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', flex: '1 1 420px', flexWrap: 'wrap' }}>
+          <div style={{ position: 'relative', minWidth: '210px', maxWidth: '300px', flex: 1 }}>
             <Search
               size={14}
               style={{
                 position: 'absolute',
-                left: '10px',
+                left: '11px',
                 top: '50%',
                 transform: 'translateY(-50%)',
                 color: 'var(--ads-text-muted)'
@@ -202,11 +302,11 @@ const ProductsTab = ({ setActiveTab }) => {
             />
             <input
               type="text"
-              placeholder="Ürün, marka veya firma adı ara..."
+              placeholder="Ürün veya firma adı ara..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               className="ads-saas-input"
-              style={{ width: '100%', paddingLeft: '30px' }}
+              style={{ width: '100%', paddingLeft: '32px' }}
             />
           </div>
 
@@ -214,7 +314,7 @@ const ProductsTab = ({ setActiveTab }) => {
             value={filterCompanyId}
             onChange={e => setAdFilters({ ...adFilters, companyId: e.target.value, productId: '' })}
             className="ads-saas-select"
-            style={{ maxWidth: '210px' }}
+            style={{ maxWidth: '220px' }}
           >
             <option value="">Tüm Firmalar ({companies.length})</option>
             {sortedCompanies.map(c => (
@@ -260,191 +360,243 @@ const ProductsTab = ({ setActiveTab }) => {
           }}
           className="ads-saas-btn ads-saas-btn-primary"
         >
-          <Plus size={14} /> Yeni Ürün Ekle
+          <Plus size={15} /> Yeni Ürün Ekle
         </button>
       </div>
 
-      {/* MODERN SAAS TABLO + SAYFALAMA */}
-      <div className="ads-saas-table-wrap">
-        <div className="ads-saas-table-scroll">
-          <table className="ads-saas-table" style={{ minWidth: '940px' }}>
-            <colgroup>
-              <col style={{ width: '5%' }} />
-              <col style={{ width: '25%' }} />
-              <col style={{ width: '22%' }} />
-              <col style={{ width: '20%' }} />
-              <col style={{ width: '10%' }} />
-              <col style={{ width: '7%' }} />
-              <col style={{ width: '11%' }} />
-            </colgroup>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Ürün / Kampanya Adı</th>
-                <th>Bağlı Firma</th>
-                <th>Materyaller (Klipler)</th>
-                <th>Son Yükleme</th>
-                <th>Süre</th>
-                <th>İşlemler</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedProducts.map((p, index) => {
-                const rowNumber = (currentPage - 1) * pageSize + index + 1;
-                return (
-                  <tr
-                    key={p.id}
-                    onClick={() => {
-                      setAdFilters({ companyId: p.companyId, productId: p.id });
-                      if (setActiveTab) setActiveTab('materials');
+      {/* 3. EKRANA %100 SIĞAN ESNEK (FLEXBOX) KURUMSAL ÜRÜNLER TABLOSU */}
+      <div className="ads-saas-table-wrap" style={{ overflow: 'hidden' }}>
+        {/* Flex Tablo Başlığı */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            padding: '13px 18px',
+            background: 'var(--ads-card-subtle)',
+            borderBottom: '1.5px solid var(--ads-border)',
+            fontSize: '11.5px',
+            fontWeight: '800',
+            color: 'var(--ads-text-muted)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em',
+            flexWrap: 'wrap'
+          }}
+        >
+          <div style={{ width: '42px', flexShrink: 0 }}>#</div>
+          <div style={{ flex: '2 1 210px', minWidth: '165px' }}>Ürün Adı</div>
+          <div style={{ flex: '1.6 1 180px', minWidth: '150px' }}>Bağlı Firma</div>
+          <div style={{ flex: '1.5 1 170px', minWidth: '145px' }}>Materyaller</div>
+          <div style={{ flex: '0.9 1 105px', minWidth: '95px' }}>Son Yükleme</div>
+          <div style={{ flex: '0.7 1 85px', minWidth: '75px' }}>Toplam Süre</div>
+          <div style={{ width: '165px', textAlign: 'right', flexShrink: 0 }}>İşlemler</div>
+        </div>
+
+        {/* Flex Tablo Satırları */}
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {paginatedProducts.map((p, index) => {
+            const rowNumber = (currentPage - 1) * pageSize + index + 1;
+            return (
+              <div
+                key={p.id}
+                onClick={() => {
+                  setAdFilters({ companyId: p.companyId, productId: p.id });
+                  if (setActiveTab) setActiveTab('materials');
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '13px 18px',
+                  borderBottom: '1px solid var(--ads-border)',
+                  cursor: 'pointer',
+                  flexWrap: 'wrap',
+                  transition: 'background 0.14s ease'
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--ads-row-hover)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              >
+                {/* Sıra No */}
+                <div
+                  style={{
+                    width: '42px',
+                    flexShrink: 0,
+                    fontWeight: '800',
+                    color: 'var(--ads-text-muted)',
+                    fontSize: '12px'
+                  }}
+                >
+                  {rowNumber}
+                </div>
+
+                {/* Ürün Adı */}
+                <div
+                  style={{
+                    flex: '2 1 210px',
+                    minWidth: '165px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px'
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '34px',
+                      height: '34px',
+                      borderRadius: '9px',
+                      background: 'rgba(245, 158, 11, 0.14)',
+                      color: '#d97706',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0
                     }}
-                    style={{ cursor: 'pointer' }}
                   >
-                    <td style={{ fontWeight: '700', color: 'var(--ads-text-muted)', fontSize: '11.5px' }}>
-                      {rowNumber}
-                    </td>
+                    <Package size={16} />
+                  </div>
+                  <span
+                    style={{
+                      fontWeight: '800',
+                      color: 'var(--ads-text-main)',
+                      fontSize: '13.5px',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}
+                    title={p.name}
+                  >
+                    {p.name}
+                  </span>
+                </div>
 
-                    <td>
-                      <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px', maxWidth: '100%' }}>
-                        <div
-                          style={{
-                            width: '26px',
-                            height: '26px',
-                            borderRadius: '7px',
-                            background: 'rgba(245, 158, 11, 0.14)',
-                            color: '#d97706',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0
-                          }}
-                        >
-                          <Package size={13} />
-                        </div>
-                        <span
-                          style={{
-                            fontWeight: '700',
-                            color: 'var(--ads-text-main)',
-                            fontSize: '12.5px',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis'
-                          }}
-                          title={p.name}
-                        >
-                          {p.name}
-                        </span>
-                      </div>
-                    </td>
+                {/* Bağlı Firma */}
+                <div
+                  onClick={e => {
+                    e.stopPropagation();
+                    setAdFilters({ companyId: p.companyId, productId: '' });
+                  }}
+                  style={{ flex: '1.6 1 180px', minWidth: '150px' }}
+                  title="Bu firmanın tüm ürünlerini filtrele"
+                >
+                  <span className="ads-saas-chip" style={{ padding: '4px 10px', fontSize: '12px', fontWeight: '700', maxWidth: '100%' }}>
+                    <Building2 size={12} color="var(--ads-brand)" style={{ flexShrink: 0 }} />
+                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {p.companyName}
+                    </span>
+                  </span>
+                </div>
 
-                    <td
-                      onClick={e => {
-                        e.stopPropagation();
-                        setAdFilters({ companyId: p.companyId, productId: '' });
-                      }}
-                    >
-                      <span className="ads-saas-chip" style={{ padding: '3px 9px', fontSize: '11.5px' }}>
-                        <Building2 size={11} color="var(--ads-brand)" />
-                        {p.companyName}
-                      </span>
-                    </td>
+                {/* Materyaller */}
+                <div
+                  style={{
+                    flex: '1.5 1 170px',
+                    minWidth: '145px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                    gap: '3px'
+                  }}
+                >
+                  <span className="ads-saas-chip active" style={{ padding: '3px 10px', fontSize: '11.5px', fontWeight: '700' }}>
+                    <Film size={12} />
+                    <span>{p.materialCount} Materyal</span>
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      color: 'var(--ads-text-muted)',
+                      maxWidth: '100%',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}
+                  >
+                    {p.latestClipName}
+                  </span>
+                </div>
 
-                    <td>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-                        <span className="ads-saas-chip active" style={{ padding: '2px 8px', fontSize: '11px' }}>
-                          <Film size={11} />
-                          {p.materialCount} Materyal (Klip)
-                        </span>
-                        <span
-                          style={{
-                            fontSize: '10.5px',
-                            color: 'var(--ads-text-muted)',
-                            maxWidth: '95%',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis'
-                          }}
-                        >
-                          {p.latestClipName}
-                        </span>
-                      </div>
-                    </td>
+                {/* Son Yükleme */}
+                <div style={{ flex: '0.9 1 105px', minWidth: '95px' }}>
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      fontSize: '12px',
+                      fontWeight: '700',
+                      color: 'var(--ads-text-sub)'
+                    }}
+                  >
+                    <Calendar size={13} color="var(--ads-brand)" />
+                    <span>{formatTurkishDate(p.lastUploadDate)}</span>
+                  </span>
+                </div>
 
-                    <td>
-                      <span
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          fontSize: '11.5px',
-                          fontWeight: '600',
-                          color: 'var(--ads-text-sub)'
-                        }}
-                      >
-                        <Calendar size={11} color="var(--ads-brand)" />
-                        {formatTurkishDate(p.lastUploadDate)}
-                      </span>
-                    </td>
+                {/* Toplam Süre */}
+                <div style={{ flex: '0.7 1 85px', minWidth: '75px', fontWeight: '800', color: '#0d9488', fontSize: '12.5px' }}>
+                  {p.totalDurationSec} sn
+                </div>
 
-                    <td style={{ fontWeight: '700', color: 'var(--ads-teal)', fontSize: '12px' }}>
-                      {p.totalDurationSec} sn
-                    </td>
+                {/* İşlemler */}
+                <div
+                  style={{
+                    width: '165px',
+                    flexShrink: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'flex-end',
+                    gap: '6px',
+                    marginLeft: 'auto'
+                  }}
+                  onClick={e => e.stopPropagation()}
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (p.companyId) {
+                        setSelectedCompanyDetailId(p.companyId);
+                        if (setActiveTab) setActiveTab('company-details');
+                      }
+                    }}
+                    className="ads-saas-btn ads-saas-btn-primary ads-saas-btn-sm"
+                    title="Firma Detay Karnesi"
+                  >
+                    <FileBarChart2 size={13} />
+                    <span>Rapor</span>
+                  </button>
 
-                    <td>
-                      <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                        <button
-                          type="button"
-                          onClick={e => {
-                            e.stopPropagation();
-                            if (p.companyId) {
-                              setSelectedCompanyDetailId(p.companyId);
-                              if (setActiveTab) setActiveTab('company-details');
-                            }
-                          }}
-                          className="ads-saas-btn ads-saas-btn-primary ads-saas-btn-sm"
-                          title="Firma Reklam Karnesi"
-                        >
-                          <FileBarChart2 size={12} /> Rapor
-                        </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingProduct(p);
+                      setIsFormOpen(true);
+                    }}
+                    className="ads-saas-btn ads-saas-btn-sm"
+                    style={{ padding: '6px 8px' }}
+                    title="Ürünü Düzenle"
+                  >
+                    <Edit2 size={13} />
+                  </button>
 
-                        <button
-                          type="button"
-                          onClick={e => {
-                            e.stopPropagation();
-                            setEditingProduct(p);
-                            setIsFormOpen(true);
-                          }}
-                          className="ads-saas-btn ads-saas-btn-sm"
-                          style={{ padding: '5px 7px' }}
-                          title="Düzenle"
-                        >
-                          <Edit2 size={12} />
-                        </button>
+                  <button
+                    type="button"
+                    onClick={e => handleDelete(p, e)}
+                    className="ads-saas-btn ads-saas-btn-danger ads-saas-btn-sm"
+                    style={{ padding: '6px 8px' }}
+                    title="Ürünü Sil"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
 
-                        <button
-                          type="button"
-                          onClick={e => handleDelete(p, e)}
-                          className="ads-saas-btn ads-saas-btn-sm"
-                          style={{ padding: '5px 7px', color: '#ef4444' }}
-                          title="Sil"
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-
-              {filteredAndSorted.length === 0 && (
-                <tr>
-                  <td colSpan="7" style={{ padding: '40px', color: 'var(--ads-text-muted)' }}>
-                    Arama kriterlerinize uygun ürün veya marka bulunamadı.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+          {filteredAndSorted.length === 0 && (
+            <div style={{ padding: '44px 20px', textAlign: 'center', color: 'var(--ads-text-muted)', fontSize: '13.5px' }}>
+              Arama kriterlerinize uygun ürün bulunamadı.
+            </div>
+          )}
         </div>
 
         <AdsPaginationBar

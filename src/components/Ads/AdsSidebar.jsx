@@ -70,8 +70,8 @@ const AdsSidebar = ({ activeTab, setActiveTab }) => {
       title: 'KATALOG & ENVANTER',
       items: [
         { id: 'companies', label: 'Firmalar', icon: <Building2 size={18} />, count: companies.length },
-        { id: 'products', label: 'Ürünler & Kampanyalar', icon: <Package size={18} />, count: products.length },
-        { id: 'materials', label: 'Materyaller (Spot)', icon: <Film size={18} />, count: materials.length },
+        { id: 'products', label: 'Ürünler', icon: <Package size={18} />, count: products.length },
+        { id: 'materials', label: 'Materyaller', icon: <Film size={18} />, count: materials.length },
         { id: 'media', label: 'Medya Kütüphanesi', icon: <PlayCircle size={18} /> },
         { id: 'time-blocks', label: 'Yayın Kuşakları', icon: <Clock size={18} /> }
       ]

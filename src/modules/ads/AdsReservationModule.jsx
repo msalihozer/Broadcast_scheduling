@@ -108,36 +108,38 @@ const AdsReservationModule = () => {
         </div>
       </div>
 
-      {/* TEK TIK İLE EN ÜSTE ÇIKMA BUTONU */}
-      <button
-        type="button"
-        onClick={handleScrollToTop}
-        title="Tek Tıkla Sayfanın En Üstüne Çık"
-        style={{
-          position: 'fixed',
-          right: '24px',
-          bottom: '24px',
-          zIndex: 999,
-          padding: '11px 16px',
-          borderRadius: '999px',
-          border: '2px solid rgba(255, 255, 255, 0.35)',
-          background: 'linear-gradient(135deg, #465fff 0%, #7c3aed 100%)',
-          color: '#ffffff',
-          boxShadow: '0 8px 24px rgba(70, 95, 255, 0.45)',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '7px',
-          fontSize: '12.5px',
-          fontWeight: '900',
-          cursor: 'pointer',
-          opacity: showScrollTopBtn ? 1 : 0.85,
-          transform: showScrollTopBtn ? 'translateY(0)' : 'translateY(2px)',
-          transition: 'all 0.2s ease'
-        }}
-      >
-        <ArrowUp size={16} />
-        <span>En Üste Çık</span>
-      </button>
+      {/* TEK TIK İLE EN ÜSTE ÇIKMA BUTONU (SADECE YAYIN PLANLAMA SEKMESİNDE GÖSTERİLİR) */}
+      {activeTab === 'planning' && (
+        <button
+          type="button"
+          onClick={handleScrollToTop}
+          title="Tek Tıkla Sayfanın En Üstüne Çık"
+          style={{
+            position: 'fixed',
+            right: '24px',
+            bottom: '24px',
+            zIndex: 999,
+            padding: '11px 16px',
+            borderRadius: '999px',
+            border: '2px solid rgba(255, 255, 255, 0.35)',
+            background: 'linear-gradient(135deg, #465fff 0%, #7c3aed 100%)',
+            color: '#ffffff',
+            boxShadow: '0 8px 24px rgba(70, 95, 255, 0.45)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '7px',
+            fontSize: '12.5px',
+            fontWeight: '900',
+            cursor: 'pointer',
+            opacity: showScrollTopBtn ? 1 : 0.85,
+            transform: showScrollTopBtn ? 'translateY(0)' : 'translateY(2px)',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          <ArrowUp size={16} />
+          <span>En Üste Çık</span>
+        </button>
+      )}
     </div>
   );
 };
