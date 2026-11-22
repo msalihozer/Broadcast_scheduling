@@ -60,7 +60,7 @@ const MAM_SMB_PASSWORD = process.env.MAM_SMB_PASSWORD || '';
 const MAM_SMB_SHARE_HIGHRES = process.env.MAM_SMB_SHARE_HIGHRES || 'tv_mam\\HighRes';
 const MAM_SMB_SHARE_ARCHIVE = process.env.MAM_SMB_SHARE_ARCHIVE || 'tv_yayin_arsiv';
 
-// Bizim DB (adsMedia.json + archive_seed_data.json.gz) bellek içi hızlı klip & reklam doğrulama indeksi
+// Bizim DB (adsData.json + adsMedia.json + archive_seed_data.json.gz) bellek içi hızlı klip & reklam doğrulama indeksi
 const localCatalogByFileId = new Map();
 const localCatalogByName = new Map();
 
@@ -68,23 +68,31 @@ function initLocalMediaCatalogIndex() {
     try {
         const registerRec = (rec) => {
             if (!rec) return;
-            if (rec.fileId) localCatalogByFileId.set(String(rec.fileId), rec);
-            if (rec.internalId && !localCatalogByFileId.has(String(rec.internalId))) {
-                localCatalogByFileId.set(String(rec.internalId), rec);
+            if (rec.fileId) {
+                const fidKey = String(rec.fileId).trim();
+                const existing = localCatalogByFileId.get(fidKey);
+                localCatalogByFileId.set(fidKey, {
+                    ...(existing || {}),
+                    ...rec,
+                    name: rec.name || existing?.name || '',
+                    clipName: rec.clipName || rec.name || existing?.clipName || existing?.name || '',
+                    fileName: rec.fileName || existing?.fileName || `${fidKey}.mxf`
+                });
             }
-            if (rec.fileName) {
-                const fnLow = String(rec.fileName).trim().toLowerCase();
-                localCatalogByName.set(fnLow, rec);
-                localCatalogByName.set(fnLow.replace(/\.[^.]+$/, ''), rec);
-            }
-            if (rec.name) {
-                const nLow = String(rec.name).trim().toLowerCase();
-                localCatalogByName.set(nLow, rec);
-                localCatalogByName.set(`${nLow}.mxf`, rec);
-            }
+            // NOT: archive_clips.id (internalId) PostgreSQL seri anahtarıdır, MAM fileId ile çakışmaması için fileId haritasına EKLENMEZ!
+            const merged = (rec.fileId && localCatalogByFileId.get(String(rec.fileId).trim())) || rec;
+            [merged.clipName, merged.name, merged.title, merged.fileName].forEach(candidate => {
+                if (!candidate) return;
+                const low = String(candidate).trim().toLowerCase();
+                if (!low) return;
+                const stem = low.replace(/\.[^.]+$/, '');
+                localCatalogByName.set(low, merged);
+                localCatalogByName.set(stem, merged);
+                localCatalogByName.set(`${stem}.mxf`, merged);
+            });
         };
 
-        // 1. src/data/adsMedia.json (1.598 Reklam Klibi: örn. id: 21673 -> code: 4SDR4VPM.mxf)
+        // 1. src/data/adsMedia.json (1.598 Reklam Klibi: id: 21673, name: r_pinarli_gayrimenkul_25sn_240323, code: 4SDR4VPM.mxf)
         const adsMediaPath = path.resolve('src', 'data', 'adsMedia.json');
         if (fs.existsSync(adsMediaPath)) {
             const adsList = JSON.parse(fs.readFileSync(adsMediaPath, 'utf-8'));
@@ -93,8 +101,10 @@ function initLocalMediaCatalogIndex() {
                     registerRec({
                         fileId: ad.id,
                         name: ad.name,
+                        clipName: ad.name,
                         fileName: ad.code || `${ad.id}.mxf`,
                         durationSec: (Number(ad.duration) || 0) / 1000,
+                        categoryId: 6,
                         categoryName: ad.category || 'Reklam',
                         source: 'Bizim DB & MAM Reklam Arşivi'
                     });
@@ -102,7 +112,29 @@ function initLocalMediaCatalogIndex() {
             }
         }
 
-        // 2. backend/db/archive_seed_data.json.gz (15.368 Program Klibi)
+        // 2. src/data/adsData.json (Reklam Rezervasyon Materyalleri: clipId: "21673", clipName: "r_pinarli_gayrimenkul_25sn_240323", name: "PINARLI GAYRİMENKUL")
+        const adsDataPath = path.resolve('src', 'data', 'adsData.json');
+        if (fs.existsSync(adsDataPath)) {
+            const adsDataObj = JSON.parse(fs.readFileSync(adsDataPath, 'utf-8'));
+            const materials = Array.isArray(adsDataObj?.materials) ? adsDataObj.materials : [];
+            materials.forEach(m => {
+                const cid = m.clipId || m.fileId;
+                if (!cid && !m.clipName) return;
+                registerRec({
+                    fileId: cid,
+                    name: m.clipName || m.name,
+                    clipName: m.clipName || m.name,
+                    title: m.name,
+                    fileName: m.code || (cid ? `${cid}.mxf` : `${m.clipName}.mxf`),
+                    durationSec: Number(m.durationSeconds || m.duration) || 0,
+                    categoryId: 6,
+                    categoryName: 'Reklam',
+                    source: 'Bizim DB (Reklam Materyalleri)'
+                });
+            });
+        }
+
+        // 3. backend/db/archive_seed_data.json.gz (15.368 Program Klibi — file_id MAM ID'sidir!)
         const seedPath = path.resolve('backend', 'db', 'archive_seed_data.json.gz');
         if (fs.existsSync(seedPath)) {
             const seedObj = JSON.parse(zlib.gunzipSync(fs.readFileSync(seedPath)).toString('utf-8'));
@@ -113,16 +145,18 @@ function initLocalMediaCatalogIndex() {
                         fileId: c.file_id || c.fileId,
                         internalId: c.id,
                         name: c.name,
+                        clipName: c.name,
                         fileName: c.file_name || c.fileName,
                         durationSec: Number(c.duration_sec || c.durationSec) || 0,
-                        categoryId: c.category_id || c.categoryId,
+                        categoryId: c.mam_category_id || c.category_id || c.categoryId,
                         categoryName: c.mam_category_name || '',
+                        fileCreateTime: c.file_create_time || c.fileCreateTime || null,
                         source: 'Bizim DB (PostgreSQL Arşiv)'
                     });
                 });
             }
         }
-        console.log(`[CATALOG INDEX] Bellek içi doğrulama indeksi hazır -> ID Kaydı: ${localCatalogByFileId.size}, İsim/Kod Kaydı: ${localCatalogByName.size}`);
+        console.log(`[CATALOG INDEX] Bellek içi doğrulama indeksi hazır -> MAM FileID Kaydı: ${localCatalogByFileId.size}, İsim/Kod Kaydı: ${localCatalogByName.size}`);
     } catch (e) {
         console.warn('[CATALOG INDEX WARN]:', e.message);
     }
@@ -251,6 +285,8 @@ try {
     }
 } catch (_) {}
 
+let hasPerformedLiveStartupScan = false;
+
 async function buildFileCaches() {
     try {
         await ensureSmbAuthenticated();
@@ -289,8 +325,9 @@ async function buildFileCaches() {
 
         const cacheKey = `${mamStat.size}-${mamStat.mtimeMs}-${arsivStat.size}-${arsivStat.mtimeMs}`;
 
-        if (savedCache && savedCache.cacheKey === cacheKey) {
-            console.log('[CACHE] Dosya sisteminde değişiklik yok. Hızlı cache yükleniyor...');
+        // ÖNEMLİ: cacheKey '0-0-0-0' ise veya sunucu açılışında henüz canlı ağ taraması yapılmadıysa ASLA taramayı atlama!
+        if (hasPerformedLiveStartupScan && cacheKey !== '0-0-0-0' && savedCache && savedCache.cacheKey === cacheKey) {
+            console.log('[CACHE] Dosya sisteminde değişiklik yok. Hızlı cache aktif...');
             tvMamCache = savedCache.tvMamCache || [];
             tvYayinArsivCache = savedCache.tvYayinArsivCache || [];
             rebuildFastFileLookupMaps();
@@ -298,7 +335,7 @@ async function buildFileCaches() {
             return;
         }
 
-        console.log('[CACHE] Değişiklik tespit edildi. Medya HighRes dizini taranıyor...');
+        console.log('[CACHE] Medya HighRes (ID tabanlı) ve Yayın Arşiv (İsim tabanlı) dizinleri taranıyor...');
         let scannedMam = [];
         let scannedArsiv = [];
         try {
@@ -306,11 +343,13 @@ async function buildFileCaches() {
             console.log(`[CACHE] HighRes taraması bitti. ${scannedMam.length} dosya bulundu.`);
         } catch (e) { console.error('[CACHE] HighRes okunamadı:', e.message); }
         
-        console.log('[CACHE] Medya Archive dizini taranıyor...');
+        console.log('[CACHE] Medya Yayın Arşiv dizini taranıyor...');
         try {
             scannedArsiv = await fs.promises.readdir(arsivPath, { recursive: true });
-            console.log(`[CACHE] Archive taraması bitti. ${scannedArsiv.length} dosya bulundu.`);
-        } catch (e) { console.error('[CACHE] Archive okunamadı:', e.message); }
+            console.log(`[CACHE] Yayın Arşiv taraması bitti. ${scannedArsiv.length} dosya bulundu.`);
+        } catch (e) { console.error('[CACHE] Yayın Arşiv okunamadı:', e.message); }
+
+        hasPerformedLiveStartupScan = true;
 
         // Eğer Docker/Linux içinde ağ paylaşımı henüz mount edilmemişse (0 dosya dönerse) mevcut önbelleği koru
         if (scannedMam.length === 0 && scannedArsiv.length === 0 && savedCache && ((savedCache.tvMamCache?.length || 0) > 0 || (savedCache.tvYayinArsivCache?.length || 0) > 0)) {
@@ -322,13 +361,14 @@ async function buildFileCaches() {
             return;
         }
 
-        tvMamCache = scannedMam;
-        tvYayinArsivCache = scannedArsiv;
+        if (scannedMam.length > 0) tvMamCache = scannedMam;
+        if (scannedArsiv.length > 0) tvYayinArsivCache = scannedArsiv;
         rebuildFastFileLookupMaps();
 
         if (tvMamCache.length > 0 || tvYayinArsivCache.length > 0) {
+            const effectiveCacheKey = cacheKey !== '0-0-0-0' ? cacheKey : `scanned-${tvMamCache.length}-${tvYayinArsivCache.length}`;
             fs.writeFileSync(CACHE_FILE, JSON.stringify({
-                cacheKey,
+                cacheKey: effectiveCacheKey,
                 tvMamCache,
                 tvYayinArsivCache
             }), 'utf-8');
@@ -732,7 +772,273 @@ app.get('/api/programs', async (req, res) => {
     }
 });
 
+const HIGHRES_CATEGORY_FOLDER_MAP = {
+    1: 'kadin',
+    2: 'haber',
+    3: 'tanitim',
+    4: 'dini',
+    5: 'cocuk',
+    6: 'reklam',
+    7: 'jenerik',
+    8: 'kulturel',
+    9: 'detay',
+    10: 'kisaprogram',
+    11: 'ham'
+};
+
+/**
+ * Klip adındaki "_240323" (GGAAYY) veya fileCreateTime bilgisinden YYYY/MM/DD tarih klasörü adaylarını çıkarır.
+ * Örn: "r_pinarli_gayrimenkul_25sn_240323" -> ["2023/03/24"]
+ */
+function extractHighResDateFolders(fileCreateTime, ...nameCandidates) {
+    const folders = new Set();
+    if (fileCreateTime) {
+        try {
+            const d = new Date(fileCreateTime);
+            if (!isNaN(d.getTime())) {
+                const yyyy = d.getFullYear();
+                const mm = String(d.getMonth() + 1).padStart(2, '0');
+                const dd = String(d.getDate()).padStart(2, '0');
+                folders.add(`${yyyy}/${mm}/${dd}`);
+                // UTC / yerel saat farkı (+/- 1 gün) ihtimaline karşı
+                const prev = new Date(d.getTime() - 86400000);
+                folders.add(`${prev.getFullYear()}/${String(prev.getMonth() + 1).padStart(2, '0')}/${String(prev.getDate()).padStart(2, '0')}`);
+            }
+        } catch (_) {}
+    }
+
+    for (const raw of nameCandidates) {
+        if (!raw) continue;
+        const s = String(raw).trim().replace(/\.[^.]+$/, '');
+        // _GGAAYY (örn: _240323 -> 24 Mart 2023 -> 2023/03/24)
+        const matches = s.match(/(?:^|_)(\d{2})(\d{2})(\d{2})(?:$|_)/g) || [];
+        for (const token of matches) {
+            const clean = token.replace(/_/g, '');
+            if (clean.length === 6) {
+                const dd = parseInt(clean.slice(0, 2), 10);
+                const mm = parseInt(clean.slice(2, 4), 10);
+                const yy = parseInt(clean.slice(4, 6), 10);
+                if (dd >= 1 && dd <= 31 && mm >= 1 && mm <= 12) {
+                    const yyyy = 2000 + yy;
+                    folders.add(`${yyyy}/${String(mm).padStart(2, '0')}/${String(dd).padStart(2, '0')}`);
+                }
+            }
+        }
+    }
+    return Array.from(folders);
+}
+
+/**
+ * HighRes ve Yayın Arşiv Çift Katmanlı (Dual-Storage) Dosya Yolu Çözümleyicisi:
+ * 1. HighRes (\192.168.3.70\tv_mam\HighRes veya /mnt/tv_mam/HighRes):
+ *    - Dosyalar öncelikle MAM FileID (<fileId>.mxf, örn: 21673.mxf) ile "<kategori>/<YYYY>/<MM>/<DD>/<fileId>.mxf" yapısında tutulur.
+ *    - Hem ID (<fileId>.mxf), hem tarihli kategori yolu, hem klip ismi, hem de dosya kodu ile aranır.
+ * 2. Yayın Arşiv (\192.168.3.70\tv_yayin_arsiv veya /mnt/tv_yayin_arsiv):
+ *    - Dosyalar öncelikle Klip İsmi (<clipName>.mxf, örn: r_pinarli_gayrimenkul_25sn_240323.mxf veya saliha_hanimlar_19_260118_p2.mxf) ile "<klasör>/<clipName>.mxf" yapısında tutulur.
+ *    - Hem klip ismi (<clipName>.mxf), hem alt klasörlü klip ismi (reklam/<clipName>.mxf, <program>/<clipName>.mxf), hem de ID ve dosya kodu ile aranır.
+ */
+function resolveDualStorageVideo({
+    fileId,
+    clipName,
+    name,
+    title,
+    fileName,
+    code,
+    categoryId,
+    categoryName,
+    fileCreateTime,
+    publicAddress,
+    isAd
+} = {}) {
+    const cleanId = extractPureNumericFileId(fileId, code, fileName);
+    const primaryClipName = String(clipName || name || '').trim().replace(/\.[^.]+$/, '');
+
+    // --- 1. HIGHRES ARAMASI (ID ÖNCELİKLİ: <fileId>.mxf + İsim + Kod + Tarih/Kategori Dizini) ---
+    let highResPath = null;
+    const highResCandidates = [
+        cleanId,
+        cleanId ? `${cleanId}.mxf` : null,
+        cleanId ? `${cleanId}.MXF` : null,
+        primaryClipName,
+        name,
+        clipName,
+        fileName,
+        code,
+        title
+    ].filter(Boolean);
+
+    for (const raw of highResCandidates) {
+        const origBase = String(raw).trim().split(/[\\/]/).pop();
+        if (!origBase) continue;
+        const lowerBase = origBase.toLowerCase();
+        const stem = lowerBase.replace(/\.[^.]+$/, '');
+        if (stem && mamByStemMap.has(stem)) {
+            highResPath = mamByStemMap.get(stem);
+            break;
+        }
+        if (lowerBase && mamByStemMap.has(lowerBase)) {
+            highResPath = mamByStemMap.get(lowerBase);
+            break;
+        }
+    }
+
+    // HighRes içinde doğrudan disk kontrolü (Önbellekte henüz yoksa bile <kategori>/<YYYY>/<MM>/<DD>/<fileId>.mxf ve kök dizinde kontrol et)
+    if (!highResPath) {
+        const normPub = normalizeUncPathForCurrentOs(publicAddress);
+        if (normPub && isSafeReachableUncPath(normPub) && normPub.toLowerCase().includes('highres') && fs.existsSync(normPub)) {
+            highResPath = normPub;
+        }
+    }
+
+    if (!highResPath && cleanId) {
+        const dateFolders = extractHighResDateFolders(fileCreateTime, primaryClipName, name, clipName, title);
+        const catFolders = new Set();
+        if (categoryId && HIGHRES_CATEGORY_FOLDER_MAP[categoryId]) {
+            catFolders.add(HIGHRES_CATEGORY_FOLDER_MAP[categoryId]);
+        }
+        if (isAd || String(primaryClipName).toLowerCase().startsWith('r_') || String(categoryName || '').toLowerCase().includes('reklam')) {
+            catFolders.add('reklam');
+        }
+        ['dini', 'reklam', 'kulturel', 'kisaprogram', 'kadin', 'jenerik', 'cocuk', 'tanitim', 'detay', 'haber'].forEach(c => catFolders.add(c));
+
+        // 1A. <kategori>/<YYYY>/<MM>/<DD>/<fileId>.mxf
+        for (const cat of catFolders) {
+            for (const df of dateFolders) {
+                for (const ext of ['mxf', 'MXF', 'mp4']) {
+                    const rel = `${cat}/${df}/${cleanId}.${ext}`;
+                    const candidatePath = resolveOsMediaPath(MAM_HIGHRES_ROOT, rel);
+                    if (fs.existsSync(candidatePath)) {
+                        highResPath = candidatePath;
+                        mamByStemMap.set(String(cleanId).toLowerCase(), candidatePath);
+                        mamByStemMap.set(`${String(cleanId).toLowerCase()}.${ext.toLowerCase()}`, candidatePath);
+                        break;
+                    }
+                }
+                if (highResPath) break;
+            }
+            if (highResPath) break;
+        }
+
+        // 1B. Doğrudan HighRes kökünde veya kategori altında <fileId>.mxf
+        if (!highResPath) {
+            const directIdPaths = [
+                `${cleanId}.mxf`,
+                `${cleanId}.MXF`,
+                `reklam/${cleanId}.mxf`,
+                `reklam/${cleanId}.MXF`
+            ];
+            for (const rel of directIdPaths) {
+                const p = resolveOsMediaPath(MAM_HIGHRES_ROOT, rel);
+                if (fs.existsSync(p)) {
+                    highResPath = p;
+                    mamByStemMap.set(String(cleanId).toLowerCase(), p);
+                    break;
+                }
+            }
+        }
+    }
+
+    // --- 2. YAYIN ARŞİV ARAMASI (KLİP İSMİ ÖNCELİKLİ: <clipName>.mxf + Alt Klasör + ID + Kod) ---
+    let arsivPath = null;
+    const arsivCandidates = [
+        primaryClipName,
+        clipName,
+        name,
+        title,
+        fileName,
+        code,
+        cleanId,
+        cleanId ? `${cleanId}.mxf` : null
+    ].filter(Boolean);
+
+    for (const raw of arsivCandidates) {
+        const origBase = String(raw).trim().split(/[\\/]/).pop();
+        if (!origBase) continue;
+        const lowerBase = origBase.toLowerCase();
+        const stem = lowerBase.replace(/\.[^.]+$/, '');
+        if (stem && arsivByStemMap.has(stem)) {
+            arsivPath = arsivByStemMap.get(stem);
+            break;
+        }
+        if (lowerBase && arsivByStemMap.has(lowerBase)) {
+            arsivPath = arsivByStemMap.get(lowerBase);
+            break;
+        }
+    }
+
+    // Yayın Arşiv içinde doğrudan disk kontrolü (<clipName>.mxf, reklam/<clipName>.mxf, <programPrefix>/<clipName>.mxf)
+    if (!arsivPath) {
+        const normPub = normalizeUncPathForCurrentOs(publicAddress);
+        if (normPub && isSafeReachableUncPath(normPub) && !normPub.toLowerCase().includes('highres') && fs.existsSync(normPub)) {
+            arsivPath = normPub;
+        }
+    }
+
+    if (!arsivPath) {
+        const nameStems = Array.from(new Set(
+            [primaryClipName, clipName, name, title, fileName, code, cleanId]
+                .filter(Boolean)
+                .map(s => String(s).trim().split(/[\\/]/).pop().replace(/\.[^.]+$/, ''))
+                .filter(s => s.length >= 3)
+        ));
+
+        for (const stem of nameStems) {
+            const progPrefix = stem.split('_')[0] || '';
+            const relCandidates = [
+                `${stem}.mxf`,
+                `${stem}.MXF`,
+                `reklam/${stem}.mxf`,
+                `reklam/${stem}.MXF`,
+                progPrefix ? `${progPrefix}/${stem}.mxf` : null,
+                progPrefix ? `${progPrefix.toLowerCase()}/${stem}.mxf` : null,
+                `${stem}.mp4`
+            ].filter(Boolean);
+
+            for (const rel of relCandidates) {
+                const p = resolveOsMediaPath(YAYIN_ARSIV_ROOT, rel);
+                if (fs.existsSync(p)) {
+                    arsivPath = p;
+                    arsivByStemMap.set(stem.toLowerCase(), p);
+                    arsivByStemMap.set(`${stem.toLowerCase()}.mxf`, p);
+                    break;
+                }
+            }
+            if (arsivPath) break;
+        }
+    }
+
+    const finalVideoPath = highResPath || arsivPath || null;
+    const matchedInHighRes = Boolean(highResPath);
+    const matchedInArsiv = Boolean(arsivPath);
+    const storageLocation = matchedInHighRes && matchedInArsiv
+        ? 'HighRes (ID) & Yayın Arşiv (İsim)'
+        : matchedInHighRes
+        ? 'HighRes (ID)'
+        : matchedInArsiv
+        ? 'Yayın Arşiv (İsim)'
+        : null;
+
+    return {
+        finalVideoPath,
+        highResPath,
+        arsivPath,
+        matchedInHighRes,
+        matchedInArsiv,
+        storageLocation,
+        highResIdFileName: cleanId ? `${cleanId}.mxf` : (highResPath ? path.basename(highResPath) : null),
+        arsivNameFileName: primaryClipName ? `${primaryClipName}.mxf` : (arsivPath ? path.basename(arsivPath) : null)
+    };
+}
+
 function lookupCachedVideoPath(candidates = []) {
+    const dual = resolveDualStorageVideo({
+        fileId: extractPureNumericFileId(...candidates),
+        clipName: candidates.find(c => c && !/^\d+(\.mxf)?$/i.test(String(c).trim())),
+        fileName: candidates[0],
+        code: candidates[1]
+    });
+    if (dual.finalVideoPath) return dual.finalVideoPath;
+
     for (const raw of candidates) {
         if (!raw) continue;
         const origBase = String(raw).trim().split(/[\\/]/).pop();
@@ -747,7 +1053,6 @@ function lookupCachedVideoPath(candidates = []) {
         if (stem && arsivByStemMap.has(stem)) return arsivByStemMap.get(stem);
         if (base && arsivByStemMap.has(base)) return arsivByStemMap.get(base);
 
-        // Büyük/küçük harf fark etmeksizin (Linux CIFS veya Windows UNC) HighRes ve Arşiv köklerinde kontrol et
         const directNames = Array.from(new Set([
             origBase,
             base,
@@ -819,55 +1124,43 @@ async function resolveFinalVideoAndDbRecord({ id, fileName, clipName, code, publ
     }
 
     const cleanNumericId = extractPureNumericFileId(id, code, fileName);
-    const nameCandidates = [code, fileName, clipName, id]
+    const nameCandidates = [clipName, code, fileName, id]
         .filter(Boolean)
         .map(s => String(s).trim().toLowerCase())
         .filter(s => s.length >= 3);
     const stemCandidates = nameCandidates.map(s => s.replace(/\.[^.]+$/, ''));
     const allNameTerms = Array.from(new Set([...nameCandidates, ...stemCandidates]));
 
-    // 0. Önce bellek içi Bizim DB / Reklam Arşivi (adsMedia.json + archive_seed_data) indeksinden gerçek dosya adını (.mxf kodunu, örn. 21673 -> 4SDR4VPM.mxf) bul
+    // 0. Önce bellek içi Bizim DB / Reklam Arşivi (adsData.json + adsMedia.json + archive_seed_data) indeksinden MAM FileID (örn. 21673) ve Arşiv Klip İsmini (örn. r_pinarli_gayrimenkul_25sn_240323) bul
     const localRec = lookupLocalCatalogRecord(cleanNumericId, allNameTerms);
     let dbRecord = localRec
         ? {
             fileId: localRec.fileId,
-            name: localRec.name,
+            name: localRec.clipName || localRec.name,
+            clipName: localRec.clipName || localRec.name,
             fileName: localRec.fileName,
+            categoryId: localRec.categoryId,
+            categoryName: localRec.categoryName,
+            fileCreateTime: localRec.fileCreateTime,
             durationMs: (Number(localRec.durationSec) || 0) * 1000,
             source: localRec.source
         }
         : null;
 
-    let finalVideoPath = lookupCachedVideoPath([
-        dbRecord?.fileName,
-        dbRecord?.name,
-        dbRecord?.fileId,
-        cleanNumericId,
-        id,
-        code,
-        fileName,
-        clipName
-    ]);
-
-    const normalizedPublicAddr = normalizeUncPathForCurrentOs(publicAddress);
-    if (!finalVideoPath && isSafeReachableUncPath(normalizedPublicAddr) && fs.existsSync(normalizedPublicAddr)) {
-        finalVideoPath = normalizedPublicAddr;
-    }
-
-    // 1. PostgreSQL archive_clips kontrolü (Hem file_id, hem id, hem de klip adı / dosya adı ile)
+    // 1. PostgreSQL archive_clips kontrolü (DİKKAT: Sadece file_id = $1 ile eşleştir, archive_clips.id seri anahtarını MAM fileId ile karıştırma!)
     if (isPostgresReady() && (cleanNumericId || allNameTerms.length > 0)) {
         try {
             const numVal = cleanNumericId ? parseInt(cleanNumericId, 10) : -1;
             const pgRes = await pgQuery(`
-                SELECT file_id as "fileId", id as "internalId", name, file_name as "fileName", duration_sec as "durationSec", file_create_time as "fileCreateTime"
+                SELECT file_id as "fileId", id as "internalId", name, file_name as "fileName", duration_sec as "durationSec", category_id as "categoryId", file_create_time as "fileCreateTime"
                 FROM archive_clips
-                WHERE ($1 > 0 AND (file_id = $1 OR id = $1))
+                WHERE ($1 > 0 AND file_id = $1)
                    OR (cardinality($2::text[]) > 0 AND (
-                        LOWER(file_name) = ANY($2::text[])
-                        OR LOWER(name) = ANY($2::text[])
+                        LOWER(name) = ANY($2::text[])
+                        OR LOWER(file_name) = ANY($2::text[])
                         OR LOWER(REGEXP_REPLACE(file_name, '\\.[^.]+$', '')) = ANY($2::text[])
                    ))
-                ORDER BY CASE WHEN file_id = $1 THEN 0 WHEN id = $1 THEN 1 ELSE 2 END, file_id DESC
+                ORDER BY CASE WHEN file_id = $1 THEN 0 ELSE 1 END, file_id DESC
                 LIMIT 1
             `, [numVal, allNameTerms]);
             const pgRow = pgRes.rows?.[0];
@@ -876,19 +1169,33 @@ async function resolveFinalVideoAndDbRecord({ id, fileName, clipName, code, publ
                     fileId: pgRow.fileId,
                     internalId: pgRow.internalId,
                     name: pgRow.name,
+                    clipName: pgRow.name,
                     fileName: pgRow.fileName,
+                    categoryId: pgRow.categoryId,
                     durationMs: (Number(pgRow.durationSec) || 0) * 1000,
                     fileCreateTime: pgRow.fileCreateTime,
                     source: 'Bizim DB (PostgreSQL)'
                 };
-                if (!finalVideoPath) {
-                    finalVideoPath = lookupCachedVideoPath([pgRow.fileName, pgRow.name, pgRow.fileId]);
-                }
             }
         } catch (_) {}
     }
 
-    // 2. MAM MSSQL Files kontrolü (Hem fileId hem de name / fileName ile)
+    // 2. HighRes (ID tabanlı: <fileId>.mxf) ve Yayın Arşiv (İsim tabanlı: <clipName>.mxf) üzerinden çift katmanlı arama
+    let dualResult = resolveDualStorageVideo({
+        fileId: dbRecord?.fileId || cleanNumericId,
+        clipName: dbRecord?.clipName || dbRecord?.name || clipName,
+        name: dbRecord?.name || clipName,
+        title: clipName || fileName,
+        fileName: dbRecord?.fileName || fileName,
+        code,
+        categoryId: dbRecord?.categoryId,
+        categoryName: dbRecord?.categoryName,
+        fileCreateTime: dbRecord?.fileCreateTime,
+        publicAddress
+    });
+    let finalVideoPath = dualResult.finalVideoPath;
+
+    // 3. MAM MSSQL Files kontrolü (Hem fileId hem de name / fileName ile)
     if ((!finalVideoPath || !dbRecord) && (cleanNumericId || allNameTerms.length > 0)) {
         try {
             const pool = await getActiveMssqlPool();
@@ -899,7 +1206,7 @@ async function resolveFinalVideoAndDbRecord({ id, fileName, clipName, code, publ
                     req.input('fileId', sql.Int, parseInt(cleanNumericId, 10));
                     whereParts.push('fileId = @fileId');
                 }
-                const primaryName = stemCandidates[0] || nameCandidates[0] || '';
+                const primaryName = (dbRecord?.name || stemCandidates[0] || nameCandidates[0] || '').toLowerCase();
                 if (primaryName && primaryName.length >= 3) {
                     req.input('clipName', sql.NVarChar, primaryName);
                     req.input('clipFileMxf', sql.NVarChar, `${primaryName}.mxf`);
@@ -907,7 +1214,7 @@ async function resolveFinalVideoAndDbRecord({ id, fileName, clipName, code, publ
                 }
                 if (whereParts.length > 0) {
                     const dbRes = await req.query(`
-                        SELECT TOP 1 fileId, name, fileName, extension, duration, deleted, fileCreateTime, publicFileAddress, fileServerPath, trimIn, trimOut
+                        SELECT TOP 1 fileId, name, fileName, extension, categoryId, duration, deleted, fileCreateTime, publicFileAddress, fileServerPath, trimIn, trimOut
                         FROM Files
                         WHERE ${whereParts.join(' OR ')}
                         ORDER BY fileId DESC
@@ -918,8 +1225,10 @@ async function resolveFinalVideoAndDbRecord({ id, fileName, clipName, code, publ
                         dbRecord = {
                             fileId: row.fileId,
                             name: row.name,
+                            clipName: row.name,
                             fileName: fullMssqlFileName || row.fileName,
                             extension: row.extension,
+                            categoryId: row.categoryId,
                             deleted: Boolean(row.deleted),
                             durationMs: Number(row.duration) || dbRecord?.durationMs || 0,
                             fileCreateTime: row.fileCreateTime || dbRecord?.fileCreateTime,
@@ -930,17 +1239,17 @@ async function resolveFinalVideoAndDbRecord({ id, fileName, clipName, code, publ
                             source: 'MAM DB (MSSQL)'
                         };
                         if (!finalVideoPath) {
-                            const rowAddr = normalizeUncPathForCurrentOs(row.publicFileAddress);
-                            finalVideoPath = lookupCachedVideoPath([
-                                fullMssqlFileName,
-                                row.fileName,
-                                row.name,
-                                row.fileId,
-                                rowAddr
-                            ]);
-                            if (!finalVideoPath && isSafeReachableUncPath(rowAddr) && fs.existsSync(rowAddr)) {
-                                finalVideoPath = rowAddr;
-                            }
+                            dualResult = resolveDualStorageVideo({
+                                fileId: row.fileId,
+                                clipName: row.name,
+                                name: row.name,
+                                fileName: fullMssqlFileName || row.fileName,
+                                code,
+                                categoryId: row.categoryId,
+                                fileCreateTime: row.fileCreateTime,
+                                publicAddress: row.publicFileAddress || row.fileServerPath
+                            });
+                            finalVideoPath = dualResult.finalVideoPath;
                             if (!finalVideoPath && row.publicFileAddress && IS_WINDOWS && fs.existsSync(row.publicFileAddress)) {
                                 finalVideoPath = row.publicFileAddress;
                             }
@@ -953,15 +1262,31 @@ async function resolveFinalVideoAndDbRecord({ id, fileName, clipName, code, publ
         }
     }
 
-    // 3. Kısmi isim eşleşmesi (Video oynatıcı /api/stream ile birebir aynı dosya yolu çözümlemesi)
+    // 4. Kısmi isim veya ID eşleşmesi (HighRes içinde ID ile, Yayın Arşiv içinde İsim ile)
+    if (!finalVideoPath) {
+        const targetId = String(dbRecord?.fileId || cleanNumericId || '').trim().toLowerCase();
+        if (targetId && targetId.length >= 3) {
+            const mamIdHit = tvMamCache.find(f => {
+                if (!MEDIA_EXT_REGEX.test(f)) return false;
+                const base = (f.split(/[\\/]/).pop() || '').toLowerCase();
+                return base === `${targetId}.mxf` || base.startsWith(`${targetId}.`);
+            });
+            if (mamIdHit) {
+                finalVideoPath = resolveOsMediaPath(MAM_HIGHRES_ROOT, mamIdHit);
+                dualResult.highResPath = finalVideoPath;
+                dualResult.matchedInHighRes = true;
+            }
+        }
+    }
+
     if (!finalVideoPath) {
         const searchTerms = [
-            dbRecord?.fileName,
+            dbRecord?.clipName,
             dbRecord?.name,
-            dbRecord?.fileId ? String(dbRecord.fileId) : null,
+            clipName,
+            dbRecord?.fileName,
             code,
             fileName,
-            clipName,
             id
         ]
             .filter(Boolean)
@@ -969,14 +1294,18 @@ async function resolveFinalVideoAndDbRecord({ id, fileName, clipName, code, publ
             .filter(s => s.length >= 4);
 
         for (const term of searchTerms) {
-            const mamHit = tvMamCache.find(f => MEDIA_EXT_REGEX.test(f) && f.toLowerCase().includes(term));
-            if (mamHit) {
-                finalVideoPath = resolveOsMediaPath(MAM_HIGHRES_ROOT, mamHit);
-                break;
-            }
             const arsivHit = tvYayinArsivCache.find(f => MEDIA_EXT_REGEX.test(f) && f.toLowerCase().includes(term));
             if (arsivHit) {
                 finalVideoPath = resolveOsMediaPath(YAYIN_ARSIV_ROOT, arsivHit);
+                dualResult.arsivPath = finalVideoPath;
+                dualResult.matchedInArsiv = true;
+                break;
+            }
+            const mamHit = tvMamCache.find(f => MEDIA_EXT_REGEX.test(f) && f.toLowerCase().includes(term));
+            if (mamHit) {
+                finalVideoPath = resolveOsMediaPath(MAM_HIGHRES_ROOT, mamHit);
+                dualResult.highResPath = finalVideoPath;
+                dualResult.matchedInHighRes = true;
                 break;
             }
         }
@@ -987,7 +1316,8 @@ async function resolveFinalVideoAndDbRecord({ id, fileName, clipName, code, publ
     return {
         finalVideoPath: (existsOnDisk || existsInIndex) ? finalVideoPath : null,
         existsOnDisk,
-        dbRecord
+        dbRecord,
+        dualStorage: dualResult
     };
 }
 
@@ -1204,23 +1534,31 @@ app.post('/api/media/verify-batch', async (req, res) => {
 
         const registerBatchRec = (rec) => {
             if (!rec) return;
-            if (rec.fileId) dbByFileId.set(String(rec.fileId), rec);
-            if (rec.internalId && !dbByFileId.has(String(rec.internalId))) {
-                dbByFileId.set(String(rec.internalId), rec);
+            if (rec.fileId) {
+                const fidKey = String(rec.fileId).trim();
+                const existing = dbByFileId.get(fidKey);
+                dbByFileId.set(fidKey, {
+                    ...(existing || {}),
+                    ...rec,
+                    name: rec.name || existing?.name || '',
+                    clipName: rec.clipName || rec.name || existing?.clipName || existing?.name || '',
+                    fileName: rec.fileName || existing?.fileName || `${fidKey}.mxf`
+                });
             }
-            if (rec.fileName) {
-                const fnLow = String(rec.fileName).trim().toLowerCase();
-                dbByLowerName.set(fnLow, rec);
-                dbByLowerName.set(fnLow.replace(/\.[^.]+$/, ''), rec);
-            }
-            if (rec.name) {
-                const nLow = String(rec.name).trim().toLowerCase();
-                dbByLowerName.set(nLow, rec);
-                dbByLowerName.set(`${nLow}.mxf`, rec);
-            }
+            // DİKKAT: PostgreSQL archive_clips.id (internalId) seri anahtarını MAM fileId haritasına EKLEME (örn: id=21673 ile MAM fileId=21673 çakışmasın!)
+            const merged = (rec.fileId && dbByFileId.get(String(rec.fileId).trim())) || rec;
+            [merged.clipName, merged.name, merged.title, merged.fileName].forEach(candidate => {
+                if (!candidate) return;
+                const low = String(candidate).trim().toLowerCase();
+                if (!low) return;
+                const stem = low.replace(/\.[^.]+$/, '');
+                dbByLowerName.set(low, merged);
+                dbByLowerName.set(stem, merged);
+                dbByLowerName.set(`${stem}.mxf`, merged);
+            });
         };
 
-        // 2A. Bellek içi Bizim DB & Reklam Kataloğu (adsMedia.json + archive_seed_data) üzerinden anında eşleştir
+        // 2A. Bellek içi Bizim DB & Reklam Kataloğu (adsData.json + adsMedia.json + archive_seed_data) üzerinden anında eşleştir
         numericIdsSet.forEach(num => {
             const found = localCatalogByFileId.get(String(num));
             if (found) registerBatchRec(found);
@@ -1230,18 +1568,18 @@ app.post('/api/media/verify-batch', async (req, res) => {
             if (found) registerBatchRec(found);
         });
 
-        // 2B. PostgreSQL archive_clips (Bizim DB) üzerinden toplu sorgu (Hem file_id hem id hem name/file_name)
+        // 2B. PostgreSQL archive_clips (Bizim DB) üzerinden toplu sorgu (Sadece MAM file_id = ANY($1) veya klip ismi / dosya adı ile!)
         if (isPostgresReady() && (numericIdsSet.size > 0 || fileNameSet.size > 0)) {
             try {
                 const numArr = Array.from(numericIdsSet);
                 const nameArr = Array.from(fileNameSet).slice(0, 600);
                 const pgRes = await pgQuery(`
-                    SELECT file_id as "fileId", id as "internalId", name, file_name as "fileName", duration_sec as "durationSec", category_id as "categoryId"
+                    SELECT file_id as "fileId", id as "internalId", name, file_name as "fileName", duration_sec as "durationSec", category_id as "categoryId", file_create_time as "fileCreateTime"
                     FROM archive_clips
-                    WHERE (cardinality($1::int[]) > 0 AND (file_id = ANY($1::int[]) OR id = ANY($1::int[])))
+                    WHERE (cardinality($1::int[]) > 0 AND file_id = ANY($1::int[]))
                        OR (cardinality($2::text[]) > 0 AND (
-                            LOWER(file_name) = ANY($2::text[])
-                            OR LOWER(name) = ANY($2::text[])
+                            LOWER(name) = ANY($2::text[])
+                            OR LOWER(file_name) = ANY($2::text[])
                             OR LOWER(REGEXP_REPLACE(file_name, '\\.[^.]+$', '')) = ANY($2::text[])
                        ))
                 `, [numArr, nameArr]);
@@ -1251,9 +1589,11 @@ app.post('/api/media/verify-batch', async (req, res) => {
                         fileId: r.fileId,
                         internalId: r.internalId,
                         name: r.name,
+                        clipName: r.name,
                         fileName: r.fileName,
                         durationSec: Number(r.durationSec) || 0,
                         categoryId: r.categoryId,
+                        fileCreateTime: r.fileCreateTime,
                         inOurDb: true,
                         source: 'Bizim DB (PostgreSQL)'
                     });
@@ -1263,7 +1603,7 @@ app.post('/api/media/verify-batch', async (req, res) => {
             }
         }
 
-        // 2C. MAM DB (MSSQL Files Tablosu) üzerinden toplu sorgu (Kategori 6 Reklamlar ve yeni klipler dahil!)
+        // 2C. MAM DB (MSSQL Files Tablosu) üzerinden toplu sorgu (Kategori 6 Reklamlar ve tüm yeni klipler dahil!)
         if (numericIdsSet.size > 0 || fileNameSet.size > 0) {
             try {
                 const pool = await getActiveMssqlPool();
@@ -1285,7 +1625,7 @@ app.post('/api/media/verify-batch', async (req, res) => {
 
                     if (whereClauses.length > 0) {
                         const msRes = await pool.request().query(`
-                            SELECT fileId, name, fileName, extension, duration, deleted, publicFileAddress, fileServerPath
+                            SELECT fileId, name, fileName, extension, categoryId, duration, deleted, fileCreateTime, publicFileAddress, fileServerPath
                             FROM Files
                             WHERE ${whereClauses.join(' OR ')}
                         `);
@@ -1296,7 +1636,10 @@ app.post('/api/media/verify-batch', async (req, res) => {
                                 ...(existing || {}),
                                 fileId: r.fileId,
                                 name: r.name || existing?.name,
+                                clipName: r.name || existing?.clipName || existing?.name,
                                 fileName: fullFn || existing?.fileName || r.fileName,
+                                categoryId: r.categoryId || existing?.categoryId,
+                                fileCreateTime: r.fileCreateTime || existing?.fileCreateTime,
                                 durationSec: (Number(r.duration) || 0) / 1000 || existing?.durationSec || 0,
                                 deleted: Boolean(r.deleted),
                                 publicFileAddress: r.publicFileAddress,
@@ -1313,7 +1656,7 @@ app.post('/api/media/verify-batch', async (req, res) => {
             }
         }
 
-        // 3. Her bir öğe için (Video Oynatma `/api/stream` ile aynı çözümleyiciyi kullanarak) DB, Dosya Yolu (.mxf) ve Detaylı Bütünlük kontrolü yap
+        // 3. Her bir öğe için HighRes (ID tabanlı: <fileId>.mxf) ve Yayın Arşiv (İsim tabanlı: <clipName>.mxf) kontrolü yap
         const results = {};
         for (const item of items) {
             if (!item) continue;
@@ -1337,6 +1680,7 @@ app.post('/api/media/verify-batch', async (req, res) => {
                     isCorrupted: false,
                     status: 'healthy',
                     dbSource: 'Canlı Yayın / Kuşak',
+                    storageLocation: 'Canlı Yayın',
                     resolvedPath: 'Canlı Yayın Akışı',
                     dbStatusText: 'Canlı Yayın',
                     fileStatusText: 'Canlı Akış',
@@ -1356,6 +1700,7 @@ app.post('/api/media/verify-batch', async (req, res) => {
                     isCorrupted: false,
                     status: 'missing',
                     dbSource: null,
+                    storageLocation: null,
                     resolvedPath: null,
                     dbStatusText: 'Spot Seçilmemiş',
                     fileStatusText: 'Dosya Yok',
@@ -1369,7 +1714,7 @@ app.post('/api/media/verify-batch', async (req, res) => {
             let matchedDb = pureNumericId && dbByFileId.has(pureNumericId) ? dbByFileId.get(pureNumericId) : null;
 
             if (!matchedDb) {
-                const nameCandidates = [item.fileName, item.code, item.clipName, item.title, item.id];
+                const nameCandidates = [item.clipName, item.fileName, item.code, item.title, item.id];
                 for (const nc of nameCandidates) {
                     if (!nc) continue;
                     const low = String(nc).trim().toLowerCase();
@@ -1385,41 +1730,47 @@ app.post('/api/media/verify-batch', async (req, res) => {
                 }
             }
 
-            // Video oynatıcı (/api/stream) nasıl buluyorsa birebir aynı şekilde (gerçek .mxf dosya adı öncelikli) dosya yolunu bul:
-            const normPubAddr = normalizeUncPathForCurrentOs(matchedDb?.publicFileAddress || item.publicFileAddress);
-            let cachedOrDiskPath = lookupCachedVideoPath([
-                matchedDb?.fileName,
-                matchedDb?.name,
-                normPubAddr,
-                matchedDb?.fileId,
-                item.code,
-                item.fileName,
-                item.clipName,
-                item.title,
-                pureNumericId,
-                item.id
-            ]);
+            // HighRes (ID tabanlı: <fileId>.mxf) ve Yayın Arşiv (Klip İsmi tabanlı: <clipName>.mxf) Çift Katmanlı Arama:
+            let dualStorage = resolveDualStorageVideo({
+                fileId: matchedDb?.fileId || pureNumericId,
+                clipName: matchedDb?.clipName || matchedDb?.name || item.clipName || item.title,
+                name: matchedDb?.name || item.clipName || item.title,
+                title: item.title,
+                fileName: matchedDb?.fileName || item.fileName || item.code,
+                code: item.code || matchedDb?.fileName,
+                categoryId: matchedDb?.categoryId,
+                categoryName: matchedDb?.categoryName,
+                fileCreateTime: matchedDb?.fileCreateTime,
+                publicAddress: matchedDb?.publicFileAddress || item.publicFileAddress,
+                isAd: item.isAd
+            });
 
-            if (!cachedOrDiskPath && isSafeReachableUncPath(normPubAddr) && fs.existsSync(normPubAddr)) {
-                cachedOrDiskPath = normPubAddr;
-            }
+            let cachedOrDiskPath = dualStorage.finalVideoPath;
 
-            // Eğer hızlı önbellek eşleşmesinde çıkmadıysa, tıpkı /api/stream gibi resolveFinalVideoAndDbRecord çağır
+            // Eğer hala bulunamadıysa /api/stream ile birebir aynı resolveFinalVideoAndDbRecord fonksiyonunu çağır
             if (!cachedOrDiskPath || !matchedDb) {
                 const resolved = await resolveFinalVideoAndDbRecord({
                     id: matchedDb?.fileId || pureNumericId || item.fileId || item.clipId || item.id,
                     fileName: matchedDb?.fileName || item.fileName || item.code || item.title,
-                    clipName: matchedDb?.name || item.clipName || item.title,
+                    clipName: matchedDb?.clipName || matchedDb?.name || item.clipName || item.title,
                     code: matchedDb?.fileName || item.code || item.title,
                     publicAddress: item.publicFileAddress || matchedDb?.publicFileAddress
                 });
                 if (!cachedOrDiskPath && resolved.finalVideoPath) {
                     cachedOrDiskPath = resolved.finalVideoPath;
                 }
+                if (resolved.dualStorage) {
+                    dualStorage = {
+                        ...dualStorage,
+                        ...resolved.dualStorage,
+                        finalVideoPath: cachedOrDiskPath || resolved.dualStorage.finalVideoPath
+                    };
+                }
                 if (!matchedDb && resolved.dbRecord) {
                     matchedDb = {
                         fileId: resolved.dbRecord.fileId,
                         name: resolved.dbRecord.name,
+                        clipName: resolved.dbRecord.clipName || resolved.dbRecord.name,
                         fileName: resolved.dbRecord.fileName,
                         durationSec: (Number(resolved.dbRecord.durationMs) || 0) / 1000,
                         deleted: Boolean(resolved.dbRecord.deleted),
@@ -1428,6 +1779,14 @@ app.post('/api/media/verify-batch', async (req, res) => {
                     };
                 }
             }
+
+            const effectiveFileId = matchedDb?.fileId || pureNumericId || null;
+            const effectiveArchiveClipName =
+                matchedDb?.clipName ||
+                matchedDb?.name ||
+                (item.clipName && !/^\d+$/.test(String(item.clipName).trim()) ? item.clipName : null) ||
+                item.title ||
+                '';
 
             let physicalExists = false;
             let fileSize = null;
@@ -1443,24 +1802,24 @@ app.post('/api/media/verify-batch', async (req, res) => {
                 } catch (_) {
                     physicalExists = Boolean(cachedOrDiskPath);
                 }
-            } else if (matchedDb?.fileName && mamByStemMap.size === 0 && arsivByStemMap.size === 0) {
-                // Eğer sunucuda SMB dizini henüz taranmamışsa fakat klip Bizim DB veya MAM DB'de geçerli .mxf dosya adına sahipse
-                cachedOrDiskPath = resolveOsMediaPath(MAM_HIGHRES_ROOT, matchedDb.fileName);
+            } else if ((matchedDb?.fileId || matchedDb?.name) && mamByStemMap.size === 0 && arsivByStemMap.size === 0) {
+                // Ağ paylaşımı henüz taranmamışsa fakat klip Bizim DB veya MAM DB'de geçerli ID / İsim kaydına sahipse
+                cachedOrDiskPath = effectiveFileId
+                    ? resolveOsMediaPath(MAM_HIGHRES_ROOT, `${effectiveFileId}.mxf`)
+                    : resolveOsMediaPath(YAYIN_ARSIV_ROOT, `${effectiveArchiveClipName}.mxf`);
                 physicalExists = true;
             }
 
             // Dosya uzantısını / formatını tespit et (Varsayılan genel format: .mxf)
             const effectiveFileName = cachedOrDiskPath
                 ? path.basename(cachedOrDiskPath)
-                : (matchedDb?.fileName || item.code || item.fileName || (pureNumericId ? `${pureNumericId}.mxf` : ''));
+                : (effectiveFileId ? `${effectiveFileId}.mxf` : (effectiveArchiveClipName ? `${effectiveArchiveClipName}.mxf` : (matchedDb?.fileName || item.code || '')));
             const extMatch = String(effectiveFileName || '').match(/\.([a-zA-Z0-9]+)$/);
             const detectedFormat = extMatch ? extMatch[1].toLowerCase() : (physicalExists || matchedDb ? 'mxf' : '');
             const isFormatValid = !detectedFormat || allowedFormats.includes(detectedFormat);
 
             const itemDurationSec = Number(item.durationSec) || (Number(item.duration) || 0) * 60 || matchedDb?.durationSec || 0;
-            const effectiveFileId = matchedDb?.fileId || pureNumericId || null;
 
-            // Eğer dosya sunucuda bulunduysa (/api/stream oynatabiliyorsa) veya DB'de kaydı varsa:
             const fileExists = Boolean(cachedOrDiskPath && physicalExists);
             const inDatabase = Boolean(
                 matchedDb ||
@@ -1474,11 +1833,13 @@ app.post('/api/media/verify-batch', async (req, res) => {
             let isCorrupted = Boolean(item.isCorruptedSimulated);
 
             if (!inDatabase) {
-                issues.push(`DB Kaydı Yok: MAM Veritabanında "${item.title || item.code}" kaydı bulunamadı`);
+                issues.push(`DB Kaydı Yok: Bizim DB ve MAM Veritabanında "${item.title || item.code}" kaydı bulunamadı`);
             }
             if (!fileExists) {
-                const expectedFileLabel = effectiveFileName || `${item.title || item.id || 'klip'}.mxf`;
-                issues.push(`Dosya Yolu Eksik: Sunucu arşiv dizininde (${expectedFileLabel}) fiziksel dosya bulunamadı`);
+                const highResLookedFor = effectiveFileId ? `HighRes ID: ${effectiveFileId}.mxf` : null;
+                const arsivLookedFor = effectiveArchiveClipName ? `Yayın Arşiv: ${effectiveArchiveClipName.replace(/\.[^.]+$/, '')}.mxf` : null;
+                const lookedLabel = [highResLookedFor, arsivLookedFor].filter(Boolean).join(' veya ') || effectiveFileName;
+                issues.push(`Dosya Yolu Eksik: Sunucuda (${lookedLabel}) fiziksel dosya bulunamadı`);
             }
             if (fileExists && !isFormatValid) {
                 isCorrupted = true;
@@ -1524,22 +1885,29 @@ app.post('/api/media/verify-batch', async (req, res) => {
 
             const sizeMbText = fileSize && fileSize > 1024 ? ` • ${(fileSize / (1024 * 1024)).toFixed(1)} MB` : '';
             const formatBadge = (detectedFormat || 'mxf').toUpperCase();
+            const storageBadge = dualStorage.matchedInHighRes && dualStorage.matchedInArsiv
+                ? `HighRes (ID) & Arşiv (İsim) .${formatBadge}`
+                : dualStorage.matchedInHighRes
+                ? `HighRes (ID: ${effectiveFileId || ''}.${formatBadge})`
+                : dualStorage.matchedInArsiv
+                ? `Yayın Arşiv (İsim .${formatBadge})`
+                : `HighRes / Arşiv .${formatBadge}`;
 
             const dbStatusText = inDatabase
                 ? `DB Kayıtlı (${effectiveFileId ? `#${effectiveFileId}` : 'MAM'})`
                 : 'DB Kaydı Bulunamadı';
 
             const fileStatusText = fileExists
-                ? `Dosya Mevcut (${effectiveFileName || `${formatBadge} Dosyası`})`
-                : `Dosya Yolunda Yok (${effectiveFileName || '.mxf'})`;
+                ? `${storageBadge} ✓`
+                : `Dosya Yolunda Yok (${effectiveFileId ? `${effectiveFileId}.mxf` : '.mxf'})`;
 
             const integrityStatusText = isCorrupted
                 ? corruptionReasons.join(' • ') || 'Klip Bütünlük Hatası'
                 : !fileExists
-                ? 'Dosya sunucu dizininde bulunamadığı için oynatılamaz'
+                ? 'HighRes (ID) ve Yayın Arşiv (İsim) dizinlerinde dosya bulunamadığı için oynatılamaz'
                 : !inDatabase
                 ? 'Veritabanı künyesi eksik'
-                : `Sağlam (.${formatBadge} • ${Math.round(itemDurationSec)} sn${sizeMbText} • Oynatılabilir)`;
+                : `Sağlam (${dualStorage.storageLocation || `.${formatBadge}`} • ${Math.round(itemDurationSec)} sn${sizeMbText} • Oynatılabilir)`;
 
             results[key] = {
                 instanceId: key,
@@ -1551,6 +1919,11 @@ app.post('/api/media/verify-batch', async (req, res) => {
                 status,
                 dbSource: matchedDb?.source || (inDatabase ? (item.isAd ? 'Reklam & MAM DB' : 'MAM Arşiv DB') : null),
                 dbFileId: effectiveFileId,
+                archiveClipName: effectiveArchiveClipName || null,
+                highResFileName: effectiveFileId ? `${effectiveFileId}.mxf` : (dualStorage.highResIdFileName || null),
+                matchedInHighRes: Boolean(dualStorage.matchedInHighRes),
+                matchedInArsiv: Boolean(dualStorage.matchedInArsiv),
+                storageLocation: dualStorage.storageLocation,
                 dbDurationSec: matchedDb?.durationSec || itemDurationSec || 0,
                 resolvedPath: cachedOrDiskPath || null,
                 fileName: effectiveFileName || null,

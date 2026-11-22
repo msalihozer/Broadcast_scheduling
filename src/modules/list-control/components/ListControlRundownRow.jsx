@@ -91,7 +91,11 @@ export default function ListControlRundownRow({
     : item.categoryColor || '#2563eb';
 
   const resolvedClipId = h.dbFileId || item.fileId || item.clipId || (String(item.id || '').match(/^\d+$/) ? item.id : null);
-  const displayFileCode = h.fileName || item.code || item.fileName || (resolvedClipId ? `${resolvedClipId}.mxf` : '-');
+  const resolvedArchiveClipName = h.archiveClipName || item.clipName || (h.fileName && !/^[A-Z0-9]{8}\.mxf$/i.test(h.fileName) && !/^\d+\.mxf$/i.test(h.fileName) ? h.fileName : null) || item.title || '-';
+  const highResIdFileLabel = resolvedClipId ? `${resolvedClipId}.mxf` : (h.highResFileName || '-');
+  const archiveNameFileLabel = resolvedArchiveClipName !== '-'
+    ? (/\.[a-z0-9]{2,4}$/i.test(resolvedArchiveClipName) ? resolvedArchiveClipName : `${resolvedArchiveClipName}.mxf`)
+    : (h.fileName || item.code || '-');
   const effectiveLogo = item.logo || (isAd ? defaultAdLogo : defaultBroadcastLogo);
 
   return (
@@ -253,7 +257,7 @@ export default function ListControlRundownRow({
           )}
         </div>
 
-        {/* Alt Bilgi Satırı: Klip ID + Fiziksel .MXF Dosya Kodu + Firma / Kategori */}
+        {/* Alt Bilgi Satırı: HighRes ID (<id>.mxf) + Yayın Arşiv Klip İsmi (<isim>.mxf) + Firma / Kategori */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -263,19 +267,33 @@ export default function ListControlRundownRow({
           color: 'var(--text-secondary)'
         }}>
           {resolvedClipId && (
-            <span style={{
-              fontFamily: 'monospace',
-              fontWeight: 800,
-              color: isAd ? '#b45309' : '#1d4ed8',
-              background: isAd ? 'rgba(217, 119, 6, 0.1)' : 'rgba(37, 99, 235, 0.1)',
-              padding: '0 5px',
-              borderRadius: '4px'
-            }}>
-              ID: #{resolvedClipId}
+            <span
+              style={{
+                fontFamily: 'monospace',
+                fontWeight: 800,
+                color: isAd ? '#b45309' : '#1d4ed8',
+                background: isAd ? 'rgba(217, 119, 6, 0.12)' : 'rgba(37, 99, 235, 0.12)',
+                padding: '0 5px',
+                borderRadius: '4px'
+              }}
+              title={`HighRes Dizini ID Dosyası: ${highResIdFileLabel}`}
+            >
+              HighRes ID: #{resolvedClipId} ({highResIdFileLabel})
             </span>
           )}
-          <span style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--text-muted)' }}>
-            Dosya: {displayFileCode}
+          <span
+            style={{
+              fontFamily: 'monospace',
+              fontWeight: 700,
+              color: 'var(--text-secondary)',
+              background: 'var(--bg-primary)',
+              border: '1px solid var(--border-color)',
+              padding: '0 5px',
+              borderRadius: '4px'
+            }}
+            title={`Yayın Arşiv Dizini Klip İsmi: ${archiveNameFileLabel}`}
+          >
+            Arşiv İsmi: {archiveNameFileLabel}
           </span>
           {isAd && item.companyName && (
             <strong style={{ color: '#d97706' }}>• {item.companyName}</strong>
@@ -390,7 +408,15 @@ export default function ListControlRundownRow({
             background: h.fileExists ? 'rgba(16, 185, 129, 0.14)' : 'rgba(220, 38, 38, 0.15)',
             color: h.fileExists ? '#059669' : '#dc2626'
           }}>
-            {h.fileExists ? `HighRes .${(h.detectedFormat || 'mxf').toUpperCase()} ✓` : 'Dosya Yolu ✗'}
+            {h.fileExists
+              ? (h.matchedInHighRes && h.matchedInArsiv
+                  ? `HighRes(ID) & Arşiv(İsim) .${(h.detectedFormat || 'mxf').toUpperCase()} ✓`
+                  : h.matchedInHighRes
+                  ? `HighRes (ID) .${(h.detectedFormat || 'mxf').toUpperCase()} ✓`
+                  : h.matchedInArsiv
+                  ? `Yayın Arşiv (İsim) .${(h.detectedFormat || 'mxf').toUpperCase()} ✓`
+                  : `HighRes/Arşiv .${(h.detectedFormat || 'mxf').toUpperCase()} ✓`)
+              : 'Dosya Yolu ✗'}
           </span>
         </div>
 
