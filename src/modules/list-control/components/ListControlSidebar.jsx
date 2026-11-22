@@ -1,20 +1,20 @@
 /**
  * @file src/modules/list-control/components/ListControlSidebar.jsx
- * @description Yayın Liste Kontrol Modülü Sol Paneli (Yayın Planlama Tarzı Medya, Bölüm & Reklam Kütüphanesi).
+ * @description Yayın Liste Kontrol Modülü Sol Paneli (Yayın Planlama Tarzı Tam Boy Medya, Bölüm & Reklam Kütüphanesi).
  *
  * Özellikler:
- * 1. Sağdaki listeden herhangi bir programa/klibe tıklandığında, otomatik olarak o programın
- *    MAM Arşivindeki tüm bölümlerini ve partlarını (Yayın Planlama gibi) üstte açar;
- *    operatör tek tıkla "🔄 Seçili Kliple Değiştir" veya "+ Altına/Üstüne Ekle" yapabilir.
- * 2. Sağdaki listeden bir reklama veya boş reklam kuşağına tıklandığında, Reklam Kütüphanesini
- *    aktif hale getirerek tek tıkla reklam değiştirme veya yeni reklam ekleme imkanı sunar.
- * 3. Dolgu Kuşağı (Filler Slot) ekleme alanı KESİNLİKLE YOKTUR (kullanıcı talebi).
- * 4. Her klip ve reklam kartında "ⓘ İzle" video önizleme ve künye butonu yer alır.
+ * 1. İki ayrı kutunun üst üste binip ekranı daraltması kaldırıldı; panel Yayın Planlama gibi TEK PARÇA TAM BOY kaydırılabilir listedir.
+ * 2. Sağdaki tabloda bir program klibine (örn: Tecvid_70_270722) tıklandığında otomatik olarak
+ *    "🎯 Seçili Programın Bölümleri" moduna geçer ve o programın tüm bölüm/partlarını tam boy listeler;
+ *    operatör tek tıkla "📚 Tüm Medya Arşivi" sekmesine geçerek tüm arşivde arama yapabilir.
+ * 3. Kanal introları (örn: SEMERKAND_intro_v3_2014) yanlışlıkla "Semerkand Sohbetleri" ile eşleştirilmez.
+ * 4. Kartlarda "İzle" yazısı yerine "ⓘ" (Information / Bilgi & Önizleme Popup) ikonu yer alır.
+ * 5. Dolgu Kuşağı (Filler Slot) ekleme alanı KESİNLİKLE YOKTUR.
  */
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
-  Search, Film, Megaphone, Plus, RefreshCw, Info, Tv, Layers,
-  ArrowLeftRight, CheckCircle2, X, Loader2, Maximize2, Minimize2, Sparkles
+  Search, Film, Megaphone, Plus, Info,
+  ArrowLeftRight, X, Maximize2, Minimize2, Sparkles, Library
 } from 'lucide-react';
 import usePlanningStore from '../../../store/planningStore';
 import {
@@ -28,8 +28,8 @@ import {
 import { filterAndSortBySearchPriority } from '../../../utils/searchRanker';
 import { formatSecondsReadable } from '../utils/listControlVerificationEngine';
 
-const MIN_WIDTH = 280;
-const DEFAULT_WIDTH = 340;
+const MIN_WIDTH = 290;
+const DEFAULT_WIDTH = 350;
 const EXPANDED_WIDTH = 500;
 const MAX_WIDTH = 720;
 
@@ -49,12 +49,13 @@ export default function ListControlSidebar({
   const hiddenCatSet = useMemo(() => new Set((hiddenCategoryIds || []).map(Number)), [hiddenCategoryIds]);
 
   const [activeTab, setActiveTab] = useState('media'); // 'media' | 'ads'
+  const [mediaScope, setMediaScope] = useState('all_library'); // 'selected_program' | 'all_library'
   const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_WIDTH);
   const [isResizing, setIsResizing] = useState(false);
   const startXRef = useRef(0);
   const startWidthRef = useRef(DEFAULT_WIDTH);
 
-  // Aktif programlar (Admin Panel -> Programlar)
+  // Aktif programlar (Admin Panel -> Programlar) ve Kategoriler
   const [usedPrograms, setUsedPrograms] = useState([]);
   const [categories, setCategories] = useState([]);
 
@@ -80,15 +81,14 @@ export default function ListControlSidebar({
     selectedItem && (selectedItem.isAdClip || selectedItem.isFromAds || selectedItem.type === 'ad_break' || selectedItem.type === 'ad_spot')
   );
 
-  // Sağdaki listeden bir reklam satırına tıklanırsa otomatik Reklam sekmesine, klip satırına tıklanırsa Medya sekmesine geç
-  useEffect(() => {
-    if (!selectedItem) return;
-    if (isSelectedAd) {
-      setActiveTab('ads');
-    } else {
-      setActiveTab('media');
-    }
-  }, [selectedItem?.instanceId, isSelectedAd]);
+  const isSelectedGenericIntro = Boolean(
+    selectedItem &&
+    !isSelectedAd &&
+    (selectedItem.isIntroClip ||
+      selectedItem.unitType === 'intro' ||
+      String(selectedItem.categoryName || selectedItem.category || '').toLowerCase().includes('jenerik') ||
+      /semerkand_intro|jenerik|reklam_.*_(giris|cikis)/i.test(String(selectedItem.title || selectedItem.clipName || '')))
+  );
 
   // Sağ kenardan sürükleyerek genişletme
   useEffect(() => {
@@ -142,39 +142,55 @@ export default function ListControlSidebar({
     return () => { mounted = false; };
   }, [hiddenCatSet]);
 
-  // 1. Tıklanan Klibin Ait Olduğu Programı Bul ve Tüm Bölümlerini Getir (Yayın Planlama Gibi!)
+  // 1. Tıklanan Klibin Ait Olduğu Programı Bul (Jenerik/İntro satırlarını yanlışlıkla Semerkand Sohbetleri ile eşleştirme!)
   const matchedFocusedPrograms = useMemo(() => {
-    if (!selectedItem || isSelectedAd || usedPrograms.length === 0) return [];
+    if (!selectedItem || isSelectedAd || isSelectedGenericIntro || usedPrograms.length === 0) return [];
     const candidateTitle = selectedItem.programTitle || selectedItem.clipName || selectedItem.title || '';
-    // Önce klip adından bölüm/part soneklerini temizleyerek ana program adını çıkar
     const strippedTitle = String(candidateTitle)
-      .replace(/[_\s-]+(blm|bolum|bölüm|cuz|cüz|part|prt|kisim|kısım)[_\s.-]*\d+.*$/i, '')
-      .replace(/[_\s-]+\d{1,4}([_\s-]+\d{1,2})?([_\s-]+\d{4,8})?$/i, '')
+      .replace(/\.[a-z0-9]{2,4}$/i, '')
+      .replace(/[_\s-]+(blm|bolum|bölüm|cuz|cüz|part|prt|kisim|kısım|p)[_\s.-]*\d+.*$/i, '')
+      .replace(/[_\s-]+\d{1,4}([_\s-]+\d{1,2})?([_\s-]+\d{4,8})?([_\s-]+p\d+)?$/i, '')
       .replace(/_/g, ' ')
       .trim();
 
+    if (!strippedTitle || strippedTitle.length < 3) return [];
+
     const probeObj = {
-      title: strippedTitle || candidateTitle,
+      title: strippedTitle,
       name: candidateTitle
     };
     const matches = findMatchingAdminPrograms(probeObj, usedPrograms);
     if (matches.length > 0) return matches;
 
-    // İkinci deneme: normalize edilmiş başlangıç eşleşmesi
-    const normCand = normalizeProgramText(strippedTitle || candidateTitle);
-    if (!normCand) return [];
+    const normCand = normalizeProgramText(strippedTitle);
+    if (!normCand || normCand === 'semerkand') return [];
     return usedPrograms.filter(p => {
       const normProg = normalizeProgramText(p.title || '');
-      return normProg && (normCand.includes(normProg) || normProg.includes(normCand));
-    }).slice(0, 4);
-  }, [selectedItem, isSelectedAd, usedPrograms]);
+      return normProg && normProg.length >= 4 && (normCand === normProg || normCand.startsWith(normProg) || normProg.startsWith(normCand));
+    }).slice(0, 3);
+  }, [selectedItem, isSelectedAd, isSelectedGenericIntro, usedPrograms]);
+
+  // Sağdaki listeden bir satıra tıklandığında sekmeyi ve odak modunu otomatik ayarla
+  useEffect(() => {
+    if (!selectedItem) return;
+    if (isSelectedAd) {
+      setActiveTab('ads');
+    } else {
+      setActiveTab('media');
+      if (!isSelectedGenericIntro && matchedFocusedPrograms.length > 0) {
+        setMediaScope('selected_program');
+      } else {
+        setMediaScope('all_library');
+      }
+    }
+  }, [selectedItem?.instanceId, isSelectedAd, isSelectedGenericIntro, matchedFocusedPrograms.length]);
 
   useEffect(() => {
     let mounted = true;
     setFocusedEpisodeFilter('auto');
     setFocusedSearch('');
 
-    if (!selectedItem || isSelectedAd || matchedFocusedPrograms.length === 0) {
+    if (!selectedItem || isSelectedAd || isSelectedGenericIntro || matchedFocusedPrograms.length === 0) {
       setFocusedProgramClips([]);
       return;
     }
@@ -183,7 +199,7 @@ export default function ListControlSidebar({
       setLoadingFocusedClips(true);
       try {
         const lists = await Promise.all(
-          matchedFocusedPrograms.slice(0, 4).map(p => fetchProgramClipsCached(p.id).catch(() => []))
+          matchedFocusedPrograms.slice(0, 3).map(p => fetchProgramClipsCached(p.id).catch(() => []))
         );
         const combined = [];
         lists.forEach(arr => {
@@ -203,7 +219,7 @@ export default function ListControlSidebar({
 
     loadFocused();
     return () => { mounted = false; };
-  }, [selectedItem?.instanceId, isSelectedAd, matchedFocusedPrograms]);
+  }, [selectedItem?.instanceId, isSelectedAd, isSelectedGenericIntro, matchedFocusedPrograms]);
 
   const focusedAvailableEpisodes = useMemo(() => {
     const epSet = new Set();
@@ -222,7 +238,6 @@ export default function ListControlSidebar({
     if (currentEp && focusedAvailableEpisodes.includes(Number(currentEp))) {
       return Number(currentEp);
     }
-    if (focusedAvailableEpisodes.length > 0) return focusedAvailableEpisodes[0];
     return 'all';
   }, [focusedEpisodeFilter, selectedItem, focusedAvailableEpisodes]);
 
@@ -240,7 +255,7 @@ export default function ListControlSidebar({
       list = list.filter(c => Number(c.episodeNo) === effectiveFocusedEpisode);
       return deduplicateEpisodeClipsNewest(list, matchedFocusedPrograms[0]?.title || '');
     }
-    return list.slice(0, 120);
+    return list.slice(0, 150);
   }, [focusedProgramClips, focusedSearch, effectiveFocusedEpisode, matchedFocusedPrograms]);
 
   // 2. Genel Medya Kütüphanesi Kliplerini Getir
@@ -298,7 +313,7 @@ export default function ListControlSidebar({
 
   const displayedLibraryClips = useMemo(() => {
     if (selectedProgramId === 'all' || libraryEpisodeFilter === 'all' || librarySearch.trim()) {
-      return libraryClips.slice(0, 120);
+      return libraryClips.slice(0, 150);
     }
     return libraryClips.filter(c => Number(c.episodeNo) === Number(libraryEpisodeFilter));
   }, [libraryClips, selectedProgramId, libraryEpisodeFilter, librarySearch]);
@@ -334,10 +349,11 @@ export default function ListControlSidebar({
   const buildClipPayload = (clip) => {
     const durSec = Math.max(1, Number(clip.durationSec) || Math.round((Number(clip.duration) || 1) * 60));
     const fileId = clip.fileId || clip.id;
-    const code = clip.fileName || (fileId ? `${String(fileId).replace(/\.[^.]+$/, '')}.mxf` : '');
+    const pureMatch = String(fileId || '').trim().match(/^(\d{3,10})(?:\.[a-zA-Z0-9]+)?$/);
+    const code = clip.fileName || (pureMatch ? `${pureMatch[1]}.mxf` : `${clip.name || 'klip'}.mxf`);
     return {
       id: fileId,
-      fileId: Number(String(fileId).replace(/\D+/g, '')) || null,
+      fileId: pureMatch ? Number(pureMatch[1]) : null,
       clipId: fileId,
       code,
       fileName: code,
@@ -404,29 +420,30 @@ export default function ListControlSidebar({
           e.dataTransfer.effectAllowed = 'copyMove';
         }}
         style={{
-          padding: '10px 12px',
-          borderRadius: '11px',
+          padding: '9px 11px',
+          borderRadius: '10px',
           background: isCurrentClip ? 'rgba(16, 185, 129, 0.1)' : 'var(--bg-primary)',
           border: isCurrentClip
-            ? '1.5px solid rgba(16, 185, 129, 0.45)'
+            ? '1.5px solid rgba(16, 185, 129, 0.5)'
             : '1px solid var(--border-color)',
+          borderLeft: isCurrentClip ? '4px solid #10b981' : '3.5px solid #2563eb',
           display: 'flex',
           flexDirection: 'column',
-          gap: '7px',
+          gap: '6px',
           cursor: 'grab',
-          transition: 'all 0.15s ease'
+          transition: 'all 0.12s ease'
         }}
         title="Sağdaki tabloya sürükleyip bırakabilir veya butonlarla ekleyip değiştirebilirsiniz"
       >
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', minWidth: 0, flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
               {clip.episodeNo != null && (
                 <span style={{
-                  fontSize: '10.5px',
+                  fontSize: '10px',
                   fontWeight: 800,
-                  padding: '1px 7px',
-                  borderRadius: '5px',
+                  padding: '1px 6px',
+                  borderRadius: '4px',
                   background: 'rgba(37, 99, 235, 0.14)',
                   color: '#2563eb'
                 }}>
@@ -435,10 +452,10 @@ export default function ListControlSidebar({
               )}
               {clip.partNo != null && (
                 <span style={{
-                  fontSize: '10.5px',
+                  fontSize: '10px',
                   fontWeight: 800,
-                  padding: '1px 7px',
-                  borderRadius: '5px',
+                  padding: '1px 6px',
+                  borderRadius: '4px',
                   background: 'rgba(124, 58, 237, 0.14)',
                   color: '#7c3aed'
                 }}>
@@ -447,76 +464,83 @@ export default function ListControlSidebar({
               )}
               {isCurrentClip && (
                 <span style={{
-                  fontSize: '10px',
+                  fontSize: '9.5px',
                   fontWeight: 800,
                   padding: '1px 6px',
-                  borderRadius: '5px',
+                  borderRadius: '4px',
                   background: '#10b981',
                   color: '#ffffff'
                 }}>
-                  ✓ Listedeki Aktif Klip
+                  ✓ Listedeki Klip
                 </span>
               )}
             </div>
             <div style={{
-              fontSize: '12.5px',
-              fontWeight: 700,
+              fontSize: '12px',
+              fontWeight: 800,
               color: 'var(--text-primary)',
               wordBreak: 'break-word',
-              lineHeight: 1.35
+              lineHeight: 1.3
             }}>
               {clip.name || clip.fileName}
             </div>
             {clip.note && (
-              <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+              <div style={{ fontSize: '10.5px', color: 'var(--text-secondary)', lineHeight: 1.3 }}>
                 {clip.note}
               </div>
             )}
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px', flexShrink: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '3px', flexShrink: 0 }}>
             <span style={{
-              fontSize: '11px',
+              fontSize: '10.5px',
               fontWeight: 800,
               fontFamily: 'monospace',
-              padding: '2px 7px',
-              borderRadius: '6px',
+              padding: '2px 6px',
+              borderRadius: '5px',
               background: 'var(--bg-tertiary)',
               color: 'var(--text-primary)',
               border: '1px solid var(--border-color)'
             }}>
               {formatSecondsReadable(durSec)}
             </span>
-            <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
-              ID: {clip.fileId}
+            <span style={{ fontSize: '9.5px', color: 'var(--text-muted)', fontFamily: 'monospace', fontWeight: 700 }}>
+              ID: #{clip.fileId}
             </span>
           </div>
         </div>
 
-        {/* Eylem Butonları: Değiştir, Altına Ekle, İzle & Bilgi */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', flexWrap: 'wrap', paddingTop: '4px', borderTop: '1px dashed var(--border-color)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+        {/* Eylem Butonları: Değiştir, Ekle ve ⓘ Bilgi (Information) Popup */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '5px',
+          paddingTop: '4px',
+          borderTop: '1px dashed var(--border-color)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
             {selectedItem && !isSelectedAd && !isCurrentClip && (
               <button
                 type="button"
                 onClick={() => onReplaceSelected(buildClipPayload(clip))}
                 style={{
-                  padding: '4px 9px',
-                  borderRadius: '7px',
-                  border: '1px solid rgba(37, 99, 235, 0.4)',
+                  padding: '3.5px 8px',
+                  borderRadius: '6px',
+                  border: '1px solid rgba(37, 99, 235, 0.45)',
                   background: 'rgba(37, 99, 235, 0.12)',
                   color: '#2563eb',
-                  fontSize: '11px',
+                  fontSize: '10.5px',
                   fontWeight: 800,
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '4px'
+                  gap: '3px'
                 }}
-                title={`Seçili "${selectedItem.title}" satırını bu kliple değiştir`}
+                title={`Seçili "#${selectedIndex + 1} ${selectedItem.title}" satırını bu kliple değiştir`}
               >
-                <ArrowLeftRight size={12} />
-                <span>Seçili Kliple Değiştir</span>
+                <ArrowLeftRight size={11} />
+                <span>Değiştir</span>
               </button>
             )}
 
@@ -524,21 +548,21 @@ export default function ListControlSidebar({
               type="button"
               onClick={() => onInsertItem(buildClipPayload(clip), selectedIndex >= 0 ? selectedIndex + 1 : -1)}
               style={{
-                padding: '4px 9px',
-                borderRadius: '7px',
-                border: '1px solid rgba(16, 185, 129, 0.4)',
+                padding: '3.5px 8px',
+                borderRadius: '6px',
+                border: '1px solid rgba(16, 185, 129, 0.45)',
                 background: 'rgba(16, 185, 129, 0.12)',
                 color: '#059669',
-                fontSize: '11px',
+                fontSize: '10.5px',
                 fontWeight: 800,
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '4px'
+                gap: '3px'
               }}
-              title={selectedIndex >= 0 ? 'Seçili satırın hemen altına ekle' : 'Listenin sonuna ekle'}
+              title={selectedIndex >= 0 ? `Seçili #${selectedIndex + 1} satırının hemen altına ekle` : 'Listenin sonuna ekle'}
             >
-              <Plus size={12} />
+              <Plus size={11} />
               <span>{selectedIndex >= 0 ? 'Altına Ekle' : 'Listeye Ekle'}</span>
             </button>
           </div>
@@ -547,27 +571,29 @@ export default function ListControlSidebar({
             type="button"
             onClick={() => onOpenClipPreview(clip)}
             style={{
-              padding: '4px 8px',
-              borderRadius: '7px',
-              border: '1px solid var(--border-color)',
-              background: 'var(--bg-secondary)',
-              color: 'var(--text-secondary)',
-              fontSize: '11px',
-              fontWeight: 700,
+              width: '26px',
+              height: '26px',
+              borderRadius: '6px',
+              border: '1.5px solid rgba(37, 99, 235, 0.4)',
+              background: 'rgba(37, 99, 235, 0.1)',
+              color: '#2563eb',
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '4px'
+              justifyContent: 'center',
+              flexShrink: 0
             }}
-            title="Klibi İzle & Veritabanı Künyesini Gör"
+            title="Klip Bilgileri, Veritabanı Künyesi ve Video Önizleme (Information ⓘ)"
           >
-            <Info size={12} />
-            <span>İzle</span>
+            <Info size={14} color="#2563eb" />
           </button>
         </div>
       </div>
     );
   };
+
+  const hasMatchedProgram = Boolean(selectedItem && !isSelectedAd && !isSelectedGenericIntro && matchedFocusedPrograms.length > 0);
+  const isShowingSelectedProgram = hasMatchedProgram && mediaScope === 'selected_program';
 
   return (
     <div
@@ -585,48 +611,47 @@ export default function ListControlSidebar({
         overflow: 'hidden'
       }}
     >
-      {/* Üst Sekme Başlığı: Medya & Bölüm Kütüphanesi | Reklam Kütüphanesi (Dolgu Kuşağı Yok!) */}
+      {/* 1. ÜST SEKME BAŞLIĞI: Medya & Bölümler | Reklam Havuzu */}
       <div style={{
-        padding: '10px 12px',
+        padding: '8px 10px',
         background: 'var(--bg-tertiary)',
         borderBottom: '1px solid var(--border-color)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        gap: '8px',
+        gap: '6px',
         flexShrink: 0
       }}>
         <div style={{
           display: 'flex',
           flex: 1,
           background: 'var(--bg-primary)',
-          padding: '3px',
-          borderRadius: '10px',
+          padding: '2.5px',
+          borderRadius: '9px',
           border: '1px solid var(--border-color)',
-          gap: '4px'
+          gap: '3px'
         }}>
           <button
             type="button"
             onClick={() => setActiveTab('media')}
             style={{
               flex: 1,
-              padding: '7px 10px',
-              borderRadius: '8px',
+              padding: '6px 8px',
+              borderRadius: '7px',
               border: 'none',
-              background: activeTab === 'media' ? 'var(--accent-primary)' : 'transparent',
+              background: activeTab === 'media' ? '#2563eb' : 'transparent',
               color: activeTab === 'media' ? '#ffffff' : 'var(--text-secondary)',
-              fontSize: '12px',
+              fontSize: '11.5px',
               fontWeight: 800,
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '6px',
-              transition: 'all 0.15s ease'
+              gap: '5px'
             }}
           >
-            <Film size={14} />
-            <span>Medya & Bölümler</span>
+            <Film size={13} />
+            <span>Program & Klipler</span>
           </button>
 
           <button
@@ -634,23 +659,22 @@ export default function ListControlSidebar({
             onClick={() => setActiveTab('ads')}
             style={{
               flex: 1,
-              padding: '7px 10px',
-              borderRadius: '8px',
+              padding: '6px 8px',
+              borderRadius: '7px',
               border: 'none',
               background: activeTab === 'ads' ? '#d97706' : 'transparent',
               color: activeTab === 'ads' ? '#ffffff' : 'var(--text-secondary)',
-              fontSize: '12px',
+              fontSize: '11.5px',
               fontWeight: 800,
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '6px',
-              transition: 'all 0.15s ease'
+              gap: '5px'
             }}
           >
-            <Megaphone size={14} />
-            <span>Reklam Havuzu ({materials.length})</span>
+            <Megaphone size={13} />
+            <span>Reklamlar ({materials.length})</span>
           </button>
         </div>
 
@@ -658,9 +682,9 @@ export default function ListControlSidebar({
           type="button"
           onClick={() => setSidebarWidth(w => (w >= EXPANDED_WIDTH - 30 ? DEFAULT_WIDTH : EXPANDED_WIDTH))}
           style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '8px',
+            width: '30px',
+            height: '30px',
+            borderRadius: '7px',
             border: '1px solid var(--border-color)',
             background: 'var(--bg-primary)',
             color: 'var(--text-secondary)',
@@ -672,35 +696,34 @@ export default function ListControlSidebar({
           }}
           title="Sol Paneli Genişlet / Daralt"
         >
-          {sidebarWidth >= EXPANDED_WIDTH - 30 ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+          {sidebarWidth >= EXPANDED_WIDTH - 30 ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
         </button>
       </div>
 
-      {/* Seçili Satır Bilgi Çubuğu */}
+      {/* 2. SEÇİLİ SATIR DURUM ŞERİDİ */}
       {selectedItem && (
         <div style={{
-          padding: '8px 12px',
-          background: isSelectedAd ? 'rgba(217, 119, 6, 0.12)' : 'rgba(37, 99, 235, 0.12)',
+          padding: '7px 10px',
+          background: isSelectedAd ? 'rgba(217, 119, 6, 0.1)' : 'rgba(37, 99, 235, 0.1)',
           borderBottom: '1px solid var(--border-color)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: '8px',
-          fontSize: '11.5px',
+          fontSize: '11px',
           flexShrink: 0
         }}>
           <div style={{ minWidth: 0, flex: 1 }}>
             <span style={{
               fontWeight: 800,
               color: isSelectedAd ? '#d97706' : '#2563eb',
-              display: 'block',
-              fontSize: '10.5px',
+              fontSize: '10px',
               textTransform: 'uppercase'
             }}>
-              {isSelectedAd ? '📢 Seçili Reklam Satırı:' : '🎬 Seçili Klip Satırı:'}
+              {isSelectedAd ? '📢 Seçili Reklam Satırı:' : '🎬 Seçili Tablo Satırı:'}
             </span>
             <div style={{
-              fontWeight: 700,
+              fontWeight: 800,
               color: 'var(--text-primary)',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
@@ -709,63 +732,112 @@ export default function ListControlSidebar({
               #{selectedIndex + 1} • {selectedItem.title}
             </div>
           </div>
-          <span style={{
-            fontSize: '10.5px',
-            fontWeight: 700,
-            padding: '2px 7px',
-            borderRadius: '6px',
-            background: 'var(--bg-primary)',
-            color: 'var(--text-secondary)',
-            border: '1px solid var(--border-color)',
-            flexShrink: 0
-          }}>
-            Değiştirmeye Hazır
-          </span>
+          <button
+            type="button"
+            onClick={() => onOpenClipPreview({
+              fileId: selectedItem.fileId || selectedItem.clipId || selectedItem.id,
+              name: selectedItem.clipName || selectedItem.title,
+              title: selectedItem.title,
+              fileName: selectedItem.code || selectedItem.fileName,
+              durationSec: selectedItem.durationSec,
+              categoryName: isSelectedAd ? 'Reklam' : selectedItem.categoryName
+            })}
+            style={{
+              width: '26px',
+              height: '26px',
+              borderRadius: '6px',
+              border: '1.5px solid rgba(37, 99, 235, 0.45)',
+              background: 'var(--bg-primary)',
+              color: '#2563eb',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              flexShrink: 0
+            }}
+            title="Seçili satırın bilgi & önizleme penceresini aç (ⓘ)"
+          >
+            <Info size={14} />
+          </button>
         </div>
       )}
 
-      {/* SEKME 1: MEDYA & BÖLÜM KÜTÜPHANESİ */}
+      {/* 3. SEKME 1: PROGRAM & KLİP KÜTÜPHANESİ (YAYIN PLANLAMA GİBİ TAM BOY TEK LİSTE!) */}
       {activeTab === 'media' && (
         <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          {/* A) Eğer sağdaki listeden bir klip seçildiyse ve eşleşen programı varsa: Seçili Programın Bölümleri (Yayın Planlama Gibi!) */}
-          {selectedItem && !isSelectedAd && matchedFocusedPrograms.length > 0 && (
+          {/* Eğer tıklanan satırın eşleşen bir programı varsa: "Seçili Programın Bölümleri" ↔ "Tüm Program Arşivi" Geçiş Çubuğu */}
+          {hasMatchedProgram && (
             <div style={{
-              borderBottom: '2px solid var(--accent-primary)',
-              background: 'rgba(37, 99, 235, 0.04)',
+              padding: '6px 10px',
+              background: 'var(--bg-tertiary)',
+              borderBottom: '1px solid var(--border-color)',
               display: 'flex',
-              flexDirection: 'column',
-              maxHeight: '52%',
+              gap: '4px',
               flexShrink: 0
             }}>
+              <button
+                type="button"
+                onClick={() => setMediaScope('selected_program')}
+                style={{
+                  flex: 1,
+                  padding: '5px 8px',
+                  borderRadius: '7px',
+                  border: isShowingSelectedProgram ? '1.5px solid #2563eb' : '1px solid var(--border-color)',
+                  background: isShowingSelectedProgram ? 'rgba(37, 99, 235, 0.14)' : 'var(--bg-primary)',
+                  color: isShowingSelectedProgram ? '#2563eb' : 'var(--text-secondary)',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '4px',
+                  minWidth: 0
+                }}
+              >
+                <Sparkles size={12} style={{ flexShrink: 0 }} />
+                <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {matchedFocusedPrograms[0]?.title} ({focusedProgramClips.length})
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setMediaScope('all_library')}
+                style={{
+                  flex: 1,
+                  padding: '5px 8px',
+                  borderRadius: '7px',
+                  border: !isShowingSelectedProgram ? '1.5px solid #2563eb' : '1px solid var(--border-color)',
+                  background: !isShowingSelectedProgram ? 'rgba(37, 99, 235, 0.14)' : 'var(--bg-primary)',
+                  color: !isShowingSelectedProgram ? '#2563eb' : 'var(--text-secondary)',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '4px'
+                }}
+              >
+                <Library size={12} style={{ flexShrink: 0 }} />
+                <span>Tüm Arşiv ({usedPrograms.length})</span>
+              </button>
+            </div>
+          )}
+
+          {isShowingSelectedProgram ? (
+            /* A) SEÇİLİ PROGRAMIN BÖLÜMLERİ (TAM BOY LİSTE) */
+            <>
               <div style={{
-                padding: '10px 12px',
-                background: 'rgba(37, 99, 235, 0.1)',
+                padding: '8px 10px',
+                background: 'rgba(37, 99, 235, 0.06)',
                 borderBottom: '1px solid var(--border-color)',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '8px'
+                gap: '6px',
+                flexShrink: 0
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
-                    <Sparkles size={15} color="#2563eb" />
-                    <span style={{ fontSize: '12.5px', fontWeight: 900, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {matchedFocusedPrograms[0]?.title} — Bölümleri
-                    </span>
-                  </div>
-                  <span style={{
-                    fontSize: '10.5px',
-                    fontWeight: 800,
-                    padding: '2px 7px',
-                    borderRadius: '999px',
-                    background: '#2563eb',
-                    color: '#ffffff',
-                    flexShrink: 0
-                  }}>
-                    {focusedProgramClips.length} Klip
-                  </span>
-                </div>
-
-                {/* Bölüm Seçici & Bölüm İçi Arama */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   {focusedAvailableEpisodes.length > 0 && (
                     <select
@@ -775,9 +847,9 @@ export default function ListControlSidebar({
                         setFocusedEpisodeFilter(val === 'all' ? 'all' : Number(val));
                       }}
                       style={{
-                        padding: '6px 9px',
-                        borderRadius: '8px',
-                        border: '1px solid rgba(37, 99, 235, 0.4)',
+                        padding: '6px 8px',
+                        borderRadius: '7px',
+                        border: '1px solid rgba(37, 99, 235, 0.45)',
                         background: 'var(--bg-primary)',
                         color: 'var(--text-primary)',
                         fontSize: '11.5px',
@@ -796,16 +868,16 @@ export default function ListControlSidebar({
                   )}
 
                   <div style={{ position: 'relative', flex: 1 }}>
-                    <Search size={13} color="var(--text-muted)" style={{ position: 'absolute', left: '8px', top: '8px' }} />
+                    <Search size={13} color="var(--text-muted)" style={{ position: 'absolute', left: '8px', top: '7px' }} />
                     <input
                       type="text"
                       value={focusedSearch}
                       onChange={(e) => setFocusedSearch(e.target.value)}
-                      placeholder="Bu programın bölümlerinde ara..."
+                      placeholder={`${matchedFocusedPrograms[0]?.title} bölümlerinde ara...`}
                       style={{
                         width: '100%',
-                        padding: '5px 8px 5px 26px',
-                        borderRadius: '8px',
+                        padding: '5px 22px 5px 26px',
+                        borderRadius: '7px',
                         border: '1px solid var(--border-color)',
                         background: 'var(--bg-primary)',
                         color: 'var(--text-primary)',
@@ -814,201 +886,216 @@ export default function ListControlSidebar({
                         boxSizing: 'border-box'
                       }}
                     />
+                    {focusedSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setFocusedSearch('')}
+                        style={{
+                          position: 'absolute',
+                          right: '6px',
+                          top: '6px',
+                          border: 'none',
+                          background: 'none',
+                          color: 'var(--text-muted)',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <X size={12} />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
 
-              <div style={{ padding: '10px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: '7px' }}>
                 {loadingFocusedClips ? (
-                  <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '12px' }}>
+                  <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '12px' }}>
                     Bölümler yükleniyor...
                   </div>
                 ) : displayedFocusedClips.length === 0 ? (
-                  <div style={{ padding: '14px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>
+                  <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>
                     Bu filtreye uygun bölüm bulunamadı.
                   </div>
                 ) : (
                   displayedFocusedClips.map(clip => renderClipCard(clip, true))
                 )}
               </div>
-            </div>
+            </>
+          ) : (
+            /* B) TÜM MEDYA KÜTÜPHANESİ & PROGRAM ARŞİVİ (TAM BOY LİSTE) */
+            <>
+              <div style={{
+                padding: '8px 10px',
+                background: 'var(--bg-tertiary)',
+                borderBottom: '1px solid var(--border-color)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+                flexShrink: 0
+              }}>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <Search size={13} color="var(--text-secondary)" style={{ position: 'absolute', left: '9px' }} />
+                  <input
+                    type="text"
+                    value={librarySearch}
+                    onChange={(e) => setLibrarySearch(e.target.value)}
+                    placeholder="Klip adı, program, bölüm no veya FileID ara..."
+                    style={{
+                      width: '100%',
+                      padding: '6px 26px 6px 28px',
+                      borderRadius: '7px',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-primary)',
+                      color: 'var(--text-primary)',
+                      fontSize: '11.5px',
+                      fontWeight: 600,
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                  {librarySearch && (
+                    <button
+                      type="button"
+                      onClick={() => setLibrarySearch('')}
+                      style={{
+                        position: 'absolute',
+                        right: '7px',
+                        border: 'none',
+                        background: 'none',
+                        color: 'var(--text-muted)',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <X size={13} />
+                    </button>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', gap: '5px' }}>
+                  <select
+                    value={selectedProgramId}
+                    onChange={(e) => {
+                      setSelectedProgramId(e.target.value);
+                      setLibraryEpisodeFilter('all');
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '5px 7px',
+                      borderRadius: '7px',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-primary)',
+                      color: 'var(--text-primary)',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      outline: 'none',
+                      minWidth: 0
+                    }}
+                  >
+                    <option value="all">Tüm Programlar ({usedPrograms.length})</option>
+                    {usedPrograms
+                      .filter(p => selectedCategoryId === 'all' || String(p.categoryId) === String(selectedCategoryId))
+                      .map(p => (
+                        <option key={p.id} value={String(p.id)}>
+                          {p.title} ({p.totalClips})
+                        </option>
+                      ))}
+                  </select>
+
+                  {libraryAvailableEpisodes.length > 0 ? (
+                    <select
+                      value={libraryEpisodeFilter}
+                      onChange={(e) => setLibraryEpisodeFilter(e.target.value)}
+                      style={{
+                        width: '110px',
+                        padding: '5px 7px',
+                        borderRadius: '7px',
+                        border: '1px solid var(--border-color)',
+                        background: 'var(--bg-primary)',
+                        color: 'var(--text-primary)',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        outline: 'none'
+                      }}
+                    >
+                      <option value="all">Tüm Bölümler</option>
+                      {libraryAvailableEpisodes.map(ep => (
+                        <option key={ep} value={ep}>
+                          Bölüm {ep}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <select
+                      value={selectedCategoryId}
+                      onChange={(e) => setSelectedCategoryId(e.target.value)}
+                      style={{
+                        width: '110px',
+                        padding: '5px 7px',
+                        borderRadius: '7px',
+                        border: '1px solid var(--border-color)',
+                        background: 'var(--bg-primary)',
+                        color: 'var(--text-primary)',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        outline: 'none'
+                      }}
+                    >
+                      <option value="all">Tüm Kategoriler</option>
+                      {categories.map(c => (
+                        <option key={c.id || c.categoryId} value={String(c.id || c.categoryId)}>
+                          {c.name || c.categoryName}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: '7px' }}>
+                {loadingLibrary ? (
+                  <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '12px' }}>
+                    Medya arşivi aranıyor...
+                  </div>
+                ) : displayedLibraryClips.length === 0 ? (
+                  <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>
+                    Arama kriterine uygun klip bulunamadı.
+                  </div>
+                ) : (
+                  displayedLibraryClips.map(clip => renderClipCard(clip, false))
+                )}
+              </div>
+            </>
           )}
-
-          {/* B) Genel Medya Kütüphanesi Arama & Tüm Programlar */}
-          <div style={{
-            padding: '10px 12px',
-            background: 'var(--bg-tertiary)',
-            borderBottom: '1px solid var(--border-color)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px',
-            flexShrink: 0
-          }}>
-            <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
-              Tüm Medya Kütüphanesi & Program Arşivi
-            </div>
-
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <Search size={14} color="var(--text-secondary)" style={{ position: 'absolute', left: '10px' }} />
-              <input
-                type="text"
-                value={librarySearch}
-                onChange={(e) => setLibrarySearch(e.target.value)}
-                placeholder="Klip adı, program, bölüm no veya FileID ara..."
-                style={{
-                  width: '100%',
-                  padding: '7px 28px 7px 30px',
-                  borderRadius: '8px',
-                  border: '1px solid var(--border-color)',
-                  background: 'var(--bg-primary)',
-                  color: 'var(--text-primary)',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  outline: 'none',
-                  boxSizing: 'border-box'
-                }}
-              />
-              {librarySearch && (
-                <button
-                  type="button"
-                  onClick={() => setLibrarySearch('')}
-                  style={{
-                    position: 'absolute',
-                    right: '8px',
-                    border: 'none',
-                    background: 'none',
-                    color: 'var(--text-muted)',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <X size={13} />
-                </button>
-              )}
-            </div>
-
-            <div style={{ display: 'flex', gap: '6px' }}>
-              <select
-                value={selectedProgramId}
-                onChange={(e) => {
-                  setSelectedProgramId(e.target.value);
-                  setLibraryEpisodeFilter('all');
-                }}
-                style={{
-                  flex: 1,
-                  padding: '6px 8px',
-                  borderRadius: '8px',
-                  border: '1px solid var(--border-color)',
-                  background: 'var(--bg-primary)',
-                  color: 'var(--text-primary)',
-                  fontSize: '11.5px',
-                  fontWeight: 700,
-                  outline: 'none',
-                  minWidth: 0
-                }}
-              >
-                <option value="all">Tüm Programlar ({usedPrograms.length})</option>
-                {usedPrograms
-                  .filter(p => selectedCategoryId === 'all' || String(p.categoryId) === String(selectedCategoryId))
-                  .map(p => (
-                    <option key={p.id} value={String(p.id)}>
-                      {p.title} ({p.totalClips})
-                    </option>
-                  ))}
-              </select>
-
-              {libraryAvailableEpisodes.length > 0 ? (
-                <select
-                  value={libraryEpisodeFilter}
-                  onChange={(e) => setLibraryEpisodeFilter(e.target.value)}
-                  style={{
-                    width: '115px',
-                    padding: '6px 8px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--border-color)',
-                    background: 'var(--bg-primary)',
-                    color: 'var(--text-primary)',
-                    fontSize: '11.5px',
-                    fontWeight: 700,
-                    outline: 'none'
-                  }}
-                >
-                  <option value="all">Tüm Bölümler</option>
-                  {libraryAvailableEpisodes.map(ep => (
-                    <option key={ep} value={ep}>
-                      Bölüm {ep}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <select
-                  value={selectedCategoryId}
-                  onChange={(e) => setSelectedCategoryId(e.target.value)}
-                  style={{
-                    width: '115px',
-                    padding: '6px 8px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--border-color)',
-                    background: 'var(--bg-primary)',
-                    color: 'var(--text-primary)',
-                    fontSize: '11.5px',
-                    fontWeight: 700,
-                    outline: 'none'
-                  }}
-                >
-                  <option value="all">Tüm Kategoriler</option>
-                  {categories.map(c => (
-                    <option key={c.id || c.categoryId} value={String(c.id || c.categoryId)}>
-                      {c.name || c.categoryName}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-          </div>
-
-          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {loadingLibrary ? (
-              <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '12px' }}>
-                Medya arşivi aranıyor...
-              </div>
-            ) : displayedLibraryClips.length === 0 ? (
-              <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>
-                Arama kriterine uygun klip bulunamadı.
-              </div>
-            ) : (
-              displayedLibraryClips.map(clip => renderClipCard(clip, false))
-            )}
-          </div>
         </div>
       )}
 
-      {/* SEKME 2: REKLAM KÜTÜPHANESİ (REKLAM EKLEME / DEĞİŞTİRME) */}
+      {/* 4. SEKME 2: REKLAM KÜTÜPHANESİ (TAM BOY TEK LİSTE) */}
       {activeTab === 'ads' && (
         <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <div style={{
-            padding: '10px 12px',
+            padding: '8px 10px',
             background: 'var(--bg-tertiary)',
             borderBottom: '1px solid var(--border-color)',
             display: 'flex',
             flexDirection: 'column',
-            gap: '8px',
+            gap: '6px',
             flexShrink: 0
           }}>
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <Search size={14} color="var(--text-secondary)" style={{ position: 'absolute', left: '10px' }} />
+              <Search size={13} color="var(--text-secondary)" style={{ position: 'absolute', left: '9px' }} />
               <input
                 type="text"
                 value={adSearch}
                 onChange={(e) => setAdSearch(e.target.value)}
-                placeholder="Reklam materyali, firma, ürün veya klip kodu ara..."
+                placeholder="Reklam, firma, ürün veya klip ID ara..."
                 style={{
                   width: '100%',
-                  padding: '7px 28px 7px 30px',
-                  borderRadius: '8px',
+                  padding: '6px 26px 6px 28px',
+                  borderRadius: '7px',
                   border: '1px solid var(--border-color)',
                   background: 'var(--bg-primary)',
                   color: 'var(--text-primary)',
-                  fontSize: '12px',
+                  fontSize: '11.5px',
                   fontWeight: 600,
                   outline: 'none',
                   boxSizing: 'border-box'
@@ -1020,7 +1107,7 @@ export default function ListControlSidebar({
                   onClick={() => setAdSearch('')}
                   style={{
                     position: 'absolute',
-                    right: '8px',
+                    right: '7px',
                     border: 'none',
                     background: 'none',
                     color: 'var(--text-muted)',
@@ -1037,12 +1124,12 @@ export default function ListControlSidebar({
               onChange={(e) => setSelectedCompanyId(e.target.value)}
               style={{
                 width: '100%',
-                padding: '6px 9px',
-                borderRadius: '8px',
+                padding: '5px 8px',
+                borderRadius: '7px',
                 border: '1px solid var(--border-color)',
                 background: 'var(--bg-primary)',
                 color: 'var(--text-primary)',
-                fontSize: '12px',
+                fontSize: '11px',
                 fontWeight: 700,
                 outline: 'none'
               }}
@@ -1056,7 +1143,7 @@ export default function ListControlSidebar({
             </select>
           </div>
 
-          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: '7px' }}>
             {filteredAdsCatalog.map(mat => {
               const durSec = Number(mat.duration) || Number(mat.durationSec) || 15;
               return (
@@ -1069,24 +1156,24 @@ export default function ListControlSidebar({
                     e.dataTransfer.effectAllowed = 'copyMove';
                   }}
                   style={{
-                    padding: '10px 12px',
-                    borderRadius: '11px',
+                    padding: '9px 11px',
+                    borderRadius: '10px',
                     background: 'var(--bg-primary)',
                     border: '1px solid var(--border-color)',
                     borderLeft: '3.5px solid #d97706',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '7px',
+                    gap: '6px',
                     cursor: 'grab'
                   }}
                   title="Sağdaki tabloya sürükleyip bırakabilir veya butonlarla ekleyip değiştirebilirsiniz"
                 >
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
                     <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--text-primary)', wordBreak: 'break-word' }}>
+                      <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-primary)', wordBreak: 'break-word', lineHeight: 1.3 }}>
                         {mat.clipName || mat.name}
                       </div>
-                      <div style={{ fontSize: '11px', fontWeight: 600, color: '#d97706', marginTop: '2px' }}>
+                      <div style={{ fontSize: '10.5px', fontWeight: 700, color: '#d97706', marginTop: '2px' }}>
                         {mat.companyName}
                         {mat.productName ? ` • ${mat.productName}` : ''}
                       </div>
@@ -1094,45 +1181,52 @@ export default function ListControlSidebar({
 
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '3px', flexShrink: 0 }}>
                       <span style={{
-                        fontSize: '11px',
+                        fontSize: '10.5px',
                         fontWeight: 800,
                         fontFamily: 'monospace',
-                        padding: '2px 7px',
-                        borderRadius: '6px',
+                        padding: '2px 6px',
+                        borderRadius: '5px',
                         background: 'rgba(217, 119, 6, 0.14)',
                         color: '#d97706'
                       }}>
                         {durSec} sn
                       </span>
-                      <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
-                        {mat.code || mat.clipId}
+                      <span style={{ fontSize: '9.5px', color: 'var(--text-muted)', fontFamily: 'monospace', fontWeight: 700 }}>
+                        ID: #{mat.clipId || mat.code}
                       </span>
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', flexWrap: 'wrap', paddingTop: '4px', borderTop: '1px dashed var(--border-color)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '5px',
+                    paddingTop: '4px',
+                    borderTop: '1px dashed var(--border-color)'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
                       {selectedItem && isSelectedAd && (
                         <button
                           type="button"
                           onClick={() => onReplaceSelected(buildAdPayload(mat))}
                           style={{
-                            padding: '4px 9px',
-                            borderRadius: '7px',
+                            padding: '3.5px 8px',
+                            borderRadius: '6px',
                             border: '1px solid rgba(217, 119, 6, 0.45)',
                             background: 'rgba(217, 119, 6, 0.14)',
                             color: '#d97706',
-                            fontSize: '11px',
+                            fontSize: '10.5px',
                             fontWeight: 800,
                             cursor: 'pointer',
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: '4px'
+                            gap: '3px'
                           }}
                           title="Seçili reklam satırını bu reklamla değiştir"
                         >
-                          <ArrowLeftRight size={12} />
-                          <span>Reklamı Değiştir</span>
+                          <ArrowLeftRight size={11} />
+                          <span>Değiştir</span>
                         </button>
                       )}
 
@@ -1140,21 +1234,21 @@ export default function ListControlSidebar({
                         type="button"
                         onClick={() => onInsertItem(buildAdPayload(mat), selectedIndex >= 0 ? selectedIndex + 1 : -1)}
                         style={{
-                          padding: '4px 9px',
-                          borderRadius: '7px',
-                          border: '1px solid rgba(16, 185, 129, 0.4)',
+                          padding: '3.5px 8px',
+                          borderRadius: '6px',
+                          border: '1px solid rgba(16, 185, 129, 0.45)',
                           background: 'rgba(16, 185, 129, 0.12)',
                           color: '#059669',
-                          fontSize: '11px',
+                          fontSize: '10.5px',
                           fontWeight: 800,
                           cursor: 'pointer',
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '4px'
+                          gap: '3px'
                         }}
                       >
-                        <Plus size={12} />
-                        <span>{selectedIndex >= 0 ? 'Altına Reklam Ekle' : 'Listeye Reklam Ekle'}</span>
+                        <Plus size={11} />
+                        <span>{selectedIndex >= 0 ? 'Altına Ekle' : 'Listeye Ekle'}</span>
                       </button>
                     </div>
 
@@ -1163,26 +1257,27 @@ export default function ListControlSidebar({
                       onClick={() => onOpenClipPreview({
                         fileId: String(mat.clipId || mat.code || '').replace(/\D+/g, ''),
                         name: mat.clipName || mat.name,
+                        title: mat.name || mat.clipName,
                         fileName: mat.code || `${mat.clipId}.mxf`,
                         durationSec: durSec,
                         categoryName: 'Reklam'
                       })}
                       style={{
-                        padding: '4px 8px',
-                        borderRadius: '7px',
-                        border: '1px solid var(--border-color)',
-                        background: 'var(--bg-secondary)',
-                        color: 'var(--text-secondary)',
-                        fontSize: '11px',
-                        fontWeight: 700,
+                        width: '26px',
+                        height: '26px',
+                        borderRadius: '6px',
+                        border: '1.5px solid rgba(217, 119, 6, 0.45)',
+                        background: 'rgba(217, 119, 6, 0.1)',
+                        color: '#d97706',
                         cursor: 'pointer',
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '4px'
+                        justifyContent: 'center',
+                        flexShrink: 0
                       }}
+                      title="Reklam Bilgileri, Veritabanı Künyesi ve Video Önizleme (Information ⓘ)"
                     >
-                      <Info size={12} />
-                      <span>İzle</span>
+                      <Info size={14} color="#d97706" />
                     </button>
                   </div>
                 </div>

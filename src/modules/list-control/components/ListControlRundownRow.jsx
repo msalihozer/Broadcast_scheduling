@@ -35,6 +35,7 @@ export default function ListControlRundownRow({
   rowRef,
   onSelectRow,
   onUpdateDurationSec,
+  onUpdateLogoEvent,
   onMoveUp,
   onMoveDown,
   onDeleteRow,
@@ -96,7 +97,16 @@ export default function ListControlRundownRow({
   const archiveNameFileLabel = resolvedArchiveClipName !== '-'
     ? (/\.[a-z0-9]{2,4}$/i.test(resolvedArchiveClipName) ? resolvedArchiveClipName : `${resolvedArchiveClipName}.mxf`)
     : (h.fileName || item.code || '-');
-  const effectiveLogo = item.logo || (isAd ? defaultAdLogo : defaultBroadcastLogo);
+  const displayFileCode = archiveNameFileLabel !== '-' ? archiveNameFileLabel : highResIdFileLabel;
+
+  // Logo YALNIZCA Giriş ve Çıkış satırlarında (reklam_giris, reklam_cikis, yayin_giris, yayin_cikis) gösterilir; ara satırlarda tekrarlanmaz!
+  const logoEvent = item.logoEvent || 'none';
+  const hasLogoTrigger = logoEvent && logoEvent !== 'none';
+  const isAdLogoEvent = logoEvent === 'reklam_giris' || logoEvent === 'reklam_cikis';
+  const isExitLogoEvent = logoEvent === 'reklam_cikis' || logoEvent === 'yayin_cikis';
+  const activeLogoName = hasLogoTrigger
+    ? (item.logo || (isAdLogoEvent ? defaultAdLogo : defaultBroadcastLogo))
+    : '';
 
   return (
     <div
@@ -325,52 +335,142 @@ export default function ListControlRundownRow({
         )}
       </div>
 
-      {/* SÜTUN 4: LOGO BİLGİSİ (flex: 1.1 1 125px, minWidth: 0) */}
+      {/* SÜTUN 4: LOGO GİRİŞ / ÇIKIŞ TETİKLEMESİ (Yalnızca Giriş ve Çıkış satırlarında işaretlenir, ara satırlarda tekrarlanmaz!) */}
       <div
+        onClick={(e) => e.stopPropagation()}
         style={{
-          flex: '1.1 1 125px',
+          flex: '1.15 1 130px',
           minWidth: 0,
           display: 'flex',
           flexDirection: 'column',
           gap: '2px',
           overflow: 'hidden'
         }}
-        title={`Aktif Satır Logosu: ${effectiveLogo}`}
+        title={
+          hasLogoTrigger
+            ? `${item.logoEventLabel || 'Logo Tetiklemesi'} → ${activeLogoName} (Değiştirmek için seçin)`
+            : 'Bu satırda logo değişimi (giriş/çıkış) yok. Manuel Giriş/Çıkış işaretlemek için seçebilirsiniz.'
+        }
       >
-        <span style={{
-          fontSize: '9.5px',
-          fontWeight: 800,
-          color: isAd ? '#d97706' : '#059669',
-          textTransform: 'uppercase'
-        }}>
-          {isAd ? '📢 Reklam Logosu' : '📺 Yayın Logosu'}
-        </span>
-        <span style={{
-          fontSize: '11px',
-          fontWeight: 800,
-          fontFamily: 'monospace',
-          color: 'var(--text-primary)',
-          background: isAd ? 'rgba(217, 119, 6, 0.1)' : 'rgba(16, 185, 129, 0.1)',
-          border: isAd ? '1px solid rgba(217, 119, 6, 0.3)' : '1px solid rgba(16, 185, 129, 0.3)',
-          padding: '2px 6px',
-          borderRadius: '5px',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis'
-        }}>
-          {effectiveLogo}
-        </span>
+        {hasLogoTrigger ? (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
+              <span style={{
+                fontSize: '9.5px',
+                fontWeight: 900,
+                padding: '1px 5px',
+                borderRadius: '4px',
+                background: isExitLogoEvent
+                  ? 'rgba(220, 38, 38, 0.14)'
+                  : isAdLogoEvent
+                  ? 'rgba(217, 119, 6, 0.16)'
+                  : 'rgba(16, 185, 129, 0.16)',
+                color: isExitLogoEvent
+                  ? '#dc2626'
+                  : isAdLogoEvent
+                  ? '#d97706'
+                  : '#059669',
+                textTransform: 'uppercase',
+                whiteSpace: 'nowrap'
+              }}>
+                {item.logoEventLabel || (isAdLogoEvent ? '📢 REKLAM GİRİŞ' : '📺 YAYIN GİRİŞ')}
+              </span>
+
+              {onUpdateLogoEvent && (
+                <select
+                  value={item.manualLogoEvent || 'auto'}
+                  onChange={(e) => onUpdateLogoEvent(item.instanceId, e.target.value)}
+                  style={{
+                    fontSize: '9.5px',
+                    padding: '0 2px',
+                    borderRadius: '4px',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--bg-primary)',
+                    color: 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    maxWidth: '54px'
+                  }}
+                  title="Logo Giriş / Çıkış Tetiklemesini Değiştir"
+                >
+                  <option value="auto">Oto</option>
+                  <option value="yayin_giris">📺 Yayın Giriş</option>
+                  <option value="yayin_cikis">📺 Yayın Çıkış</option>
+                  <option value="reklam_giris">📢 Reklam Giriş</option>
+                  <option value="reklam_cikis">📢 Reklam Çıkış</option>
+                  <option value="none">— Kaldır</option>
+                </select>
+              )}
+            </div>
+            <span style={{
+              fontSize: '10.5px',
+              fontWeight: 800,
+              fontFamily: 'monospace',
+              color: 'var(--text-primary)',
+              background: isExitLogoEvent
+                ? 'rgba(220, 38, 38, 0.08)'
+                : isAdLogoEvent
+                ? 'rgba(217, 119, 6, 0.1)'
+                : 'rgba(16, 185, 129, 0.1)',
+              border: isExitLogoEvent
+                ? '1px solid rgba(220, 38, 38, 0.3)'
+                : isAdLogoEvent
+                ? '1px solid rgba(217, 119, 6, 0.3)'
+                : '1px solid rgba(16, 185, 129, 0.3)',
+              padding: '2px 6px',
+              borderRadius: '5px',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
+            }}>
+              {isExitLogoEvent ? `ÇIKIŞ: ${activeLogoName}` : `GİRİŞ: ${activeLogoName}`}
+            </span>
+          </>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span style={{
+              fontSize: '11px',
+              fontWeight: 700,
+              color: 'var(--text-muted)',
+              fontFamily: 'monospace'
+            }}>
+              —
+            </span>
+            {onUpdateLogoEvent && (
+              <select
+                value={item.manualLogoEvent || 'auto'}
+                onChange={(e) => onUpdateLogoEvent(item.instanceId, e.target.value)}
+                style={{
+                  fontSize: '9.5px',
+                  padding: '1px 4px',
+                  borderRadius: '4px',
+                  border: '1px dashed var(--border-color)',
+                  background: 'transparent',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  maxWidth: '95px'
+                }}
+                title="Bu satıra Logo Giriş veya Çıkış işareti ekle"
+              >
+                <option value="auto">+ Giriş/Çıkış</option>
+                <option value="yayin_giris">📺 Yayın Giriş</option>
+                <option value="yayin_cikis">📺 Yayın Çıkış</option>
+                <option value="reklam_giris">📢 Reklam Giriş</option>
+                <option value="reklam_cikis">📢 Reklam Çıkış</option>
+                <option value="none">— Yok</option>
+              </select>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* SÜTUN 5: AŞAMA & TEKNİK KONTROL (BİZİM DB • MAM DB • HIGHRES .MXF) (flex: 2 1 185px, minWidth: 0) */}
+      {/* SÜTUN 5: AŞAMA & TEKNİK KONTROL (BİZİM DB • MAM DB • HIGHRES .MXF — Hata yazısı kesilmeden tam okunur!) */}
       <div
         style={{
-          flex: '2 1 185px',
+          flex: '2.1 1 195px',
           minWidth: 0,
           display: 'flex',
           flexDirection: 'column',
-          gap: '2px',
-          overflow: 'hidden'
+          gap: '3px'
         }}
         title={h.resolvedPath ? `Tam Dosya Yolu: ${h.resolvedPath} (${h.dbSource || 'MAM DB'})` : h.integrityStatusText}
       >
@@ -424,9 +524,9 @@ export default function ListControlRundownRow({
           fontSize: '10.5px',
           fontWeight: 700,
           color: hasHealthError ? '#dc2626' : '#059669',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis'
+          whiteSpace: 'normal',
+          wordBreak: 'break-word',
+          lineHeight: 1.35
         }}>
           {hasHealthError
             ? (Array.isArray(h.issues) && h.issues.length > 0
@@ -536,14 +636,14 @@ export default function ListControlRundownRow({
         )}
       </div>
 
-      {/* SÜTUN 7: İŞLEMLER (144px) */}
+      {/* SÜTUN 7: İŞLEMLER (132px — ⓘ Bilgi Popup + Revize + Sıralama + Sil) */}
       <div style={{
-        width: '144px',
+        width: '132px',
         flexShrink: 0,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'flex-end',
-        gap: '3px'
+        gap: '4px'
       }}>
         <button
           type="button"
@@ -559,22 +659,23 @@ export default function ListControlRundownRow({
             });
           }}
           style={{
-            padding: '3px 6px',
+            width: '25px',
+            height: '25px',
             borderRadius: '6px',
-            border: '1px solid var(--border-color)',
-            background: 'var(--bg-primary)',
-            color: 'var(--text-primary)',
-            fontSize: '10.5px',
-            fontWeight: 800,
+            border: '1.5px solid rgba(37, 99, 235, 0.45)',
+            background: 'rgba(37, 99, 235, 0.1)',
+            color: '#2563eb',
+            fontSize: '12px',
+            fontWeight: 900,
             cursor: 'pointer',
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '3px'
+            justifyContent: 'center',
+            flexShrink: 0
           }}
-          title="Klibi İzle & Veritabanı Künyesini Gör"
+          title="Klip / Reklam Detayları, Veritabanı Künyesi ve Video Önizleme (Information ⓘ)"
         >
-          <Info size={11} color="#2563eb" />
-          <span>İzle</span>
+          <Info size={14} color="#2563eb" />
         </button>
 
         <button

@@ -79,9 +79,9 @@ export default function ListControlModule() {
   const lcReorderProgram = usePlanningStore(state => state.lcReorderProgram);
   const lcRemovePrograms = usePlanningStore(state => state.lcRemovePrograms);
   const lcRequestRevision = usePlanningStore(state => state.lcRequestRevision);
+  const lcUpdateItemLogoEvent = usePlanningStore(state => state.lcUpdateItemLogoEvent);
   const lcApproveDayList = usePlanningStore(state => state.lcApproveDayList);
   const lcAddAuditLog = usePlanningStore(state => state.lcAddAuditLog);
-  const applyChannelLogosToListControl = usePlanningStore(state => state.applyChannelLogosToListControl);
 
   // Açılış ekranı her zaman Günlük ('daily') ve Bugün (todayStr) olarak başlar
   const [lcViewMode, setLcViewMode] = useState('daily'); // 'daily' | 'weekly' | 'monthly' | 'reports'
@@ -404,18 +404,19 @@ export default function ListControlModule() {
     setIsRevisionModalOpen(true);
   };
 
-  const handleSubmitRevision = ({ item, targetStage, reason }) => {
+  const handleSubmitRevision = ({ item, targetStage, reason, isFullDayRevision }) => {
     const rev = lcRequestRevision({
       channelId: selectedChannel,
       date: safeDate,
       variant: activeVariant,
       item,
       targetStage,
-      reason
+      reason,
+      isFullDayRevision
     });
     useDialogStore.getState().showAlert(
-      'Revize Talebi İletildi',
-      `"${rev.itemTitle}" için revize talebi [${rev.targetStageLabel}] birimine iletildi ve denetim loglarına kaydedildi.`
+      isFullDayRevision ? 'Bütün Gün Revizeye Gönderildi' : 'Revize Talebi İletildi',
+      `"${rev.itemTitle}" için revize talebi [${rev.targetStageLabel}] birimine iletildi ve denetim loglarına kaydedildi.\n\nRevize Açıklaması: ${rev.reason}`
     );
   };
 
@@ -665,49 +666,6 @@ export default function ListControlModule() {
               <span>Reklam Rezervasyondan Çek</span>
             </button>
 
-            {programs.length > 0 && typeof applyChannelLogosToListControl === 'function' && (
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '4px 8px',
-                borderRadius: '8px',
-                background: 'var(--bg-tertiary)',
-                border: '1px solid var(--border-color)',
-                fontSize: '11px'
-              }}>
-                <span style={{ color: '#059669', fontWeight: 800, fontFamily: 'monospace' }} title="Yayına Giriş (Program) Logosu">
-                  📺 {defaultBroadcastLogo}
-                </span>
-                <span style={{ color: 'var(--text-muted)' }}>|</span>
-                <span style={{ color: '#d97706', fontWeight: 800, fontFamily: 'monospace' }} title="Reklama Giriş Logosu">
-                  📢 {defaultAdLogo}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    applyChannelLogosToListControl(selectedChannel, safeDate);
-                    useDialogStore.getState().showAlert(
-                      'Logolar Listeye İşlendi',
-                      `${channelName} kanalının Yayına Giriş (${defaultBroadcastLogo}) ve Reklama Giriş (${defaultAdLogo}) logo isimleri listedeki tüm satırlara uygulandı.`
-                    );
-                  }}
-                  style={{
-                    padding: '3px 8px',
-                    borderRadius: '6px',
-                    border: '1px solid rgba(16, 185, 129, 0.45)',
-                    background: 'rgba(16, 185, 129, 0.14)',
-                    color: '#059669',
-                    fontSize: '10.5px',
-                    fontWeight: 800,
-                    cursor: 'pointer'
-                  }}
-                >
-                  Logoları İşle
-                </button>
-              </div>
-            )}
-
             <div style={{
               padding: '5px 10px',
               borderRadius: '8px',
@@ -722,6 +680,38 @@ export default function ListControlModule() {
                 {formatSecondsReadable(totalDurationSec)} / 24 sa
               </span>
             </div>
+
+            <button
+              type="button"
+              onClick={() =>
+                handleOpenRevisionModal({
+                  isFullDayRevision: true,
+                  title: `${channelName} (${safeDate}) Tüm Gün Yayın & Reklam Listesi`,
+                  code: safeDate,
+                  durationSec: totalDurationSec,
+                  defaultTargetStage: 'broadcast'
+                })
+              }
+              disabled={programs.length === 0}
+              style={{
+                padding: '6px 12px',
+                borderRadius: '8px',
+                border: '1.5px solid rgba(220, 38, 38, 0.5)',
+                background: 'rgba(220, 38, 38, 0.12)',
+                color: '#dc2626',
+                fontSize: '11.5px',
+                fontWeight: 800,
+                cursor: programs.length === 0 ? 'not-allowed' : 'pointer',
+                opacity: programs.length === 0 ? 0.5 : 1,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}
+              title="Bütün günü Taslak Planlama, Yayın Planlama veya Reklam Rezervasyon birimine (zorunlu açıklamayla) revizeye gönder"
+            >
+              <Send size={13} />
+              <span>Bütün Günü Revizeye Gönder</span>
+            </button>
 
             <button
               type="button"
@@ -1076,18 +1066,19 @@ export default function ListControlModule() {
                   type="button"
                   onClick={() =>
                     handleOpenRevisionModal({
-                      title: `${channelName} (${safeDate}) Genel Yayın & Reklam Listesi`,
+                      isFullDayRevision: true,
+                      title: `${channelName} (${safeDate}) Tüm Gün Yayın & Reklam Listesi`,
                       code: safeDate,
                       durationSec: totalDurationSec,
-                      isAdClip: false
+                      defaultTargetStage: 'broadcast'
                     })
                   }
                   style={{
                     padding: '4px 10px',
                     borderRadius: '7px',
-                    border: '1px solid rgba(217, 119, 6, 0.45)',
-                    background: 'rgba(217, 119, 6, 0.12)',
-                    color: '#d97706',
+                    border: '1px solid rgba(220, 38, 38, 0.45)',
+                    background: 'rgba(220, 38, 38, 0.12)',
+                    color: '#dc2626',
                     fontSize: '11px',
                     fontWeight: 800,
                     cursor: 'pointer',
@@ -1097,7 +1088,7 @@ export default function ListControlModule() {
                   }}
                 >
                   <Send size={11} />
-                  <span>Genel Revize</span>
+                  <span>Bütün Günü Revizeye Gönder</span>
                 </button>
               </div>
             </div>
@@ -1186,10 +1177,10 @@ export default function ListControlModule() {
                     <div style={{ width: '50px', flexShrink: 0 }}>SIRA</div>
                     <div style={{ width: '76px', flexShrink: 0 }}>SAAT</div>
                     <div style={{ flex: '2.2 1 170px', minWidth: 0 }}>TÜR • KLİP / REKLAM ADI • ID & DOSYA (.MXF)</div>
-                    <div style={{ flex: '1.1 1 125px', minWidth: 0 }}>LOGO BİLGİSİ</div>
-                    <div style={{ flex: '2 1 185px', minWidth: 0 }}>AŞAMA & TEKNİK KONTROL (DB • HIGHRES .MXF)</div>
+                    <div style={{ flex: '1.15 1 130px', minWidth: 0 }}>LOGO GİRİŞ / ÇIKIŞ</div>
+                    <div style={{ flex: '2.1 1 195px', minWidth: 0 }}>AŞAMA & TEKNİK KONTROL (DB • HIGHRES .MXF)</div>
                     <div style={{ width: '78px', flexShrink: 0 }}>SÜRE</div>
-                    <div style={{ width: '144px', flexShrink: 0, textAlign: 'right' }}>İŞLEMLER</div>
+                    <div style={{ width: '132px', flexShrink: 0, textAlign: 'right' }}>İŞLEMLER</div>
                   </div>
 
                   {/* FLEXBOX TABLO SATIRLARI */}
@@ -1224,6 +1215,9 @@ export default function ListControlModule() {
                           onSelectRow={(clickedItem) => setSelectedInstanceId(clickedItem.instanceId)}
                           onUpdateDurationSec={(instId, newSec) =>
                             lcUpdateItemDurationSec(selectedChannel, safeDate, activeVariant, instId, newSec)
+                          }
+                          onUpdateLogoEvent={(instId, manualEv) =>
+                            lcUpdateItemLogoEvent && lcUpdateItemLogoEvent(selectedChannel, safeDate, activeVariant, instId, manualEv)
                           }
                           onMoveUp={(instId) =>
                             lcMoveProgramUp(selectedChannel, safeDate, activeVariant, instId)

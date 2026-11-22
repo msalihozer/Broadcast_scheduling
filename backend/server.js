@@ -1195,7 +1195,7 @@ async function resolveFinalVideoAndDbRecord({ id, fileName, clipName, code, publ
     });
     let finalVideoPath = dualResult.finalVideoPath;
 
-    // 3. MAM MSSQL Files kontrolü (Hem fileId hem de name / fileName ile)
+    // 3. MAM MSSQL Files kontrolü (Hem fileId hem de name / fileName ile — Sadece Libero MAM Files tablosunda kesin bulunan sütunları sorgula!)
     if ((!finalVideoPath || !dbRecord) && (cleanNumericId || allNameTerms.length > 0)) {
         try {
             const pool = await getActiveMssqlPool();
@@ -1214,7 +1214,7 @@ async function resolveFinalVideoAndDbRecord({ id, fileName, clipName, code, publ
                 }
                 if (whereParts.length > 0) {
                     const dbRes = await req.query(`
-                        SELECT TOP 1 fileId, name, fileName, extension, categoryId, duration, deleted, fileCreateTime, publicFileAddress, fileServerPath, trimIn, trimOut
+                        SELECT TOP 1 *
                         FROM Files
                         WHERE ${whereParts.join(' OR ')}
                         ORDER BY fileId DESC
@@ -1227,13 +1227,13 @@ async function resolveFinalVideoAndDbRecord({ id, fileName, clipName, code, publ
                             name: row.name,
                             clipName: row.name,
                             fileName: fullMssqlFileName || row.fileName,
-                            extension: row.extension,
+                            extension: row.extension || 'mxf',
                             categoryId: row.categoryId,
                             deleted: Boolean(row.deleted),
                             durationMs: Number(row.duration) || dbRecord?.durationMs || 0,
                             fileCreateTime: row.fileCreateTime || dbRecord?.fileCreateTime,
-                            publicFileAddress: row.publicFileAddress,
-                            fileServerPath: row.fileServerPath,
+                            publicFileAddress: row.publicFileAddress || null,
+                            fileServerPath: row.fileServerPath || null,
                             trimIn: row.trimIn,
                             trimOut: row.trimOut,
                             source: 'MAM DB (MSSQL)'
@@ -1280,7 +1280,7 @@ async function resolveFinalVideoAndDbRecord({ id, fileName, clipName, code, publ
     }
 
     if (!finalVideoPath) {
-        const searchTerms = [
+        const rawTerms = [
             dbRecord?.clipName,
             dbRecord?.name,
             clipName,
@@ -1292,6 +1292,12 @@ async function resolveFinalVideoAndDbRecord({ id, fileName, clipName, code, publ
             .filter(Boolean)
             .map(s => String(s).trim().toLowerCase().replace(/\.[^.]+$/, ''))
             .filter(s => s.length >= 4);
+
+        // Marka / Program kök adı adaylarını da ekle (örn: "r_pinarli_gayrimenkul_25sn_240323" -> "r_pinarli_gayrimenkul")
+        const brandPrefixes = rawTerms
+            .map(t => t.replace(/[_\s-]+\d+sn.*$/i, '').replace(/[_\s-]+\d{4,8}$/i, '').trim())
+            .filter(t => t.length >= 6);
+        const searchTerms = Array.from(new Set([...rawTerms, ...brandPrefixes]));
 
         for (const term of searchTerms) {
             const arsivHit = tvYayinArsivCache.find(f => MEDIA_EXT_REGEX.test(f) && f.toLowerCase().includes(term));
@@ -1625,7 +1631,7 @@ app.post('/api/media/verify-batch', async (req, res) => {
 
                     if (whereClauses.length > 0) {
                         const msRes = await pool.request().query(`
-                            SELECT fileId, name, fileName, extension, categoryId, duration, deleted, fileCreateTime, publicFileAddress, fileServerPath
+                            SELECT *
                             FROM Files
                             WHERE ${whereClauses.join(' OR ')}
                         `);
@@ -1642,8 +1648,8 @@ app.post('/api/media/verify-batch', async (req, res) => {
                                 fileCreateTime: r.fileCreateTime || existing?.fileCreateTime,
                                 durationSec: (Number(r.duration) || 0) / 1000 || existing?.durationSec || 0,
                                 deleted: Boolean(r.deleted),
-                                publicFileAddress: r.publicFileAddress,
-                                fileServerPath: r.fileServerPath,
+                                publicFileAddress: r.publicFileAddress || null,
+                                fileServerPath: r.fileServerPath || null,
                                 inMamDb: true,
                                 inOurDb: Boolean(existing?.inOurDb || localCatalogByFileId.has(String(r.fileId))),
                                 source: existing ? 'Bizim DB & MAM DB' : 'MAM DB (MSSQL)'
@@ -1802,11 +1808,27 @@ app.post('/api/media/verify-batch', async (req, res) => {
                 } catch (_) {
                     physicalExists = Boolean(cachedOrDiskPath);
                 }
-            } else if ((matchedDb?.fileId || matchedDb?.name) && mamByStemMap.size === 0 && arsivByStemMap.size === 0) {
-                // Ağ paylaşımı henüz taranmamışsa fakat klip Bizim DB veya MAM DB'de geçerli ID / İsim kaydına sahipse
-                cachedOrDiskPath = effectiveFileId
-                    ? resolveOsMediaPath(MAM_HIGHRES_ROOT, `${effectiveFileId}.mxf`)
-                    : resolveOsMediaPath(YAYIN_ARSIV_ROOT, `${effectiveArchiveClipName}.mxf`);
+            } else if (matchedDb && !matchedDb.deleted && (effectiveFileId || effectiveArchiveClipName)) {
+                // Klip Bizim DB veya MAM DB'de kayıtlı ve aktif (deleted=0) ise;
+                // HighRes (ID tabanlı: <kategori>/<YYYY>/<MM>/<DD>/<fileId>.mxf) ve Yayın Arşiv (İsim tabanlı: <clipName>.mxf) kanonik yolunu oluştur:
+                const catFolder = (matchedDb.categoryId && HIGHRES_CATEGORY_FOLDER_MAP[matchedDb.categoryId]) || (item.isAd ? 'reklam' : 'dini');
+                const dateFolders = extractHighResDateFolders(matchedDb.fileCreateTime, effectiveArchiveClipName, item.title);
+                const datePart = dateFolders[0] || '2026/01/01';
+                if (effectiveFileId) {
+                    cachedOrDiskPath = resolveOsMediaPath(MAM_HIGHRES_ROOT, `${catFolder}/${datePart}/${effectiveFileId}.mxf`);
+                    dualStorage.matchedInHighRes = true;
+                    dualStorage.highResPath = cachedOrDiskPath;
+                }
+                if (effectiveArchiveClipName) {
+                    dualStorage.matchedInArsiv = true;
+                    dualStorage.arsivPath = resolveOsMediaPath(YAYIN_ARSIV_ROOT, `${catFolder}/${effectiveArchiveClipName.replace(/\.[^.]+$/, '')}.mxf`);
+                    if (!cachedOrDiskPath) cachedOrDiskPath = dualStorage.arsivPath;
+                }
+                dualStorage.storageLocation = dualStorage.matchedInHighRes && dualStorage.matchedInArsiv
+                    ? 'HighRes (ID) & Yayın Arşiv (İsim)'
+                    : dualStorage.matchedInHighRes
+                    ? 'HighRes (ID)'
+                    : 'Yayın Arşiv (İsim)';
                 physicalExists = true;
             }
 

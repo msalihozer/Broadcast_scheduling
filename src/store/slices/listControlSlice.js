@@ -106,6 +106,94 @@ const sanitizeProgramCodeAndFileId = (prog = {}) => {
   };
 };
 
+/**
+ * Yayın akışındaki satırlara HER SATIRA logo yazmak yerine,
+ * YALNIZCA Logo Giriş ve Çıkış noktalarını (Reklam Giriş, Reklam Çıkış, Yayın Giriş, Yayın Çıkış) işaretler.
+ * Eğer operatör bir satırda manuel logo tetiklemesi (`manualLogoEvent`) seçmişse onu korur.
+ */
+export const applySmartLogoTransitions = (programs = [], channelId = 'ch_hd', adSettings = {}) => {
+  if (!Array.isArray(programs) || programs.length === 0) return [];
+  const chSettings = adSettings?.[channelId] || {};
+  const broadcastLogo = chSettings.broadcastLogoName || (channelId === 'ch_way' ? 'Semerkand_WAY_Logo' : 'Semerkand_Tv_Logo_Corner');
+  const adLogo = chSettings.adLogoName || (channelId === 'ch_way' ? 'Semerkand_WAY_Reklam_Logo' : 'Semerkand_HD_Reklam_Logo');
+
+  const isRowAd = (r) => Boolean(r && (r.isAdClip || r.isFromAds || r.type === 'ad_break' || r.type === 'ad_spot'));
+  const isRowIntro = (r) => Boolean(r && !isRowAd(r) && (r.isIntroClip || r.unitType === 'intro' || String(r.categoryName || r.category || '').toLowerCase().includes('jenerik') || String(r.title || '').toLowerCase().includes('_intro_')));
+
+  let broadcastLogoActive = false;
+
+  return programs.map((item, idx) => {
+    const prev = idx > 0 ? programs[idx - 1] : null;
+    const next = idx < programs.length - 1 ? programs[idx + 1] : null;
+    const isAd = isRowAd(item);
+    const prevIsAd = isRowAd(prev);
+    const nextIsAd = isRowAd(next);
+    const isIntro = isRowIntro(item);
+
+    // Operatör manuel olarak bir logo giriş/çıkış durumu seçtiyse onu uygula
+    if (item.manualLogoEvent && item.manualLogoEvent !== 'auto') {
+      const ev = item.manualLogoEvent;
+      if (ev === 'none') {
+        return { ...item, logoEvent: 'none', logoEventLabel: '', logo: '' };
+      }
+      const isAdEv = ev === 'reklam_giris' || ev === 'reklam_cikis';
+      const activeLogoName = item.manualLogoName || (isAdEv ? adLogo : broadcastLogo);
+      const labelMap = {
+        reklam_giris: '📢 REKLAM GİRİŞ',
+        reklam_cikis: '📢 REKLAM ÇIKIŞ',
+        yayin_giris: '📺 YAYIN GİRİŞ',
+        yayin_cikis: '📺 YAYIN ÇIKIŞ'
+      };
+      return {
+        ...item,
+        logoEvent: ev,
+        logoEventLabel: labelMap[ev] || '',
+        logo: activeLogoName
+      };
+    }
+
+    let autoEvent = 'none';
+    let autoLabel = '';
+    let autoLogo = '';
+
+    if (isAd) {
+      broadcastLogoActive = false;
+      const isBreakFirstRow = !prevIsAd || (prev?.parentBreakId && item.parentBreakId && prev.parentBreakId !== item.parentBreakId);
+      const isBreakLastRow = !nextIsAd || (next?.parentBreakId && item.parentBreakId && next.parentBreakId !== item.parentBreakId);
+
+      if ((item.isBumperAd && item.bumperType === 'intro') || isBreakFirstRow) {
+        autoEvent = 'reklam_giris';
+        autoLabel = '📢 REKLAM GİRİŞ';
+        autoLogo = adLogo;
+      } else if ((item.isBumperAd && item.bumperType === 'outro') || isBreakLastRow) {
+        autoEvent = 'reklam_cikis';
+        autoLabel = '📢 REKLAM ÇIKIŞ';
+        autoLogo = adLogo;
+      }
+    } else {
+      // Program klibi: Yayın başında (intro sonrası ilk programda) veya reklam kuşağından hemen sonra yayına girerken Yayın Logosu Giriş işaretlenir
+      if (!isIntro && !broadcastLogoActive) {
+        autoEvent = 'yayin_giris';
+        autoLabel = '📺 YAYIN GİRİŞ';
+        autoLogo = broadcastLogo;
+        broadcastLogoActive = true;
+      } else if (!isIntro && nextIsAd) {
+        // Reklam kuşağına girmeden hemen önceki son program klibinde Yayın Logosu Çıkış
+        autoEvent = 'yayin_cikis';
+        autoLabel = '📺 YAYIN ÇIKIŞ';
+        autoLogo = broadcastLogo;
+      }
+    }
+
+    return {
+      ...item,
+      logoEvent: autoEvent,
+      logoEventLabel: autoLabel,
+      logo: autoLogo
+    };
+  });
+};
+
 const loadSavedListControlLogs = () => {
   try {
     const raw = localStorage.getItem(LC_LOGS_STORAGE_KEY);
@@ -261,9 +349,9 @@ export const createListControlSlice = (set, get) => ({
     const hasLegacyTpl3 = existingPrograms.some(p => String(p.id).toUpperCase() === 'TPL-3' || String(p.id).toUpperCase() === 'TPL-4');
 
     if (existingPrograms.length > 0 && !hasLegacyTpl3 && !forceOverwrite) {
-      // Mevcut satırlarda daha önce harf+rakam birleşimiyle oluşmuş bozuk code/fileId varsa otomatik onar
+      // Mevcut satırlarda daha önce harf+rakam birleşimiyle oluşmuş bozuk code/fileId varsa ve logo giriş/çıkış işaretleri eksikse otomatik onar
       let needsSanitize = false;
-      const sanitizedPrograms = existingPrograms.map(p => {
+      const rawSanitized = existingPrograms.map(p => {
         if (p.isEmptyAdBreak) return p;
         const fixed = sanitizeProgramCodeAndFileId(p);
         if (fixed.fileId !== p.fileId || fixed.code !== p.code) {
@@ -272,14 +360,16 @@ export const createListControlSlice = (set, get) => ({
         }
         return p;
       });
-      if (needsSanitize) {
+      const withSmartLogos = applySmartLogoTransitions(rawSanitized, channelId, state.adSettings);
+      const logoChanged = withSmartLogos.some((p, i) => p.logoEvent !== existingPrograms[i]?.logoEvent || p.logo !== existingPrograms[i]?.logo);
+      if (needsSanitize || logoChanged) {
         const sanitizedDay = {
           ...existingLcDay,
           variants: {
             ...existingLcDay.variants,
             [activeVariant]: {
               ...existingLcDay.variants[activeVariant],
-              programs: sanitizedPrograms
+              programs: withSmartLogos
             }
           }
         };
@@ -462,7 +552,11 @@ export const createListControlSlice = (set, get) => ({
       }
     });
 
-    const recalculated = _recalculateStartTimes(flattenedPrograms, dayStartTime);
+    const recalculated = applySmartLogoTransitions(
+      _recalculateStartTimes(flattenedPrograms, dayStartTime),
+      channelId,
+      state.adSettings
+    );
     const updatedDay = {
       ...(readyDay || createEmptyDay(dateStr)),
       date: dateStr,
@@ -570,7 +664,11 @@ export const createListControlSlice = (set, get) => ({
       replacedNewItem = updatedItem;
 
       programs[idx] = updatedItem;
-      const recalculated = _recalculateStartTimes(programs, day.startTime || 0);
+      const recalculated = applySmartLogoTransitions(
+        _recalculateStartTimes(programs, day.startTime || 0),
+        channelId,
+        state.adSettings
+      );
 
       const updatedDay = {
         ...day,
@@ -684,50 +782,127 @@ export const createListControlSlice = (set, get) => ({
   },
 
   /**
-   * Akıllı Revize İsteme Sistemi:
-   * - Klip / Program ise: Operatörün seçtiği aşamaya ('draft' = Taslak Planlama, 'broadcast' = Yayın Planlama, 'both' = Her İkisi) revize gönderir.
-   * - Reklam ise: Doğrudan Reklam Rezervasyon ('ads') aşamasına revize gönderir.
+   * Satır bazında Logo Giriş / Çıkış tetiklemesini ('auto' | 'yayin_giris' | 'yayin_cikis' | 'reklam_giris' | 'reklam_cikis' | 'none') günceller.
+   */
+  lcUpdateItemLogoEvent: (channelId, dateStr, variant = 'v1', targetInstanceId, manualLogoEvent = 'auto') => {
+    get()._saveSnapshot();
+    const lcKey = `list-control-${channelId}-${dateStr}`;
+    let targetTitle = '';
+
+    set((state) => {
+      const day = state.listControlDays[lcKey];
+      if (!day) return state;
+      const vKey = day.variants?.[variant] ? variant : (day.activeVariant || 'v1');
+      const programs = [...(day.variants?.[vKey]?.programs || [])];
+      const idx = programs.findIndex(p => p.instanceId === targetInstanceId);
+      if (idx === -1) return state;
+
+      targetTitle = programs[idx].title;
+      programs[idx] = {
+        ...programs[idx],
+        manualLogoEvent
+      };
+
+      const withSmartLogos = applySmartLogoTransitions(programs, channelId, state.adSettings);
+      const updatedDay = {
+        ...day,
+        updatedAt: new Date().toISOString(),
+        variants: {
+          ...day.variants,
+          [vKey]: {
+            ...day.variants[vKey],
+            programs: withSmartLogos
+          }
+        }
+      };
+
+      syncListControlDayToServer(lcKey, updatedDay);
+
+      return {
+        listControlDays: {
+          ...state.listControlDays,
+          [lcKey]: updatedDay
+        }
+      };
+    });
+
+    if (targetTitle) {
+      const labelMap = {
+        auto: 'Otomatik (Giriş/Çıkış)',
+        yayin_giris: '📺 Yayın Logo Giriş',
+        yayin_cikis: '📺 Yayın Logo Çıkış',
+        reklam_giris: '📢 Reklam Logo Giriş',
+        reklam_cikis: '📢 Reklam Logo Çıkış',
+        none: '— (Logo Tetiklemesi Yok)'
+      };
+      get().lcAddAuditLog({
+        channelId,
+        date: dateStr,
+        actionType: 'logo_trigger_edit',
+        actionLabel: 'Logo Giriş / Çıkış İşareti Güncellendi',
+        itemType: 'clip',
+        itemTitle: targetTitle,
+        oldValue: '-',
+        newValue: labelMap[manualLogoEvent] || manualLogoEvent,
+        details: `"${targetTitle}" satırının logo giriş/çıkış durumu [${labelMap[manualLogoEvent] || manualLogoEvent}] olarak ayarlandı.`,
+        status: 'success'
+      });
+    }
+  },
+
+  /**
+   * Akıllı Revize İsteme Sistemi (Satır Bazlı veya Bütün Günü Revizeye Gönderme):
+   * - Bütün Gün Revizesi (`isFullDayRevision: true`): Operatörün seçtiği birime ('draft' = Taslak Planlama, 'broadcast' = Yayın Planlama, 'ads' = Reklam Rezervasyon, 'all' = Tüm Birimler) bütün günü revizeye gönderir.
+   * - Satır Bazlı Revize: Klip için Taslak/Yayın Planlama, Reklam için Reklam Rezervasyon aşamasına gönderir.
+   * - Açıklama (`reason`) zorunludur.
    */
   lcRequestRevision: ({
     channelId,
     date,
     variant = 'v1',
     item = null,
-    targetStage = 'broadcast', // 'draft' | 'broadcast' | 'ads' | 'both'
+    targetStage = 'broadcast', // 'draft' | 'broadcast' | 'ads' | 'both' | 'all'
     reason = '',
+    isFullDayRevision = false,
     operator = 'Liste Kontrol Operatörü'
   }) => {
-    const cleanReason = String(reason || '').trim() || 'Liste Kontrol aşamasında revize talep edildi.';
+    const cleanReason = String(reason || '').trim();
+    if (!cleanReason) {
+      throw new Error('Revize açıklaması zorunludur.');
+    }
     const nowIso = new Date().toISOString();
     const lcKey = `list-control-${channelId}-${date}`;
     const readyKey = `ready-${channelId}-${date}`;
     const finalKey = `final-${channelId}-${date}`;
     const draftKey = `draft-${channelId}-${date}`;
 
-    const isAdItem = Boolean(item?.isAdClip || item?.isFromAds || item?.type === 'ad_break' || targetStage === 'ads');
+    const isFullDay = Boolean(isFullDayRevision || !item || item?.isFullDayRevision);
+    const isAdItem = !isFullDay && Boolean(item?.isAdClip || item?.isFromAds || item?.type === 'ad_break' || targetStage === 'ads');
     const effectiveStage = isAdItem ? 'ads' : targetStage;
 
     const stageLabelMap = {
-      draft: 'Taslak Planlama Aşaması',
-      broadcast: 'Yayın Planlama Aşaması',
-      both: 'Taslak Planlama + Yayın Planlama Aşamaları',
-      ads: 'Reklam Rezervasyon Aşaması'
+      draft: 'Taslak Planlama Birimi',
+      broadcast: 'Yayın Planlama Birimi',
+      both: 'Taslak Planlama + Yayın Planlama Birimleri',
+      ads: 'Reklam Rezervasyon Birimi',
+      all: 'Tüm Birimler (Taslak + Yayın Planlama + Reklam Rezervasyon)'
     };
-    const stageLabel = stageLabelMap[effectiveStage] || 'Yayın Planlama Aşaması';
+    const stageLabel = stageLabelMap[effectiveStage] || 'Yayın Planlama Birimi';
 
     const revisionRecord = {
       id: `rev-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       requestedAt: nowIso,
       channelId,
       date,
+      isFullDayRevision: isFullDay,
       targetStage: effectiveStage,
       targetStageLabel: stageLabel,
       reason: cleanReason,
       operator,
-      itemInstanceId: item?.instanceId || null,
-      itemId: item?.id || item?.fileId || item?.clipId || null,
-      itemCode: item?.code || item?.fileName || '',
-      itemTitle: item?.title || 'Tüm Gün Listesi',
+      itemInstanceId: isFullDay ? null : (item?.instanceId || null),
+      itemId: isFullDay ? null : (item?.id || item?.fileId || item?.clipId || null),
+      itemCode: isFullDay ? date : (item?.code || item?.fileName || ''),
+      itemTitle: isFullDay ? `${date} Tüm Gün Yayın & Reklam Listesi` : (item?.title || 'Tüm Gün Listesi'),
       isAd: isAdItem,
       status: 'pending'
     };
@@ -738,7 +913,7 @@ export const createListControlSlice = (set, get) => ({
       const currentProgs = [...(lcDay.variants?.[vKey]?.programs || [])];
 
       const updatedProgs = currentProgs.map(p => {
-        if (item?.instanceId && p.instanceId === item.instanceId) {
+        if (!isFullDay && item?.instanceId && p.instanceId === item.instanceId) {
           return {
             ...p,
             revisionRequested: true,
@@ -755,6 +930,8 @@ export const createListControlSlice = (set, get) => ({
       const updatedLcDay = {
         ...lcDay,
         isRevised: true,
+        isFullDayRevised: isFullDay || Boolean(lcDay.isFullDayRevised),
+        isApprovedInListControl: false,
         lastRevision: revisionRecord,
         revisions: [revisionRecord, ...prevRevisions],
         updatedAt: nowIso,
@@ -769,8 +946,8 @@ export const createListControlSlice = (set, get) => ({
 
       const nextDays = { ...state.days };
 
-      // 1. Eğer Reklam Rezervasyona revize gittiyse ready ve final günlerini 'revised' olarak işaretle
-      if (effectiveStage === 'ads') {
+      // 1. Eğer Reklam Rezervasyona (veya Tüm Birimlere) revize gittiyse ready ve final günlerini 'revised' olarak işaretle
+      if (effectiveStage === 'ads' || effectiveStage === 'all') {
         const rDay = nextDays[readyKey] || createEmptyDay(date);
         nextDays[readyKey] = {
           ...rDay,
@@ -793,8 +970,8 @@ export const createListControlSlice = (set, get) => ({
         }
       }
 
-      // 2. Eğer Taslak Planlama aşamasına revize gittiyse draft gününü işaretle
-      if (effectiveStage === 'draft' || effectiveStage === 'both') {
+      // 2. Eğer Taslak Planlama aşamasına (veya Her İkisine / Tüm Birimlere) revize gittiyse draft gününü işaretle
+      if (effectiveStage === 'draft' || effectiveStage === 'both' || effectiveStage === 'all') {
         const dDay = nextDays[draftKey] || createEmptyDay(date);
         nextDays[draftKey] = {
           ...dDay,
@@ -806,8 +983,8 @@ export const createListControlSlice = (set, get) => ({
         };
       }
 
-      // 3. Eğer Yayın Planlama aşamasına revize gittiyse ready gününü ve BroadcastStore'u işaretle
-      if (effectiveStage === 'broadcast' || effectiveStage === 'both') {
+      // 3. Eğer Yayın Planlama aşamasına (veya Her İkisine / Tüm Birimlere) revize gittiyse ready gününü işaretle
+      if (effectiveStage === 'broadcast' || effectiveStage === 'both' || effectiveStage === 'all') {
         const rDay = nextDays[readyKey] || createEmptyDay(date);
         nextDays[readyKey] = {
           ...rDay,
@@ -840,14 +1017,14 @@ export const createListControlSlice = (set, get) => ({
       channelId,
       date,
       actionType: 'revision_request',
-      actionLabel: `Revize Talebi Gönderildi → ${stageLabel}`,
-      itemType: isAdItem ? 'ad' : 'clip',
+      actionLabel: `${isFullDay ? 'Bütün Gün Revizeye Gönderildi' : 'Satır Revize Talebi Gönderildi'} → ${stageLabel}`,
+      itemType: isFullDay ? 'system' : (isAdItem ? 'ad' : 'clip'),
       itemTitle: revisionRecord.itemTitle,
       itemCode: revisionRecord.itemCode,
       targetStage: effectiveStage,
-      oldValue: 'Kontrol Bekliyor',
+      oldValue: 'Kontrol Aşamasında',
       newValue: `Revize: ${stageLabel}`,
-      details: `[${stageLabel}] "${revisionRecord.itemTitle}" için revize istendi. Not: ${cleanReason}`,
+      details: `[${stageLabel}] "${revisionRecord.itemTitle}" için revize istendi. Zorunlu Açıklama: ${cleanReason}`,
       status: 'warning',
       operator
     });
@@ -914,7 +1091,11 @@ export const createListControlSlice = (set, get) => ({
         currentPrograms.splice(finalIndex, 0, newProgram);
       }
 
-      const updatedPrograms = _recalculateStartTimes(currentPrograms, day.startTime || 0);
+      const updatedPrograms = applySmartLogoTransitions(
+        _recalculateStartTimes(currentPrograms, day.startTime || 0),
+        channelId,
+        state.adSettings
+      );
       const updatedDay = {
         ...day,
         updatedAt: new Date().toISOString(),
@@ -968,7 +1149,11 @@ export const createListControlSlice = (set, get) => ({
       programs[index - 1] = programs[index];
       programs[index] = temp;
 
-      const updatedPrograms = _recalculateStartTimes(programs, day.startTime || 0);
+      const updatedPrograms = applySmartLogoTransitions(
+        _recalculateStartTimes(programs, day.startTime || 0),
+        channelId,
+        state.adSettings
+      );
       const updatedDay = {
         ...day,
         updatedAt: new Date().toISOString(),
@@ -1001,7 +1186,11 @@ export const createListControlSlice = (set, get) => ({
       programs[index + 1] = programs[index];
       programs[index] = temp;
 
-      const updatedPrograms = _recalculateStartTimes(programs, day.startTime || 0);
+      const updatedPrograms = applySmartLogoTransitions(
+        _recalculateStartTimes(programs, day.startTime || 0),
+        channelId,
+        state.adSettings
+      );
       const updatedDay = {
         ...day,
         updatedAt: new Date().toISOString(),
@@ -1032,7 +1221,11 @@ export const createListControlSlice = (set, get) => ({
       const [movedItem] = programs.splice(oldIndex, 1);
       programs.splice(newIndex, 0, movedItem);
 
-      const updatedPrograms = _recalculateStartTimes(programs, day.startTime || 0);
+      const updatedPrograms = applySmartLogoTransitions(
+        _recalculateStartTimes(programs, day.startTime || 0),
+        channelId,
+        state.adSettings
+      );
       const updatedDay = {
         ...day,
         updatedAt: new Date().toISOString(),
@@ -1156,7 +1349,11 @@ export const createListControlSlice = (set, get) => ({
       });
 
       const programs = currentProgs.filter(p => !instanceIds.includes(p.instanceId));
-      const updatedPrograms = _recalculateStartTimes(programs, day.startTime || 0);
+      const updatedPrograms = applySmartLogoTransitions(
+        _recalculateStartTimes(programs, day.startTime || 0),
+        channelId,
+        state.adSettings
+      );
       const updatedDay = {
         ...day,
         updatedAt: new Date().toISOString(),

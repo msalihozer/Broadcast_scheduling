@@ -1,17 +1,27 @@
 /**
  * @file src/modules/list-control/components/ListControlRevisionModal.jsx
- * @description Yayın Liste Kontrol Modülü Akıllı Revize İsteme Modalı.
+ * @description Yayın Liste Kontrol Modülü Akıllı Revize İsteme Modalı (Satır Bazlı + Bütün Günü Revizeye Gönderme).
  *
- * Kural:
- * - Eğer seçilen satır bir Program / Klip ise: Operatör revizenin **Taslak Planlama** aşamasına mı,
- *   **Yayın Planlama** aşamasına mı (veya her ikisine birden mi) gideceğini seçer.
- * - Eğer seçilen satır bir Reklam / Reklam Kuşağı ise: Revize doğrudan **Reklam Rezervasyon** aşamasına gider.
+ * Kurallar:
+ * 1. Bütün Günü Revizeye Gönderme: Operatör bütün günü **Taslak Planlama**, **Yayın Planlama**, **Reklam Rezervasyon**
+ *    veya **Tüm Birimlere** revizeye gönderebilir.
+ * 2. Satır Bazlı Revize:
+ *    - Program / Klip ise: **Taslak Planlama**, **Yayın Planlama** veya her ikisine gönderilir.
+ *    - Reklam ise: Doğrudan **Reklam Rezervasyon** birimine gönderilir.
+ * 3. **AÇIKLAMA ZORUNLUDUR**: Açıklama yazılmadan revize gönderilemez.
  */
 import React, { useState, useEffect } from 'react';
 import {
-  X, Send, AlertTriangle, Film, Megaphone, Layers, CheckCircle2, FileText
+  X, Send, AlertTriangle, Film, Megaphone, Layers, CheckCircle2, Calendar
 } from 'lucide-react';
 import { formatMinuteToClock, formatSecondsReadable } from '../utils/listControlVerificationEngine';
+
+const FULL_DAY_REVISION_PRESETS = [
+  'Günlük yayın akışı ve reklam kuşakları genel revize gerektiriyor',
+  'Taslak planlama ile yayın planlama saatleri/bölümleri uyuşmuyor, gün yeniden kontrol edilmeli',
+  'Reklam kuşakları ve spot yerleşimleri günlük akışla uyumsuz, yeniden düzenlenmeli',
+  'Listedeki birden fazla klipte dosya yolu veya süre hatası mevcut, gün revize edilmeli'
+];
 
 const CLIP_REVISION_PRESETS = [
   'Yanlış bölüm / part seçilmiş, düzeltilmesi gerekiyor',
@@ -37,36 +47,112 @@ export default function ListControlRevisionModal({
   selectedDate = '',
   onSubmitRevision
 }) {
-  const isAd = Boolean(item?.isAdClip || item?.isFromAds || item?.type === 'ad_break' || item?.type === 'ad_spot');
+  const isFullDay = Boolean(!item || item.isFullDayRevision);
+  const isAd = !isFullDay && Boolean(item?.isAdClip || item?.isFromAds || item?.type === 'ad_break' || item?.type === 'ad_spot');
 
   const [targetStage, setTargetStage] = useState(isAd ? 'ads' : 'broadcast');
   const [reason, setReason] = useState('');
+  const [validationError, setValidationError] = useState('');
 
   useEffect(() => {
     if (isOpen) {
-      setTargetStage(isAd ? 'ads' : 'broadcast');
+      if (isFullDay) {
+        setTargetStage(item?.defaultTargetStage || 'broadcast');
+      } else {
+        setTargetStage(isAd ? 'ads' : 'broadcast');
+      }
       setReason(item?.revisionReason || '');
+      setValidationError('');
     }
-  }, [isOpen, item, isAd]);
+  }, [isOpen, item, isAd, isFullDay]);
 
   if (!isOpen) return null;
 
-  const presets = isAd ? AD_REVISION_PRESETS : CLIP_REVISION_PRESETS;
-  const startClock = item ? formatMinuteToClock(item.startMinute || 0) : '';
+  const presets = isFullDay
+    ? FULL_DAY_REVISION_PRESETS
+    : isAd
+    ? AD_REVISION_PRESETS
+    : CLIP_REVISION_PRESETS;
+  const startClock = item && !isFullDay ? formatMinuteToClock(item.startMinute || 0) : '';
   const durSec = item ? (Number(item.durationSec) || Math.round((Number(item.duration) || 0) * 60)) : 0;
 
   const handleConfirm = (e) => {
     e.preventDefault();
-    const finalReason = reason.trim() || (isAd
-      ? 'Reklam yerleşimi / materyali için Liste Kontrol tarafından revize talep edildi.'
-      : 'Program / klip için Liste Kontrol tarafından revize talep edildi.');
+    const cleanReason = reason.trim();
+    if (!cleanReason) {
+      setValidationError('Revize açıklaması zorunludur! Lütfen revize nedenini detaylı olarak yazınız veya yukarıdaki hızlı sebeplerden birini seçiniz.');
+      return;
+    }
+    setValidationError('');
     onSubmitRevision({
-      item,
+      item: isFullDay
+        ? {
+            ...(item || {}),
+            isFullDayRevision: true,
+            title: item?.title || `${channelName} (${selectedDate}) Tüm Gün Yayın & Reklam Listesi`
+          }
+        : item,
       targetStage: isAd ? 'ads' : targetStage,
-      reason: finalReason
+      reason: cleanReason,
+      isFullDayRevision: isFullDay
     });
     onClose();
   };
+
+  const stageOptions = isFullDay
+    ? [
+        {
+          id: 'draft',
+          title: '📋 Taslak Planlama',
+          desc: 'Bütün günü Taslak Planlama birimine revizeye gönder',
+          color: '#0284c7',
+          bg: 'rgba(2, 132, 199, 0.12)'
+        },
+        {
+          id: 'broadcast',
+          title: '🎬 Yayın Planlama',
+          desc: 'Bütün günü Yayın Planlama birimine revizeye gönder',
+          color: '#2563eb',
+          bg: 'rgba(37, 99, 235, 0.12)'
+        },
+        {
+          id: 'ads',
+          title: '📢 Reklam Rezervasyon',
+          desc: 'Bütün günü Reklam Rezervasyon birimine revizeye gönder',
+          color: '#d97706',
+          bg: 'rgba(217, 119, 6, 0.12)'
+        },
+        {
+          id: 'all',
+          title: '🌐 Tüm Birimlere Gönder',
+          desc: 'Taslak, Yayın Planlama ve Reklam birimlerinin tamamına bildir',
+          color: '#dc2626',
+          bg: 'rgba(220, 38, 38, 0.12)'
+        }
+      ]
+    : [
+        {
+          id: 'draft',
+          title: '📋 Taslak Planlama',
+          desc: 'Program / kuşak planlaması taslak aşamasında düzeltilsin',
+          color: '#0284c7',
+          bg: 'rgba(2, 132, 199, 0.12)'
+        },
+        {
+          id: 'broadcast',
+          title: '🎬 Yayın Planlama',
+          desc: 'Bölüm, klip seçimi veya süre Yayın Planlamada düzeltilsin',
+          color: '#2563eb',
+          bg: 'rgba(37, 99, 235, 0.12)'
+        },
+        {
+          id: 'both',
+          title: '🔄 Her İkisine Birden',
+          desc: 'Hem Taslak hem Yayın Planlama birimine bildirilsin',
+          color: '#7c3aed',
+          bg: 'rgba(124, 58, 237, 0.12)'
+        }
+      ];
 
   return (
     <div
@@ -74,7 +160,7 @@ export default function ListControlRevisionModal({
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(15, 23, 42, 0.72)',
+        background: 'rgba(15, 23, 42, 0.74)',
         backdropFilter: 'blur(6px)',
         display: 'flex',
         alignItems: 'center',
@@ -87,7 +173,7 @@ export default function ListControlRevisionModal({
         onClick={(e) => e.stopPropagation()}
         style={{
           width: '100%',
-          maxWidth: '620px',
+          maxWidth: '650px',
           background: 'var(--bg-secondary)',
           border: '1.5px solid var(--border-color)',
           borderRadius: '18px',
@@ -100,7 +186,9 @@ export default function ListControlRevisionModal({
         {/* Üst Başlık */}
         <div style={{
           padding: '16px 20px',
-          background: isAd
+          background: isFullDay
+            ? 'linear-gradient(135deg, rgba(220, 38, 38, 0.14) 0%, rgba(217, 119, 6, 0.1) 100%)'
+            : isAd
             ? 'linear-gradient(135deg, rgba(217, 119, 6, 0.14) 0%, rgba(234, 88, 12, 0.08) 100%)'
             : 'linear-gradient(135deg, rgba(37, 99, 235, 0.14) 0%, rgba(124, 58, 237, 0.08) 100%)',
           borderBottom: '1px solid var(--border-color)',
@@ -114,22 +202,30 @@ export default function ListControlRevisionModal({
               width: '42px',
               height: '42px',
               borderRadius: '12px',
-              background: isAd ? '#d97706' : '#2563eb',
+              background: isFullDay ? '#dc2626' : isAd ? '#d97706' : '#2563eb',
               color: '#ffffff',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: isAd ? '0 6px 16px rgba(217, 119, 6, 0.35)' : '0 6px 16px rgba(37, 99, 235, 0.35)',
+              boxShadow: isFullDay
+                ? '0 6px 16px rgba(220, 38, 38, 0.35)'
+                : isAd
+                ? '0 6px 16px rgba(217, 119, 6, 0.35)'
+                : '0 6px 16px rgba(37, 99, 235, 0.35)',
               flexShrink: 0
             }}>
-              {isAd ? <Megaphone size={20} /> : <Film size={20} />}
+              {isFullDay ? <Calendar size={20} /> : isAd ? <Megaphone size={20} /> : <Film size={20} />}
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)' }}>
-                {isAd ? 'Reklam Revize Talebi Gönder' : 'Program / Klip Revize Talebi Gönder'}
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 900, color: 'var(--text-primary)' }}>
+                {isFullDay
+                  ? 'Bütün Günü Revizeye Gönder'
+                  : isAd
+                  ? 'Reklam Satırı Revize Talebi Gönder'
+                  : 'Program / Klip Revize Talebi Gönder'}
               </h3>
-              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px', fontWeight: 600 }}>
-                {channelName} • {selectedDate}
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px', fontWeight: 700 }}>
+                {channelName} • {selectedDate} • Açıklama Zorunlu
               </div>
             </div>
           </div>
@@ -155,45 +251,53 @@ export default function ListControlRevisionModal({
         </div>
 
         <form onSubmit={handleConfirm} style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* Seçili Öğe Bilgisi */}
-          {item && (
-            <div style={{
-              padding: '12px 14px',
-              borderRadius: '12px',
-              background: 'var(--bg-tertiary)',
-              border: '1px solid var(--border-color)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '6px'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
-                <span style={{
-                  fontSize: '11px',
-                  fontWeight: 800,
-                  padding: '2px 8px',
-                  borderRadius: '6px',
-                  background: isAd ? 'rgba(217, 119, 6, 0.16)' : 'rgba(37, 99, 235, 0.16)',
-                  color: isAd ? '#d97706' : '#2563eb'
-                }}>
-                  {isAd ? '📢 REKLAM / KUŞAK ÖĞESİ' : '🎬 PROGRAM / KLİP ÖĞESİ'}
-                </span>
-                <span style={{ fontSize: '12px', fontWeight: 700, fontFamily: 'monospace', color: 'var(--text-secondary)' }}>
-                  Saat: {startClock} • Süre: {formatSecondsReadable(durSec)}
-                </span>
-              </div>
-              <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-primary)' }}>
-                {item.title}
-              </div>
+          {/* Seçili Gün veya Öğe Bilgisi */}
+          <div style={{
+            padding: '12px 14px',
+            borderRadius: '12px',
+            background: 'var(--bg-tertiary)',
+            border: '1px solid var(--border-color)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '6px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+              <span style={{
+                fontSize: '11px',
+                fontWeight: 800,
+                padding: '2px 8px',
+                borderRadius: '6px',
+                background: isFullDay
+                  ? 'rgba(220, 38, 38, 0.15)'
+                  : isAd
+                  ? 'rgba(217, 119, 6, 0.16)'
+                  : 'rgba(37, 99, 235, 0.16)',
+                color: isFullDay ? '#dc2626' : isAd ? '#d97706' : '#2563eb'
+              }}>
+                {isFullDay ? '📅 TÜM GÜN YAYIN & REKLAM LİSTESİ' : isAd ? '📢 REKLAM / KUŞAK ÖĞESİ' : '🎬 PROGRAM / KLİP ÖĞESİ'}
+              </span>
+              <span style={{ fontSize: '12px', fontWeight: 700, fontFamily: 'monospace', color: 'var(--text-secondary)' }}>
+                {isFullDay
+                  ? `Tarih: ${selectedDate}${durSec > 0 ? ` • Toplam: ${formatSecondsReadable(durSec)}` : ''}`
+                  : `Saat: ${startClock} • Süre: ${formatSecondsReadable(durSec)}`}
+              </span>
+            </div>
+            <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-primary)' }}>
+              {isFullDay
+                ? `${channelName} — ${selectedDate} Tam Gün Listesi`
+                : item?.title}
+            </div>
+            {!isFullDay && item && (
               <div style={{ fontSize: '11.5px', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
                 Kod / ID: {item.code || item.fileName || item.id || '-'}
                 {item.parentBreakTitle ? ` • Kuşak: ${item.parentBreakTitle}` : ''}
                 {item.companyName ? ` • Firma: ${item.companyName}` : ''}
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
-          {/* Hedef Aşama Seçimi */}
-          {isAd ? (
+          {/* Hedef Birim Seçimi */}
+          {isAd && !isFullDay ? (
             <div style={{
               padding: '12px 14px',
               borderRadius: '12px',
@@ -214,32 +318,15 @@ export default function ListControlRevisionModal({
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <label style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--text-primary)' }}>
-                Revize Hangi Aşamaya Gönderilsin? <span style={{ color: '#ef4444' }}>*</span>
+                {isFullDay ? 'Bütün Gün Hangi Birime Revizeye Gönderilsin?' : 'Revize Hangi Aşamaya Gönderilsin?'}{' '}
+                <span style={{ color: '#ef4444' }}>*</span>
               </label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '10px' }}>
-                {[
-                  {
-                    id: 'draft',
-                    title: 'Taslak Planlama',
-                    desc: 'Program / kuşak planlaması taslak aşamasında düzeltilsin',
-                    color: '#0284c7',
-                    bg: 'rgba(2, 132, 199, 0.12)'
-                  },
-                  {
-                    id: 'broadcast',
-                    title: 'Yayın Planlama',
-                    desc: 'Bölüm, klip seçimi veya süre Yayın Planlamada düzeltilsin',
-                    color: '#2563eb',
-                    bg: 'rgba(37, 99, 235, 0.12)'
-                  },
-                  {
-                    id: 'both',
-                    title: 'Her İkisine Birden',
-                    desc: 'Hem Taslak hem Yayın Planlama birimine bildirilsin',
-                    color: '#7c3aed',
-                    bg: 'rgba(124, 58, 237, 0.12)'
-                  }
-                ].map(opt => {
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: isFullDay ? 'repeat(2, minmax(0, 1fr))' : 'repeat(auto-fit, minmax(170px, 1fr))',
+                gap: '10px'
+              }}>
+                {stageOptions.map(opt => {
                   const active = targetStage === opt.id;
                   return (
                     <button
@@ -278,14 +365,17 @@ export default function ListControlRevisionModal({
           {/* Hızlı Revize Nedeni Şablonları */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--text-secondary)' }}>
-              Hızlı Revize Sebebi Seçin (İsteğe Bağlı):
+              Hızlı Revize Sebebi Seçin (Tıklayınca Açıklamaya Eklenir):
             </span>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
               {presets.map((preset, idx) => (
                 <button
                   key={idx}
                   type="button"
-                  onClick={() => setReason(preset)}
+                  onClick={() => {
+                    setReason(preset);
+                    setValidationError('');
+                  }}
                   style={{
                     padding: '5px 10px',
                     borderRadius: '8px',
@@ -304,25 +394,47 @@ export default function ListControlRevisionModal({
             </div>
           </div>
 
-          {/* Açıklama Alanı */}
+          {/* Açıklama Alanı (ZORUNLU) */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <label style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--text-primary)' }}>
-              Revize Açıklaması / Operatör Notu
-            </label>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+              <label style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--text-primary)' }}>
+                Revize Açıklaması / Operatör Notu <span style={{ color: '#ef4444' }}>* (Zorunlu)</span>
+              </label>
+              <span style={{
+                fontSize: '10.5px',
+                fontWeight: 800,
+                padding: '1px 7px',
+                borderRadius: '999px',
+                background: reason.trim() ? 'rgba(16, 185, 129, 0.14)' : 'rgba(239, 68, 68, 0.14)',
+                color: reason.trim() ? '#059669' : '#dc2626'
+              }}>
+                {reason.trim() ? '✓ Açıklama Girildi' : '⚠️ Açıklama Zorunlu'}
+              </span>
+            </div>
             <textarea
               rows={3}
+              required
               value={reason}
-              onChange={(e) => setReason(e.target.value)}
+              onChange={(e) => {
+                setReason(e.target.value);
+                if (validationError && e.target.value.trim()) setValidationError('');
+              }}
               placeholder={
-                isAd
-                  ? 'Reklam Rezervasyon birimine iletilecek revize detayını yazınız...'
-                  : 'Taslak veya Yayın Planlama birimine iletilecek revize detayını yazınız...'
+                isFullDay
+                  ? 'Bütün günün neden revizeye gönderildiğini detaylı olarak yazınız (Zorunlu)...'
+                  : isAd
+                  ? 'Reklam Rezervasyon birimine iletilecek revize nedenini yazınız (Zorunlu)...'
+                  : 'Taslak veya Yayın Planlama birimine iletilecek revize nedenini yazınız (Zorunlu)...'
               }
               style={{
                 width: '100%',
                 padding: '10px 12px',
                 borderRadius: '10px',
-                border: '1px solid var(--border-color)',
+                border: validationError
+                  ? '2px solid #dc2626'
+                  : reason.trim()
+                  ? '1.5px solid #10b981'
+                  : '1.5px solid var(--border-color)',
                 background: 'var(--bg-primary)',
                 color: 'var(--text-primary)',
                 fontSize: '12.5px',
@@ -332,6 +444,23 @@ export default function ListControlRevisionModal({
                 boxSizing: 'border-box'
               }}
             />
+            {validationError && (
+              <div style={{
+                padding: '8px 12px',
+                borderRadius: '8px',
+                background: 'rgba(220, 38, 38, 0.12)',
+                border: '1px solid rgba(220, 38, 38, 0.35)',
+                color: '#dc2626',
+                fontSize: '11.5px',
+                fontWeight: 800,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
+                <AlertTriangle size={14} style={{ flexShrink: 0 }} />
+                <span>{validationError}</span>
+              </div>
+            )}
           </div>
 
           {/* Alt Butonlar */}
@@ -358,7 +487,9 @@ export default function ListControlRevisionModal({
                 padding: '9px 18px',
                 borderRadius: '10px',
                 border: 'none',
-                background: isAd
+                background: isFullDay
+                  ? 'linear-gradient(135deg, #dc2626 0%, #ea580c 100%)'
+                  : isAd
                   ? 'linear-gradient(135deg, #d97706 0%, #ea580c 100%)'
                   : 'linear-gradient(135deg, #2563eb 0%, #4f46e5 100%)',
                 color: '#ffffff',
@@ -373,7 +504,15 @@ export default function ListControlRevisionModal({
             >
               <Send size={14} />
               <span>
-                {isAd
+                {isFullDay
+                  ? targetStage === 'ads'
+                    ? 'Bütün Günü Reklam Rezervasyona Revizeye Gönder'
+                    : targetStage === 'draft'
+                    ? 'Bütün Günü Taslak Planlamaya Revizeye Gönder'
+                    : targetStage === 'all'
+                    ? 'Bütün Günü Tüm Birimlere Revizeye Gönder'
+                    : 'Bütün Günü Yayın Planlamaya Revizeye Gönder'
+                  : isAd
                   ? 'Reklam Rezervasyona Revize Gönder'
                   : targetStage === 'draft'
                   ? 'Taslak Planlamaya Revize Gönder'
