@@ -1143,6 +1143,10 @@ const AdPlanningTab = () => {
                 minWidth: '240px',
                 maxWidth: '42vw',
                 flexShrink: 0,
+                position: 'sticky',
+                top: '0px',
+                alignSelf: 'flex-start',
+                zIndex: 10,
                 transition: 'width 0.12s ease'
               }}
             >
@@ -1485,6 +1489,10 @@ const AdPlanningTab = () => {
                 minWidth: '230px',
                 maxWidth: '38vw',
                 flexShrink: 0,
+                position: 'sticky',
+                top: '0px',
+                alignSelf: 'flex-start',
+                zIndex: 10,
                 transition: 'width 0.12s ease'
               }}
             >

@@ -857,6 +857,15 @@ const AdBreakInteractiveSpotsList = ({
   );
 };
 
+const formatDurationMinSec = (secVal = 0) => {
+  const s = Math.max(0, Math.round(Number(secVal) || 0));
+  const m = Math.floor(s / 60);
+  const rem = s % 60;
+  if (m === 0) return `${rem} sn`;
+  if (rem === 0) return `${m} dk`;
+  return `${m} dk ${String(rem).padStart(2, '0')} sn`;
+};
+
 const getTimeBlockBadgeStyle = (tbName = '') => {
   const lower = String(tbName || '').toLocaleLowerCase('tr-TR');
   if (lower.includes('sabah')) {
@@ -975,30 +984,33 @@ export const AdBreaksListView = ({
             }}
           >
             {/* ================================================================
-                1. SATIR: TEMİZ VE TEKRARSIZ KUŞAK BAŞLIĞI (FLEXBOX)
-                Sol: [X. KUŞAK] + [Saat Aralığı] + [Sabah/Öğle/Akşam Kuşağı]
-                Sağ: [Spot & Süre Doluluk Özeti] + [+ Spot Ekle / Temizle]
+                1. SATIR: DENGELİ 3 BÖLGELİ (SOL | TAM ORTA | SAĞ) KUŞAK BAŞLIĞI
+                - Sol: [X. KUŞAK] + [Sabah/Öğle/Akşam/Gece Kuşağı] + [Sponsorlu]
+                - Orta (Ortalanmış): [Giriş – Çıkış Saati] + [Toplam Kuşak Süresi: X dk]
+                - Sağ (Sağa Hizalı): [Spot Sayısı] + [Temizle] + [+ Spot Ekle]
                ================================================================ */}
             <div
               style={{
                 display: 'flex',
-                justifyContent: 'space-between',
                 alignItems: 'center',
+                justifyContent: 'space-between',
                 flexWrap: 'wrap',
-                gap: '10px'
+                gap: '12px',
+                paddingBottom: '10px',
+                borderBottom: '1px solid var(--ads-border)'
               }}
             >
-              {/* Sol: Kuşak Sırası, Saat Aralığı ve Yayın Kuşağı Dilimi (Tekrarsız) */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              {/* SOL BÖLGE: Kuşak Sırası & Yayın Kuşağı Dilimi */}
+              <div style={{ flex: '1 1 210px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 <span
                   style={{
-                    fontSize: '12px',
+                    fontSize: '12.5px',
                     fontWeight: '900',
-                    padding: '5px 11px',
-                    borderRadius: '8px',
+                    padding: '6px 13px',
+                    borderRadius: '9px',
                     background: isActiveTarget ? 'var(--ads-brand)' : '#1e293b',
                     color: '#ffffff',
-                    letterSpacing: '0.02em'
+                    letterSpacing: '0.03em'
                   }}
                 >
                   {brkIdx + 1}. KUŞAK
@@ -1006,28 +1018,9 @@ export const AdBreaksListView = ({
 
                 <span
                   style={{
-                    fontFamily: 'monospace',
-                    fontSize: '13.5px',
-                    fontWeight: '900',
-                    padding: '4px 11px',
-                    borderRadius: '8px',
-                    background: 'var(--ads-brand-soft)',
-                    color: 'var(--ads-brand)',
-                    border: '1px solid rgba(70, 95, 255, 0.25)',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '5px'
-                  }}
-                >
-                  <Clock size={13} />
-                  <span>{brk.exactStartClock} – {brk.exactEndClock}</span>
-                </span>
-
-                <span
-                  style={{
-                    fontSize: '11.5px',
+                    fontSize: '12px',
                     fontWeight: '800',
-                    padding: '4px 11px',
+                    padding: '5px 12px',
                     borderRadius: '8px',
                     background: tbStyle.bg,
                     color: tbStyle.color,
@@ -1073,7 +1066,73 @@ export const AdBreaksListView = ({
                     <Repeat size={12} /> Seçili Klip Bu Kuşakta
                   </span>
                 )}
+              </div>
 
+              {/* ORTA BÖLGE (TAM ORTALANMIŞ): Giriş – Çıkış Saati & Kuşağın Toplam Süresi */}
+              <div
+                style={{
+                  flex: '1.4 1 280px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  flexWrap: 'wrap'
+                }}
+              >
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '7px',
+                    padding: '6px 14px',
+                    borderRadius: '10px',
+                    background: 'var(--ads-brand-soft)',
+                    border: '1.5px solid rgba(70, 95, 255, 0.32)',
+                    color: 'var(--ads-brand)',
+                    fontFamily: 'monospace',
+                    fontSize: '14px',
+                    fontWeight: '900'
+                  }}
+                  title="Reklam Kuşağı Giriş ve Çıkış Saati"
+                >
+                  <Clock size={14} />
+                  <span>{brk.exactStartClock} – {brk.exactEndClock}</span>
+                </div>
+
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 13px',
+                    borderRadius: '10px',
+                    background: 'rgba(13, 148, 136, 0.12)',
+                    border: '1.5px solid rgba(13, 148, 136, 0.35)',
+                    color: '#0f766e',
+                    fontSize: '12.5px',
+                    fontWeight: '900'
+                  }}
+                  title="Kuşağın Toplam Ayrılan Süresi"
+                >
+                  <span>Kuşak Süresi: {formatDurationMinSec(brk.capacitySec)}</span>
+                  <span style={{ fontSize: '11px', opacity: 0.8, fontFamily: 'monospace' }}>
+                    ({brk.capacitySec} sn)
+                  </span>
+                </div>
+              </div>
+
+              {/* SAĞ BÖLGE (SAĞA HİZALI): Spot Sayısı & Aksiyon Butonları */}
+              <div
+                style={{
+                  flex: '1 1 210px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'flex-end',
+                  gap: '8px',
+                  flexWrap: 'wrap'
+                }}
+                onClick={e => e.stopPropagation()}
+              >
                 {onSetBreakRamadanTag && (
                   <select
                     value={brk.ramadanBreakTag || ''}
@@ -1085,7 +1144,7 @@ export const AdBreaksListView = ({
                     style={{
                       fontSize: '11px',
                       fontWeight: '800',
-                      padding: '4px 8px',
+                      padding: '5px 8px',
                       borderRadius: '7px',
                       cursor: 'pointer',
                       background: brk.ramadanBreakTag ? '#d97706' : 'var(--ads-card-subtle)',
@@ -1102,32 +1161,20 @@ export const AdBreaksListView = ({
                     <option value="iftar_after">🕌 İftar Sonrası</option>
                   </select>
                 )}
-              </div>
 
-              {/* Sağ: Kompakt Süre / Spot Özeti ve Aksiyon Butonları */}
-              <div
-                style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}
-                onClick={e => e.stopPropagation()}
-              >
-                <div
+                <span
                   style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '8px',
                     padding: '5px 11px',
                     borderRadius: '8px',
-                    background: 'var(--ads-card-subtle)',
-                    border: '1px solid var(--ads-border)',
+                    background: 'rgba(79, 70, 229, 0.12)',
+                    border: '1px solid rgba(79, 70, 229, 0.28)',
+                    color: '#4f46e5',
                     fontSize: '12px',
-                    fontWeight: '800'
+                    fontWeight: '900'
                   }}
                 >
-                  <span style={{ color: '#4f46e5' }}>{brk.placedAds.length} Spot</span>
-                  <span style={{ color: 'var(--ads-border-strong)' }}>|</span>
-                  <span style={{ color: '#0d9488' }}>
-                    {brk.filledSec} / {brk.capacitySec} sn (%{brk.fillPct})
-                  </span>
-                </div>
+                  {brk.placedAds.length} Spot
+                </span>
 
                 {brk.placedAds.length > 0 && (
                   <button
@@ -1154,7 +1201,66 @@ export const AdBreaksListView = ({
             </div>
 
             {/* ================================================================
-                2. SATIR: ÖNCEKİ PROGRAM & SONRAKİ PROGRAM BAĞLAM KUTULARI (2'Lİ FLEX)
+                2. SATIR: ORTALANMIŞ 3'LÜ KUŞAK SÜRE ÖZETİ & DOLULUK ÇUBUĞU
+                (Kuşak Toplam Süresi | Doldurulan Reklam Süresi | Kalan Boş Süre)
+               ================================================================ */}
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+                padding: '9px 14px',
+                borderRadius: '10px',
+                background: 'var(--ads-card-subtle)',
+                border: '1px solid var(--ads-border)'
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '10px',
+                  fontSize: '12px'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ color: 'var(--ads-text-muted)', fontWeight: '700' }}>Kuşak Toplam Süresi:</span>
+                  <strong style={{ color: 'var(--ads-text-main)', fontWeight: '900' }}>
+                    {formatDurationMinSec(brk.capacitySec)} ({brk.capacitySec} sn)
+                  </strong>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ color: 'var(--ads-text-muted)', fontWeight: '700' }}>Doldurulan Süre:</span>
+                  <strong style={{ color: '#0d9488', fontWeight: '900' }}>
+                    {formatDurationMinSec(brk.filledSec)} ({brk.filledSec} sn • %{brk.fillPct})
+                  </strong>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ color: 'var(--ads-text-muted)', fontWeight: '700' }}>Kalan Boş Süre:</span>
+                  <strong style={{ color: brk.remainingSec > 0 ? '#465fff' : '#dc2626', fontWeight: '900' }}>
+                    {formatDurationMinSec(brk.remainingSec)} ({brk.remainingSec} sn)
+                  </strong>
+                </div>
+              </div>
+
+              <div style={{ height: '6px', background: 'var(--ads-pill-bar-bg)', borderRadius: '999px', overflow: 'hidden' }}>
+                <div
+                  style={{
+                    width: `${brk.fillPct}%`,
+                    height: '100%',
+                    background: brk.fillPct > 95 ? '#f59e0b' : 'linear-gradient(90deg, #0d9488 0%, #10b981 100%)',
+                    borderRadius: '999px'
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* ================================================================
+                3. SATIR: ÖNCEKİ PROGRAM & SONRAKİ PROGRAM BAĞLAM KUTULARI (2'Lİ FLEX)
                ================================================================ */}
             {(brk.prevProgramTitle || brk.nextProgramTitle) && (
               <div
@@ -1287,20 +1393,6 @@ export const AdBreaksListView = ({
             )}
 
             {/* ================================================================
-                3. SATIR: İNCE SÜRE DOLULUK ÇUBUĞU
-               ================================================================ */}
-            <div style={{ height: '5px', background: 'var(--ads-pill-bar-bg)', borderRadius: '999px', overflow: 'hidden' }}>
-              <div
-                style={{
-                  width: `${brk.fillPct}%`,
-                  height: '100%',
-                  background: brk.fillPct > 95 ? '#f59e0b' : 'linear-gradient(90deg, #0d9488 0%, #10b981 100%)',
-                  borderRadius: '999px'
-                }}
-              />
-            </div>
-
-            {/* ================================================================
                 4. SATIR: İNTERAKTİF SIRALI SPOT LİSTESİ (FLEXBOX)
                ================================================================ */}
             <AdBreakInteractiveSpotsList
@@ -1384,9 +1476,8 @@ export const AdQuickSpotPoolPanel = ({
       style={{
         padding: '15px',
         gap: '12px',
-        position: 'sticky',
-        top: '12px',
-        maxHeight: 'calc(100vh - 110px)',
+        height: 'calc(100vh - 88px)',
+        maxHeight: 'calc(100vh - 88px)',
         overflowY: 'auto'
       }}
     >

@@ -495,9 +495,8 @@ export const AdPlanningDaysSidebar = ({
       style={{
         padding: '14px',
         gap: '12px',
-        position: 'sticky',
-        top: '12px',
-        maxHeight: 'calc(100vh - 110px)',
+        height: 'calc(100vh - 88px)',
+        maxHeight: 'calc(100vh - 88px)',
         overflowY: 'auto'
       }}
     >
