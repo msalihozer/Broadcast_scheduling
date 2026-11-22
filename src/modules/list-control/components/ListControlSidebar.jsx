@@ -28,10 +28,10 @@ import {
 import { filterAndSortBySearchPriority } from '../../../utils/searchRanker';
 import { formatSecondsReadable } from '../utils/listControlVerificationEngine';
 
-const MIN_WIDTH = 380;
-const DEFAULT_WIDTH = 450;
-const EXPANDED_WIDTH = 620;
-const MAX_WIDTH = 820;
+const MIN_WIDTH = 280;
+const DEFAULT_WIDTH = 340;
+const EXPANDED_WIDTH = 500;
+const MAX_WIDTH = 720;
 
 export default function ListControlSidebar({
   selectedChannel,

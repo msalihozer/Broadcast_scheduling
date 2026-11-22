@@ -105,6 +105,7 @@ export default function ListControlModule() {
 
   // Seçili satır, sürükle-bırak, filtre, arama ve modal durumları
   const [selectedInstanceId, setSelectedInstanceId] = useState(null);
+  const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
   const [draggedRowIndex, setDraggedRowIndex] = useState(null);
   const [dragOverRowIndex, setDragOverRowIndex] = useState(null);
   const [dropMode, setDropMode] = useState('insert'); // 'insert' | 'replace'
@@ -430,6 +431,8 @@ export default function ListControlModule() {
   };
 
   const channelName = selectedChannel === 'ch_way' ? 'Semerkand WAY' : 'Semerkand HD';
+  const defaultBroadcastLogo = adSettings?.[selectedChannel]?.broadcastLogoName || 'Semerkand_Tv_Logo_Corner';
+  const defaultAdLogo = adSettings?.[selectedChannel]?.adLogoName || 'Semerkand_HD_Reklam_Logo';
   const isApproved = Boolean(day?.isApprovedInListControl || readyDay?.adsStatus === 'sent_to_master');
 
   return (
@@ -663,28 +666,46 @@ export default function ListControlModule() {
             </button>
 
             {programs.length > 0 && typeof applyChannelLogosToListControl === 'function' && (
-              <button
-                type="button"
-                onClick={() => {
-                  applyChannelLogosToListControl(selectedChannel, safeDate);
-                  useDialogStore.getState().showAlert(
-                    'Logolar Listeye İşlendi',
-                    `${channelName} kanalının Yayına Giriş ve Reklama Giriş logo isimleri listedeki tüm satırlara uygulandı.`
-                  );
-                }}
-                style={{
-                  padding: '5px 10px',
-                  borderRadius: '8px',
-                  border: '1px solid rgba(16, 185, 129, 0.4)',
-                  background: 'rgba(16, 185, 129, 0.1)',
-                  color: '#059669',
-                  fontSize: '11.5px',
-                  fontWeight: 800,
-                  cursor: 'pointer'
-                }}
-              >
-                Logoları İşle
-              </button>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '4px 8px',
+                borderRadius: '8px',
+                background: 'var(--bg-tertiary)',
+                border: '1px solid var(--border-color)',
+                fontSize: '11px'
+              }}>
+                <span style={{ color: '#059669', fontWeight: 800, fontFamily: 'monospace' }} title="Yayına Giriş (Program) Logosu">
+                  📺 {defaultBroadcastLogo}
+                </span>
+                <span style={{ color: 'var(--text-muted)' }}>|</span>
+                <span style={{ color: '#d97706', fontWeight: 800, fontFamily: 'monospace' }} title="Reklama Giriş Logosu">
+                  📢 {defaultAdLogo}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    applyChannelLogosToListControl(selectedChannel, safeDate);
+                    useDialogStore.getState().showAlert(
+                      'Logolar Listeye İşlendi',
+                      `${channelName} kanalının Yayına Giriş (${defaultBroadcastLogo}) ve Reklama Giriş (${defaultAdLogo}) logo isimleri listedeki tüm satırlara uygulandı.`
+                    );
+                  }}
+                  style={{
+                    padding: '3px 8px',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(16, 185, 129, 0.45)',
+                    background: 'rgba(16, 185, 129, 0.14)',
+                    color: '#059669',
+                    fontSize: '10.5px',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Logoları İşle
+                </button>
+              </div>
             )}
 
             <div style={{
@@ -835,21 +856,23 @@ export default function ListControlModule() {
           overflow: 'hidden',
           position: 'relative'
         }}>
-          {/* SOL PANEL: MEDYA, BÖLÜM VE REKLAM KÜTÜPHANESİ (SÜRÜKLE-BIRAK DESTEKLİ, DOLGU KUŞAĞI YOK) */}
-          <ListControlSidebar
-            selectedChannel={selectedChannel}
-            selectedDate={safeDate}
-            selectedItem={selectedItem}
-            selectedIndex={selectedIndex}
-            onReplaceSelected={(newPayload) => {
-              if (!selectedItem) return;
-              lcReplaceItem(selectedChannel, safeDate, activeVariant, selectedItem.instanceId, newPayload);
-            }}
-            onInsertItem={(newPayload, targetIdx) => {
-              lcAddProgramToDay(selectedChannel, safeDate, activeVariant, newPayload, targetIdx);
-            }}
-            onOpenClipPreview={(clipObj) => setPreviewClip(clipObj)}
-          />
+          {/* SOL PANEL: MEDYA, BÖLÜM VE REKLAM KÜTÜPHANESİ (GİZLENEBİLİR / AÇILABİLİR, SÜRÜKLE-BIRAK DESTEKLİ) */}
+          {isLeftSidebarOpen && (
+            <ListControlSidebar
+              selectedChannel={selectedChannel}
+              selectedDate={safeDate}
+              selectedItem={selectedItem}
+              selectedIndex={selectedIndex}
+              onReplaceSelected={(newPayload) => {
+                if (!selectedItem) return;
+                lcReplaceItem(selectedChannel, safeDate, activeVariant, selectedItem.instanceId, newPayload);
+              }}
+              onInsertItem={(newPayload, targetIdx) => {
+                lcAddProgramToDay(selectedChannel, safeDate, activeVariant, newPayload, targetIdx);
+              }}
+              onOpenClipPreview={(clipObj) => setPreviewClip(clipObj)}
+            />
+          )}
 
           {/* SAĞ PANEL: TEK PARÇA KAYDIRILABİLİR (SCROLLABLE) ÇALIŞMA ALANI */}
           <div
@@ -902,6 +925,23 @@ export default function ListControlModule() {
               flexWrap: 'wrap'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsLeftSidebarOpen(prev => !prev)}
+                  style={{
+                    padding: '4px 9px',
+                    borderRadius: '7px',
+                    border: '1px solid var(--border-color)',
+                    background: isLeftSidebarOpen ? 'var(--bg-primary)' : '#2563eb',
+                    color: isLeftSidebarOpen ? 'var(--text-primary)' : '#ffffff',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                  title="Sol Medya & Reklam Kütüphanesini Gizle / Göster (Tabloyu Tam Genişlik Yap)"
+                >
+                  {isLeftSidebarOpen ? '◀ Kütüphaneyi Gizle' : '▶ Kütüphaneyi Aç'}
+                </button>
                 {[
                   { id: 'all', label: `Tümü (${programs.length})` },
                   {
@@ -1126,27 +1166,30 @@ export default function ListControlModule() {
                   flexDirection: 'column',
                   boxShadow: '0 4px 16px rgba(0, 0, 0, 0.06)'
                 }}>
-                  {/* FLEXBOX TABLO BAŞLIĞI (STICKY) */}
+                  {/* FLEXBOX TABLO BAŞLIĞI (EKRANA TAM SIĞAN 7 SÜTUN) */}
                   <div style={{
-                    padding: '9px 12px',
+                    padding: '8px 10px',
                     background: 'var(--bg-tertiary)',
                     borderBottom: '1.5px solid var(--border-color)',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '10px',
-                    fontSize: '11px',
+                    gap: '8px',
+                    width: '100%',
+                    minWidth: 0,
+                    boxSizing: 'border-box',
+                    fontSize: '10.5px',
                     fontWeight: 900,
                     color: 'var(--text-secondary)',
                     textTransform: 'uppercase',
-                    letterSpacing: '0.3px'
+                    letterSpacing: '0.2px'
                   }}>
-                    <div style={{ width: '64px', flexShrink: 0 }}>SIRA</div>
-                    <div style={{ width: '142px', flexShrink: 0 }}>YAYIN SAATİ</div>
-                    <div style={{ flex: '2 1 210px', minWidth: '180px' }}>KLİP / REKLAM ADI & DOSYA KODU (.MXF)</div>
-                    <div style={{ width: '155px', flexShrink: 0 }}>AŞAMA & KAYNAK</div>
-                    <div style={{ flex: '1.5 1 250px', minWidth: '230px' }}>TEKNİK KONTROL (DB • DOSYA YOLU • DETAYLI DURUM)</div>
-                    <div style={{ width: '118px', flexShrink: 0 }}>SÜRE</div>
-                    <div style={{ width: '210px', flexShrink: 0, textAlign: 'right' }}>İŞLEMLER</div>
+                    <div style={{ width: '50px', flexShrink: 0 }}>SIRA</div>
+                    <div style={{ width: '76px', flexShrink: 0 }}>SAAT</div>
+                    <div style={{ flex: '2.2 1 170px', minWidth: 0 }}>TÜR • KLİP / REKLAM ADI • ID & DOSYA (.MXF)</div>
+                    <div style={{ flex: '1.1 1 125px', minWidth: 0 }}>LOGO BİLGİSİ</div>
+                    <div style={{ flex: '2 1 185px', minWidth: 0 }}>AŞAMA & TEKNİK KONTROL (DB • HIGHRES .MXF)</div>
+                    <div style={{ width: '78px', flexShrink: 0 }}>SÜRE</div>
+                    <div style={{ width: '144px', flexShrink: 0, textAlign: 'right' }}>İŞLEMLER</div>
                   </div>
 
                   {/* FLEXBOX TABLO SATIRLARI */}
@@ -1173,6 +1216,8 @@ export default function ListControlModule() {
                           isDragOver={dragOverRowIndex === originalIndex}
                           health={healthMap[item.instanceId]}
                           stageInfo={stageAnalysis?.itemVerificationMap?.[item.instanceId]}
+                          defaultBroadcastLogo={defaultBroadcastLogo}
+                          defaultAdLogo={defaultAdLogo}
                           rowRef={(el) => {
                             if (el) rowRefs.current[item.instanceId] = el;
                           }}

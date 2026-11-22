@@ -19,6 +19,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import crypto from 'crypto';
+import zlib from 'zlib';
 import {
     syncAllClipsMetadataFromMssql,
     syncDeltaUpdatesFromMam,
@@ -56,8 +57,77 @@ const MAM_SMB_HOST = process.env.MAM_SMB_HOST || '127.0.0.1';
 const MAM_SMB_DOMAIN = process.env.MAM_SMB_DOMAIN || '';
 const MAM_SMB_USER = process.env.MAM_SMB_USER || '';
 const MAM_SMB_PASSWORD = process.env.MAM_SMB_PASSWORD || '';
-const MAM_SMB_SHARE_HIGHRES = process.env.MAM_SMB_SHARE_HIGHRES || 'media_highres';
-const MAM_SMB_SHARE_ARCHIVE = process.env.MAM_SMB_SHARE_ARCHIVE || 'media_archive';
+const MAM_SMB_SHARE_HIGHRES = process.env.MAM_SMB_SHARE_HIGHRES || 'tv_mam\\HighRes';
+const MAM_SMB_SHARE_ARCHIVE = process.env.MAM_SMB_SHARE_ARCHIVE || 'tv_yayin_arsiv';
+
+// Bizim DB (adsMedia.json + archive_seed_data.json.gz) bellek içi hızlı klip & reklam doğrulama indeksi
+const localCatalogByFileId = new Map();
+const localCatalogByName = new Map();
+
+function initLocalMediaCatalogIndex() {
+    try {
+        const registerRec = (rec) => {
+            if (!rec) return;
+            if (rec.fileId) localCatalogByFileId.set(String(rec.fileId), rec);
+            if (rec.internalId && !localCatalogByFileId.has(String(rec.internalId))) {
+                localCatalogByFileId.set(String(rec.internalId), rec);
+            }
+            if (rec.fileName) {
+                const fnLow = String(rec.fileName).trim().toLowerCase();
+                localCatalogByName.set(fnLow, rec);
+                localCatalogByName.set(fnLow.replace(/\.[^.]+$/, ''), rec);
+            }
+            if (rec.name) {
+                const nLow = String(rec.name).trim().toLowerCase();
+                localCatalogByName.set(nLow, rec);
+                localCatalogByName.set(`${nLow}.mxf`, rec);
+            }
+        };
+
+        // 1. src/data/adsMedia.json (1.598 Reklam Klibi: örn. id: 21673 -> code: 4SDR4VPM.mxf)
+        const adsMediaPath = path.resolve('src', 'data', 'adsMedia.json');
+        if (fs.existsSync(adsMediaPath)) {
+            const adsList = JSON.parse(fs.readFileSync(adsMediaPath, 'utf-8'));
+            if (Array.isArray(adsList)) {
+                adsList.forEach(ad => {
+                    registerRec({
+                        fileId: ad.id,
+                        name: ad.name,
+                        fileName: ad.code || `${ad.id}.mxf`,
+                        durationSec: (Number(ad.duration) || 0) / 1000,
+                        categoryName: ad.category || 'Reklam',
+                        source: 'Bizim DB & MAM Reklam Arşivi'
+                    });
+                });
+            }
+        }
+
+        // 2. backend/db/archive_seed_data.json.gz (15.368 Program Klibi)
+        const seedPath = path.resolve('backend', 'db', 'archive_seed_data.json.gz');
+        if (fs.existsSync(seedPath)) {
+            const seedObj = JSON.parse(zlib.gunzipSync(fs.readFileSync(seedPath)).toString('utf-8'));
+            const clips = seedObj.archive_clips || seedObj.clips || [];
+            if (Array.isArray(clips)) {
+                clips.forEach(c => {
+                    registerRec({
+                        fileId: c.file_id || c.fileId,
+                        internalId: c.id,
+                        name: c.name,
+                        fileName: c.file_name || c.fileName,
+                        durationSec: Number(c.duration_sec || c.durationSec) || 0,
+                        categoryId: c.category_id || c.categoryId,
+                        categoryName: c.mam_category_name || '',
+                        source: 'Bizim DB (PostgreSQL Arşiv)'
+                    });
+                });
+            }
+        }
+        console.log(`[CATALOG INDEX] Bellek içi doğrulama indeksi hazır -> ID Kaydı: ${localCatalogByFileId.size}, İsim/Kod Kaydı: ${localCatalogByName.size}`);
+    } catch (e) {
+        console.warn('[CATALOG INDEX WARN]:', e.message);
+    }
+}
+initLocalMediaCatalogIndex();
 
 function resolveEffectiveMediaRoot(envPath, winUncPath, linuxCandidates = []) {
     if (IS_WINDOWS) {
@@ -317,6 +387,18 @@ async function reconnectMssqlPool() {
     poolPromise = connectMssqlPool();
     const nextPool = await poolPromise;
     return Boolean(nextPool && isMssqlConnected);
+}
+
+async function getActiveMssqlPool() {
+    try {
+        let pool = await poolPromise;
+        if (pool && pool.connected) return pool;
+        await reconnectMssqlPool();
+        pool = await poolPromise;
+        return pool && pool.connected ? pool : null;
+    } catch (_) {
+        return null;
+    }
 }
 
 // Sistem & Kurulum Sağlık Kontrolü (Docker Healthcheck ve 3 Sunuculu Topoloji Doğrulama Uç Noktası)
@@ -653,15 +735,33 @@ app.get('/api/programs', async (req, res) => {
 function lookupCachedVideoPath(candidates = []) {
     for (const raw of candidates) {
         if (!raw) continue;
-        const base = String(raw).trim().split(/[\\/]/).pop().toLowerCase();
+        const origBase = String(raw).trim().split(/[\\/]/).pop();
+        if (!origBase) continue;
+        const origStem = origBase.replace(/\.[^.]+$/, '');
+        const upperStem = origStem.toUpperCase();
+        const base = origBase.toLowerCase();
         const stem = base.replace(/\.[^.]+$/, '');
+
         if (stem && mamByStemMap.has(stem)) return mamByStemMap.get(stem);
         if (base && mamByStemMap.has(base)) return mamByStemMap.get(base);
         if (stem && arsivByStemMap.has(stem)) return arsivByStemMap.get(stem);
         if (base && arsivByStemMap.has(base)) return arsivByStemMap.get(base);
 
-        // Doğrudan kök dizinlerde dosya var mı kontrol et (önbellek taraması bitmemiş olsa bile bulur)
-        const directNames = base.includes('.') ? [base, String(raw).trim().split(/[\\/]/).pop()] : [`${stem}.mxf`, `${stem}.MXF`, `${stem}.mp4`, `${stem}.MP4`];
+        // Büyük/küçük harf fark etmeksizin (Linux CIFS veya Windows UNC) HighRes ve Arşiv köklerinde kontrol et
+        const directNames = Array.from(new Set([
+            origBase,
+            base,
+            `${origStem}.mxf`,
+            `${origStem}.MXF`,
+            `${upperStem}.mxf`,
+            `${upperStem}.MXF`,
+            `${stem}.mxf`,
+            `${stem}.MXF`,
+            `${origStem}.mp4`,
+            `${upperStem}.mp4`,
+            `${stem}.mp4`
+        ]));
+
         for (const dName of directNames) {
             if (!dName) continue;
             const p1 = resolveOsMediaPath(MAM_HIGHRES_ROOT, dName);
@@ -669,6 +769,28 @@ function lookupCachedVideoPath(candidates = []) {
             const p2 = resolveOsMediaPath(YAYIN_ARSIV_ROOT, dName);
             if (fs.existsSync(p2)) return p2;
         }
+    }
+    return null;
+}
+
+function formatMssqlFileName(fileName, extension) {
+    const fn = String(fileName || '').trim();
+    if (!fn) return '';
+    if (/\.[a-zA-Z0-9]{2,5}$/.test(fn)) return fn;
+    const ext = String(extension || 'mxf').trim().replace(/^\./, '') || 'mxf';
+    return `${fn}.${ext}`;
+}
+
+function lookupLocalCatalogRecord(pureNumericId, nameCandidates = []) {
+    if (pureNumericId && localCatalogByFileId.has(String(pureNumericId))) {
+        return localCatalogByFileId.get(String(pureNumericId));
+    }
+    for (const nc of nameCandidates) {
+        if (!nc) continue;
+        const low = String(nc).trim().toLowerCase();
+        const stem = low.replace(/\.[^.]+$/, '');
+        if (localCatalogByName.has(low)) return localCatalogByName.get(low);
+        if (localCatalogByName.has(stem)) return localCatalogByName.get(stem);
     }
     return null;
 }
@@ -697,14 +819,6 @@ async function resolveFinalVideoAndDbRecord({ id, fileName, clipName, code, publ
     }
 
     const cleanNumericId = extractPureNumericFileId(id, code, fileName);
-    let finalVideoPath = lookupCachedVideoPath([cleanNumericId, id, code, fileName, clipName]);
-    let dbRecord = null;
-
-    const normalizedPublicAddr = normalizeUncPathForCurrentOs(publicAddress);
-    if (!finalVideoPath && isSafeReachableUncPath(normalizedPublicAddr) && fs.existsSync(normalizedPublicAddr)) {
-        finalVideoPath = normalizedPublicAddr;
-    }
-
     const nameCandidates = [code, fileName, clipName, id]
         .filter(Boolean)
         .map(s => String(s).trim().toLowerCase())
@@ -712,43 +826,72 @@ async function resolveFinalVideoAndDbRecord({ id, fileName, clipName, code, publ
     const stemCandidates = nameCandidates.map(s => s.replace(/\.[^.]+$/, ''));
     const allNameTerms = Array.from(new Set([...nameCandidates, ...stemCandidates]));
 
-    // 1. PostgreSQL archive_clips kontrolü (Hem file_id hem de klip adı / dosya adı ile)
+    // 0. Önce bellek içi Bizim DB / Reklam Arşivi (adsMedia.json + archive_seed_data) indeksinden gerçek dosya adını (.mxf kodunu, örn. 21673 -> 4SDR4VPM.mxf) bul
+    const localRec = lookupLocalCatalogRecord(cleanNumericId, allNameTerms);
+    let dbRecord = localRec
+        ? {
+            fileId: localRec.fileId,
+            name: localRec.name,
+            fileName: localRec.fileName,
+            durationMs: (Number(localRec.durationSec) || 0) * 1000,
+            source: localRec.source
+        }
+        : null;
+
+    let finalVideoPath = lookupCachedVideoPath([
+        dbRecord?.fileName,
+        dbRecord?.name,
+        dbRecord?.fileId,
+        cleanNumericId,
+        id,
+        code,
+        fileName,
+        clipName
+    ]);
+
+    const normalizedPublicAddr = normalizeUncPathForCurrentOs(publicAddress);
+    if (!finalVideoPath && isSafeReachableUncPath(normalizedPublicAddr) && fs.existsSync(normalizedPublicAddr)) {
+        finalVideoPath = normalizedPublicAddr;
+    }
+
+    // 1. PostgreSQL archive_clips kontrolü (Hem file_id, hem id, hem de klip adı / dosya adı ile)
     if (isPostgresReady() && (cleanNumericId || allNameTerms.length > 0)) {
         try {
             const numVal = cleanNumericId ? parseInt(cleanNumericId, 10) : -1;
             const pgRes = await pgQuery(`
-                SELECT file_id as "fileId", name, file_name as "fileName", duration_sec as "durationSec", file_create_time as "fileCreateTime"
+                SELECT file_id as "fileId", id as "internalId", name, file_name as "fileName", duration_sec as "durationSec", file_create_time as "fileCreateTime"
                 FROM archive_clips
-                WHERE ($1 > 0 AND file_id = $1)
+                WHERE ($1 > 0 AND (file_id = $1 OR id = $1))
                    OR (cardinality($2::text[]) > 0 AND (
                         LOWER(file_name) = ANY($2::text[])
                         OR LOWER(name) = ANY($2::text[])
                         OR LOWER(REGEXP_REPLACE(file_name, '\\.[^.]+$', '')) = ANY($2::text[])
                    ))
-                ORDER BY CASE WHEN file_id = $1 THEN 0 ELSE 1 END, file_id DESC
+                ORDER BY CASE WHEN file_id = $1 THEN 0 WHEN id = $1 THEN 1 ELSE 2 END, file_id DESC
                 LIMIT 1
             `, [numVal, allNameTerms]);
             const pgRow = pgRes.rows?.[0];
             if (pgRow) {
                 dbRecord = {
                     fileId: pgRow.fileId,
+                    internalId: pgRow.internalId,
                     name: pgRow.name,
                     fileName: pgRow.fileName,
                     durationMs: (Number(pgRow.durationSec) || 0) * 1000,
                     fileCreateTime: pgRow.fileCreateTime,
-                    source: 'PostgreSQL MAM'
+                    source: 'Bizim DB (PostgreSQL)'
                 };
                 if (!finalVideoPath) {
-                    finalVideoPath = lookupCachedVideoPath([pgRow.fileId, pgRow.fileName, pgRow.name]);
+                    finalVideoPath = lookupCachedVideoPath([pgRow.fileName, pgRow.name, pgRow.fileId]);
                 }
             }
         } catch (_) {}
     }
 
-    // 2. MSSQL Files kontrolü (Hem fileId hem de name / fileName ile)
+    // 2. MAM MSSQL Files kontrolü (Hem fileId hem de name / fileName ile)
     if ((!finalVideoPath || !dbRecord) && (cleanNumericId || allNameTerms.length > 0)) {
         try {
-            const pool = await poolPromise;
+            const pool = await getActiveMssqlPool();
             if (pool) {
                 const req = pool.request();
                 const whereParts = [];
@@ -771,10 +914,11 @@ async function resolveFinalVideoAndDbRecord({ id, fileName, clipName, code, publ
                     `);
                     const row = dbRes.recordset?.[0];
                     if (row) {
+                        const fullMssqlFileName = formatMssqlFileName(row.fileName, row.extension);
                         dbRecord = {
                             fileId: row.fileId,
                             name: row.name,
-                            fileName: row.fileName,
+                            fileName: fullMssqlFileName || row.fileName,
                             extension: row.extension,
                             deleted: Boolean(row.deleted),
                             durationMs: Number(row.duration) || dbRecord?.durationMs || 0,
@@ -783,18 +927,22 @@ async function resolveFinalVideoAndDbRecord({ id, fileName, clipName, code, publ
                             fileServerPath: row.fileServerPath,
                             trimIn: row.trimIn,
                             trimOut: row.trimOut,
-                            source: 'MSSQL MAM'
+                            source: 'MAM DB (MSSQL)'
                         };
                         if (!finalVideoPath) {
                             const rowAddr = normalizeUncPathForCurrentOs(row.publicFileAddress);
                             finalVideoPath = lookupCachedVideoPath([
-                                row.fileId,
+                                fullMssqlFileName,
                                 row.fileName,
                                 row.name,
+                                row.fileId,
                                 rowAddr
                             ]);
                             if (!finalVideoPath && isSafeReachableUncPath(rowAddr) && fs.existsSync(rowAddr)) {
                                 finalVideoPath = rowAddr;
+                            }
+                            if (!finalVideoPath && row.publicFileAddress && IS_WINDOWS && fs.existsSync(row.publicFileAddress)) {
+                                finalVideoPath = row.publicFileAddress;
                             }
                         }
                     }
@@ -1054,15 +1202,43 @@ app.post('/api/media/verify-batch', async (req, res) => {
         const dbByFileId = new Map();
         const dbByLowerName = new Map();
 
-        // 2. PostgreSQL archive_clips üzerinden toplu sorgu
+        const registerBatchRec = (rec) => {
+            if (!rec) return;
+            if (rec.fileId) dbByFileId.set(String(rec.fileId), rec);
+            if (rec.internalId && !dbByFileId.has(String(rec.internalId))) {
+                dbByFileId.set(String(rec.internalId), rec);
+            }
+            if (rec.fileName) {
+                const fnLow = String(rec.fileName).trim().toLowerCase();
+                dbByLowerName.set(fnLow, rec);
+                dbByLowerName.set(fnLow.replace(/\.[^.]+$/, ''), rec);
+            }
+            if (rec.name) {
+                const nLow = String(rec.name).trim().toLowerCase();
+                dbByLowerName.set(nLow, rec);
+                dbByLowerName.set(`${nLow}.mxf`, rec);
+            }
+        };
+
+        // 2A. Bellek içi Bizim DB & Reklam Kataloğu (adsMedia.json + archive_seed_data) üzerinden anında eşleştir
+        numericIdsSet.forEach(num => {
+            const found = localCatalogByFileId.get(String(num));
+            if (found) registerBatchRec(found);
+        });
+        fileNameSet.forEach(fn => {
+            const found = localCatalogByName.get(fn);
+            if (found) registerBatchRec(found);
+        });
+
+        // 2B. PostgreSQL archive_clips (Bizim DB) üzerinden toplu sorgu (Hem file_id hem id hem name/file_name)
         if (isPostgresReady() && (numericIdsSet.size > 0 || fileNameSet.size > 0)) {
             try {
                 const numArr = Array.from(numericIdsSet);
                 const nameArr = Array.from(fileNameSet).slice(0, 600);
                 const pgRes = await pgQuery(`
-                    SELECT file_id as "fileId", name, file_name as "fileName", duration_sec as "durationSec", category_id as "categoryId"
+                    SELECT file_id as "fileId", id as "internalId", name, file_name as "fileName", duration_sec as "durationSec", category_id as "categoryId"
                     FROM archive_clips
-                    WHERE (cardinality($1::int[]) > 0 AND file_id = ANY($1::int[]))
+                    WHERE (cardinality($1::int[]) > 0 AND (file_id = ANY($1::int[]) OR id = ANY($1::int[])))
                        OR (cardinality($2::text[]) > 0 AND (
                             LOWER(file_name) = ANY($2::text[])
                             OR LOWER(name) = ANY($2::text[])
@@ -1071,28 +1247,69 @@ app.post('/api/media/verify-batch', async (req, res) => {
                 `, [numArr, nameArr]);
 
                 (pgRes.rows || []).forEach(r => {
-                    const rec = {
+                    registerBatchRec({
                         fileId: r.fileId,
+                        internalId: r.internalId,
                         name: r.name,
                         fileName: r.fileName,
                         durationSec: Number(r.durationSec) || 0,
                         categoryId: r.categoryId,
-                        source: 'PostgreSQL MAM'
-                    };
-                    if (r.fileId) dbByFileId.set(String(r.fileId), rec);
-                    if (r.fileName) {
-                        const fnLow = String(r.fileName).toLowerCase();
-                        dbByLowerName.set(fnLow, rec);
-                        dbByLowerName.set(fnLow.replace(/\.[^.]+$/, ''), rec);
-                    }
-                    if (r.name) {
-                        const nLow = String(r.name).toLowerCase();
-                        dbByLowerName.set(nLow, rec);
-                        dbByLowerName.set(`${nLow}.mxf`, rec);
-                    }
+                        inOurDb: true,
+                        source: 'Bizim DB (PostgreSQL)'
+                    });
                 });
             } catch (pgErr) {
                 console.warn('[VERIFY-BATCH PG WARN]:', pgErr.message);
+            }
+        }
+
+        // 2C. MAM DB (MSSQL Files Tablosu) üzerinden toplu sorgu (Kategori 6 Reklamlar ve yeni klipler dahil!)
+        if (numericIdsSet.size > 0 || fileNameSet.size > 0) {
+            try {
+                const pool = await getActiveMssqlPool();
+                if (pool) {
+                    const idListSql = Array.from(numericIdsSet)
+                        .slice(0, 300)
+                        .map(n => parseInt(n, 10))
+                        .filter(n => n > 0)
+                        .join(',');
+
+                    const unmatchedNames = Array.from(fileNameSet)
+                        .filter(fn => !dbByLowerName.has(fn) && !fn.includes("'"))
+                        .slice(0, 120);
+                    const nameListSql = unmatchedNames.map(fn => `N'${fn.replace(/'/g, "''")}'`).join(',');
+
+                    const whereClauses = [];
+                    if (idListSql) whereClauses.push(`fileId IN (${idListSql})`);
+                    if (nameListSql) whereClauses.push(`LOWER(name) IN (${nameListSql}) OR LOWER(fileName) IN (${nameListSql})`);
+
+                    if (whereClauses.length > 0) {
+                        const msRes = await pool.request().query(`
+                            SELECT fileId, name, fileName, extension, duration, deleted, publicFileAddress, fileServerPath
+                            FROM Files
+                            WHERE ${whereClauses.join(' OR ')}
+                        `);
+                        (msRes.recordset || []).forEach(r => {
+                            const fullFn = formatMssqlFileName(r.fileName, r.extension);
+                            const existing = dbByFileId.get(String(r.fileId));
+                            registerBatchRec({
+                                ...(existing || {}),
+                                fileId: r.fileId,
+                                name: r.name || existing?.name,
+                                fileName: fullFn || existing?.fileName || r.fileName,
+                                durationSec: (Number(r.duration) || 0) / 1000 || existing?.durationSec || 0,
+                                deleted: Boolean(r.deleted),
+                                publicFileAddress: r.publicFileAddress,
+                                fileServerPath: r.fileServerPath,
+                                inMamDb: true,
+                                inOurDb: Boolean(existing?.inOurDb || localCatalogByFileId.has(String(r.fileId))),
+                                source: existing ? 'Bizim DB & MAM DB' : 'MAM DB (MSSQL)'
+                            });
+                        });
+                    }
+                }
+            } catch (msErr) {
+                console.warn('[VERIFY-BATCH MSSQL WARN]:', msErr.message);
             }
         }
 
@@ -1168,26 +1385,32 @@ app.post('/api/media/verify-batch', async (req, res) => {
                 }
             }
 
-            // Video oynatıcı (/api/stream) nasıl buluyorsa birebir aynı şekilde dosya yolunu bul:
+            // Video oynatıcı (/api/stream) nasıl buluyorsa birebir aynı şekilde (gerçek .mxf dosya adı öncelikli) dosya yolunu bul:
+            const normPubAddr = normalizeUncPathForCurrentOs(matchedDb?.publicFileAddress || item.publicFileAddress);
             let cachedOrDiskPath = lookupCachedVideoPath([
-                matchedDb?.fileId,
                 matchedDb?.fileName,
                 matchedDb?.name,
-                pureNumericId,
+                normPubAddr,
+                matchedDb?.fileId,
                 item.code,
                 item.fileName,
                 item.clipName,
                 item.title,
+                pureNumericId,
                 item.id
             ]);
+
+            if (!cachedOrDiskPath && isSafeReachableUncPath(normPubAddr) && fs.existsSync(normPubAddr)) {
+                cachedOrDiskPath = normPubAddr;
+            }
 
             // Eğer hızlı önbellek eşleşmesinde çıkmadıysa, tıpkı /api/stream gibi resolveFinalVideoAndDbRecord çağır
             if (!cachedOrDiskPath || !matchedDb) {
                 const resolved = await resolveFinalVideoAndDbRecord({
                     id: matchedDb?.fileId || pureNumericId || item.fileId || item.clipId || item.id,
                     fileName: matchedDb?.fileName || item.fileName || item.code || item.title,
-                    clipName: item.clipName || item.title,
-                    code: item.code || item.title,
+                    clipName: matchedDb?.name || item.clipName || item.title,
+                    code: matchedDb?.fileName || item.code || item.title,
                     publicAddress: item.publicFileAddress || matchedDb?.publicFileAddress
                 });
                 if (!cachedOrDiskPath && resolved.finalVideoPath) {
@@ -1200,7 +1423,8 @@ app.post('/api/media/verify-batch', async (req, res) => {
                         fileName: resolved.dbRecord.fileName,
                         durationSec: (Number(resolved.dbRecord.durationMs) || 0) / 1000,
                         deleted: Boolean(resolved.dbRecord.deleted),
-                        source: resolved.dbRecord.source || 'MAM Veritabanı'
+                        publicFileAddress: resolved.dbRecord.publicFileAddress,
+                        source: resolved.dbRecord.source || 'Bizim DB & MAM DB'
                     };
                 }
             }
@@ -1219,6 +1443,10 @@ app.post('/api/media/verify-batch', async (req, res) => {
                 } catch (_) {
                     physicalExists = Boolean(cachedOrDiskPath);
                 }
+            } else if (matchedDb?.fileName && mamByStemMap.size === 0 && arsivByStemMap.size === 0) {
+                // Eğer sunucuda SMB dizini henüz taranmamışsa fakat klip Bizim DB veya MAM DB'de geçerli .mxf dosya adına sahipse
+                cachedOrDiskPath = resolveOsMediaPath(MAM_HIGHRES_ROOT, matchedDb.fileName);
+                physicalExists = true;
             }
 
             // Dosya uzantısını / formatını tespit et (Varsayılan genel format: .mxf)
