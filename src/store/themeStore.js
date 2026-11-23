@@ -424,7 +424,15 @@ function loadThemeConfigFromStorage() {
 
 function saveThemeConfigToStorage(config) {
   try {
-    localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(config));
+    const withTs = { ...config, updatedAt: new Date().toISOString() };
+    localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(withTs));
+    if (typeof window !== 'undefined' && typeof fetch === 'function') {
+      fetch('/api/ads-store', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ themeConfig: withTs })
+      }).catch(() => {});
+    }
   } catch (e) {
     console.warn('Tema ayarları kaydedilemedi:', e);
   }
@@ -746,7 +754,29 @@ const useThemeStore = create((set) => ({
     saveThemeConfigToStorage(fresh);
     applyThemeCssVariables(fresh);
     set({ config: fresh });
+  },
+
+  // Sunucu veritabanından (/api/ads-store) tema ayarlarını çek ve uygula
+  hydrateThemeFromServer: async () => {
+    try {
+      const res = await fetch('/api/ads-store');
+      if (!res.ok) return;
+      const data = await res.json();
+      const serverTheme = data?.store?.themeConfig;
+      if (serverTheme && typeof serverTheme === 'object') {
+        const merged = mergeThemeConfig(serverTheme);
+        localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(merged));
+        applyThemeCssVariables(merged);
+        set({ config: merged });
+      }
+    } catch (_) {}
   }
 }));
+
+if (typeof window !== 'undefined') {
+  setTimeout(() => {
+    useThemeStore.getState().hydrateThemeFromServer();
+  }, 50);
+}
 
 export default useThemeStore;

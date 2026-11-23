@@ -20,6 +20,8 @@ import {
   formatMinuteToClock,
   formatSecondsReadable
 } from '../utils/listControlVerificationEngine';
+import useThemeStore, { hexToRgba, BOX_SHADOW_OPTIONS } from '../../../store/themeStore';
+import { getCategoryColor, getCategoryTitleTextColor } from '../../draft/components/library/constants';
 
 export default function ListControlRundownRow({
   item,
@@ -82,6 +84,19 @@ export default function ListControlRundownRow({
   };
   const hasHealthError = !h.inDatabase || !h.fileExists || h.isCorrupted || Boolean(item.isEmptyAdBreak);
 
+  const themeConfig = useThemeStore(state => state.config);
+  const lcMod = themeConfig?.modules?.['list-control'] || {};
+  const sp = themeConfig?.specialColors || {};
+  const adBlockColor = lcMod.adBlockColor || sp.adBreakColor || '#d97706';
+  const introBlockColor = sp.introColor || '#6366f1';
+  const catColor = getCategoryColor(item.categoryName || item.category) || item.categoryColor || lcMod.programBlockColor || '#2563eb';
+  const catTitleColor = lcMod.useCategoryTitleColor !== false
+    ? getCategoryTitleTextColor(item.categoryName || item.category)
+    : null;
+  const lcLeftAccent = Number(lcMod.leftAccentWidth) || 4;
+  const lcTintAlpha = Math.max(0.02, Math.min(0.25, (Number(lcMod.cardTintOpacity) || 8) / 100));
+  const lcShadowObj = BOX_SHADOW_OPTIONS.find(s => s.id === lcMod.boxShadow) || BOX_SHADOW_OPTIONS[0];
+
   const leftBorderColor = hasHealthError
     ? '#dc2626'
     : item.revisionRequested
@@ -89,8 +104,10 @@ export default function ListControlRundownRow({
     : isAd
     ? item.isSponsor
       ? '#7c3aed'
-      : '#d97706'
-    : item.categoryColor || '#2563eb';
+      : adBlockColor
+    : isIntro
+    ? introBlockColor
+    : catColor;
 
   const resolvedClipId = h.dbFileId || item.fileId || item.clipId || (String(item.id || '').match(/^\d+$/) ? item.id : null);
   const resolvedArchiveClipName = h.archiveClipName || item.clipName || (h.fileName && !/^[A-Z0-9]{8}\.mxf$/i.test(h.fileName) && !/^\d+\.mxf$/i.test(h.fileName) ? h.fileName : null) || item.title || '-';
@@ -126,28 +143,30 @@ export default function ListControlRundownRow({
       onDrop={(e) => onRowDrop && onRowDrop(e, index, item)}
       onClick={() => onSelectRow(item, index)}
       style={{
-        padding: '8px 12px',
+        padding: lcMod.cardPadding || '8px 12px',
         borderBottom: '1px solid var(--border-color)',
         background: isDragOver
           ? 'rgba(37, 99, 235, 0.18)'
           : isSelected
           ? isAd
-            ? 'rgba(217, 119, 6, 0.13)'
+            ? hexToRgba(adBlockColor, 0.16)
             : 'rgba(37, 99, 235, 0.12)'
           : hasHealthError
           ? 'rgba(220, 38, 38, 0.05)'
           : isAd
-          ? 'rgba(217, 119, 6, 0.035)'
-          : 'var(--bg-secondary)',
+          ? hexToRgba(adBlockColor, lcTintAlpha)
+          : `linear-gradient(90deg, ${hexToRgba(leftBorderColor, lcTintAlpha * 0.75)} 0%, var(--bg-secondary) 70%)`,
         outline: isDragOver
           ? '2px dashed #2563eb'
           : isSelected
-          ? `2px solid ${isAd ? '#d97706' : '#2563eb'}`
+          ? `2px solid ${isAd ? adBlockColor : '#2563eb'}`
           : isSameClipHighlighted
           ? '2px dashed #f59e0b'
           : 'none',
         outlineOffset: '-2px',
-        borderLeft: `4px solid ${leftBorderColor}`,
+        borderLeft: `${lcLeftAccent}px solid ${leftBorderColor}`,
+        boxShadow: lcShadowObj.value,
+        fontFamily: 'var(--lc-font-sans, var(--font-sans))',
         display: 'flex',
         alignItems: 'center',
         gap: '10px',
@@ -239,7 +258,7 @@ export default function ListControlRundownRow({
           <span style={{
             fontSize: fs(13),
             fontWeight: 800,
-            color: 'var(--text-primary)',
+            color: !isAd && catTitleColor ? catTitleColor : 'var(--text-primary)',
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis'

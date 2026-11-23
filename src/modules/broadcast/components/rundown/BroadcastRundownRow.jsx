@@ -18,7 +18,8 @@ import {
   Film, Megaphone, GripVertical, Check, Sparkles, Info, AlertTriangle, Pin, X
 } from 'lucide-react';
 import { formatFramesHuman } from '../../utils/timecodeUtils';
-import useThemeStore, { hexToRgba } from '../../../../store/themeStore';
+import useThemeStore, { hexToRgba, BOX_SHADOW_OPTIONS } from '../../../../store/themeStore';
+import { getCategoryColor, getCategoryTitleTextColor } from '../../../draft/components/library/constants';
 import {
   RUNDOWN_FLEX_COLUMNS,
   parseTimecodeDisplay,
@@ -100,7 +101,13 @@ const BroadcastRundownRow = memo(function BroadcastRundownRow({
   const fillerColor = readyMod.fillerColor || sp.fillerSlotColor || '#8b5cf6';
   const liveColor = readyMod.liveColor || sp.liveColor || '#ef4444';
   const introColor = sp.introColor || '#6366f1';
-  const clipColor = sp.clipColor || '#0d9488';
+  const clipColor = getCategoryColor(item.categoryName || item.category) || sp.clipColor || '#0d9488';
+  const readyTitleColor = readyMod.useCategoryTitleColor !== false
+    ? getCategoryTitleTextColor(item.categoryName || item.category)
+    : null;
+  const readyLeftAccent = Number(readyMod.leftAccentWidth) || 4;
+  const readyTintAlpha = Math.max(0.03, Math.min(0.28, (Number(readyMod.cardTintOpacity) || 10) / 100));
+  const readyShadowObj = BOX_SHADOW_OPTIONS.find(s => s.id === readyMod.boxShadow) || BOX_SHADOW_OPTIONS[0];
 
   const startInfo = parseTimecodeDisplay(item.calculatedStartTime);
   const endInfo = parseTimecodeDisplay(item.calculatedEndTime);
@@ -217,7 +224,7 @@ const BroadcastRundownRow = memo(function BroadcastRundownRow({
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
-          padding: (isSelected || isMultiSelected) ? '8px 10px' : '7px 10px',
+          padding: readyMod.cardPadding || ((isSelected || isMultiSelected) ? '8px 10px' : '7px 10px'),
           width: '100%',
           minWidth: 0,
           boxSizing: 'border-box',
@@ -239,22 +246,23 @@ const BroadcastRundownRow = memo(function BroadcastRundownRow({
             : isNotFound
             ? 'rgba(234, 88, 12, 0.10)'
             : isLive
-            ? hexToRgba(liveColor, 0.09)
+            ? hexToRgba(liveColor, readyTintAlpha)
             : isIntroClip
-            ? hexToRgba(introColor, 0.06)
+            ? hexToRgba(introColor, readyTintAlpha * 0.7)
             : (isFiller || isFillerClip)
-            ? hexToRgba(fillerColor, 0.09)
+            ? hexToRgba(fillerColor, readyTintAlpha)
             : isAd
-            ? hexToRgba(adColor, 0.10)
+            ? hexToRgba(adColor, readyTintAlpha)
             : item.isOverflow
             ? 'rgba(239, 68, 68, 0.08)'
-            : 'var(--bg-primary)',
+            : `linear-gradient(90deg, ${hexToRgba(rowAccentColor, readyTintAlpha * 0.65)} 0%, var(--bg-primary) 75%)`,
           borderLeft: (isMultiSelected || isSelected)
             ? '6px solid #2563eb'
-            : `4px solid ${rowAccentColor}`,
+            : `${readyLeftAccent}px solid ${rowAccentColor}`,
           boxShadow: (isSelected || isMultiSelected)
             ? '0 0 0 2px rgba(59, 130, 246, 0.28), 0 4px 14px rgba(37, 99, 235, 0.18)'
-            : 'none',
+            : readyShadowObj.value,
+          fontFamily: 'var(--ready-font-sans, var(--font-sans))',
           cursor: 'pointer',
           fontSize: '13.5px',
           transition: 'all 0.14s ease'
@@ -474,16 +482,16 @@ const BroadcastRundownRow = memo(function BroadcastRundownRow({
                 fontWeight: '800',
                 fontSize: '13.5px',
                 color: isAd
-                  ? '#d97706'
+                  ? adColor
                   : isNotFound
                   ? '#ea580c'
                   : isLive
-                  ? '#dc2626'
+                  ? liveColor
                   : isIntroClip
-                  ? '#4f46e5'
+                  ? introColor
                   : (isFiller || isFillerClip)
-                  ? '#7c3aed'
-                  : 'var(--text-primary)',
+                  ? fillerColor
+                  : (readyTitleColor || 'var(--text-primary)'),
                 lineHeight: '1.3',
                 wordBreak: 'break-word',
                 overflowWrap: 'anywhere'

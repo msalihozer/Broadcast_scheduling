@@ -125,15 +125,26 @@ const NAMED_PROGRAM_COLORS = [
 export function getProgramColor(progOrTitle) {
   if (!progOrTitle) return '#2563eb';
 
+  const themeConfig = useThemeStore.getState()?.config;
+  const sp = themeConfig?.specialColors || {};
+  const customCats = themeConfig?.categoryColors || {};
+
   if (typeof progOrTitle === 'object') {
-    if (progOrTitle.isKisaSlot) return '#0891b2';
+    if (progOrTitle.isKisaSlot) return sp.fillerSlotColor || customCats[10]?.color || '#0891b2';
     const isLive = Boolean(
       progOrTitle.isLive ||
       (Array.isArray(progOrTitle.selectedOptions) && progOrTitle.selectedOptions.includes('Canlı')) ||
       /\bcanl[ıi]\b/i.test(`${progOrTitle.rawTitle || ''} ${progOrTitle.title || ''} ${progOrTitle.host || ''}`)
     );
-    if (isLive) return '#e11d48';
+    if (isLive) return sp.liveColor || '#e11d48';
     if (progOrTitle.programColor) return progOrTitle.programColor;
+
+    // Eğer Admin Panel -> Temalar'da ilgili kategorinin kutu rengi özelleştirildiyse öncelikle onu uygula
+    const catName = progOrTitle.category || progOrTitle.categoryName || '';
+    if (catName) {
+      const resolvedCatColor = getCategoryColor(catName);
+      if (resolvedCatColor) return resolvedCatColor;
+    }
   }
 
   const rawTitle = typeof progOrTitle === 'string'

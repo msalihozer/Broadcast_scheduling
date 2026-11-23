@@ -915,6 +915,7 @@ export function createDraftRouter() {
             broadcastDays: mergeDayObjectsMap(base.broadcastDays, inc.broadcastDays),
             listControlDays: mergeDayObjectsMap(base.listControlDays, inc.listControlDays),
             listControlLogs: mergeByIdList(base.listControlLogs, inc.listControlLogs).slice(-1000),
+            themeConfig: inc.themeConfig || base.themeConfig || null,
             updatedAt: new Date().toISOString()
         };
     };
