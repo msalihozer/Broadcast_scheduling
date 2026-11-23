@@ -26,15 +26,20 @@ import {
   PinOff,
   Award,
   BarChart3,
-  Sparkles
+  Sparkles,
+  Menu,
+  X
 } from 'lucide-react';
 import usePlanningStore from '../../store/planningStore';
+import useResponsive from '../../hooks/useResponsive';
 
 const AdsSidebar = ({ activeTab, setActiveTab }) => {
+  const { isCompact } = useResponsive();
   const [isHovered, setIsHovered] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
-  const isCollapsed = !isPinned && !isHovered;
+  const isCollapsed = !isCompact && !isPinned && !isHovered;
 
   const companies = usePlanningStore(state => state.companies || []);
   const products = usePlanningStore(state => state.products || []);
@@ -52,6 +57,9 @@ const AdsSidebar = ({ activeTab, setActiveTab }) => {
     setActiveTab(tabId);
     if (!isPinned) {
       setIsHovered(false);
+    }
+    if (isCompact) {
+      setMobileDrawerOpen(false);
     }
   };
 
@@ -85,6 +93,257 @@ const AdsSidebar = ({ activeTab, setActiveTab }) => {
       ]
     }
   ];
+
+  const allItemsFlat = menuGroups.flatMap(g => g.items);
+
+  if (isCompact) {
+    return (
+      <>
+        {/* Mobil / Tablet Üst Yatay Kaydırılabilir Hızlı Sekme Çubuğu */}
+        <div style={{
+          flexShrink: 0,
+          background: 'var(--ta-sidebar-bg)',
+          borderBottom: '1px solid var(--ta-sidebar-border)',
+          padding: '8px 10px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          zIndex: 40
+        }}>
+          <button
+            type="button"
+            onClick={() => setMobileDrawerOpen(prev => !prev)}
+            style={{
+              background: mobileDrawerOpen ? 'var(--ads-brand)' : 'var(--ads-card-subtle)',
+              color: mobileDrawerOpen ? '#ffffff' : 'var(--ads-text-main)',
+              border: '1px solid var(--ads-border)',
+              borderRadius: '9px',
+              padding: '7px 10px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px',
+              fontSize: '12px',
+              fontWeight: 800,
+              cursor: 'pointer',
+              flexShrink: 0
+            }}
+          >
+            {mobileDrawerOpen ? <X size={15} /> : <Menu size={15} />}
+            <span>Menü</span>
+          </button>
+
+          <div
+            className="mobile-scroll-x"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              overflowX: 'auto',
+              flex: 1
+            }}
+          >
+            {allItemsFlat.map(item => {
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => handleTabSelect(item.id)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 11px',
+                    borderRadius: '999px',
+                    border: isActive ? '1px solid var(--ads-brand)' : '1px solid var(--ads-border)',
+                    background: isActive ? 'var(--ads-brand)' : 'var(--ads-card-bg)',
+                    color: isActive ? '#ffffff' : 'var(--ads-text-sub)',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    whiteSpace: 'nowrap',
+                    cursor: 'pointer',
+                    flexShrink: 0
+                  }}
+                >
+                  {item.icon}
+                  <span>{item.label}</span>
+                  {item.count !== undefined && (
+                    <span style={{
+                      fontSize: '10.5px',
+                      fontWeight: 800,
+                      padding: '0 6px',
+                      borderRadius: '999px',
+                      background: isActive ? 'rgba(255,255,255,0.22)' : 'var(--ads-pill-bar-bg)',
+                      color: isActive ? '#ffffff' : 'var(--ads-text-muted)'
+                    }}>
+                      {item.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Mobil Açılır Tam Menü Drawer */}
+        {mobileDrawerOpen && (
+          <>
+            <div
+              onClick={() => setMobileDrawerOpen(false)}
+              style={{
+                position: 'fixed',
+                inset: 0,
+                background: 'rgba(0, 0, 0, 0.55)',
+                zIndex: 1150
+              }}
+            />
+            <aside
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                bottom: 0,
+                width: '270px',
+                maxWidth: '86vw',
+                background: 'var(--ta-sidebar-bg)',
+                borderRight: '1px solid var(--ta-sidebar-border)',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                padding: '18px 14px',
+                zIndex: 1200,
+                overflowY: 'auto',
+                boxShadow: '12px 0 32px rgba(0,0,0,0.35)'
+              }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingBottom: '12px',
+                  borderBottom: '1px solid var(--ads-border)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{
+                      width: '34px',
+                      height: '34px',
+                      borderRadius: '10px',
+                      background: 'linear-gradient(135deg, #465fff 0%, #3641f5 100%)',
+                      color: '#fff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <BarChart3 size={18} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '14.5px', fontWeight: 800, color: 'var(--ads-text-main)' }}>Reklam Yönetimi</div>
+                      <div style={{ fontSize: '11px', color: 'var(--ads-text-muted)' }}>Medya & Planlama</div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setMobileDrawerOpen(false)}
+                    style={{
+                      background: 'var(--ads-card-subtle)',
+                      border: '1px solid var(--ads-border)',
+                      color: 'var(--ads-text-main)',
+                      borderRadius: '8px',
+                      padding: '5px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                {menuGroups.map(group => (
+                  <div key={group.title} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{
+                      fontSize: '10.5px',
+                      fontWeight: 800,
+                      color: 'var(--ads-text-muted)',
+                      textTransform: 'uppercase',
+                      padding: '0 8px 4px'
+                    }}>
+                      {group.title}
+                    </div>
+                    {group.items.map(item => {
+                      const isActive = activeTab === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => handleTabSelect(item.id)}
+                          style={{
+                            height: '38px',
+                            borderRadius: '9px',
+                            border: isActive ? '1px solid rgba(70, 95, 255, 0.25)' : '1px solid transparent',
+                            background: isActive ? 'var(--ads-brand-soft)' : 'transparent',
+                            color: isActive ? 'var(--ads-brand)' : 'var(--ads-text-sub)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '0 10px',
+                            cursor: 'pointer',
+                            fontWeight: isActive ? 800 : 600,
+                            fontSize: '13px'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            {item.icon}
+                            <span>{item.label}</span>
+                          </div>
+                          {item.count !== undefined && (
+                            <span style={{
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              padding: '1px 7px',
+                              borderRadius: '999px',
+                              background: isActive ? 'rgba(70, 95, 255, 0.16)' : 'var(--ads-pill-bar-bg)',
+                              color: isActive ? 'var(--ads-brand)' : 'var(--ads-text-muted)'
+                            }}>
+                              {item.count}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+
+              <div style={{
+                marginTop: '16px',
+                padding: '10px',
+                borderRadius: '10px',
+                background: 'var(--ads-card-subtle)',
+                border: '1px solid var(--ads-border)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              }}>
+                <div style={{ fontSize: '11.5px', fontWeight: 800, color: 'var(--ads-text-main)' }}>
+                  MAM Katalog ({companies.length} Firma • {materials.length} Klip)
+                </div>
+                <button
+                  type="button"
+                  onClick={() => syncAdsCatalogFromArchive && syncAdsCatalogFromArchive(true)}
+                  disabled={adsSyncInfo.isSyncing}
+                  className="ads-saas-btn ads-saas-btn-primary"
+                  style={{ width: '100%', justifyContent: 'center', padding: '7px 10px', fontSize: '12px' }}
+                >
+                  <RefreshCw size={13} className={adsSyncInfo.isSyncing ? 'animate-spin' : ''} />
+                  <span>{adsSyncInfo.isSyncing ? 'Eşitleniyor...' : 'Kataloğu Eşitle'}</span>
+                </button>
+              </div>
+            </aside>
+          </>
+        )}
+      </>
+    );
+  }
 
   return (
     <aside

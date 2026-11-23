@@ -26,6 +26,7 @@ import {
   Send,
   BarChart3
 } from 'lucide-react';
+import useResponsive from '../../../hooks/useResponsive';
 
 const DraftHeader = ({
   currentChannel,
@@ -51,27 +52,28 @@ const DraftHeader = ({
   onOpenSendModal,
   onOpenReports
 }) => {
+  const { isMobile, isCompact } = useResponsive();
   return (
     <div style={{
       display: 'flex',
       flexDirection: 'column',
-      gap: '12px',
+      gap: isMobile ? '8px' : '12px',
       width: '100%',
       fontFamily: 'var(--font-sans)'
     }}>
       {/* 1. SATIR: SOL BAŞLIK | ORTA TARİH/HAFTA SEÇİMİ | SAĞ KANAL & IZGARA/TABLO */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'minmax(240px, 1fr) auto minmax(280px, 1fr)',
+        gridTemplateColumns: isCompact ? '1fr' : 'minmax(240px, 1fr) auto minmax(280px, 1fr)',
         alignItems: 'center',
-        gap: '14px',
+        gap: isMobile ? '10px' : '14px',
         width: '100%'
       }}>
         {/* Sol: Modül Logosu, Kurumsal Başlık ve Durum Rozeti */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', justifySelf: 'start', minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px', justifySelf: isCompact ? 'center' : 'start', minWidth: 0, flexWrap: 'wrap', justifyContent: isCompact ? 'center' : 'flex-start' }}>
           <div style={{
-            width: '42px',
-            height: '42px',
+            width: isMobile ? '34px' : '42px',
+            height: isMobile ? '34px' : '42px',
             borderRadius: '11px',
             background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 55%, #0ea5e9 100%)',
             display: 'flex',
@@ -80,14 +82,14 @@ const DraftHeader = ({
             boxShadow: '0 6px 16px -3px rgba(37, 99, 235, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25)',
             flexShrink: 0
           }}>
-            <Calendar size={20} color="#ffffff" />
+            <Calendar size={isMobile ? 17 : 20} color="#ffffff" />
           </div>
 
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
+          <div style={{ textAlign: isCompact ? 'center' : 'left' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: isCompact ? 'center' : 'flex-start' }}>
               <h1 style={{
                 fontFamily: 'var(--font-sans)',
-                fontSize: '19px',
+                fontSize: isMobile ? '15.5px' : '19px',
                 fontWeight: 800,
                 margin: 0,
                 letterSpacing: '-0.03em',
@@ -96,28 +98,32 @@ const DraftHeader = ({
                 Taslak Yayın Planlama Stüdyosu
               </h1>
 
-              <span style={{
-                fontSize: '10.5px',
-                fontWeight: 700,
-                padding: '2.5px 9px',
-                borderRadius: '999px',
-                background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.14) 0%, rgba(37, 99, 235, 0.1) 100%)',
-                color: '#0891b2',
-                border: '1px solid rgba(6, 182, 212, 0.3)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}>
-                <Layers size={11} /> Akıllı Süre & Kuşak Motoru
-              </span>
+              {!isMobile && (
+                <span style={{
+                  fontSize: '10.5px',
+                  fontWeight: 700,
+                  padding: '2.5px 9px',
+                  borderRadius: '999px',
+                  background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.14) 0%, rgba(37, 99, 235, 0.1) 100%)',
+                  color: '#0891b2',
+                  border: '1px solid rgba(6, 182, 212, 0.3)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}>
+                  <Layers size={11} /> Akıllı Süre & Kuşak Motoru
+                </span>
+              )}
             </div>
 
             <div style={{
-              fontSize: '11.5px',
+              fontSize: '11px',
               color: 'var(--text-muted)',
               marginTop: '2px',
               display: 'flex',
               alignItems: 'center',
+              justifyContent: isCompact ? 'center' : 'flex-start',
+              flexWrap: 'wrap',
               gap: '6px'
             }}>
               <span>Aktif Yayın Kanalı:</span>
@@ -216,9 +222,10 @@ const DraftHeader = ({
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'flex-end',
-          justifySelf: 'end',
-          gap: '10px',
+          justifyContent: isCompact ? 'center' : 'flex-end',
+          justifySelf: isCompact ? 'center' : 'end',
+          flexWrap: 'wrap',
+          gap: '8px',
           flexShrink: 0
         }}>
           {/* Kanal Değiştirici (HD / WAY - Liste yüklü değil ise Turuncu) */}

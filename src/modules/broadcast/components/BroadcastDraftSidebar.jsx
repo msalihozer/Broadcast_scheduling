@@ -39,6 +39,7 @@ import FillerSlotModal from './FillerSlotModal';
 import DraftSidebarTopHeader from './sidebar/DraftSidebarTopHeader';
 import DraftSidebarFilterHeader from './sidebar/DraftSidebarFilterHeader';
 import DraftSidebarEmptyState from './sidebar/DraftSidebarEmptyState';
+import useResponsive from '../../../hooks/useResponsive';
 
 const MIN_SIDEBAR_WIDTH = 420;
 const DEFAULT_SIDEBAR_WIDTH = 490;
@@ -64,6 +65,7 @@ function getDayPeriodInfo(startTimeStr) {
 }
 
 export default function BroadcastDraftSidebar() {
+  const { isCompact } = useResponsive();
   const {
     selectedChannel,
     selectedDate,
@@ -757,21 +759,48 @@ export default function BroadcastDraftSidebar() {
   const isWide = sidebarWidth >= EXPANDED_SIDEBAR_WIDTH - 40;
 
   return (
-    <div style={{
-      width: `${sidebarWidth}px`,
-      minWidth: `${MIN_SIDEBAR_WIDTH}px`,
-      maxWidth: `${MAX_SIDEBAR_WIDTH}px`,
-      height: '100%',
-      background: 'var(--bg-secondary)',
-      borderRight: '2px solid var(--border-color)',
-      display: 'flex',
-      flexDirection: 'column',
-      flexShrink: 0,
-      boxShadow: '4px 0 20px rgba(0,0,0,0.12)',
-      zIndex: 20,
-      position: 'relative',
-      transition: isResizing ? 'none' : 'width 0.18s ease'
-    }}>
+    <>
+      {isCompact && (
+        <div
+          onClick={toggleDraftSidebar}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.55)',
+            zIndex: 1140
+          }}
+        />
+      )}
+      <div style={isCompact ? {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        bottom: 0,
+        width: '420px',
+        maxWidth: '92vw',
+        height: '100dvh',
+        background: 'var(--bg-secondary)',
+        borderRight: '2px solid var(--border-color)',
+        display: 'flex',
+        flexDirection: 'column',
+        flexShrink: 0,
+        boxShadow: '12px 0 32px rgba(0,0,0,0.38)',
+        zIndex: 1180
+      } : {
+        width: `${sidebarWidth}px`,
+        minWidth: `${MIN_SIDEBAR_WIDTH}px`,
+        maxWidth: `${MAX_SIDEBAR_WIDTH}px`,
+        height: '100%',
+        background: 'var(--bg-secondary)',
+        borderRight: '2px solid var(--border-color)',
+        display: 'flex',
+        flexDirection: 'column',
+        flexShrink: 0,
+        boxShadow: '4px 0 20px rgba(0,0,0,0.12)',
+        zIndex: 20,
+        position: 'relative',
+        transition: isResizing ? 'none' : 'width 0.18s ease'
+      }}>
       {/* Üst Sekmeler + Genişlet/Daralt + Ekleneceği Yer Seçicisi */}
       <DraftSidebarTopHeader
         activeSidebarTab={activeSidebarTab}
@@ -957,5 +986,6 @@ export default function BroadcastDraftSidebar() {
         }} />
       </div>
     </div>
+    </>
   );
 }

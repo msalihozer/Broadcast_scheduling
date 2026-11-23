@@ -16,12 +16,14 @@ import {
   CATEGORY_COLORS
 } from './library';
 import { filterAndSortBySearchPriority } from '../../../utils/searchRanker';
+import useResponsive from '../../../hooks/useResponsive';
 
 const DraftLibrarySidebar = ({
   isOpen = true,
   onToggle,
   onOpenAddModal
 }) => {
+  const { isCompact } = useResponsive();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [programs, setPrograms] = useState([]);
@@ -134,75 +136,105 @@ const DraftLibrarySidebar = ({
   }
 
   return (
-    <div style={{
-      width: '360px',
-      minWidth: '340px',
-      maxWidth: '380px',
-      background: 'var(--bg-secondary)',
-      border: '2px solid var(--border-color)',
-      borderRadius: '16px',
-      display: 'flex',
-      flexDirection: 'column',
-      height: 'calc(100vh - var(--header-height, 60px) - 28px)',
-      maxHeight: 'calc(100vh - var(--header-height, 60px) - 28px)',
-      position: 'sticky',
-      top: 'calc(var(--header-height, 60px) + 14px)',
-      zIndex: 40,
-      boxShadow: '0 12px 36px rgba(0, 0, 0, 0.14)',
-      overflow: 'hidden',
-      userSelect: 'none',
-      flexShrink: 0
-    }}>
-      {/* 1. BAŞLIK VE KAPATMA BUTONU */}
-      <LibraryHeader programCount={programs.length} onToggle={onToggle} />
-
-      {/* 2. EN ÜSTTE: PROGRAM ARAMA + CANLI/DOLGU + BELİRGİN KAPALI KATEGORİLER */}
-      <LibraryFilters
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        selectedCategory={selectedCategory}
-        setSelectedCategory={setSelectedCategory}
-        availableCategories={availableCategories}
-        categoryCounts={categoryCounts}
-        totalCount={programs.length}
-        onDragStartDolgu={handleDolguDragStart}
-        onOpenAddModal={onOpenAddModal}
-      />
-
-      {/* 3. PROGRAMLAR LİSTESİ (KAYDIRILABİLİR ANA ALAN) */}
-      <div style={{
-        flex: 1,
-        minHeight: 0,
-        overflowY: 'auto',
-        padding: '8px 10px',
+    <>
+      {isCompact && (
+        <div
+          onClick={onToggle}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.55)',
+            zIndex: 1150
+          }}
+        />
+      )}
+      <div style={isCompact ? {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        bottom: 0,
+        width: '340px',
+        maxWidth: '90vw',
+        background: 'var(--bg-secondary)',
+        borderRight: '2px solid var(--border-color)',
         display: 'flex',
         flexDirection: 'column',
-        gap: '5px'
+        height: '100dvh',
+        maxHeight: '100dvh',
+        zIndex: 1200,
+        boxShadow: '12px 0 36px rgba(0, 0, 0, 0.35)',
+        overflow: 'hidden',
+        userSelect: 'none'
+      } : {
+        width: '360px',
+        minWidth: '340px',
+        maxWidth: '380px',
+        background: 'var(--bg-secondary)',
+        border: '2px solid var(--border-color)',
+        borderRadius: '16px',
+        display: 'flex',
+        flexDirection: 'column',
+        height: 'calc(100vh - var(--header-height, 60px) - 28px)',
+        maxHeight: 'calc(100vh - var(--header-height, 60px) - 28px)',
+        position: 'sticky',
+        top: 'calc(var(--header-height, 60px) + 14px)',
+        zIndex: 40,
+        boxShadow: '0 12px 36px rgba(0, 0, 0, 0.14)',
+        overflow: 'hidden',
+        userSelect: 'none',
+        flexShrink: 0
       }}>
-        {isLoading ? (
-          <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>
-            Program kütüphanesi yükleniyor...
-          </div>
-        ) : filteredPrograms.length === 0 ? (
-          <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>
-            Aramaya uygun program bulunamadı.
-          </div>
-        ) : (
-          filteredPrograms.map(prog => {
-            const catColor = CATEGORY_COLORS[prog.categoryName] || '#3b82f6';
-            return (
-              <LibraryProgramItem
-                key={prog.id}
-                prog={prog}
-                catColor={catColor}
-                onDragStartItem={handleItemDragStart}
-                onOpenAddModal={onOpenAddModal}
-              />
-            );
-          })
-        )}
+        {/* 1. BAŞLIK VE KAPATMA BUTONU */}
+        <LibraryHeader programCount={programs.length} onToggle={onToggle} />
+
+        {/* 2. EN ÜSTTE: PROGRAM ARAMA + CANLI/DOLGU + BELİRGİN KAPALI KATEGORİLER */}
+        <LibraryFilters
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          selectedCategory={selectedCategory}
+          setSelectedCategory={setSelectedCategory}
+          availableCategories={availableCategories}
+          categoryCounts={categoryCounts}
+          totalCount={programs.length}
+          onDragStartDolgu={handleDolguDragStart}
+          onOpenAddModal={onOpenAddModal}
+        />
+
+        {/* 3. PROGRAMLAR LİSTESİ (KAYDIRILABİLİR ANA ALAN) */}
+        <div style={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: 'auto',
+          padding: '8px 10px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '5px'
+        }}>
+          {isLoading ? (
+            <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>
+              Program kütüphanesi yükleniyor...
+            </div>
+          ) : filteredPrograms.length === 0 ? (
+            <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>
+              Aramaya uygun program bulunamadı.
+            </div>
+          ) : (
+            filteredPrograms.map(prog => {
+              const catColor = CATEGORY_COLORS[prog.categoryName] || '#3b82f6';
+              return (
+                <LibraryProgramItem
+                  key={prog.id}
+                  prog={prog}
+                  catColor={catColor}
+                  onDragStartItem={handleItemDragStart}
+                  onOpenAddModal={onOpenAddModal}
+                />
+              );
+            })
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

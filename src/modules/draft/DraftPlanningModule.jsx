@@ -35,10 +35,12 @@ import DraftLibrarySidebar from './components/DraftLibrarySidebar';
 import DraftAddScheduleModal from './components/DraftAddScheduleModal';
 import DraftSendToBroadcastModal from './components/DraftSendToBroadcastModal';
 import { useNavigate } from 'react-router-dom';
+import useResponsive from '../../hooks/useResponsive';
 
 export { AVAILABLE_PRESETS };
 
 const DraftPlanningModule = () => {
+  const { isMobile, isCompact } = useResponsive();
   // 1. Planlama ve Yayın Akışı Durum Yönetimi (Hook)
   const {
     selectedChannel,
@@ -135,7 +137,7 @@ const DraftPlanningModule = () => {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
   const [isReportsOpen, setIsReportsOpen] = useState(false);
-  const [isLibraryOpen, setIsLibraryOpen] = useState(true);
+  const [isLibraryOpen, setIsLibraryOpen] = useState(() => (typeof window !== 'undefined' ? window.innerWidth > 960 : true));
   const [addScheduleModalData, setAddScheduleModalData] = useState(null);
   const [isSendModalOpen, setIsSendModalOpen] = useState(false);
   const [sendModalPreselectedDayKey, setSendModalPreselectedDayKey] = useState(null);
@@ -376,10 +378,10 @@ const DraftPlanningModule = () => {
     }}>
       {/* 1. ÜST KONTROL & BİLGİ ALANI */}
       <div style={{
-        padding: '16px 24px',
+        padding: isMobile ? '10px 10px' : isCompact ? '12px 14px' : '16px 24px',
         display: 'flex',
         flexDirection: 'column',
-        gap: '14px',
+        gap: isMobile ? '10px' : '14px',
         background: 'var(--bg-secondary)',
         borderBottom: '1px solid var(--border-color)'
       }}>
@@ -474,11 +476,12 @@ const DraftPlanningModule = () => {
       {/* 2. ANA İÇERİK ALANI (Sol Kütüphane Paneli + Sağ Yayın Akışı) */}
       <div style={{
         width: '100%',
-        padding: isLibraryOpen ? '16px 20px 40px 20px' : '16px 16px 40px 16px',
+        padding: isMobile ? '10px 8px 32px 8px' : isLibraryOpen ? '16px 20px 40px 20px' : '16px 16px 40px 16px',
         display: 'flex',
         alignItems: 'flex-start',
-        gap: isLibraryOpen ? '16px' : '0px',
-        boxSizing: 'border-box'
+        gap: (!isCompact && isLibraryOpen) ? '16px' : '0px',
+        boxSizing: 'border-box',
+        position: 'relative'
       }}>
         {/* Sol Kütüphane & Hızlı Dolgu Kuşağı Paneli */}
         <DraftLibrarySidebar

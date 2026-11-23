@@ -845,17 +845,20 @@ export default function BroadcastRundownTable({
               boxShadow: '0 4px 18px rgba(0,0,0,0.08)',
               width: '100%',
               minWidth: 0,
+              overflowX: 'auto',
+              WebkitOverflowScrolling: 'touch',
               boxSizing: 'border-box'
             }}>
-              <RundownTableHeader
-                programsCount={programs.length}
-                selectedCount={selectedIds.length}
-                onSelectAll={handleSelectAll}
-              />
+              <div style={{ minWidth: '880px' }}>
+                <RundownTableHeader
+                  programsCount={programs.length}
+                  selectedCount={selectedIds.length}
+                  onSelectAll={handleSelectAll}
+                />
 
-              {/* Program / Klip / Dolgu Kuşağı / Reklam Satırları */}
-              <div>
-                {displayedPrograms.map((item, idx) => {
+                {/* Program / Klip / Dolgu Kuşağı / Reklam Satırları */}
+                <div>
+                  {displayedPrograms.map((item, idx) => {
                   const index = programs.findIndex(p => p.instanceId === item.instanceId);
                   const startInfo = parseTimecodeDisplay(item.calculatedStartTime);
                   const prevItem = idx > 0 ? displayedPrograms[idx - 1] : null;
@@ -908,6 +911,7 @@ export default function BroadcastRundownTable({
                     />
                   );
                 })}
+                </div>
               </div>
             </div>
           )}

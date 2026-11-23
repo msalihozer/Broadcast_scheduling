@@ -35,9 +35,11 @@ import useBroadcastStore, { BROADCAST_CHANNELS } from '../store/broadcastStore';
 import { dialog } from '../../../store/dialogStore';
 import { format, parseISO } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import useResponsive from '../../../hooks/useResponsive';
 
 const BroadcastHeader = ({ onOpenShortcuts, onOpenAdSettingsModal, onOpenIntroSettingsModal }) => {
   const navigate = useNavigate();
+  const { isMobile, isCompact } = useResponsive();
   const [isGearMenuOpen, setIsGearMenuOpen] = useState(false);
   const [isClipboardOpen, setIsClipboardOpen] = useState(false);
   const gearMenuRef = useRef(null);
@@ -179,16 +181,16 @@ const BroadcastHeader = ({ onOpenShortcuts, onOpenAdSettingsModal, onOpenIntroSe
       style={{
         background: 'var(--bg-secondary)',
         borderBottom: '1px solid var(--border-color)',
-        padding: '10px 18px',
+        padding: isMobile ? '8px 10px' : '10px 18px',
         display: 'grid',
-        gridTemplateColumns: '1fr auto 1fr',
+        gridTemplateColumns: isCompact ? '1fr' : '1fr auto 1fr',
         alignItems: 'center',
-        gap: '16px',
+        gap: isMobile ? '8px' : '16px',
         flexShrink: 0
       }}
     >
       {/* SOL ÜST: Modüller + Taslak Paneli + Tarih Seçme Alanı */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: isCompact ? 'center' : 'flex-start', gap: isMobile ? '6px' : '10px', flexWrap: 'wrap' }}>
         <button
           onClick={() => navigate('/')}
           style={{
@@ -429,8 +431,9 @@ const BroadcastHeader = ({ onOpenShortcuts, onOpenAdSettingsModal, onOpenIntroSe
         style={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'flex-end',
-          gap: '10px'
+          justifyContent: isCompact ? 'center' : 'flex-end',
+          flexWrap: 'wrap',
+          gap: isMobile ? '6px' : '10px'
         }}
       >
         {/* Görünüm Modları */}

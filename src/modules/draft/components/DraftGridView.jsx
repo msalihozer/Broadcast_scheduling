@@ -35,6 +35,7 @@ import {
 import DraftDayColumn from './DraftDayColumn';
 import DraftMatrixView from './DraftMatrixView';
 import { filterAndSortBySearchPriority } from '../../../utils/searchRanker';
+import useResponsive from '../../../hooks/useResponsive';
 
 const TEXT_SCALE_PRESETS = [
   { value: 1, label: '%100', title: 'Standart Boyut (%100)' },
@@ -61,6 +62,7 @@ const DraftGridView = ({
   isLibraryOpen = true,
   onSendDayToBroadcast
 }) => {
+  const { isCompact } = useResponsive();
   const containerRef = useRef(null);
   const [gridMode, setGridMode] = useState('matrix'); // 'matrix' (Düzenli Saat Satırları) | 'compact' (Kompakt Sütunlar)
   const [timePeriodFilter, setTimePeriodFilter] = useState('all'); // 'all', 'night', 'morning', 'afternoon', 'evening'
@@ -134,7 +136,7 @@ const DraftGridView = ({
     containerRef.current.scrollBy({ left: amount, behavior: 'smooth' });
   };
 
-  const canScrollHorizontal = activeDaysKeys.length > 1 && (isLibraryOpen || textScale > 1);
+  const canScrollHorizontal = activeDaysKeys.length > 1 && (isCompact || isLibraryOpen || textScale > 1);
   const compactColMinWidth = Math.round(235 * textScale);
 
   return (
@@ -143,8 +145,9 @@ const DraftGridView = ({
       {/* ÜST ARAÇ ÇUBUĞU: En Solda Yazı Boyutu | Ortada Sola-Sağa + İpucu (i) | En Sağda Görünüm Seçici */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '1fr auto 1fr',
+        gridTemplateColumns: isCompact ? '1fr' : '1fr auto 1fr',
         alignItems: 'center',
+        justifyItems: isCompact ? 'center' : 'stretch',
         gap: '10px',
         padding: '8px 12px',
         background: 'var(--bg-secondary)',
@@ -153,7 +156,7 @@ const DraftGridView = ({
         boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)'
       }}>
         {/* EN SOL: YAZI VE KART BOYUTU BÜYÜTME SEÇENEĞİ */}
-        <div style={{ display: 'flex', alignItems: 'center', justifySelf: 'start', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifySelf: isCompact ? 'center' : 'start', flexShrink: 0, flexWrap: 'wrap', justifyContent: 'center' }}>
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -375,7 +378,7 @@ const DraftGridView = ({
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          justifySelf: 'end',
+          justifySelf: isCompact ? 'center' : 'end',
           background: 'var(--bg-primary)',
           padding: '3px',
           borderRadius: '8px',

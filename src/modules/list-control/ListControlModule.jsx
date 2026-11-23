@@ -50,8 +50,10 @@ import ListControlRevisionModal from './components/ListControlRevisionModal';
 import ListControlWeekView from './components/ListControlWeekView';
 import ListControlMonthView from './components/ListControlMonthView';
 import ListControlReportsLogsView from './components/ListControlReportsLogsView';
+import useResponsive from '../../hooks/useResponsive';
 
 export default function ListControlModule() {
+  const { isMobile, isCompact } = useResponsive();
   const todayStr = useMemo(() => format(new Date(), 'yyyy-MM-dd'), []);
 
   const selectedChannel = usePlanningStore(state => state.selectedChannel) || 'ch_hd';
@@ -105,7 +107,7 @@ export default function ListControlModule() {
 
   // Seçili satır, sürükle-bırak, filtre, arama ve modal durumları
   const [selectedInstanceId, setSelectedInstanceId] = useState(null);
-  const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
+  const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(() => (typeof window !== 'undefined' ? window.innerWidth > 960 : true));
   const [draggedRowIndex, setDraggedRowIndex] = useState(null);
   const [dragOverRowIndex, setDragOverRowIndex] = useState(null);
   const [dropMode, setDropMode] = useState('insert'); // 'insert' | 'replace'
@@ -482,7 +484,7 @@ export default function ListControlModule() {
           - SAĞDA: Günlük / Haftalık / Aylık / Raporlar & Loglar + Yazı Boyutu Büyütme (A- / A+)
           - SOLDA: Reklam Rezervasyondan Çek + Bütün Günü Revizeye Gönder + Listeyi Onayla */}
       <div style={{
-        padding: '10px 20px',
+        padding: isMobile ? '8px 10px' : '10px 20px',
         background: 'var(--bg-secondary)',
         borderBottom: '1.5px solid var(--border-color)',
         display: 'flex',
@@ -492,13 +494,13 @@ export default function ListControlModule() {
       }}>
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '1fr auto 1fr',
+          gridTemplateColumns: isCompact ? '1fr' : '1fr auto 1fr',
           alignItems: 'center',
-          gap: '14px',
+          gap: isMobile ? '8px' : '14px',
           width: '100%'
         }}>
           {/* SOL: Liste İşlem Butonları */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '7px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: isCompact ? 'center' : 'flex-start', gap: '7px', flexWrap: 'wrap' }}>
             <button
               type="button"
               onClick={() => {
@@ -778,7 +780,7 @@ export default function ListControlModule() {
           <div style={{
             display: 'flex',
             flexDirection: 'column',
-            alignItems: 'flex-end',
+            alignItems: isCompact ? 'center' : 'flex-end',
             justifyContent: 'center',
             gap: '6px'
           }}>
@@ -790,7 +792,7 @@ export default function ListControlModule() {
               border: '1px solid var(--border-color)',
               gap: '3px',
               flexWrap: 'wrap',
-              justifyContent: 'flex-end'
+              justifyContent: isCompact ? 'center' : 'flex-end'
             }}>
               {[
                 { id: 'daily', label: '📅 Günlük' },
@@ -1007,6 +1009,7 @@ export default function ListControlModule() {
               selectedDate={safeDate}
               selectedItem={selectedItem}
               selectedIndex={selectedIndex}
+              onCloseSidebar={() => setIsLeftSidebarOpen(false)}
               onReplaceSelected={(newPayload) => {
                 if (!selectedItem) return;
                 lcReplaceItem(selectedChannel, safeDate, activeVariant, selectedItem.instanceId, newPayload);
@@ -1377,11 +1380,14 @@ export default function ListControlModule() {
                   border: '1.5px solid var(--border-color)',
                   borderRadius: '12px',
                   background: 'var(--bg-secondary)',
-                  overflow: 'hidden',
+                  overflowX: 'auto',
+                  overflowY: 'hidden',
+                  WebkitOverflowScrolling: 'touch',
                   display: 'flex',
                   flexDirection: 'column',
                   boxShadow: '0 4px 16px rgba(0, 0, 0, 0.06)'
                 }}>
+                  <div style={{ minWidth: '880px', display: 'flex', flexDirection: 'column' }}>
                   {/* FLEXBOX TABLO BAŞLIĞI (EKRANA TAM SIĞAN 7 SÜTUN) */}
                   <div style={{
                     padding: '8px 12px',
@@ -1404,8 +1410,8 @@ export default function ListControlModule() {
                     <div style={{ flex: '2.2 1 170px', minWidth: 0 }}>TÜR • KLİP / REKLAM ADI • ID & DOSYA (.MXF)</div>
                     <div style={{ flex: '1.15 1 130px', minWidth: 0 }}>LOGO GİRİŞ / ÇIKIŞ</div>
                     <div style={{ flex: '2.1 1 195px', minWidth: 0 }}>AŞAMA & TEKNİK KONTROL (DB • HIGHRES .MXF)</div>
-                    <div style={{ width: `${Math.round(112 * fontScale)}px`, flexShrink: 0, textAlign: 'center' }}>SÜRE</div>
-                    <div style={{ width: `${Math.round(148 * fontScale)}px`, flexShrink: 0, textAlign: 'right' }}>İŞLEMLER</div>
+                    <div style={{ width: `${Math.round(126 * fontScale)}px`, flexShrink: 0, textAlign: 'center' }}>SÜRE</div>
+                    <div style={{ width: `${Math.round(156 * fontScale)}px`, flexShrink: 0, textAlign: 'right' }}>İŞLEMLER</div>
                   </div>
 
                   {/* FLEXBOX TABLO SATIRLARI */}
@@ -1464,6 +1470,7 @@ export default function ListControlModule() {
                       );
                     })
                   )}
+                  </div>
                 </div>
               )}
             </div>

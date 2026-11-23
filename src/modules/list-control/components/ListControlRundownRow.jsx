@@ -130,8 +130,8 @@ export default function ListControlRundownRow({
   const fs = (px) => `${(px * (Number(fontScale) || 1)).toFixed(1)}px`;
   const sColWidth = Math.round(54 * (Number(fontScale) || 1));
   const timeColWidth = Math.round(84 * (Number(fontScale) || 1));
-  const durColWidth = Math.round(112 * (Number(fontScale) || 1));
-  const actColWidth = Math.round(148 * (Number(fontScale) || 1));
+  const durColWidth = Math.round(126 * (Number(fontScale) || 1));
+  const actColWidth = Math.round(156 * (Number(fontScale) || 1));
 
   return (
     <div

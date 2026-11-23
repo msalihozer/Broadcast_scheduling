@@ -8,9 +8,10 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ShieldAlert, ArrowLeft, LayoutDashboard, Users, BarChart2,
-  Settings, List, PlaySquare, Tv, Film, ClipboardList, Palette, Activity
+  Settings, List, PlaySquare, Tv, Film, ClipboardList, Palette, Activity, Menu, X
 } from 'lucide-react';
 import useAuthStore from '../store/authStore';
+import useResponsive from '../hooks/useResponsive';
 import OverviewTab from './admin/OverviewTab';
 import UsersTab from './admin/UsersTab';
 import StatsTab from './admin/StatsTab';
@@ -39,6 +40,8 @@ const ALL_NAV_ITEMS = [
 
 const AdminPanel = () => {
   const navigate = useNavigate();
+  const { isMobile, isCompact } = useResponsive();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const role = useAuthStore(state => state.role);
   const user = useAuthStore(state => state.user);
   const managedUsers = useAuthStore(state => state.managedUsers);
@@ -105,65 +108,250 @@ const AdminPanel = () => {
     );
   }
 
+  const activeNavItem = useMemo(
+    () => navItems.find(item => item.id === activeTab) || navItems[0],
+    [navItems, activeTab]
+  );
+
   return (
     <div style={{
-      height: '100vh',
+      height: '100dvh',
       overflow: 'hidden',
       background: 'var(--bg-primary)',
       color: 'var(--text-primary)',
-      display: 'flex'
+      display: 'flex',
+      flexDirection: isCompact ? 'column' : 'row',
+      position: 'relative'
     }}>
-      {/* Sidebar */}
-      <div style={{ width: '280px', flexShrink: 0, overflowY: 'auto', borderRight: '1px solid var(--border-color)', background: 'var(--bg-secondary)', padding: '32px 24px', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '36px', cursor: 'pointer' }} onClick={() => navigate('/')}>
-          <div style={{ background: 'var(--accent-primary)', color: 'white', padding: '8px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <ArrowLeft size={20} />
-          </div>
-          <div>
-            <h1 style={{ fontSize: '20px', fontWeight: '800', margin: 0 }}>Admin Paneli</h1>
-            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Yayın Planlama Sistemi</span>
-          </div>
-        </div>
-
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
-          {navItems.map(item => (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '12px', cursor: 'pointer', border: 'none', fontSize: '14px', fontWeight: '600', transition: 'all 0.2s',
-                background: activeTab === item.id ? 'var(--accent-primary)' : 'transparent',
-                color: activeTab === item.id ? '#fff' : 'var(--text-secondary)'
-              }}
-              onMouseEnter={(e) => { if (activeTab !== item.id) e.currentTarget.style.background = 'var(--bg-tertiary)'; }}
-              onMouseLeave={(e) => { if (activeTab !== item.id) e.currentTarget.style.background = 'transparent'; }}
-            >
-              {item.icon} {item.label}
-            </button>
-          ))}
-        </nav>
-
+      {/* Mobil / Tablet Üst Başlık ve Yatay Sekme Çubuğu */}
+      {isCompact && (
         <div style={{
-          marginTop: '20px',
-          padding: '12px',
-          borderRadius: '10px',
-          background: 'var(--bg-tertiary)',
-          border: '1px solid var(--border-color)',
-          fontSize: '11.5px',
-          color: 'var(--text-secondary)'
+          flexShrink: 0,
+          background: 'var(--bg-secondary)',
+          borderBottom: '1px solid var(--border-color)',
+          display: 'flex',
+          flexDirection: 'column',
+          zIndex: 1100
         }}>
-          <div style={{ fontWeight: '800', color: 'var(--text-primary)', marginBottom: '2px' }}>
-            {user?.name || user?.email || 'Aktif Kullanıcı'}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '10px 14px',
+            gap: '10px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <button
+                onClick={() => navigate('/')}
+                title="Modüllere Dön"
+                style={{
+                  background: 'var(--accent-primary)',
+                  color: 'white',
+                  border: 'none',
+                  padding: '7px 10px',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                <ArrowLeft size={16} /> {!isMobile && 'Modüller'}
+              </button>
+              <div>
+                <div style={{ fontSize: '15px', fontWeight: 800, lineHeight: 1.2 }}>Admin Paneli</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                  {activeNavItem?.label || 'Yönetim'}
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setMobileMenuOpen(prev => !prev)}
+              style={{
+                background: mobileMenuOpen ? 'var(--accent-primary)' : 'var(--bg-tertiary)',
+                color: mobileMenuOpen ? '#fff' : 'var(--text-primary)',
+                border: '1px solid var(--border-color)',
+                padding: '7px 11px',
+                borderRadius: '9px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '12.5px',
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              {mobileMenuOpen ? <X size={16} /> : <Menu size={16} />}
+              Menü
+            </button>
           </div>
-          <div>Yetkili Sekme: {navItems.length} / {ALL_NAV_ITEMS.length}</div>
+
+          {/* Yatay Kaydırılabilir Hızlı Sekme Şeridi */}
+          <div
+            className="mobile-scroll-x"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '0 12px 10px 12px',
+              overflowX: 'auto'
+            }}
+          >
+            {navItems.map(item => {
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setActiveTab(item.id);
+                    setMobileMenuOpen(false);
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 12px',
+                    borderRadius: '999px',
+                    border: isActive ? '1px solid var(--accent-primary)' : '1px solid var(--border-color)',
+                    background: isActive ? 'var(--accent-primary)' : 'var(--bg-primary)',
+                    color: isActive ? '#ffffff' : 'var(--text-secondary)',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    whiteSpace: 'nowrap',
+                    cursor: 'pointer',
+                    flexShrink: 0
+                  }}
+                >
+                  {item.icon} {item.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Mobil Açılır Drawer Backdrop */}
+      {isCompact && mobileMenuOpen && (
+        <div
+          onClick={() => setMobileMenuOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.55)',
+            zIndex: 1200
+          }}
+        />
+      )}
+
+      {/* Sidebar (Masaüstünde sabit, Mobil/Tablette Slide-over Drawer) */}
+      {(!isCompact || mobileMenuOpen) && (
+        <div style={isCompact ? {
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          bottom: 0,
+          width: '280px',
+          maxWidth: '85vw',
+          zIndex: 1250,
+          overflowY: 'auto',
+          borderRight: '1px solid var(--border-color)',
+          background: 'var(--bg-secondary)',
+          padding: '24px 18px',
+          display: 'flex',
+          flexDirection: 'column',
+          boxShadow: '12px 0 32px rgba(0,0,0,0.35)'
+        } : {
+          width: '280px',
+          flexShrink: 0,
+          overflowY: 'auto',
+          borderRight: '1px solid var(--border-color)',
+          background: 'var(--bg-secondary)',
+          padding: '32px 24px',
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '28px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }} onClick={() => navigate('/')}>
+              <div style={{ background: 'var(--accent-primary)', color: 'white', padding: '8px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <ArrowLeft size={20} />
+              </div>
+              <div>
+                <h1 style={{ fontSize: '20px', fontWeight: '800', margin: 0 }}>Admin Paneli</h1>
+                <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Yayın Planlama Sistemi</span>
+              </div>
+            </div>
+            {isCompact && (
+              <button
+                onClick={() => setMobileMenuOpen(false)}
+                style={{
+                  background: 'var(--bg-tertiary)',
+                  border: '1px solid var(--border-color)',
+                  color: 'var(--text-primary)',
+                  borderRadius: '8px',
+                  padding: '6px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <X size={18} />
+              </button>
+            )}
+          </div>
+
+          <nav style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
+            {navItems.map(item => (
+              <button
+                key={item.id}
+                onClick={() => {
+                  setActiveTab(item.id);
+                  if (isCompact) setMobileMenuOpen(false);
+                }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '12px', cursor: 'pointer', border: 'none', fontSize: '14px', fontWeight: '600', transition: 'all 0.2s',
+                  background: activeTab === item.id ? 'var(--accent-primary)' : 'transparent',
+                  color: activeTab === item.id ? '#fff' : 'var(--text-secondary)'
+                }}
+                onMouseEnter={(e) => { if (activeTab !== item.id) e.currentTarget.style.background = 'var(--bg-tertiary)'; }}
+                onMouseLeave={(e) => { if (activeTab !== item.id) e.currentTarget.style.background = 'transparent'; }}
+              >
+                {item.icon} {item.label}
+              </button>
+            ))}
+          </nav>
+
+          <div style={{
+            marginTop: '20px',
+            padding: '12px',
+            borderRadius: '10px',
+            background: 'var(--bg-tertiary)',
+            border: '1px solid var(--border-color)',
+            fontSize: '11.5px',
+            color: 'var(--text-secondary)'
+          }}>
+            <div style={{ fontWeight: '800', color: 'var(--text-primary)', marginBottom: '2px' }}>
+              {user?.name || user?.email || 'Aktif Kullanıcı'}
+            </div>
+            <div>Yetkili Sekme: {navItems.length} / {ALL_NAV_ITEMS.length}</div>
+          </div>
+        </div>
+      )}
 
       {/* Content */}
       <div
         id="admin-panel-scroll-container"
         ref={contentScrollRef}
-        style={{ flex: 1, padding: '40px 48px', overflowY: 'auto', minHeight: 0, minWidth: 0 }}
+        style={{
+          flex: 1,
+          padding: isMobile ? '14px 12px 32px 12px' : isCompact ? '20px 18px 36px 18px' : '40px 48px',
+          overflowY: 'auto',
+          minHeight: 0,
+          minWidth: 0
+        }}
       >
         <div style={{ maxWidth: '1240px', margin: '0 auto' }}>
           {activeTab === 'overview' && (

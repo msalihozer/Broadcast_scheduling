@@ -27,6 +27,7 @@ import {
 } from '../../broadcast/utils/draftSlotMatcher';
 import { filterAndSortBySearchPriority } from '../../../utils/searchRanker';
 import { formatSecondsReadable } from '../utils/listControlVerificationEngine';
+import useResponsive from '../../../hooks/useResponsive';
 
 const MIN_WIDTH = 290;
 const DEFAULT_WIDTH = 350;
@@ -40,8 +41,10 @@ export default function ListControlSidebar({
   selectedIndex = -1,
   onReplaceSelected,
   onInsertItem,
-  onOpenClipPreview
+  onOpenClipPreview,
+  onCloseSidebar
 }) {
+  const { isCompact } = useResponsive();
   const materials = usePlanningStore(state => state.materials) || [];
   const companies = usePlanningStore(state => state.companies) || [];
   const products = usePlanningStore(state => state.products) || [];
@@ -596,21 +599,49 @@ export default function ListControlSidebar({
   const isShowingSelectedProgram = hasMatchedProgram && mediaScope === 'selected_program';
 
   return (
-    <div
-      style={{
-        width: `${sidebarWidth}px`,
-        minWidth: `${MIN_WIDTH}px`,
-        maxWidth: `${MAX_WIDTH}px`,
-        height: '100%',
-        background: 'var(--bg-secondary)',
-        borderRight: '1.5px solid var(--border-color)',
-        display: 'flex',
-        flexDirection: 'column',
-        position: 'relative',
-        flexShrink: 0,
-        overflow: 'hidden'
-      }}
-    >
+    <>
+      {isCompact && (
+        <div
+          onClick={onCloseSidebar}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.55)',
+            zIndex: 1140
+          }}
+        />
+      )}
+      <div
+        style={isCompact ? {
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          bottom: 0,
+          width: '360px',
+          maxWidth: '92vw',
+          height: '100dvh',
+          background: 'var(--bg-secondary)',
+          borderRight: '1.5px solid var(--border-color)',
+          display: 'flex',
+          flexDirection: 'column',
+          flexShrink: 0,
+          overflow: 'hidden',
+          zIndex: 1180,
+          boxShadow: '12px 0 32px rgba(0,0,0,0.38)'
+        } : {
+          width: `${sidebarWidth}px`,
+          minWidth: `${MIN_WIDTH}px`,
+          maxWidth: `${MAX_WIDTH}px`,
+          height: '100%',
+          background: 'var(--bg-secondary)',
+          borderRight: '1.5px solid var(--border-color)',
+          display: 'flex',
+          flexDirection: 'column',
+          position: 'relative',
+          flexShrink: 0,
+          overflow: 'hidden'
+        }}
+      >
       {/* 1. ÜST SEKME BAŞLIĞI: Medya & Bölümler | Reklam Havuzu */}
       <div style={{
         padding: '8px 10px',
@@ -678,26 +709,49 @@ export default function ListControlSidebar({
           </button>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setSidebarWidth(w => (w >= EXPANDED_WIDTH - 30 ? DEFAULT_WIDTH : EXPANDED_WIDTH))}
-          style={{
-            width: '30px',
-            height: '30px',
-            borderRadius: '7px',
-            border: '1px solid var(--border-color)',
-            background: 'var(--bg-primary)',
-            color: 'var(--text-secondary)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            flexShrink: 0
-          }}
-          title="Sol Paneli Genişlet / Daralt"
-        >
-          {sidebarWidth >= EXPANDED_WIDTH - 30 ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-        </button>
+        {isCompact && onCloseSidebar ? (
+          <button
+            type="button"
+            onClick={onCloseSidebar}
+            style={{
+              width: '30px',
+              height: '30px',
+              borderRadius: '7px',
+              border: '1px solid var(--border-color)',
+              background: 'var(--bg-primary)',
+              color: 'var(--text-primary)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              flexShrink: 0
+            }}
+            title="Kütüphane Panelini Kapat"
+          >
+            <X size={15} />
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setSidebarWidth(w => (w >= EXPANDED_WIDTH - 30 ? DEFAULT_WIDTH : EXPANDED_WIDTH))}
+            style={{
+              width: '30px',
+              height: '30px',
+              borderRadius: '7px',
+              border: '1px solid var(--border-color)',
+              background: 'var(--bg-primary)',
+              color: 'var(--text-secondary)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              flexShrink: 0
+            }}
+            title="Sol Paneli Genişlet / Daralt"
+          >
+            {sidebarWidth >= EXPANDED_WIDTH - 30 ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+          </button>
+        )}
       </div>
 
       {/* 2. SEÇİLİ SATIR DURUM ŞERİDİ */}
@@ -1307,5 +1361,6 @@ export default function ListControlSidebar({
         title="Sürükleyerek sol paneli genişletin veya daraltın"
       />
     </div>
+    </>
   );
 }

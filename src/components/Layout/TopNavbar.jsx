@@ -16,10 +16,12 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import useDialogStore from '../../store/dialogStore';
 import usePlanningStore from '../../store/planningStore';
 import useAuthStore from '../../store/authStore';
+import useResponsive from '../../hooks/useResponsive';
 
 const TopNavbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isMobile, isCompact } = useResponsive();
   const [time, setTime] = useState(new Date());
   const showMediaLibrary = usePlanningStore(state => state.showMediaLibrary);
   const showSpecialTemplates = usePlanningStore(state => state.showSpecialTemplates);
@@ -61,12 +63,14 @@ const TopNavbar = () => {
 
   return (
     <header style={{
-      height: 'var(--header-height)',
+      minHeight: isMobile ? '48px' : 'var(--header-height)',
+      height: isCompact ? 'auto' : 'var(--header-height)',
       background: 'var(--bg-topbar)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '0 24px',
+      flexWrap: isCompact ? 'wrap' : 'nowrap',
+      padding: isMobile ? '6px 10px' : isCompact ? '8px 14px' : '0 24px',
       borderBottom: '1px solid var(--border-color)',
       color: 'var(--text-primary)',
       boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
@@ -74,10 +78,10 @@ const TopNavbar = () => {
       zIndex: 1000,
       position: 'sticky',
       top: 0,
-      gap: '16px'
+      gap: isMobile ? '8px' : '16px'
     }}>
       {/* Sol: Geri Dönüş ve Panel Başlığı */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '14px', flexShrink: 0 }}>
         <button
           onClick={() => navigate('/')}
           title="Modül Seçim Ekranına Dön"
@@ -86,12 +90,12 @@ const TopNavbar = () => {
             border: '1px solid var(--border-color)',
             color: 'var(--text-secondary)',
             borderRadius: '8px',
-            padding: '7px 12px',
+            padding: isMobile ? '6px 9px' : '7px 12px',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
-            fontSize: '12px',
+            gap: '5px',
+            fontSize: isMobile ? '11.5px' : '12px',
             fontWeight: '600',
             transition: 'all 0.15s ease'
           }}
@@ -106,30 +110,31 @@ const TopNavbar = () => {
             e.currentTarget.style.background = 'var(--bg-primary)';
           }}
         >
-          <ArrowLeft size={15} /> Modüller
+          <ArrowLeft size={15} /> {!isMobile && 'Modüller'}
         </button>
 
-        <div style={{ height: '24px', width: '1px', background: 'var(--border-color)' }}></div>
+        <div style={{ height: '20px', width: '1px', background: 'var(--border-color)' }}></div>
 
         {/* Panel İsmi (Taslak planlamada ise sadece 'Taslak Planlama' yazar) */}
         <h1 style={{
-          fontSize: '18px',
+          fontSize: isMobile ? '14.5px' : '18px',
           fontWeight: 800,
           color: 'var(--text-primary)',
           margin: 0,
           letterSpacing: '-0.3px',
           display: 'flex',
           alignItems: 'center',
-          gap: '8px'
+          gap: '8px',
+          whiteSpace: 'nowrap'
         }}>
           {getPageTitle()}
         </h1>
       </div>
 
       {/* Orta: Sadece mevcut panele ait fonksiyonel kontroller (Panel geçiş butonları tamamen kaldırıldı) */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, justifyContent: 'center' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: isCompact ? '0 1 auto' : 1, justifyContent: 'center', flexWrap: 'wrap' }}>
         {(isDraftPage || isReadyPage) && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '5px' : '8px', flexWrap: 'wrap' }}>
             {/* Görünüm Menüsü */}
             <div style={{ position: 'relative' }}>
               <button 
@@ -139,18 +144,18 @@ const TopNavbar = () => {
                   background: viewMenuOpen ? 'var(--bg-tertiary)' : 'var(--bg-secondary)',
                   color: 'var(--text-primary)',
                   border: '1px solid var(--border-color)',
-                  padding: '7px 14px',
+                  padding: isMobile ? '6px 9px' : '7px 14px',
                   borderRadius: '8px',
-                  fontSize: '13px',
+                  fontSize: isMobile ? '11.5px' : '13px',
                   fontWeight: '600',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
+                  gap: '5px',
                   cursor: 'pointer',
                   transition: 'all 0.15s'
                 }}
               >
-                <Eye size={15} color="var(--accent-primary)" /> Görünüm
+                <Eye size={14} color="var(--accent-primary)" /> {!isMobile && 'Görünüm'}
               </button>
               {viewMenuOpen && (
                 <div style={{
@@ -210,18 +215,18 @@ const TopNavbar = () => {
                     background: draftMenuOpen ? 'var(--bg-tertiary)' : 'var(--bg-secondary)',
                     color: 'var(--text-primary)',
                     border: '1px solid var(--border-color)',
-                    padding: '7px 14px',
+                    padding: isMobile ? '6px 9px' : '7px 14px',
                     borderRadius: '8px',
-                    fontSize: '13px',
+                    fontSize: isMobile ? '11.5px' : '13px',
                     fontWeight: '600',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px',
+                    gap: '5px',
                     cursor: 'pointer',
                     transition: 'all 0.15s'
                   }}
                 >
-                  <FolderOpen size={15} color="var(--accent-primary)" /> Taslaklar
+                  <FolderOpen size={14} color="var(--accent-primary)" /> {!isMobile && 'Taslaklar'}
                 </button>
                 {draftMenuOpen && (
                   <div style={{
@@ -319,6 +324,7 @@ const TopNavbar = () => {
             )}
 
             {/* Kısayollar Rehberi */}
+            {!isMobile && (
             <div style={{ position: 'relative' }}>
               <button 
                 onClick={() => {
@@ -390,6 +396,7 @@ const TopNavbar = () => {
                 </div>
               )}
             </div>
+            )}
 
             {/* Raporlar Butonu (Header Alanında Kısayollar Yanında) */}
             {isDraftPage && (
@@ -400,18 +407,18 @@ const TopNavbar = () => {
                   background: 'var(--bg-secondary)',
                   color: 'var(--text-primary)',
                   border: '1px solid var(--border-color)',
-                  padding: '7px 14px',
+                  padding: isMobile ? '6px 9px' : '7px 14px',
                   borderRadius: '8px',
-                  fontSize: '13px',
+                  fontSize: isMobile ? '11.5px' : '13px',
                   fontWeight: '600',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
+                  gap: '5px',
                   cursor: 'pointer',
                   transition: 'all 0.15s'
                 }}
               >
-                <BarChart3 size={15} color="var(--accent-primary)" /> Raporlar
+                <BarChart3 size={14} color="var(--accent-primary)" /> {!isMobile && 'Raporlar'}
               </button>
             )}
           </div>
@@ -419,64 +426,74 @@ const TopNavbar = () => {
       </div>
 
       {/* Sağ: Saat, Canlı Yayında Rozeti ve Kullanıcı Alanı */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '6px' : '14px', flexShrink: 0 }}>
         {/* Saat & Tarih - Tek Satır, Net ve Ferah */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          background: 'var(--bg-primary)',
-          padding: '6px 12px',
-          borderRadius: '8px',
-          border: '1px solid var(--border-color)',
-          fontSize: '12px'
-        }}>
-          <span style={{ fontFamily: 'monospace', fontWeight: '700', fontSize: '13px', color: 'var(--text-primary)' }}>
-            {format(time, 'HH:mm:ss')}
-          </span>
-          <span style={{ color: 'var(--border-color)' }}>•</span>
-          <span style={{ color: 'var(--text-secondary)', fontWeight: '500' }}>
-            {format(time, 'd MMMM yyyy, EEEE', { locale: tr })}
-          </span>
-        </div>
+        {!isMobile && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            background: 'var(--bg-primary)',
+            padding: '6px 12px',
+            borderRadius: '8px',
+            border: '1px solid var(--border-color)',
+            fontSize: '12px'
+          }}>
+            <span style={{ fontFamily: 'monospace', fontWeight: '700', fontSize: '13px', color: 'var(--text-primary)' }}>
+              {format(time, 'HH:mm:ss')}
+            </span>
+            {!isCompact && (
+              <>
+                <span style={{ color: 'var(--border-color)' }}>•</span>
+                <span style={{ color: 'var(--text-secondary)', fontWeight: '500' }}>
+                  {format(time, 'd MMMM yyyy, EEEE', { locale: tr })}
+                </span>
+              </>
+            )}
+          </div>
+        )}
 
         {/* Canlı Yayın Rozeti */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          fontSize: '11px',
-          fontWeight: '700',
-          color: 'var(--success)',
-          background: 'rgba(22, 163, 74, 0.1)',
-          border: '1px solid rgba(22, 163, 74, 0.25)',
-          padding: '5px 10px',
-          borderRadius: '16px'
-        }}>
-          <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: 'var(--success)', boxShadow: '0 0 6px var(--success)' }} />
-          YAYINDA
-        </div>
+        {!isCompact && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: '11px',
+            fontWeight: '700',
+            color: 'var(--success)',
+            background: 'rgba(22, 163, 74, 0.1)',
+            border: '1px solid rgba(22, 163, 74, 0.25)',
+            padding: '5px 10px',
+            borderRadius: '16px'
+          }}>
+            <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: 'var(--success)', boxShadow: '0 0 6px var(--success)' }} />
+            YAYINDA
+          </div>
+        )}
 
         {/* Kullanıcı Bilgisi ve Çıkış Butonu */}
         {user && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingLeft: '10px', borderLeft: '1px solid var(--border-color)' }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              color: 'var(--text-primary)',
-              fontSize: '12px',
-              fontWeight: '600',
-              background: 'var(--bg-primary)',
-              padding: '6px 10px',
-              borderRadius: '8px',
-              border: '1px solid var(--border-color)'
-            }}>
-              <User size={14} color="var(--accent-primary)" />
-              <span style={{ textTransform: 'capitalize' }}>
-                {user.email.includes('@') ? user.email.split('@')[0] : user.email}
-              </span>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '5px' : '8px', paddingLeft: isMobile ? '0' : '10px', borderLeft: isMobile ? 'none' : '1px solid var(--border-color)' }}>
+            {!isMobile && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                color: 'var(--text-primary)',
+                fontSize: '12px',
+                fontWeight: '600',
+                background: 'var(--bg-primary)',
+                padding: '6px 10px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)'
+              }}>
+                <User size={14} color="var(--accent-primary)" />
+                <span style={{ textTransform: 'capitalize' }}>
+                  {user.email.includes('@') ? user.email.split('@')[0] : user.email}
+                </span>
+              </div>
+            )}
 
             <button 
               onClick={() => signOut()}
@@ -484,9 +501,9 @@ const TopNavbar = () => {
                 background: 'var(--danger-bg)',
                 color: 'var(--danger)',
                 border: '1px solid rgba(239, 68, 68, 0.3)',
-                padding: '6px 12px',
+                padding: isMobile ? '6px 9px' : '6px 12px',
                 borderRadius: '8px',
-                fontSize: '12px',
+                fontSize: isMobile ? '11.5px' : '12px',
                 fontWeight: '600',
                 display: 'flex',
                 alignItems: 'center',
@@ -504,7 +521,7 @@ const TopNavbar = () => {
               }}
               title="Oturumu Sonlandır"
             >
-              <LogOut size={14} /> Çıkış
+              <LogOut size={14} /> {!isMobile && 'Çıkış'}
             </button>
           </div>
         )}
