@@ -756,6 +756,27 @@ const useThemeStore = create((set) => ({
     set({ config: fresh });
   },
 
+  // Manuel "Kaydet ve Tüm Sisteme Uygula" aksiyonu (Hem CSS değişkenlerini hem localStorage'ı hem de sunucu DB'yi anında günceller)
+  saveAndApplyThemeNow: async () => {
+    const current = useThemeStore.getState().config;
+    const withTs = { ...current, updatedAt: new Date().toISOString() };
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(withTs));
+    } catch (_) {}
+    applyThemeCssVariables(withTs);
+    set({ config: withTs });
+    try {
+      const res = await fetch('/api/ads-store', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ themeConfig: withTs })
+      });
+      return res.ok;
+    } catch (_) {
+      return false;
+    }
+  },
+
   // Sunucu veritabanından (/api/ads-store) tema ayarlarını çek ve uygula
   hydrateThemeFromServer: async () => {
     try {

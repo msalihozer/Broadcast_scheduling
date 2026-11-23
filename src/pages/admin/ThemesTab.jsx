@@ -24,7 +24,8 @@ import {
   Plus,
   Trash2,
   Box,
-  Copy
+  Copy,
+  Save
 } from 'lucide-react';
 import useThemeStore, {
   getAllSansFonts,
@@ -81,6 +82,7 @@ const QUICK_PASTEL_SWATCHES = [
 const ThemesTab = () => {
   const [activeScope, setActiveScope] = useState('draft');
   const [savedNotice, setSavedNotice] = useState('');
+  const [isSavingTheme, setIsSavingTheme] = useState(false);
 
   // Özel Font & Saat/Timecode Fontu Ekleme Formu
   const [newFontType, setNewFontType] = useState('sans'); // 'sans' | 'mono'
@@ -100,6 +102,7 @@ const ThemesTab = () => {
   const updateModuleTheme = useThemeStore(state => state.updateModuleTheme);
   const copyModuleBoxStyleToAll = useThemeStore(state => state.copyModuleBoxStyleToAll);
   const resetThemeToDefaults = useThemeStore(state => state.resetThemeToDefaults);
+  const saveAndApplyThemeNow = useThemeStore(state => state.saveAndApplyThemeNow);
 
   const theme = usePlanningStore(state => state.theme);
   const setTheme = usePlanningStore(state => state.setTheme);
@@ -114,7 +117,29 @@ const ThemesTab = () => {
     setSavedNotice(msg || 'Değişiklikler anında kaydedildi ve ilgili modüle uygulandı.');
     setTimeout(() => {
       setSavedNotice('');
-    }, 2800);
+    }, 3200);
+  };
+
+  const handleSaveAndApplyAll = async () => {
+    setIsSavingTheme(true);
+    try {
+      const ok = await saveAndApplyThemeNow();
+      addLog({
+        category: 'system',
+        panel: 'system',
+        module: 'Temalar & Renkler',
+        action: 'Tema ve Renk Ayarları Kaydedildi & Uygulandı',
+        details: `${activeTabMeta.label} ve tüm sistem tema/renk ayarları sunucu veritabanına kaydedildi ve aktif edildi.`,
+        status: 'success'
+      });
+      triggerSavedToast(
+        ok
+          ? '✓ Tüm tema, renk, kutu ve font değişiklikleri sunucu veritabanına kaydedildi ve tüm modüllere uygulandı!'
+          : '✓ Tüm tema ve renk değişiklikleri kaydedildi ve modüllere uygulandı!'
+      );
+    } finally {
+      setIsSavingTheme(false);
+    }
   };
 
   const handleAddCustomFont = (e) => {
@@ -291,6 +316,29 @@ const ThemesTab = () => {
               <Moon size={15} /> Koyu Tema
             </button>
           </div>
+
+          <button
+            type="button"
+            onClick={handleSaveAndApplyAll}
+            disabled={isSavingTheme}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 18px',
+              borderRadius: '10px',
+              border: 'none',
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              color: '#ffffff',
+              fontSize: '13px',
+              fontWeight: 800,
+              cursor: isSavingTheme ? 'wait' : 'pointer',
+              boxShadow: '0 4px 12px rgba(16, 185, 129, 0.35)'
+            }}
+          >
+            <Save size={16} />
+            <span>{isSavingTheme ? 'Kaydediliyor...' : 'Kaydet ve Uygula'}</span>
+          </button>
 
           <button
             type="button"
@@ -1341,6 +1389,85 @@ const ThemesTab = () => {
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* ALT SABİT KAYDET VE UYGULA ÇUBUĞU */}
+      <div style={{
+        position: 'sticky',
+        bottom: '12px',
+        zIndex: 40,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '12px',
+        padding: '14px 22px',
+        borderRadius: '14px',
+        background: 'var(--bg-secondary)',
+        border: '1.5px solid rgba(16, 185, 129, 0.45)',
+        boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.18)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <CheckCircle2 size={20} style={{ color: '#10b981', flexShrink: 0 }} />
+          <div>
+            <div style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text-primary)' }}>
+              Tema, Renk, Kutu Boyutu ve Font Ayarlarını Onayla
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+              Yaptığınız değişiklikleri sunucu veritabanına kalıcı olarak kaydetmek ve 4 modülün tamamına uygulamak için tıklayın.
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button
+            type="button"
+            onClick={() => {
+              copyModuleBoxStyleToAll(activeScope);
+              handleSaveAndApplyAll();
+            }}
+            disabled={isSavingTheme}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '7px',
+              padding: '10px 16px',
+              borderRadius: '10px',
+              border: '1px solid rgba(37, 99, 235, 0.35)',
+              background: 'rgba(37, 99, 235, 0.1)',
+              color: '#2563eb',
+              fontSize: '12.5px',
+              fontWeight: 800,
+              cursor: isSavingTheme ? 'wait' : 'pointer'
+            }}
+          >
+            <Copy size={15} />
+            <span>Tüm Modüllere Eşitle ve Kaydet</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSaveAndApplyAll}
+            disabled={isSavingTheme}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 22px',
+              borderRadius: '10px',
+              border: 'none',
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              color: '#ffffff',
+              fontSize: '13.5px',
+              fontWeight: 800,
+              cursor: isSavingTheme ? 'wait' : 'pointer',
+              boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)'
+            }}
+          >
+            <Save size={16} />
+            <span>{isSavingTheme ? 'Kaydediliyor...' : 'Kaydet ve Uygula'}</span>
+          </button>
         </div>
       </div>
     </div>
