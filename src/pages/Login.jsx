@@ -1,11 +1,19 @@
 /**
  * @file src/pages/Login.jsx
  * @description Kullanıcı kimlik doğrulama (Giriş) sayfası (/login).
- * Supabase Auth ve yerel oturum hatırlama (rememberMe) mekanizması ile entegre çalışır.
+ * Semerkand TV Kurumsal Kimlik 2026 - 2 sütunlu karşılama + temiz form ekranı.
  */
 import React, { useState } from 'react';
 import useAuthStore from '../store/authStore';
-import { Mail, Lock, ShieldCheck, AlertCircle } from 'lucide-react';
+import useResponsive from '../hooks/useResponsive';
+import Ikon from '../components/Ikon';
+
+const WORKFLOW_STEPS = [
+  { id: 'taslak', label: 'Taslak', icon: 'taslak' },
+  { id: 'hazir', label: 'Yayına Hazır', icon: 'hazir' },
+  { id: 'reklam', label: 'Reklam', icon: 'reklam' },
+  { id: 'kontrol', label: 'Yayın Kontrol', icon: 'kontrol' }
+];
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -14,14 +22,15 @@ const Login = () => {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  
+
+  const { isMobile } = useResponsive();
   const signIn = useAuthStore(state => state.signIn);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    
+
     try {
       const loginEmail = username.includes('@') ? username : `${username}@plan.com`;
       await signIn(loginEmail, password, rememberMe, botTrap);
@@ -29,9 +38,8 @@ const Login = () => {
       if (!rememberMe) {
         sessionStorage.setItem('yayin_session_active', 'true');
       }
-      // Başarılı girişte authStore state değişecek ve App.jsx bizi otomatik olarak dashboard'a atacak
     } catch (err) {
-      setError(err.message || "Giriş başarısız. Lütfen bilgilerinizi kontrol edin.");
+      setError(err.message || 'Giriş başarısız. Lütfen bilgilerinizi kontrol edin.');
     } finally {
       setLoading(false);
     }
@@ -39,45 +47,114 @@ const Login = () => {
 
   return (
     <div style={{
-      width: '100vw', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-tertiary) 100%)',
-      color: 'var(--text-primary)', padding: '24px', overflowY: 'auto', boxSizing: 'border-box'
+      width: '100vw',
+      minHeight: '100dvh',
+      display: 'grid',
+      gridTemplateColumns: isMobile ? '1fr' : '56% 44%',
+      background: 'var(--bg-secondary)',
+      color: 'var(--text-primary)',
+      overflowX: 'hidden',
+      boxSizing: 'border-box'
     }}>
-      
-      <div className="glass" style={{
-        padding: '48px', borderRadius: '24px', width: '100%', maxWidth: '420px',
-        display: 'flex', flexDirection: 'column', gap: '24px',
-        boxShadow: '0 24px 64px rgba(0,0,0,0.2)'
+      {/* Sol Sütun: Derin Turkuaz Kurumsal Marka Yüzü */}
+      <div style={{
+        background: 'var(--turkuaz, #0C617C)',
+        color: '#ffffff',
+        padding: isMobile ? '36px 24px 32px' : '72px 84px',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        position: 'relative',
+        overflow: 'hidden'
       }}>
-        
-        <div style={{ textAlign: 'center', marginBottom: '12px' }}>
-          <div style={{ 
-            width: '64px', height: '64px', background: 'var(--accent-primary)', 
-            borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', 
-            margin: '0 auto 20px auto', boxShadow: '0 8px 32px var(--accent-primary)' 
-          }}>
-            <ShieldCheck size={36} color="white" />
-          </div>
-          <h1 style={{ fontSize: '28px', fontWeight: 800, marginBottom: '8px', letterSpacing: '-0.5px' }}>
-            Yayın Planlama
-          </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '15px' }}>
-            Sisteme giriş yapmak için bilgilerinizi girin.
-          </p>
+        {/* Arka Plan Filigran İkon */}
+        <div style={{
+          position: 'absolute',
+          right: isMobile ? '-60px' : '-120px',
+          bottom: isMobile ? '-60px' : '-120px',
+          width: isMobile ? '280px' : '560px',
+          height: isMobile ? '280px' : '560px',
+          color: 'rgba(255, 255, 255, 0.055)',
+          pointerEvents: 'none'
+        }}>
+          <Ikon ad="plan" size={isMobile ? 280 : 560} strokeWidth={1.2} />
         </div>
 
-        {error && (
-          <div style={{
-            background: 'var(--danger-bg)', border: '1px solid var(--danger)', color: 'var(--danger)',
-            padding: '12px 16px', borderRadius: '12px', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px'
-          }}>
-            <AlertCircle size={18} />
-            <span>{error}</span>
-          </div>
-        )}
+        {/* Üst İkon Kutusu */}
+        <div style={{
+          width: isMobile ? '44px' : '56px',
+          height: isMobile ? '44px' : '56px',
+          border: '1.75px solid rgba(255, 255, 255, 0.65)',
+          borderRadius: '4px',
+          display: 'grid',
+          placeItems: 'center',
+          position: 'relative',
+          zIndex: 1
+        }}>
+          <Ikon ad="plan" size={isMobile ? 24 : 30} />
+        </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {/* Otomatik Bot / Robot Tuzağı (Honeypot) - İnsan kullanıcılar görmez, botlar doldurursa engellenir */}
+        {/* Ana Başlık: Light + Bold */}
+        <div style={{ position: 'relative', zIndex: 1, margin: isMobile ? '24px 0' : '0' }}>
+          <h1 style={{
+            fontSize: isMobile ? '42px' : '76px',
+            fontWeight: 300,
+            lineHeight: 1.02,
+            letterSpacing: '-0.025em',
+            margin: 0,
+            color: '#ffffff'
+          }}>
+            Yayın<br />
+            <b style={{ fontWeight: 700 }}>Planlama</b>
+          </h1>
+        </div>
+
+        {/* Alt Akış Adımları */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+          gap: isMobile ? '12px' : '16px',
+          borderTop: '1px solid rgba(255, 255, 255, 0.22)',
+          paddingTop: isMobile ? '18px' : '24px',
+          position: 'relative',
+          zIndex: 1
+        }}>
+          {WORKFLOW_STEPS.map(step => (
+            <div
+              key={step.id}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                fontSize: '13px',
+                fontWeight: 500,
+                color: 'rgba(255, 255, 255, 0.92)'
+              }}
+            >
+              <Ikon ad={step.icon} size={22} color="#E8B44C" />
+              <span>{step.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Sağ Sütun: Temiz Giriş Formu */}
+      <div style={{
+        background: '#ffffff',
+        display: 'grid',
+        placeItems: 'center',
+        padding: isMobile ? '36px 20px 48px' : '64px'
+      }}>
+        <form
+          onSubmit={handleSubmit}
+          style={{
+            width: '100%',
+            maxWidth: '400px',
+            display: 'flex',
+            flexDirection: 'column'
+          }}
+        >
+          {/* Otomatik Bot / Robot Tuzağı (Honeypot) */}
           <input
             type="text"
             name="website_url_trap"
@@ -88,84 +165,204 @@ const Login = () => {
             aria-hidden="true"
             style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px', opacity: 0, pointerEvents: 'none' }}
           />
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>Kullanıcı Adı</label>
-            <div style={{ position: 'relative' }}>
-              <div style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>
-                <Mail size={18} />
-              </div>
-              <input 
-                type="text" 
+
+          <div style={{
+            width: '48px',
+            height: '48px',
+            background: 'var(--turkuaz, #0C617C)',
+            color: '#ffffff',
+            borderRadius: '4px',
+            display: 'grid',
+            placeItems: 'center',
+            marginBottom: '22px'
+          }}>
+            <Ikon ad="plan" size={26} />
+          </div>
+
+          <h2 style={{
+            fontSize: '28px',
+            fontWeight: 700,
+            color: 'var(--text-primary, #0A101D)',
+            letterSpacing: '-0.015em',
+            margin: '0 0 6px 0'
+          }}>
+            Yayın Planlama
+          </h2>
+          <p style={{
+            fontSize: '14px',
+            color: 'var(--text-secondary, #4B6478)',
+            margin: '0 0 32px 0'
+          }}>
+            Sisteme giriş yapmak için bilgilerinizi girin.
+          </p>
+
+          {error && (
+            <div style={{
+              background: 'var(--danger-bg, #FCE8EC)',
+              border: '1px solid rgba(221, 28, 64, 0.35)',
+              color: 'var(--danger, #DD1C40)',
+              padding: '10px 14px',
+              borderRadius: '4px',
+              fontSize: '13px',
+              fontWeight: 500,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              marginBottom: '20px'
+            }}>
+              <Ikon ad="uyari" size={16} />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* Kullanıcı Adı */}
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{
+              display: 'block',
+              fontSize: '12px',
+              fontWeight: 700,
+              color: 'var(--text-primary, #0A101D)',
+              letterSpacing: '0.04em',
+              textTransform: 'uppercase',
+              marginBottom: '8px'
+            }}>
+              Kullanıcı Adı
+            </label>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              height: '48px',
+              padding: '0 14px',
+              border: '1px solid var(--border-color, #DCE5E9)',
+              borderRadius: '4px',
+              background: '#ffffff',
+              color: 'var(--text-primary, #0A101D)'
+            }}>
+              <Ikon ad="kullanici" size={18} color="var(--text-muted, #6A7C88)" />
+              <input
+                type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
-                style={{
-                  width: '100%', padding: '14px 16px 14px 44px', borderRadius: '12px',
-                  background: 'var(--bg-secondary)', border: '1px solid var(--border-color)',
-                  color: 'var(--text-primary)', fontSize: '15px', outline: 'none', transition: 'border 0.2s'
-                }}
-                onFocus={(e) => e.target.style.borderColor = 'var(--accent-primary)'}
-                onBlur={(e) => e.target.style.borderColor = 'var(--border-color)'}
                 placeholder="Örn: admin"
+                style={{
+                  border: 0,
+                  outline: 0,
+                  width: '100%',
+                  height: '100%',
+                  font: 'inherit',
+                  fontSize: '15px',
+                  color: 'var(--text-primary, #0A101D)',
+                  background: 'transparent',
+                  padding: 0
+                }}
               />
             </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>Şifre</label>
-            <div style={{ position: 'relative' }}>
-              <div style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>
-                <Lock size={18} />
-              </div>
-              <input 
-                type="password" 
+          {/* Şifre */}
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{
+              display: 'block',
+              fontSize: '12px',
+              fontWeight: 700,
+              color: 'var(--text-primary, #0A101D)',
+              letterSpacing: '0.04em',
+              textTransform: 'uppercase',
+              marginBottom: '8px'
+            }}>
+              Şifre
+            </label>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              height: '48px',
+              padding: '0 14px',
+              border: '1px solid var(--border-color, #DCE5E9)',
+              borderRadius: '4px',
+              background: '#ffffff',
+              color: 'var(--text-primary, #0A101D)'
+            }}>
+              <Ikon ad="kilit" size={18} color="var(--text-muted, #6A7C88)" />
+              <input
+                type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                style={{
-                  width: '100%', padding: '14px 16px 14px 44px', borderRadius: '12px',
-                  background: 'var(--bg-secondary)', border: '1px solid var(--border-color)',
-                  color: 'var(--text-primary)', fontSize: '15px', outline: 'none', transition: 'border 0.2s'
-                }}
-                onFocus={(e) => e.target.style.borderColor = 'var(--accent-primary)'}
-                onBlur={(e) => e.target.style.borderColor = 'var(--border-color)'}
                 placeholder="••••••••"
+                style={{
+                  border: 0,
+                  outline: 0,
+                  width: '100%',
+                  height: '100%',
+                  font: 'inherit',
+                  fontSize: '15px',
+                  color: 'var(--text-primary, #0A101D)',
+                  background: 'transparent',
+                  padding: 0
+                }}
               />
             </div>
           </div>
-          
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0 4px' }}>
-            <input 
-              type="checkbox" 
-              id="rememberMe" 
+
+          {/* Beni Hatırla */}
+          <label
+            htmlFor="rememberMe"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              fontSize: '13px',
+              color: 'var(--text-secondary, #4B6478)',
+              margin: '6px 0 26px',
+              cursor: 'pointer',
+              userSelect: 'none'
+            }}
+          >
+            <input
+              type="checkbox"
+              id="rememberMe"
               checked={rememberMe}
               onChange={(e) => setRememberMe(e.target.checked)}
-              style={{ cursor: 'pointer', width: '16px', height: '16px', accentColor: 'var(--accent-primary)' }}
+              style={{
+                width: '18px',
+                height: '18px',
+                accentColor: 'var(--turkuaz, #0C617C)',
+                cursor: 'pointer',
+                margin: 0
+              }}
             />
-            <label htmlFor="rememberMe" style={{ fontSize: '13px', color: 'var(--text-secondary)', cursor: 'pointer', userSelect: 'none' }}>
-              Beni Hatırla (Oturum açık kalsın)
-            </label>
-          </div>
+            <span>Beni Hatırla (Oturum açık kalsın)</span>
+          </label>
 
-          <button 
+          {/* Giriş Yap Butonu */}
+          <button
             type="submit"
             disabled={loading}
             style={{
-              marginTop: '8px', width: '100%', padding: '16px', borderRadius: '12px',
-              background: 'var(--accent-primary)', color: 'white', fontWeight: 700, fontSize: '16px',
-              border: 'none', cursor: loading ? 'not-allowed' : 'pointer',
-              transition: 'background 0.2s, transform 0.1s', opacity: loading ? 0.7 : 1,
-              display: 'flex', justifyContent: 'center', alignItems: 'center'
+              width: '100%',
+              height: '50px',
+              background: 'var(--turkuaz, #0C617C)',
+              color: '#ffffff',
+              border: 0,
+              borderRadius: '4px',
+              font: 'inherit',
+              fontSize: '15px',
+              fontWeight: 700,
+              cursor: loading ? 'not-allowed' : 'pointer',
+              opacity: loading ? 0.75 : 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'background 0.15s ease'
             }}
-            onMouseOver={(e) => !loading && (e.target.style.background = 'var(--accent-hover)')}
-            onMouseOut={(e) => !loading && (e.target.style.background = 'var(--accent-primary)')}
-            onMouseDown={(e) => !loading && (e.target.style.transform = 'scale(0.98)')}
-            onMouseUp={(e) => !loading && (e.target.style.transform = 'scale(1)')}
+            onMouseEnter={(e) => !loading && (e.currentTarget.style.background = 'var(--turkuaz-koyu, #094B60)')}
+            onMouseLeave={(e) => !loading && (e.currentTarget.style.background = 'var(--turkuaz, #0C617C)')}
           >
             {loading ? 'Giriş Yapılıyor...' : 'Giriş Yap'}
           </button>
-          
         </form>
       </div>
     </div>

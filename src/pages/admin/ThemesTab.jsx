@@ -45,24 +45,29 @@ const MODULE_TABS = [
   {
     id: 'draft',
     label: '1. Taslak Planlama',
+    color: '#0C617C',
     desc: 'Haftalık matris kutu yapısı, kutu boyutu, gölgelendirme, kategori/isim renkleri, gün çizgileri, saat ve timecode fontu',
     icon: <Calendar size={16} />
   },
   {
     id: 'ready',
     label: '2. Yayına Hazır',
+    color: '#468625',
     desc: 'Kesin yayın akışı (Rundown) kutu yapısı, boyut, gölge, kategori/isim renkleri, kuşaklar, reklam kuşağı ve timecode fontu',
     icon: <Film size={16} />
   },
   {
     id: 'ads',
     label: '3. Reklam Rezervasyon',
+    color: '#E8B44C',
+    textColor: '#80632A',
     desc: 'Reklam planlama kutu yapısı, boyutlar, gölgelendirme, boş/dolu kuşak renkleri, spot rozetleri ve timecode fontu',
     icon: <Megaphone size={16} />
   },
   {
     id: 'list-control',
     label: '4. Yayın Kontrol',
+    color: '#142A44',
     desc: 'Nihai yayın kontrol listesi kutu yapısı, boyutlar, gölge, reklam bloğu, kategori/isim renkleri ve saat/timecode fontu',
     icon: <CheckSquare size={16} />
   }
@@ -239,17 +244,16 @@ const ThemesTab = () => {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <div style={{
-            width: '44px',
-            height: '44px',
-            borderRadius: '12px',
-            background: 'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)',
+            width: '40px',
+            height: '40px',
+            borderRadius: '4px',
+            background: 'var(--m-admin, #0A101D)',
             color: '#ffffff',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)'
+            justifyContent: 'center'
           }}>
-            <Palette size={22} />
+            <Palette size={20} />
           </div>
           <div>
             <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>
@@ -404,7 +408,7 @@ const ThemesTab = () => {
         </div>
       )}
 
-      {/* 4 MODÜL SEKMESİ (Genel kaldırıldı, 4 modül doğrudan seçilir) */}
+      {/* 4 MODÜL SEKMESİ */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
@@ -422,22 +426,21 @@ const ThemesTab = () => {
                 flexDirection: 'column',
                 alignItems: 'flex-start',
                 gap: '6px',
-                padding: '15px 18px',
-                borderRadius: '14px',
-                border: isActive ? '2px solid var(--accent-primary)' : '1px solid var(--border-color)',
-                background: isActive ? 'rgba(37, 99, 235, 0.08)' : 'var(--bg-secondary)',
+                padding: '14px 16px',
+                borderRadius: '6px',
+                border: isActive ? `2px solid ${tab.color}` : '1px solid var(--border-color, #DCE5E9)',
+                borderTop: `4px solid ${tab.color}`,
+                background: isActive ? hexToRgba(tab.color, 0.08) : 'var(--bg-secondary)',
                 cursor: 'pointer',
-                textAlign: 'left',
-                transition: 'all 0.15s ease',
-                boxShadow: isActive ? '0 6px 16px rgba(37, 99, 235, 0.14)' : 'var(--shadow-sm)'
+                textAlign: 'left'
               }}
             >
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                color: isActive ? 'var(--accent-primary)' : 'var(--text-primary)',
-                fontWeight: 800,
+                color: tab.textColor || tab.color,
+                fontWeight: 700,
                 fontSize: '14px'
               }}>
                 {tab.icon}

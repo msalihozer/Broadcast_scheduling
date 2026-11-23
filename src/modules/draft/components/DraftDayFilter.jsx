@@ -1,28 +1,18 @@
 /**
  * @file DraftDayFilter.jsx
- * @description Taslak Planlama kurumsal gün filtreleme sekme kartları.
- * 8 eşit sütunlu grid ile ekrana %100 oturur; her günün doluluk oranını ve kuşak sayısını gösterir.
+ * @description Semerkand TV Kurumsal Kimlik 2026 - Taslak Planlama gün seçim ve doluluk şeridi (.days).
+ * Sol: Tüm Hafta (7 Gün) butonu. Sağ: 7 gün kartı (Gün adı, kısa tarih, Dolu %, 4px ince ilerleme çubuğu).
  */
 import React from 'react';
 import { DAYS_KEYS } from '../constants/draftConstants';
-import useThemeStore from '../../../store/themeStore';
-
-const DAY_ACCENTS = {
-  Pazartesi: { line: '#7dd3fc', bg: '#f0f9ff', text: '#0284c7' },
-  Salı:      { line: '#c4b5fd', bg: '#f5f3ff', text: '#7c3aed' },
-  Çarşamba:  { line: '#67e8f9', bg: '#ecfeff', text: '#0891b2' },
-  Perşembe:  { line: '#86efac', bg: '#f0fdf4', text: '#16a34a' },
-  Cuma:      { line: '#fcd34d', bg: '#fffbeb', text: '#d97706' },
-  Cumartesi: { line: '#fda4af', bg: '#fff1f2', text: '#e11d48' },
-  Pazar:     { line: '#a5b4fc', bg: '#eef2ff', text: '#4f46e5' }
-};
+import useResponsive from '../../../hooks/useResponsive';
 
 const DraftDayFilter = ({
   scheduleData,
   selectedDayKey,
   onSelectDay
 }) => {
-  const themeConfig = useThemeStore(state => state.config);
+  const { isMobile } = useResponsive();
   const dayKeys = (scheduleData && Object.keys(scheduleData).length > 0)
     ? Object.keys(scheduleData)
     : DAYS_KEYS;
@@ -36,8 +26,8 @@ const DraftDayFilter = ({
     <div style={{
       width: '100%',
       display: 'grid',
-      gridTemplateColumns: 'repeat(8, minmax(0, 1fr))',
-      gap: '7px',
+      gridTemplateColumns: isMobile ? 'repeat(4, minmax(0, 1fr))' : '150px repeat(7, minmax(0, 1fr))',
+      gap: '6px',
       fontFamily: 'var(--font-sans)'
     }}>
       {/* 1. TÜM HAFTA SEÇİM KARTI */}
@@ -46,75 +36,46 @@ const DraftDayFilter = ({
         onClick={() => onSelectDay('all')}
         title="Tüm haftalık akışı (7 günü birden) yan yana ızgarada göster"
         style={{
+          gridColumn: isMobile ? 'span 4' : 'span 1',
+          background: selectedDayKey === 'all' ? 'var(--turkuaz, #0C617C)' : '#FFFFFF',
+          border: selectedDayKey === 'all' ? '1px solid var(--turkuaz, #0C617C)' : '1px solid var(--border-color, #DCE5E9)',
+          color: selectedDayKey === 'all' ? '#FFFFFF' : 'var(--text-primary, #0A101D)',
+          borderRadius: '4px',
+          padding: '8px 12px',
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '8px 8px',
-          borderRadius: '10px',
-          border: '1px solid',
-          borderColor: selectedDayKey === 'all' ? '#1d4ed8' : 'var(--border-color)',
-          background: selectedDayKey === 'all'
-            ? 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)'
-            : 'var(--bg-primary)',
-          color: selectedDayKey === 'all' ? '#ffffff' : 'var(--text-primary)',
+          justifyContent: 'space-between',
           cursor: 'pointer',
-          boxShadow: selectedDayKey === 'all'
-            ? '0 4px 12px rgba(37, 99, 235, 0.3), inset 0 1px 0 rgba(255,255,255,0.2)'
-            : 'var(--shadow-sm)',
-          minHeight: '54px',
-          minWidth: 0
+          textAlign: 'left',
+          minHeight: '54px'
         }}
       >
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '4px',
-          fontWeight: 800,
-          fontSize: '12px',
-          letterSpacing: '-0.02em',
-          whiteSpace: 'nowrap'
-        }}>
-          {selectedDayKey === 'all' && <span>✓</span>}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px', fontWeight: 700 }}>
           <span>TÜM HAFTA</span>
-        </div>
-
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '4px',
-          marginTop: '3px'
-        }}>
-          <span style={{
-            fontSize: '10px',
-            fontWeight: 700,
-            padding: '1px 6px',
-            borderRadius: '5px',
-            background: selectedDayKey === 'all' ? 'rgba(255, 255, 255, 0.2)' : 'var(--bg-secondary)',
-            color: selectedDayKey === 'all' ? '#ffffff' : 'var(--accent-primary)',
-            whiteSpace: 'nowrap'
-          }}>
-            7 Gün
-          </span>
           {totalWeeklyProgs > 0 && (
             <span style={{
               fontFamily: 'var(--font-mono)',
-              fontSize: '9.5px',
-              fontWeight: 800,
-              padding: '1px 5px',
-              borderRadius: '5px',
-              background: selectedDayKey === 'all' ? 'rgba(255, 255, 255, 0.28)' : 'rgba(16, 185, 129, 0.14)',
-              color: selectedDayKey === 'all' ? '#ffffff' : '#059669'
+              fontSize: '10.5px',
+              fontWeight: 700,
+              padding: '1px 6px',
+              borderRadius: '2px',
+              background: selectedDayKey === 'all' ? 'rgba(255, 255, 255, 0.22)' : 'var(--turkuaz-50, #E7F0F3)',
+              color: selectedDayKey === 'all' ? '#FFFFFF' : 'var(--turkuaz, #0C617C)'
             }}>
               {totalWeeklyProgs}
             </span>
           )}
         </div>
+        <div style={{
+          fontSize: '11px',
+          fontFamily: 'var(--font-mono)',
+          color: selectedDayKey === 'all' ? 'rgba(255, 255, 255, 0.86)' : 'var(--text-secondary, #4B6478)'
+        }}>
+          7 Gün • 168 Saat
+        </div>
       </button>
 
-      {/* 2. 7 GÜNLÜK KARTLAR (PAZARTESİ - PAZAR) */}
+      {/* 2. 7 GÜNLÜK KARTLAR */}
       {dayKeys.map(dateKey => {
         const day = scheduleData?.[dateKey];
         const isSelected = selectedDayKey === dateKey;
@@ -124,7 +85,7 @@ const DraftDayFilter = ({
         const totalMinutes = (day?.programs || []).reduce((acc, p) => acc + (p.duration || 0), 0);
         const filledMinutes = Math.min(1440, totalMinutes);
         const fillPercent = Math.min(100, Math.round((filledMinutes / 1440) * 100));
-        const emptyPercent = Math.max(0, 100 - fillPercent);
+        const isWarn = fillPercent < 80;
 
         let cleanDayName = day?.dayName;
         try {
@@ -135,56 +96,33 @@ const DraftDayFilter = ({
           }
         } catch (e) {}
         if (!cleanDayName) cleanDayName = day?.dayName || 'Gün';
-        const customDay = themeConfig?.dayColors?.[cleanDayName];
-        const fallbackDay = DAY_ACCENTS[cleanDayName] || DAY_ACCENTS.Pazartesi;
-        const dayAccent = {
-          line: customDay?.line || fallbackDay.line,
-          bg: customDay?.headerBg || fallbackDay.bg,
-          text: customDay?.textAccent || fallbackDay.text
-        };
 
         return (
           <button
             key={dateKey}
             type="button"
             onClick={() => onSelectDay(dateKey)}
-            title={`${cleanDayName} (${shortDate}) — ${progCount} Kuşak • Dolu: %${fillPercent} / Boş: %${emptyPercent}`}
+            title={`${cleanDayName} (${shortDate}) — ${progCount} Kuşak • Dolu: %${fillPercent}`}
             style={{
+              background: isSelected ? 'var(--turkuaz, #0C617C)' : '#FFFFFF',
+              border: isSelected ? '1px solid var(--turkuaz, #0C617C)' : '1px solid var(--border-color, #DCE5E9)',
+              color: isSelected ? '#FFFFFF' : 'var(--text-primary, #0A101D)',
+              borderRadius: '4px',
+              padding: '8px 10px',
               display: 'flex',
               flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '7px 6px',
-              borderRadius: '10px',
-              border: '1.5px solid',
-              borderColor: isSelected ? '#2563eb' : dayAccent.line,
-              borderTop: isSelected ? '3.5px solid #1d4ed8' : `4px solid ${dayAccent.line}`,
-              background: isSelected
-                ? 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)'
-                : dayAccent.bg,
-              color: isSelected ? '#ffffff' : 'var(--text-primary)',
+              gap: '5px',
               cursor: 'pointer',
-              boxShadow: isSelected
-                ? '0 4px 12px rgba(37, 99, 235, 0.25), inset 0 1px 0 rgba(255,255,255,0.2)'
-                : 'var(--shadow-sm)',
-              minHeight: '62px',
-              minWidth: 0,
-              gap: '3px',
-              transition: 'all 0.15s ease'
+              textAlign: 'left',
+              minHeight: '54px',
+              minWidth: 0
             }}
           >
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '4px',
-              width: '100%'
-            }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '4px', width: '100%' }}>
               <span style={{
-                fontWeight: 800,
                 fontSize: '12px',
-                letterSpacing: '-0.02em',
-                color: isSelected ? '#ffffff' : 'var(--text-primary)',
+                fontWeight: 700,
+                color: isSelected ? '#FFFFFF' : 'var(--text-primary, #0A101D)',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis'
@@ -193,47 +131,42 @@ const DraftDayFilter = ({
               </span>
               <span style={{
                 fontFamily: 'var(--font-mono)',
-                fontSize: '9.5px',
-                fontWeight: 600,
-                opacity: isSelected ? 0.9 : 0.7
+                fontSize: '11px',
+                fontWeight: 500,
+                color: isSelected ? 'rgba(255, 255, 255, 0.85)' : 'var(--text-muted, #6A7C88)',
+                flexShrink: 0
               }}>
-                ({shortDate})
+                {shortDate}
               </span>
             </div>
 
-            {/* Gün Altında Doluluk ve Boşluk Oranı */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '3px',
-              width: '100%',
-              flexWrap: 'wrap'
-            }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%' }}>
+              <div style={{
+                flex: 1,
+                height: '4px',
+                background: isSelected ? 'rgba(255, 255, 255, 0.25)' : 'var(--border-light, #EBF0F2)',
+                borderRadius: '2px',
+                overflow: 'hidden'
+              }}>
+                <span style={{
+                  display: 'block',
+                  width: `${fillPercent}%`,
+                  height: '100%',
+                  background: isSelected
+                    ? '#FFFFFF'
+                    : isWarn
+                    ? 'var(--hardal, #E8B44C)'
+                    : 'var(--turkuaz, #0C617C)'
+                }} />
+              </div>
               <span style={{
                 fontFamily: 'var(--font-mono)',
-                fontSize: '9.5px',
-                fontWeight: 800,
-                padding: '1px 4px',
-                borderRadius: '4px',
-                background: isSelected ? 'rgba(255, 255, 255, 0.24)' : 'rgba(16, 185, 129, 0.14)',
-                color: isSelected ? '#ffffff' : '#047857',
+                fontSize: '10px',
+                fontWeight: 700,
+                color: isSelected ? '#FFFFFF' : 'var(--text-secondary, #4B6478)',
                 whiteSpace: 'nowrap'
               }}>
                 Dolu %{fillPercent}
-              </span>
-
-              <span style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: '9.5px',
-                fontWeight: 800,
-                padding: '1px 4px',
-                borderRadius: '4px',
-                background: isSelected ? 'rgba(255, 255, 255, 0.16)' : 'rgba(245, 158, 11, 0.14)',
-                color: isSelected ? '#ffffff' : '#b45309',
-                whiteSpace: 'nowrap'
-              }}>
-                Boş %{emptyPercent}
               </span>
             </div>
           </button>

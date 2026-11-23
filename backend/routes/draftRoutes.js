@@ -978,6 +978,33 @@ export function createDraftRouter() {
         }
     });
 
+    router.get('/theme', async (req, res) => {
+        try {
+            const storeData = await readAdsStoreFromServer();
+            return res.json({
+                success: true,
+                themeConfig: storeData?.themeConfig || null
+            });
+        } catch (err) {
+            return res.status(500).json({ error: err.message });
+        }
+    });
+
+    router.put('/theme', express.json({ limit: '5mb' }), async (req, res) => {
+        try {
+            const incomingTheme = req.body?.themeConfig || req.body;
+            const current = await readAdsStoreFromServer();
+            const merged = mergeAdsStorePayloads(current, { themeConfig: incomingTheme });
+            await writeAdsStoreToServer(merged);
+            return res.json({
+                success: true,
+                themeConfig: merged.themeConfig
+            });
+        } catch (err) {
+            return res.status(500).json({ error: err.message });
+        }
+    });
+
     return router;
 }
 

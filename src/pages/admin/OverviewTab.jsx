@@ -67,8 +67,8 @@ const OverviewTab = ({ onNavigateTab }) => {
           const newCount = mamData?.summary?.totalNewClips ?? 0;
           setSyncMessage(
             newCount > 0
-              ? `🟠 Libero MAM arşivinde +${newCount} adet yeni gelen klip tespit edildi!`
-              : '🟢 Libero MAM arşivi kontrol edildi: Yeni gelen klip yok, PostgreSQL veritabanımız tamamen güncel.'
+              ? `Libero MAM arşivinde +${newCount} adet yeni gelen klip tespit edildi!`
+              : 'Libero MAM arşivi kontrol edildi: Yeni gelen klip yok, PostgreSQL veritabanımız tamamen güncel.'
           );
           setTimeout(() => setSyncMessage(''), 5000);
         }
@@ -105,7 +105,7 @@ const OverviewTab = ({ onNavigateTab }) => {
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
         const pulled = data?.totalAddedClips ?? data?.addedClips ?? 0;
-        setSyncMessage(`🟢 Yeni gelen klipler başarıyla çekildi ve PostgreSQL'e kaydedildi (${pulled} yeni klip).`);
+        setSyncMessage(`Yeni gelen klipler başarıyla çekildi ve PostgreSQL'e kaydedildi (${pulled} yeni klip).`);
         addLog({
           category: 'mam',
           panel: 'mam',
@@ -238,17 +238,16 @@ const OverviewTab = ({ onNavigateTab }) => {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <div style={{
-            width: '46px',
-            height: '46px',
-            borderRadius: '12px',
-            background: 'linear-gradient(135deg, #2563eb 0%, #10b981 100%)',
+            width: '40px',
+            height: '40px',
+            borderRadius: '4px',
+            background: 'var(--m-admin, #0A101D)',
             color: '#ffffff',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 4px 14px rgba(37, 99, 235, 0.25)'
+            justifyContent: 'center'
           }}>
-            <Activity size={23} />
+            <Activity size={20} />
           </div>
           <div>
             <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>
@@ -342,8 +341,8 @@ const OverviewTab = ({ onNavigateTab }) => {
             <span style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text-secondary)' }}>Sunucu &amp; PostgreSQL DB</span>
             <Server size={18} color={pgOnline ? '#10b981' : '#ef4444'} />
           </div>
-          <div style={{ fontSize: '21px', fontWeight: 900, color: pgOnline ? '#10b981' : '#ef4444' }}>
-            {pgOnline ? '🟢 Çevrimiçi (Aktif)' : '🔴 Bağlantı Yok'}
+          <div style={{ fontSize: '21px', fontWeight: 700, color: pgOnline ? 'var(--yesil, #468625)' : 'var(--danger, #DD1C40)' }}>
+            {pgOnline ? 'Çevrimiçi (Aktif)' : 'Bağlantı Yok'}
           </div>
           <div style={{ fontSize: '11.5px', color: 'var(--text-secondary)' }}>
             Uygulama Sunucusu &amp; Docker PostgreSQL :5432
@@ -372,10 +371,10 @@ const OverviewTab = ({ onNavigateTab }) => {
           <div style={{ fontSize: '22px', fontWeight: 900, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
             {Number(totalMamClips).toLocaleString('tr-TR')} Klip
           </div>
-          <div style={{ fontSize: '11.5px', fontWeight: 700, color: newIncomingClips > 0 ? '#d97706' : '#10b981' }}>
+          <div style={{ fontSize: '11.5px', fontWeight: 700, color: newIncomingClips > 0 ? '#80632A' : 'var(--yesil, #468625)' }}>
             {newIncomingClips > 0
-              ? `🟠 +${newIncomingClips} Yeni Klip (${categoriesWithNewClips} Kategoride)`
-              : `✓ Yeni gelen klip yok • ${activeProgramsCount} Aktif / ${totalMamPrograms} Program`}
+              ? `+${newIncomingClips} Yeni Klip (${categoriesWithNewClips} Kategoride)`
+              : `Yeni gelen klip yok • ${activeProgramsCount} Aktif / ${totalMamPrograms} Program`}
           </div>
         </div>
 
@@ -428,8 +427,8 @@ const OverviewTab = ({ onNavigateTab }) => {
           <div style={{ fontSize: '22px', fontWeight: 900, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
             {managedUsers.length} Kullanıcı • {logs.length} Log
           </div>
-          <div style={{ fontSize: '11.5px', color: '#10b981', fontWeight: 700 }}>
-            🛡️ Scrypt + Brute-Force + DDoS Koruması Aktif
+          <div style={{ fontSize: '11.5px', color: 'var(--yesil, #468625)', fontWeight: 700 }}>
+            Scrypt + Brute-Force + DDoS Koruması Aktif
           </div>
         </div>
       </div>
@@ -571,24 +570,24 @@ const OverviewTab = ({ onNavigateTab }) => {
           {/* 4 Aşama Kutuları */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
             {[
-              { label: '1. Taslak', count: listPipelineSummary.counts.stage1, color: '#2563eb' },
-              { label: '2. Yayına Hazır', count: listPipelineSummary.counts.stage2, color: '#0ea5e9' },
-              { label: '3. Reklam', count: listPipelineSummary.counts.stage3, color: '#d97706' },
-              { label: '4. Yayın Kontrol', count: listPipelineSummary.counts.stage4, color: '#10b981' }
+              { label: '1. Taslak', count: listPipelineSummary.counts.stage1, color: '#0C617C' },
+              { label: '2. Yayına Hazır', count: listPipelineSummary.counts.stage2, color: '#468625' },
+              { label: '3. Reklam', count: listPipelineSummary.counts.stage3, color: '#E8B44C', textColor: '#80632A' },
+              { label: '4. Yayın Kontrol', count: listPipelineSummary.counts.stage4, color: '#142A44' }
             ].map((s, idx) => (
               <div
                 key={idx}
                 style={{
                   padding: '10px 12px',
-                  borderRadius: '10px',
+                  borderRadius: '6px',
                   background: 'var(--bg-primary)',
-                  border: `1px solid ${s.color}40`,
-                  borderTop: `3px solid ${s.color}`,
+                  border: '1px solid var(--border-color, #DCE5E9)',
+                  borderTop: `4px solid ${s.color}`,
                   textAlign: 'center'
                 }}
               >
-                <div style={{ fontSize: '11px', fontWeight: 800, color: s.color }}>{s.label}</div>
-                <div style={{ fontSize: '18px', fontWeight: 900, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: s.textColor || s.color }}>{s.label}</div>
+                <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>
                   {s.count}
                 </div>
               </div>
@@ -599,10 +598,10 @@ const OverviewTab = ({ onNavigateTab }) => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
             {listPipelineSummary.recentLists.map(item => {
               const stageLabels = {
-                1: { text: '1. Aşama: Taslak Planlama', color: '#2563eb' },
-                2: { text: '2. Aşama: Yayına Hazır', color: '#0ea5e9' },
-                3: { text: '3. Aşama: Reklam Rezervasyon', color: '#d97706' },
-                4: { text: '4. Aşama: Yayın Kontrol', color: '#10b981' }
+                1: { text: '1. Aşama: Taslak Planlama', color: '#0C617C' },
+                2: { text: '2. Aşama: Yayına Hazır', color: '#468625' },
+                3: { text: '3. Aşama: Reklam Rezervasyon', color: '#80632A' },
+                4: { text: '4. Aşama: Yayın Kontrol', color: '#142A44' }
               };
               const st = stageLabels[item.stage] || stageLabels[1];
               return (

@@ -1,17 +1,14 @@
 /**
  * @file src/pages/AdminPanel.jsx
- * @description Sistem Yönetimi (Admin Panel) ana kapsayıcı sayfası.
- * Kullanıcının yetkisine (allowedAdminTabs) göre Genel Bakış, Programlar, MAM Arşiv & Bölümler,
- * Kullanıcı Yönetimi, Listeler, İstatistikler, Reklam Yönetimi, Log Kayıtları ve Sistem Ayarları sekmelerini sunar.
+ * @description Semerkand TV Kurumsal Kimlik 2026 - Sistem Yönetimi (Admin Panel) ana kapsayıcı sayfası.
+ * Üstte 60px Derin Turkuaz TopNavbar, solda 236px beyaz yan menü (.anav) ve aktif sekmede Gece (#0A101D) 3px sol çizgi.
  */
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  ShieldAlert, ArrowLeft, LayoutDashboard, Users, BarChart2,
-  Settings, List, PlaySquare, Tv, Film, ClipboardList, Palette, Activity, Menu, X
-} from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import useResponsive from '../hooks/useResponsive';
+import TopNavbar from '../components/Layout/TopNavbar';
+import Ikon from '../components/Ikon';
 import OverviewTab from './admin/OverviewTab';
 import UsersTab from './admin/UsersTab';
 import StatsTab from './admin/StatsTab';
@@ -25,17 +22,17 @@ import ThemesTab from './admin/ThemesTab';
 import ServerMonitorTab from './admin/ServerMonitorTab';
 
 const ALL_NAV_ITEMS = [
-  { id: 'overview', label: 'Genel Bakış', icon: <LayoutDashboard size={18} /> },
-  { id: 'server-monitor', label: 'Sunucu & Docker Takip', icon: <Activity size={18} /> },
-  { id: 'programs', label: 'Programlar', icon: <Tv size={18} /> },
-  { id: 'archive-analysis', label: 'MAM Arşiv & Bölümler', icon: <Film size={18} /> },
-  { id: 'users', label: 'Kullanıcı Yönetimi', icon: <Users size={18} /> },
-  { id: 'lists', label: 'Listeler', icon: <List size={18} /> },
-  { id: 'stats', label: 'İstatistikler', icon: <BarChart2 size={18} /> },
-  { id: 'ads', label: 'Reklam Yönetimi', icon: <PlaySquare size={18} /> },
-  { id: 'logs', label: 'Log Kayıtları', icon: <ClipboardList size={18} /> },
-  { id: 'themes', label: 'Temalar & Renkler', icon: <Palette size={18} /> },
-  { id: 'settings', label: 'Sistem Ayarları', icon: <Settings size={18} /> },
+  { id: 'overview', label: 'Genel Bakış', icon: 'rapor' },
+  { id: 'server-monitor', label: 'Sunucu & Docker Takip', icon: 'sunucu' },
+  { id: 'programs', label: 'Programlar', icon: 'kanal' },
+  { id: 'archive-analysis', label: 'MAM Arşiv & Bölümler', icon: 'arsiv' },
+  { id: 'users', label: 'Kullanıcı Yönetimi', icon: 'kullanici' },
+  { id: 'lists', label: 'Listeler', icon: 'tablo' },
+  { id: 'stats', label: 'İstatistikler', icon: 'rapor' },
+  { id: 'ads', label: 'Reklam Yönetimi', icon: 'reklam' },
+  { id: 'logs', label: 'Log Kayıtları', icon: 'log' },
+  { id: 'themes', label: 'Temalar & Renkler', icon: 'tema' },
+  { id: 'settings', label: 'Sistem Ayarları', icon: 'admin' }
 ];
 
 const AdminPanel = () => {
@@ -55,7 +52,6 @@ const AdminPanel = () => {
   const allowedModules = permissions?.allowedModules || [];
 
   const navItems = useMemo(() => {
-    // Kullanıcı Yönetimi listesinde tanımlı bir kullanıcıysa yalnızca kendisine yetki verilen sekmeleri göster
     if (permissions?.userRecord) {
       return ALL_NAV_ITEMS.filter(item => allowedAdminTabs.includes(item.id));
     }
@@ -72,14 +68,12 @@ const AdminPanel = () => {
   const [archiveInitial, setArchiveInitial] = useState({ catId: 4, search: '' });
   const contentScrollRef = useRef(null);
 
-  // Sekme değiştiğinde içerik alanını en üste kaydır
   useEffect(() => {
     if (contentScrollRef.current) {
       contentScrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }, [activeTab]);
 
-  // Aktif sekme yetkili sekmeler arasında değilse ilk yetkili sekmeye geç
   useEffect(() => {
     if (navItems.length > 0 && !navItems.some(item => item.id === activeTab)) {
       setActiveTab(navItems[0].id);
@@ -94,13 +88,31 @@ const AdminPanel = () => {
 
   if (!hasAdminAccess || navItems.length === 0) {
     return (
-      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
-        <ShieldAlert size={64} color="var(--danger)" style={{ marginBottom: '24px' }} />
-        <h1 style={{ fontSize: '24px', marginBottom: '16px' }}>Yetkisiz Erişim</h1>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '32px' }}>Bu sayfayı görüntülemek için tanımlanmış Admin Paneli sekme yetkiniz bulunmuyor.</p>
-        <button 
+      <div style={{
+        height: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--bg-primary, #F5F7F6)',
+        color: 'var(--text-primary, #0A101D)'
+      }}>
+        <Ikon ad="uyari" size={56} color="var(--danger, #DD1C40)" />
+        <h1 style={{ fontSize: '22px', margin: '18px 0 8px' }}>Yetkisiz Erişim</h1>
+        <p style={{ color: 'var(--text-secondary, #4B6478)', marginBottom: '24px' }}>
+          Bu sayfayı görüntülemek için tanımlanmış Admin Paneli sekme yetkiniz bulunmuyor.
+        </p>
+        <button
           onClick={() => navigate('/')}
-          style={{ background: 'var(--accent-primary)', color: 'white', border: 'none', padding: '12px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+          style={{
+            background: 'var(--turkuaz, #0C617C)',
+            color: '#FFFFFF',
+            border: 0,
+            padding: '10px 20px',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontWeight: 700
+          }}
         >
           Ana Sayfaya Dön
         </button>
@@ -108,285 +120,254 @@ const AdminPanel = () => {
     );
   }
 
-  const activeNavItem = useMemo(
-    () => navItems.find(item => item.id === activeTab) || navItems[0],
-    [navItems, activeTab]
-  );
-
   return (
     <div style={{
       height: '100dvh',
       overflow: 'hidden',
-      background: 'var(--bg-primary)',
-      color: 'var(--text-primary)',
+      background: 'var(--bg-primary, #F5F7F6)',
+      color: 'var(--text-primary, #0A101D)',
       display: 'flex',
-      flexDirection: isCompact ? 'column' : 'row',
+      flexDirection: 'column',
       position: 'relative'
     }}>
-      {/* Mobil / Tablet Üst Başlık ve Yatay Sekme Çubuğu */}
-      {isCompact && (
-        <div style={{
-          flexShrink: 0,
-          background: 'var(--bg-secondary)',
-          borderBottom: '1px solid var(--border-color)',
-          display: 'flex',
-          flexDirection: 'column',
-          zIndex: 1100
-        }}>
+      {/* 60px Derin Turkuaz Üst Bar */}
+      <TopNavbar />
+
+      <div style={{
+        flex: 1,
+        minHeight: 0,
+        display: 'flex',
+        flexDirection: isCompact ? 'column' : 'row',
+        overflow: 'hidden'
+      }}>
+        {/* Mobil / Tablet Üst Hızlı Sekme Şeridi */}
+        {isCompact && (
           <div style={{
+            flexShrink: 0,
+            background: '#FFFFFF',
+            borderBottom: '1px solid var(--border-color, #DCE5E9)',
+            padding: '8px 12px',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '10px 14px',
-            gap: '10px'
+            gap: '8px',
+            zIndex: 40
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <button
-                onClick={() => navigate('/')}
-                title="Modüllere Dön"
-                style={{
-                  background: 'var(--accent-primary)',
-                  color: 'white',
-                  border: 'none',
-                  padding: '7px 10px',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  cursor: 'pointer'
-                }}
-              >
-                <ArrowLeft size={16} /> {!isMobile && 'Modüller'}
-              </button>
-              <div>
-                <div style={{ fontSize: '15px', fontWeight: 800, lineHeight: 1.2 }}>Admin Paneli</div>
-                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                  {activeNavItem?.label || 'Yönetim'}
-                </div>
-              </div>
-            </div>
-
             <button
+              type="button"
               onClick={() => setMobileMenuOpen(prev => !prev)}
               style={{
-                background: mobileMenuOpen ? 'var(--accent-primary)' : 'var(--bg-tertiary)',
-                color: mobileMenuOpen ? '#fff' : 'var(--text-primary)',
-                border: '1px solid var(--border-color)',
-                padding: '7px 11px',
-                borderRadius: '9px',
+                background: mobileMenuOpen ? 'var(--gece, #0A101D)' : '#FFFFFF',
+                color: mobileMenuOpen ? '#FFFFFF' : 'var(--text-primary, #0A101D)',
+                border: '1px solid var(--border-color, #DCE5E9)',
+                padding: '6px 10px',
+                borderRadius: '4px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                fontSize: '12px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                flexShrink: 0
+              }}
+            >
+              <Ikon ad="menu" size={15} />
+              <span>Menü</span>
+            </button>
+
+            <div
+              className="mobile-scroll-x"
+              style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
-                fontSize: '12.5px',
-                fontWeight: 700,
-                cursor: 'pointer'
+                overflowX: 'auto',
+                flex: 1
               }}
             >
-              {mobileMenuOpen ? <X size={16} /> : <Menu size={16} />}
-              Menü
-            </button>
+              {navItems.map(item => {
+                const isActive = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      setActiveTab(item.id);
+                      setMobileMenuOpen(false);
+                    }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '6px 10px',
+                      borderRadius: '4px',
+                      border: isActive ? '1px solid var(--gece, #0A101D)' : '1px solid var(--border-color, #DCE5E9)',
+                      background: isActive ? 'color-mix(in srgb, var(--gece, #0A101D) 10%, #FFFFFF)' : '#FFFFFF',
+                      color: isActive ? 'var(--gece, #0A101D)' : 'var(--text-secondary, #4B6478)',
+                      fontSize: '12px',
+                      fontWeight: isActive ? 700 : 500,
+                      whiteSpace: 'nowrap',
+                      cursor: 'pointer',
+                      flexShrink: 0
+                    }}
+                  >
+                    <Ikon ad={item.icon} size={15} />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
+        )}
 
-          {/* Yatay Kaydırılabilir Hızlı Sekme Şeridi */}
+        {isCompact && mobileMenuOpen && (
           <div
-            className="mobile-scroll-x"
+            onClick={() => setMobileMenuOpen(false)}
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '0 12px 10px 12px',
-              overflowX: 'auto'
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(10, 16, 29, 0.45)',
+              zIndex: 1200
             }}
-          >
-            {navItems.map(item => {
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    setActiveTab(item.id);
-                    setMobileMenuOpen(false);
-                  }}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '6px 12px',
-                    borderRadius: '999px',
-                    border: isActive ? '1px solid var(--accent-primary)' : '1px solid var(--border-color)',
-                    background: isActive ? 'var(--accent-primary)' : 'var(--bg-primary)',
-                    color: isActive ? '#ffffff' : 'var(--text-secondary)',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    whiteSpace: 'nowrap',
-                    cursor: 'pointer',
-                    flexShrink: 0
-                  }}
-                >
-                  {item.icon} {item.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
+          />
+        )}
 
-      {/* Mobil Açılır Drawer Backdrop */}
-      {isCompact && mobileMenuOpen && (
-        <div
-          onClick={() => setMobileMenuOpen(false)}
-          style={{
+        {/* 236px Beyaz Yan Menü (.anav) */}
+        {(!isCompact || mobileMenuOpen) && (
+          <aside style={isCompact ? {
             position: 'fixed',
-            inset: 0,
-            background: 'rgba(0, 0, 0, 0.55)',
-            zIndex: 1200
-          }}
-        />
-      )}
-
-      {/* Sidebar (Masaüstünde sabit, Mobil/Tablette Slide-over Drawer) */}
-      {(!isCompact || mobileMenuOpen) && (
-        <div style={isCompact ? {
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          bottom: 0,
-          width: '280px',
-          maxWidth: '85vw',
-          zIndex: 1250,
-          overflowY: 'auto',
-          borderRight: '1px solid var(--border-color)',
-          background: 'var(--bg-secondary)',
-          padding: '24px 18px',
-          display: 'flex',
-          flexDirection: 'column',
-          boxShadow: '12px 0 32px rgba(0,0,0,0.35)'
-        } : {
-          width: '280px',
-          flexShrink: 0,
-          overflowY: 'auto',
-          borderRight: '1px solid var(--border-color)',
-          background: 'var(--bg-secondary)',
-          padding: '32px 24px',
-          display: 'flex',
-          flexDirection: 'column'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '28px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }} onClick={() => navigate('/')}>
-              <div style={{ background: 'var(--accent-primary)', color: 'white', padding: '8px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <ArrowLeft size={20} />
-              </div>
-              <div>
-                <h1 style={{ fontSize: '20px', fontWeight: '800', margin: 0 }}>Admin Paneli</h1>
-                <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Yayın Planlama Sistemi</span>
-              </div>
-            </div>
-            {isCompact && (
-              <button
-                onClick={() => setMobileMenuOpen(false)}
-                style={{
-                  background: 'var(--bg-tertiary)',
-                  border: '1px solid var(--border-color)',
-                  color: 'var(--text-primary)',
-                  borderRadius: '8px',
-                  padding: '6px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <X size={18} />
-              </button>
-            )}
-          </div>
-
-          <nav style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
-            {navItems.map(item => (
-              <button
-                key={item.id}
-                onClick={() => {
-                  setActiveTab(item.id);
-                  if (isCompact) setMobileMenuOpen(false);
-                }}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '12px', cursor: 'pointer', border: 'none', fontSize: '14px', fontWeight: '600', transition: 'all 0.2s',
-                  background: activeTab === item.id ? 'var(--accent-primary)' : 'transparent',
-                  color: activeTab === item.id ? '#fff' : 'var(--text-secondary)'
-                }}
-                onMouseEnter={(e) => { if (activeTab !== item.id) e.currentTarget.style.background = 'var(--bg-tertiary)'; }}
-                onMouseLeave={(e) => { if (activeTab !== item.id) e.currentTarget.style.background = 'transparent'; }}
-              >
-                {item.icon} {item.label}
-              </button>
-            ))}
-          </nav>
-
-          <div style={{
-            marginTop: '20px',
-            padding: '12px',
-            borderRadius: '10px',
-            background: 'var(--bg-tertiary)',
-            border: '1px solid var(--border-color)',
-            fontSize: '11.5px',
-            color: 'var(--text-secondary)'
+            top: 0,
+            left: 0,
+            bottom: 0,
+            width: '250px',
+            maxWidth: '85vw',
+            zIndex: 1250,
+            overflowY: 'auto',
+            borderRight: '1px solid var(--border-color, #DCE5E9)',
+            background: '#FFFFFF',
+            padding: '14px 10px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between'
+          } : {
+            width: '236px',
+            minWidth: '236px',
+            flexShrink: 0,
+            overflowY: 'auto',
+            borderRight: '1px solid var(--border-color, #DCE5E9)',
+            background: '#FFFFFF',
+            padding: '14px 10px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between'
           }}>
-            <div style={{ fontWeight: '800', color: 'var(--text-primary)', marginBottom: '2px' }}>
-              {user?.name || user?.email || 'Aktif Kullanıcı'}
-            </div>
-            <div>Yetkili Sekme: {navItems.length} / {ALL_NAV_ITEMS.length}</div>
-          </div>
-        </div>
-      )}
+            <nav style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              {navItems.map(item => {
+                const isActive = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      setActiveTab(item.id);
+                      if (isCompact) setMobileMenuOpen(false);
+                    }}
+                    style={{
+                      height: '38px',
+                      padding: '0 12px',
+                      borderRadius: '4px',
+                      border: 0,
+                      background: isActive
+                        ? 'color-mix(in srgb, var(--gece, #0A101D) 8%, #FFFFFF)'
+                        : 'transparent',
+                      color: isActive ? 'var(--gece, #0A101D)' : 'var(--text-secondary, #4B6478)',
+                      boxShadow: isActive ? 'inset 3px 0 0 var(--gece, #0A101D)' : 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      fontWeight: isActive ? 700 : 500,
+                      textAlign: 'left',
+                      fontFamily: 'inherit'
+                    }}
+                  >
+                    <Ikon
+                      ad={item.icon}
+                      size={17}
+                      color={isActive ? 'var(--gece, #0A101D)' : 'var(--text-secondary, #4B6478)'}
+                    />
+                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {item.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </nav>
 
-      {/* Content */}
-      <div
-        id="admin-panel-scroll-container"
-        ref={contentScrollRef}
-        style={{
-          flex: 1,
-          padding: isMobile ? '14px 12px 32px 12px' : isCompact ? '20px 18px 36px 18px' : '40px 48px',
-          overflowY: 'auto',
-          minHeight: 0,
-          minWidth: 0
-        }}
-      >
-        <div style={{ maxWidth: '1240px', margin: '0 auto' }}>
-          {activeTab === 'overview' && (
-            <OverviewTab
-              onNavigateTab={(tabId) => {
-                if (navItems.some(n => n.id === tabId)) {
-                  setActiveTab(tabId);
-                }
-              }}
-            />
-          )}
-          {activeTab === 'server-monitor' && <ServerMonitorTab />}
-          {activeTab === 'programs' && (
-            <ProgramsTab 
-              onNavigateToArchive={(catId, search) => {
-                setArchiveInitial({ catId, search });
-                if (navItems.some(n => n.id === 'archive-analysis')) {
-                  setActiveTab('archive-analysis');
-                }
-              }} 
-            />
-          )}
-          {activeTab === 'archive-analysis' && (
-            <ArchiveAnalysisTab 
-              initialCategoryId={archiveInitial.catId}
-              initialSearch={archiveInitial.search}
-            />
-          )}
-          {activeTab === 'users' && <UsersTab />}
-          {activeTab === 'lists' && <ListsTab />}
-          {activeTab === 'stats' && <StatsTab />}
-          {activeTab === 'ads' && <AdsTab />}
-          {activeTab === 'logs' && <LogsTab />}
-          {activeTab === 'themes' && <ThemesTab />}
-          {activeTab === 'settings' && <SettingsTab />}
+            <div style={{
+              marginTop: '14px',
+              padding: '10px 12px',
+              borderRadius: '4px',
+              background: 'var(--bg-primary, #F5F7F6)',
+              border: '1px solid var(--border-color, #DCE5E9)',
+              fontSize: '11.5px',
+              color: 'var(--text-secondary, #4B6478)'
+            }}>
+              <div style={{ fontWeight: 700, color: 'var(--text-primary, #0A101D)', marginBottom: '2px' }}>
+                {user?.name || user?.email || 'Aktif Kullanıcı'}
+              </div>
+              <div>Yetkili Sekme: {navItems.length} / {ALL_NAV_ITEMS.length}</div>
+            </div>
+          </aside>
+        )}
+
+        {/* Ana İçerik Alanı */}
+        <div
+          id="admin-panel-scroll-container"
+          ref={contentScrollRef}
+          style={{
+            flex: 1,
+            padding: isMobile ? '14px 12px 32px' : isCompact ? '18px 16px 36px' : '24px 32px 40px',
+            overflowY: 'auto',
+            minHeight: 0,
+            minWidth: 0
+          }}
+        >
+          <div style={{ maxWidth: '1320px', margin: '0 auto' }}>
+            {activeTab === 'overview' && (
+              <OverviewTab
+                onNavigateTab={(tabId) => {
+                  if (navItems.some(n => n.id === tabId)) {
+                    setActiveTab(tabId);
+                  }
+                }}
+              />
+            )}
+            {activeTab === 'server-monitor' && <ServerMonitorTab />}
+            {activeTab === 'programs' && (
+              <ProgramsTab
+                onNavigateToArchive={(catId, search) => {
+                  setArchiveInitial({ catId, search });
+                  if (navItems.some(n => n.id === 'archive-analysis')) {
+                    setActiveTab('archive-analysis');
+                  }
+                }}
+              />
+            )}
+            {activeTab === 'archive-analysis' && (
+              <ArchiveAnalysisTab
+                initialCategoryId={archiveInitial.catId}
+                initialSearch={archiveInitial.search}
+              />
+            )}
+            {activeTab === 'users' && <UsersTab />}
+            {activeTab === 'lists' && <ListsTab />}
+            {activeTab === 'stats' && <StatsTab />}
+            {activeTab === 'ads' && <AdsTab />}
+            {activeTab === 'logs' && <LogsTab />}
+            {activeTab === 'themes' && <ThemesTab />}
+            {activeTab === 'settings' && <SettingsTab />}
+          </div>
         </div>
       </div>
     </div>

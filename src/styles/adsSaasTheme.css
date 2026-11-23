@@ -18,79 +18,79 @@
 
 :root,
 [data-theme="light"] {
-  --ads-shell-bg: #f9fafb;
-  --ads-canvas-bg: #f9fafb;
-  --ads-card-bg: #ffffff;
-  --ads-card-subtle: #f9fafb;
-  --ads-pill-bar-bg: #f2f4f7;
-  --ads-icon-box-bg: #f2f4f7;
-  --ads-border: #e4e7ec;
-  --ads-border-strong: #d0d5dd;
-  --ads-text-main: #101828;
-  --ads-text-sub: #344054;
-  --ads-text-muted: #667085;
-  --ads-brand: #465fff;
-  --ads-brand-hover: #3641f5;
-  --ads-brand-soft: #ecf3ff;
-  --ads-teal: #12b76a;
-  --ads-purple: #7a5af8;
-  --ads-orange: #f79009;
-  --ads-row-hover: #f9fafb;
-  --ads-row-stripe: #fcfcfd;
-  --ads-shadow-sm: 0px 1px 3px 0px rgba(16, 24, 40, 0.06), 0px 1px 2px 0px rgba(16, 24, 40, 0.04);
-  --ads-shadow-md: 0px 4px 8px -2px rgba(16, 24, 40, 0.06), 0px 2px 4px -2px rgba(16, 24, 40, 0.04);
+  --ads-shell-bg: #F5F7F6;
+  --ads-canvas-bg: #F5F7F6;
+  --ads-card-bg: #FFFFFF;
+  --ads-card-subtle: #F5F7F6;
+  --ads-pill-bar-bg: #F5F7F6;
+  --ads-icon-box-bg: #F5F7F6;
+  --ads-border: #DCE5E9;
+  --ads-border-strong: #9CC3CF;
+  --ads-text-main: #0A101D;
+  --ads-text-sub: #4B6478;
+  --ads-text-muted: #6A7C88;
+  --ads-brand: #0C617C;
+  --ads-brand-hover: #094B60;
+  --ads-brand-soft: #E7F0F3;
+  --ads-teal: #468625;
+  --ads-purple: #058193;
+  --ads-orange: #ED891E;
+  --ads-row-hover: #F3F8FA;
+  --ads-row-stripe: #FAFCFC;
+  --ads-shadow-sm: none;
+  --ads-shadow-md: none;
 
-  /* TailAdmin Semantic Tokens */
-  --ta-success-bg: #ecfdf3;
-  --ta-success-text: #039855;
-  --ta-error-bg: #fef3f2;
-  --ta-error-text: #d92d20;
-  --ta-warning-bg: #fffaeb;
-  --ta-warning-text: #dc6803;
-  --ta-info-bg: #f0f9ff;
-  --ta-info-text: #026aa2;
-  --ta-sidebar-bg: #ffffff;
-  --ta-sidebar-border: #e4e7ec;
+  /* Kurumsal 2026 Semantic Tokens */
+  --ta-success-bg: #E3EFDB;
+  --ta-success-text: #3C721F;
+  --ta-error-bg: color-mix(in srgb, #DD1C40 8%, #fff);
+  --ta-error-text: #DD1C40;
+  --ta-warning-bg: #FBEFD6;
+  --ta-warning-text: #80632A;
+  --ta-info-bg: #E7F0F3;
+  --ta-info-text: #0C617C;
+  --ta-sidebar-bg: #FFFFFF;
+  --ta-sidebar-border: #DCE5E9;
 }
 
 [data-theme="dark"] {
-  --ads-shell-bg: #101828;
-  --ads-canvas-bg: #101828;
-  --ads-card-bg: #171f2f;
-  --ads-card-subtle: #1d2939;
-  --ads-pill-bar-bg: #1d2939;
-  --ads-icon-box-bg: #1d2939;
-  --ads-border: #1d2939;
-  --ads-border-strong: #344054;
-  --ads-text-main: #f9fafb;
-  --ads-text-sub: #d0d5dd;
-  --ads-text-muted: #98a2b3;
-  --ads-brand: #465fff;
-  --ads-brand-hover: #6172f3;
-  --ads-brand-soft: rgba(70, 95, 255, 0.16);
-  --ads-teal: #12b76a;
-  --ads-purple: #9b8afb;
-  --ads-orange: #fdb022;
+  --ads-shell-bg: #0A101D;
+  --ads-canvas-bg: #0A101D;
+  --ads-card-bg: #111A2A;
+  --ads-card-subtle: #18253B;
+  --ads-pill-bar-bg: #18253B;
+  --ads-icon-box-bg: #18253B;
+  --ads-border: #22324A;
+  --ads-border-strong: #4B6478;
+  --ads-text-main: #EEF3F5;
+  --ads-text-sub: #9DB4C3;
+  --ads-text-muted: #6A7C88;
+  --ads-brand: #0C617C;
+  --ads-brand-hover: #109AAD;
+  --ads-brand-soft: rgba(12, 97, 124, 0.22);
+  --ads-teal: #70AC42;
+  --ads-purple: #109AAD;
+  --ads-orange: #E8B44C;
   --ads-row-hover: rgba(255, 255, 255, 0.03);
   --ads-row-stripe: rgba(255, 255, 255, 0.015);
-  --ads-shadow-sm: 0px 1px 3px 0px rgba(0, 0, 0, 0.35);
-  --ads-shadow-md: 0px 8px 20px -4px rgba(0, 0, 0, 0.45);
+  --ads-shadow-sm: none;
+  --ads-shadow-md: none;
 
-  /* TailAdmin Dark Semantic Tokens */
-  --ta-success-bg: rgba(18, 183, 106, 0.15);
-  --ta-success-text: #32d583;
-  --ta-error-bg: rgba(240, 68, 56, 0.15);
-  --ta-error-text: #f97066;
-  --ta-warning-bg: rgba(247, 144, 9, 0.15);
-  --ta-warning-text: #fdb022;
-  --ta-info-bg: rgba(11, 165, 236, 0.15);
-  --ta-info-text: #36bffa;
-  --ta-sidebar-bg: #171f2f;
-  --ta-sidebar-border: #1d2939;
+  /* Kurumsal 2026 Dark Semantic Tokens */
+  --ta-success-bg: rgba(70, 134, 37, 0.22);
+  --ta-success-text: #70AC42;
+  --ta-error-bg: rgba(221, 28, 64, 0.18);
+  --ta-error-text: #DD1C40;
+  --ta-warning-bg: rgba(232, 180, 76, 0.18);
+  --ta-warning-text: #E8B44C;
+  --ta-info-bg: rgba(16, 154, 173, 0.18);
+  --ta-info-text: #109AAD;
+  --ta-sidebar-bg: #111A2A;
+  --ta-sidebar-border: #22324A;
 }
 
 /* ============================================================================
-   TAILADMIN ANA KABUK & SIDEBAR DÜZENİ
+   KURUMSAL 2026 ANA KABUK & SIDEBAR DÜZENİ
    ============================================================================ */
 .ads-saas-shell {
   display: flex;
@@ -101,7 +101,7 @@
   padding: 0;
   gap: 0;
   overflow: hidden;
-  font-family: var(--ads-font-sans, var(--font-sans, 'Outfit', 'Inter', sans-serif));
+  font-family: var(--font-sans);
 }
 
 .ads-saas-canvas {
@@ -111,14 +111,14 @@
   min-width: 0;
   min-height: 0;
   background: var(--ads-canvas-bg);
-  padding: 20px 24px 32px 24px;
+  padding: 22px 28px;
   overflow-y: auto;
   overflow-x: hidden;
   scroll-behavior: smooth;
-  gap: 20px;
+  gap: 16px;
 }
 
-/* TailAdmin Üst Header & Breadcrumb */
+/* Üst Header & Breadcrumb */
 .ads-saas-top-nav {
   display: flex;
   flex-direction: column;
@@ -126,9 +126,8 @@
   flex-shrink: 0;
   background: var(--ads-card-bg);
   border: 1px solid var(--ads-border);
-  border-radius: 16px;
-  padding: 14px 20px;
-  box-shadow: var(--ads-shadow-sm);
+  border-radius: 6px;
+  padding: 14px 18px;
 }
 
 .ads-saas-breadcrumb {
@@ -152,53 +151,58 @@
   flex-wrap: wrap;
 }
 
-/* TailAdmin Segmented Pill Group (Gray-100 bg, White/Brand active pill) */
+/* Segmented Pill Group */
 .ads-saas-pill-group {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  background: var(--ads-pill-bar-bg);
-  padding: 4px;
-  border-radius: 10px;
+  gap: 0;
+  background: var(--ads-card-bg);
+  padding: 0;
+  border-radius: 4px;
   border: 1px solid var(--ads-border);
+  overflow: hidden;
   flex-wrap: wrap;
 }
 
 .ads-saas-pill-btn {
   border: none;
+  border-left: 1px solid var(--ads-border);
   background: transparent;
-  color: var(--ads-text-muted);
-  font-family: 'Outfit', 'Inter', sans-serif;
-  font-size: 12.5px;
-  font-weight: 600;
-  padding: 6px 13px;
-  border-radius: 8px;
+  color: var(--ads-text-sub);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 400;
+  padding: 7px 13px;
+  border-radius: 0;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  transition: all 0.16s ease;
+  transition: all 0.14s ease;
   white-space: nowrap;
+}
+
+.ads-saas-pill-btn:first-child {
+  border-left: none;
 }
 
 .ads-saas-pill-btn:hover {
   color: var(--ads-text-main);
-  background: rgba(152, 162, 179, 0.12);
+  background: var(--ads-row-hover);
 }
 
 .ads-saas-pill-btn.active {
   background: var(--ads-brand);
   color: #ffffff;
-  font-weight: 600;
-  box-shadow: 0px 1px 2px rgba(16, 24, 40, 0.08);
+  font-weight: 500;
 }
 
 .ads-saas-pill-count {
   font-size: 10.5px;
   font-weight: 700;
   padding: 1px 6px;
-  border-radius: 999px;
-  background: rgba(16, 24, 40, 0.08);
+  border-radius: 2px;
+  background: rgba(10, 16, 29, 0.08);
   color: inherit;
 }
 
@@ -208,18 +212,17 @@
 }
 
 /* ============================================================================
-   TAILADMIN KARTLAR (rounded-2xl, border-gray-200, p-5/p-6)
+   KARTLAR (6px köşe, gölgesiz, 1px çizgi)
    ============================================================================ */
 .ads-saas-card,
 .ta-card {
   background: var(--ads-card-bg);
   border: 1px solid var(--ads-border);
-  border-radius: 16px;
-  box-shadow: var(--ads-shadow-sm);
-  padding: 20px 22px;
+  border-radius: 6px;
+  box-shadow: none;
+  padding: 16px 18px;
   display: flex;
   flex-direction: column;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
 .ads-saas-card:hover,
@@ -252,18 +255,17 @@
   margin-top: 2px;
 }
 
-/* TailAdmin İkon Kutusu (w-12 h-12 bg-gray-100 rounded-xl) */
+/* İkon Kutusu (36px, 4px köşe) */
 .ta-icon-box {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 4px;
   background: var(--ads-icon-box-bg);
-  color: var(--ads-text-main);
+  color: var(--ads-text-sub);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: all 0.18s ease;
 }
 
 .ta-icon-box.brand {
@@ -291,16 +293,18 @@
   color: var(--ta-info-text);
 }
 
-/* TailAdmin Durum Rozetleri (Badge) */
+/* Durum Rozetleri (2px köşe, Black 900, büyük harf) */
 .ta-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1.4;
+  gap: 5px;
+  padding: 3px 7px;
+  border-radius: 2px;
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.2;
   white-space: nowrap;
 }
 
@@ -330,31 +334,31 @@
 }
 
 /* ============================================================================
-   TAILADMIN BUTONLAR & INPUTLAR
+   KURUMSAL 2026 BUTONLAR & INPUTLAR
    ============================================================================ */
 .ads-saas-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  padding: 8px 14px;
-  border-radius: 10px;
-  font-family: 'Outfit', 'Inter', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  border: 1px solid var(--ads-border-strong);
+  gap: 8px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 4px;
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  font-weight: 500;
+  border: 1px solid var(--ads-border);
   background: var(--ads-card-bg);
-  color: var(--ads-text-sub);
-  box-shadow: 0px 1px 2px 0px rgba(16, 24, 40, 0.05);
+  color: var(--ads-text-main);
+  box-shadow: none;
   cursor: pointer;
-  transition: all 0.16s ease;
+  transition: all 0.14s ease;
   white-space: nowrap;
 }
 
 .ads-saas-btn:hover:not(:disabled) {
   background: var(--ads-card-subtle);
-  color: var(--ads-text-main);
-  border-color: var(--ads-text-muted);
+  border-color: var(--ads-border-strong);
 }
 
 .ads-saas-btn.primary,
@@ -362,8 +366,8 @@
   background: var(--ads-brand);
   border-color: var(--ads-brand);
   color: #ffffff;
-  font-weight: 600;
-  box-shadow: 0px 1px 2px 0px rgba(16, 24, 40, 0.05);
+  font-weight: 500;
+  box-shadow: none;
 }
 
 .ads-saas-btn.primary:hover:not(:disabled),
@@ -374,57 +378,58 @@
 }
 
 .ads-saas-btn-success {
-  background: #12b76a;
-  border-color: #12b76a;
+  background: #468625;
+  border-color: #468625;
   color: #ffffff;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .ads-saas-btn-success:hover:not(:disabled) {
-  background: #039855;
-  border-color: #039855;
+  background: #3C721F;
+  border-color: #3C721F;
   color: #ffffff;
 }
 
 .ads-saas-btn-teal {
   background: var(--ta-success-bg);
-  border-color: rgba(18, 183, 106, 0.35);
+  border-color: rgba(70, 134, 37, 0.35);
   color: var(--ta-success-text);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .ads-saas-btn-danger {
-  background: var(--ta-error-bg);
-  border-color: rgba(240, 68, 56, 0.3);
-  color: var(--ta-error-text);
-  font-weight: 600;
+  background: var(--ads-card-bg);
+  border-color: color-mix(in srgb, #DD1C40 45%, #fff);
+  color: #DD1C40;
+  font-weight: 500;
 }
 
 .ads-saas-btn-sm {
-  padding: 5.5px 11px;
-  font-size: 12px;
-  border-radius: 8px;
+  height: 30px;
+  padding: 0 10px;
+  font-size: 12.5px;
+  border-radius: 4px;
 }
 
 .ads-saas-input,
 .ads-saas-select {
   background: var(--ads-card-bg);
-  border: 1px solid var(--ads-border-strong);
+  border: 1px solid var(--ads-border);
   color: var(--ads-text-main);
-  font-family: 'Outfit', 'Inter', sans-serif;
-  border-radius: 10px;
-  padding: 8px 12px;
+  font-family: var(--font-sans);
+  border-radius: 4px;
+  height: 36px;
+  padding: 0 10px;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 400;
   outline: none;
-  box-shadow: 0px 1px 2px 0px rgba(16, 24, 40, 0.05);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: none;
 }
 
 .ads-saas-input:focus,
 .ads-saas-select:focus {
   border-color: var(--ads-brand);
-  box-shadow: 0px 0px 0px 4px rgba(70, 95, 255, 0.12);
+  box-shadow: 0 0 0 3px var(--ads-brand-soft);
 }
 
 /* Filtre Chip Rozetleri */
@@ -440,15 +445,14 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 11px;
+  padding: 5px 10px;
   border-radius: 999px;
-  background: var(--ads-pill-bar-bg);
+  background: var(--ads-card-bg);
   border: 1px solid var(--ads-border);
   color: var(--ads-text-sub);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 12.5px;
+  font-weight: 400;
   cursor: pointer;
-  transition: all 0.15s ease;
 }
 
 .ads-saas-chip:hover {
@@ -457,9 +461,9 @@
 }
 
 .ads-saas-chip.active {
-  background: var(--ads-brand-soft);
-  border-color: rgba(70, 95, 255, 0.35);
-  color: var(--ads-brand);
+  background: #0A101D;
+  border-color: #0A101D;
+  color: #FFFFFF;
 }
 
 .ads-saas-growth-badge {
@@ -483,8 +487,8 @@
   flex-direction: column;
   background: var(--ads-card-bg);
   border: 1px solid var(--ads-border);
-  border-radius: 16px;
-  box-shadow: var(--ads-shadow-sm);
+  border-radius: 4px;
+  box-shadow: none;
   overflow: hidden;
   flex-shrink: 0;
 }
@@ -508,9 +512,11 @@
   z-index: 2;
   background: var(--ads-card-subtle);
   color: var(--ads-text-muted);
-  font-size: 12px;
-  font-weight: 600;
-  padding: 13px 16px;
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 10px 12px;
   border-top: 1px solid var(--ads-border);
   border-bottom: 1px solid var(--ads-border);
   text-align: left;
@@ -520,7 +526,7 @@
 
 .ads-saas-table tbody tr,
 .ta-table tbody tr {
-  border-bottom: 1px solid var(--ads-border);
+  border-bottom: 1px solid var(--border-light, #EBF0F2);
   transition: background-color 0.14s ease;
 }
 
@@ -536,8 +542,8 @@
 
 .ads-saas-table tbody td,
 .ta-table tbody td {
-  padding: 14px 16px;
-  font-size: 13.5px;
+  padding: 10px 12px;
+  font-size: 12.5px;
   color: var(--ads-text-main);
   vertical-align: middle;
 }

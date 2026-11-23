@@ -40,6 +40,7 @@ import DraftSidebarTopHeader from './sidebar/DraftSidebarTopHeader';
 import DraftSidebarFilterHeader from './sidebar/DraftSidebarFilterHeader';
 import DraftSidebarEmptyState from './sidebar/DraftSidebarEmptyState';
 import useResponsive from '../../../hooks/useResponsive';
+import Ikon from '../../../components/Ikon';
 
 const MIN_SIDEBAR_WIDTH = 420;
 const DEFAULT_SIDEBAR_WIDTH = 490;
@@ -53,15 +54,15 @@ function getDayPeriodInfo(startTimeStr) {
   const customPeriods = useThemeStore.getState()?.config?.periodColors || {};
   const hour = parseInt(String(startTimeStr || '00:00').split(':')[0], 10) || 0;
   if (hour >= 0 && hour < 6) {
-    return { id: 'night', label: 'Gece Yayın Kuşağı', range: '00:00 - 06:00', icon: '🌙', color: customPeriods.night?.color || '#6366f1' };
+    return { id: 'night', label: 'Gece Yayın Kuşağı', range: '00:00 - 06:00', icon: 'gece', color: customPeriods.night?.color || '#0B2B54', textColor: '#FFFFFF' };
   }
   if (hour >= 6 && hour < 12) {
-    return { id: 'morning', label: 'Sabah Yayın Kuşağı', range: '06:00 - 12:00', icon: '🌅', color: customPeriods.morning?.color || '#f59e0b' };
+    return { id: 'morning', label: 'Sabah Yayın Kuşağı', range: '06:00 - 12:00', icon: 'sabah', color: customPeriods.morning?.color || '#E8B44C', textColor: '#0A101D' };
   }
   if (hour >= 12 && hour < 18) {
-    return { id: 'day', label: 'Gündüz Yayın Kuşağı', range: '12:00 - 18:00', icon: '☀️', color: customPeriods.day?.color || '#0ea5e9' };
+    return { id: 'day', label: 'Gündüz Yayın Kuşağı', range: '12:00 - 18:00', icon: 'gunduz', color: customPeriods.day?.color || '#109AAD', textColor: '#FFFFFF' };
   }
-  return { id: 'evening', label: 'Akşam & Prime-Time Kuşağı', range: '18:00 - 24:00', icon: '🌆', color: customPeriods.evening?.color || '#8b5cf6' };
+  return { id: 'evening', label: 'Akşam & Prime-Time Kuşağı', range: '18:00 - 24:00', icon: 'aksam', color: customPeriods.evening?.color || '#0C617C', textColor: '#FFFFFF' };
 }
 
 export default function BroadcastDraftSidebar() {
@@ -874,24 +875,19 @@ export default function BroadcastDraftSidebar() {
                         justifyContent: 'space-between',
                         padding: '6px 10px',
                         marginTop: idx === 0 ? '0' : '6px',
-                        borderRadius: '8px',
-                        background: `${period.color}14`,
-                        border: `1px solid ${period.color}35`,
-                        borderLeft: `4px solid ${period.color}`
+                        borderRadius: '4px',
+                        background: period.color,
+                        color: period.textColor || '#FFFFFF'
                       }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '13px', fontWeight: '800', color: 'var(--text-primary)' }}>
-                          <span>{period.icon}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '12px', fontWeight: 700 }}>
+                          <Ikon ad={period.icon} size={15} />
                           <span>{period.label}</span>
                         </div>
                         <span style={{
-                          fontFamily: 'monospace',
-                          fontSize: '12px',
-                          fontWeight: '800',
-                          color: period.color,
-                          background: 'var(--bg-primary)',
-                          padding: '2px 8px',
-                          borderRadius: '6px',
-                          border: `1px solid ${period.color}35`
+                          fontFamily: 'var(--font-mono)',
+                          fontSize: '11.5px',
+                          fontWeight: 600,
+                          opacity: 0.92
                         }}>
                           {period.range}
                         </span>

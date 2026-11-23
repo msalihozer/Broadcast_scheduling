@@ -27,6 +27,7 @@ import {
   resolveItemUnitDisplay
 } from '../../utils/rundownHelpers';
 import { normalizeProgramText } from '../../utils/draftSlotMatcher';
+import Ikon from '../../../../components/Ikon';
 
 export function isFillerRundownItem(item) {
   if (!item) return false;
@@ -97,16 +98,16 @@ const BroadcastRundownRow = memo(function BroadcastRundownRow({
   const themeConfig = useThemeStore(state => state.config);
   const sp = themeConfig?.specialColors || {};
   const readyMod = themeConfig?.modules?.ready || {};
-  const adColor = readyMod.adBreakColor || sp.adBreakColor || '#f59e0b';
-  const fillerColor = readyMod.fillerColor || sp.fillerSlotColor || '#8b5cf6';
-  const liveColor = readyMod.liveColor || sp.liveColor || '#ef4444';
-  const introColor = sp.introColor || '#6366f1';
-  const clipColor = getCategoryColor(item.categoryName || item.category) || sp.clipColor || '#0d9488';
+  const adColor = readyMod.adBreakColor || sp.adBreakColor || '#E8B44C';
+  const fillerColor = readyMod.fillerColor || sp.fillerSlotColor || '#109AAD';
+  const liveColor = readyMod.liveColor || sp.liveColor || '#DD1C40';
+  const introColor = sp.introColor || '#0A101D';
+  const clipColor = getCategoryColor(item.categoryName || item.category) || sp.clipColor || '#0C617C';
   const readyTitleColor = readyMod.useCategoryTitleColor !== false
     ? getCategoryTitleTextColor(item.categoryName || item.category)
     : null;
-  const readyLeftAccent = Number(readyMod.leftAccentWidth) || 4;
-  const readyTintAlpha = Math.max(0.03, Math.min(0.28, (Number(readyMod.cardTintOpacity) || 10) / 100));
+  const readyLeftAccent = Number(readyMod.leftAccentWidth) || 5;
+  const readyTintAlpha = Math.max(0.03, Math.min(0.28, (Number(readyMod.cardTintOpacity) || 12) / 100));
   const readyShadowObj = BOX_SHADOW_OPTIONS.find(s => s.id === readyMod.boxShadow) || BOX_SHADOW_OPTIONS[0];
 
   const startInfo = parseTimecodeDisplay(item.calculatedStartTime);
@@ -156,52 +157,34 @@ const BroadcastRundownRow = memo(function BroadcastRundownRow({
 
   return (
     <>
-      {/* 4 ANA GÜN KUŞAĞI BAŞLIĞI (Sadece Gece / Sabah / Gündüz / Akşam geçişlerinde gösterilir) */}
+      {/* 4 ANA GÜN KUŞAĞI BAŞLIĞI (Gece #0B2B54, Sabah #E8B44C, Gündüz #109AAD, Akşam #0C617C) */}
       {isNewPeriodBlock && (
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '7px 14px',
-          background: `linear-gradient(90deg, ${hourPeriod.color}18 0%, var(--bg-tertiary) 70%)`,
-          borderTop: idx === 0 ? 'none' : `2px solid ${hourPeriod.color}55`,
-          borderBottom: `1.5px solid ${hourPeriod.color}35`,
-          borderLeft: `5px solid ${hourPeriod.color}`,
-          fontSize: '12.5px',
-          fontWeight: '800',
-          color: 'var(--text-primary)'
+          background: hourPeriod.color,
+          color: hourPeriod.textColor || '#FFFFFF',
+          borderTop: '1px solid var(--border-color, #DCE5E9)',
+          borderBottom: '1px solid var(--border-color, #DCE5E9)',
+          fontSize: '12px',
+          fontWeight: 700,
+          letterSpacing: '0.04em',
+          textTransform: 'uppercase'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{
-              background: hourPeriod.color,
-              color: '#ffffff',
-              padding: '3px 10px',
-              borderRadius: '6px',
-              fontSize: '12.5px',
-              fontWeight: '900',
-              letterSpacing: '0.4px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}>
-              <span>{hourPeriod.icon}</span>
-              <span>{hourPeriod.label}</span>
-            </span>
-            <span style={{
-              color: 'var(--text-secondary)',
-              fontSize: '12.5px',
-              fontWeight: '700',
-              fontFamily: 'monospace'
-            }}>
-              {hourPeriod.range}
-            </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Ikon ad={hourPeriod.icon} size={15} />
+            <span>{hourPeriod.label}</span>
           </div>
-          <div style={{
-            flex: 1,
-            height: '1px',
-            background: `linear-gradient(90deg, ${hourPeriod.color}40 0%, transparent 100%)`,
-            marginLeft: '14px'
-          }} />
+          <span style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: '11.5px',
+            fontWeight: 600,
+            opacity: 0.92
+          }}>
+            {hourPeriod.range}
+          </span>
         </div>
       )}
 

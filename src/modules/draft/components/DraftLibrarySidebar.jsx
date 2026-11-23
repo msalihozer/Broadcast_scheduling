@@ -94,7 +94,7 @@ const DraftLibrarySidebar = ({
         episode: '',
         duration: prog.categoryId === 10 ? 30 : 60,
         category: catName,
-        categoryColor: CATEGORY_COLORS[catName] || '#3b82f6',
+        categoryColor: CATEGORY_COLORS[catName] || '#0C617C',
         categoryBadge: catName,
         host: prog.host || '',
         topic: '',
@@ -116,7 +116,7 @@ const DraftLibrarySidebar = ({
         episode: '',
         duration: 30,
         category: 'Dolgu Kuşağı',
-        categoryColor: '#06b6d4',
+        categoryColor: '#109AAD',
         categoryBadge: 'Dolgu Kuşağı',
         host: '',
         topic: 'Kısa Program, Kaside, Aşr-ı Şerif',
@@ -220,7 +220,7 @@ const DraftLibrarySidebar = ({
             </div>
           ) : (
             filteredPrograms.map(prog => {
-              const catColor = CATEGORY_COLORS[prog.categoryName] || '#3b82f6';
+              const catColor = CATEGORY_COLORS[prog.categoryName] || '#0C617C';
               return (
                 <LibraryProgramItem
                   key={prog.id}

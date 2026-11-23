@@ -1,10 +1,10 @@
 /**
  * @file DraftProgramCard.jsx
- * @description Taslak Planlama kurumsal program kartı bileşeni.
- * - Üst üste binmeleri (collision) tamamen ortadan kaldıran kompakt kurumsal tasarım
- * - Hover durumunda sağ üstte açılan yüzer (floating) hızlı işlem araç çubuğu (Düzenle, Kopyala, Sil)
- * - Dolgu kuşakları için tek satıra sığan kompakt opsiyon rozetleri
- * - Tabular-nums JetBrains Mono süre/bölüm rozetleri ve akıcı mikro-animasyonlar
+ * @description Semerkand TV Kurumsal Kimlik 2026 - Taslak Planlama kurumsal program kartı (.pc).
+ * - 11 kategori rengine göre %12 tint zemin, %34 kenarlık, 5px sol dikey şerit ve kategori başlık rengi
+ * - Dolgu kuşağı (#109AAD) için kesikli (dashed) kenarlık
+ * - Canlı yayın (#DD1C40) için CANLI rozeti
+ * - Roboto Mono tabular-nums saat ve süre rozetleri
  */
 import React, { useState, useRef } from 'react';
 import {
@@ -17,24 +17,16 @@ import {
   CheckSquare,
   Square
 } from 'lucide-react';
-import { getProgramColor, getCategoryTitleTextColor, CATEGORY_COLORS } from './library/constants';
-import useThemeStore, { BOX_SHADOW_OPTIONS, hexToRgba } from '../../../store/themeStore';
+import { getProgramColor, getCategoryTitleTextColor } from './library/constants';
+import useThemeStore, { hexToRgba } from '../../../store/themeStore';
 
-// Arşiv bölüm ve part toplam süresini kurumsal ve okunaklı formata dönüştürür (Örn: "2 Part • 46 dk 8 sn")
 function formatCompactArchiveDuration(formattedStr, partsCount) {
   if (!formattedStr) return '';
-  const clean = String(formattedStr)
-    .replace(/\s+/g, ' ')
-    .trim();
+  const clean = String(formattedStr).replace(/\s+/g, ' ').trim();
   if (partsCount && partsCount > 1) {
     return `${partsCount} Part • ${clean}`;
   }
   return clean;
-}
-
-// Dolgu opsiyon isimlerini gösterir
-function formatShortOptionLabel(opt) {
-  return opt;
 }
 
 const DraftProgramCard = ({
@@ -56,7 +48,6 @@ const DraftProgramCard = ({
   onMoveOrder,
   onDuplicate,
   onDelete,
-  onEdit,
   hideTimeBadge = false,
   textScale = 1
 }) => {
@@ -73,35 +64,29 @@ const DraftProgramCard = ({
   );
 
   const progColor = getProgramColor(prog);
-  const cardBorderColor = progColor;
-  const duration = prog.duration || 30;
-
   const draftTheme = useThemeStore(state => state.config?.modules?.draft) || {};
-  const boxRadius = draftTheme.boxRadius || '8px';
-  const cardPadding = draftTheme.cardPadding || (isKisa ? '5px 7px' : '6px 8px');
+  const boxRadius = draftTheme.boxRadius || '4px';
+  const cardPadding = draftTheme.cardPadding || (isKisa ? '6px 8px' : '7px 9px');
   const borderWidth = Number(draftTheme.borderWidth) || 1;
-  const leftAccentWidth = Number(draftTheme.leftAccentWidth) || 3.5;
-  const tintAlpha = Math.max(0.03, Math.min(0.32, (Number(draftTheme.cardTintOpacity) || 11) / 100));
-  const shadowObj = BOX_SHADOW_OPTIONS.find(s => s.id === draftTheme.boxShadow) || BOX_SHADOW_OPTIONS[1];
+  const leftAccentWidth = Number(draftTheme.leftAccentWidth) || 5;
+  const tintAlpha = Math.max(0.06, Math.min(0.28, (Number(draftTheme.cardTintOpacity) || 12) / 100));
   const categoryTitleColor = draftTheme.useCategoryTitleColor !== false
     ? getCategoryTitleTextColor(prog)
     : null;
 
   const cardBg = isSelected
-    ? `linear-gradient(135deg, ${hexToRgba(progColor, Math.min(0.35, tintAlpha + 0.08))} 0%, ${hexToRgba(progColor, tintAlpha * 0.6)} 100%), var(--bg-secondary)`
+    ? hexToRgba(progColor, Math.min(0.26, tintAlpha + 0.1))
     : isDragOver
-    ? 'rgba(37, 99, 235, 0.14)'
+    ? 'var(--turkuaz-50, #E7F0F3)'
     : isHovered
-    ? `linear-gradient(135deg, ${hexToRgba(progColor, Math.min(0.28, tintAlpha + 0.05))} 0%, ${hexToRgba(progColor, tintAlpha * 0.45)} 100%), var(--bg-secondary)`
-    : `linear-gradient(135deg, ${hexToRgba(progColor, tintAlpha)} 0%, ${hexToRgba(progColor, tintAlpha * 0.3)} 100%), var(--bg-secondary)`;
+    ? hexToRgba(progColor, Math.min(0.20, tintAlpha + 0.05))
+    : hexToRgba(progColor, tintAlpha);
 
   const cardBorder = isSelected
     ? progColor
     : isDragOver
-    ? 'var(--accent-primary)'
-    : isHovered
-    ? `${progColor}65`
-    : `${progColor}28`;
+    ? 'var(--turkuaz, #0C617C)'
+    : hexToRgba(progColor, 0.34);
 
   const compactDurationLabel = formatCompactArchiveDuration(prog.episodeDurationFormatted, prog.partsCount);
   const canMoveUp = progIndex > 0;
@@ -166,32 +151,28 @@ const DraftProgramCard = ({
         minHeight: '100%',
         boxSizing: 'border-box',
         background: cardBg,
-        border: `${borderWidth}px solid`,
+        borderStyle: isKisa ? 'dashed' : 'solid',
+        borderWidth: `${borderWidth}px`,
         borderColor: cardBorder,
-        borderLeft: `${leftAccentWidth}px solid ${cardBorderColor}`,
-        borderTop: isDragOver && !localDropAfter ? '2.5px solid var(--accent-primary)' : `${borderWidth}px solid ${cardBorder}`,
-        borderBottom: isDragOver && localDropAfter ? '2.5px solid var(--accent-primary)' : `${borderWidth}px solid ${cardBorder}`,
+        borderLeftStyle: 'solid',
+        borderLeftWidth: `${leftAccentWidth}px`,
+        borderLeftColor: progColor,
+        borderTop: isDragOver && !localDropAfter ? '2px solid var(--turkuaz, #0C617C)' : undefined,
+        borderBottom: isDragOver && localDropAfter ? '2px solid var(--turkuaz, #0C617C)' : undefined,
         borderRadius: boxRadius,
         padding: cardPadding,
         cursor: 'grab',
-        transition: 'all 0.18s cubic-bezier(0.22, 1, 0.36, 1)',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
-        gap: '3px',
-        boxShadow: isSelected
-          ? '0 0 0 1.5px rgba(37, 99, 235, 0.3), 0 4px 10px rgba(37, 99, 235, 0.1)'
-          : isHovered
-          ? shadowObj.hoverValue
-          : shadowObj.value,
+        gap: '4px',
         opacity: isDragging ? 0.35 : 1,
-        transform: isHovered && !isDragging ? 'translateY(-1px)' : 'none',
         position: 'relative',
         overflow: 'hidden',
         userSelect: 'none'
       }}
     >
-      {/* YÜZER HIZLI İŞLEM ÇUBUĞU (Hover durumunda sağ üstte açılır: Üste Taşı, Alta Taşı, Düzenle, Kopyala, Sil) */}
+      {/* YÜZER HIZLI İŞLEM ÇUBUĞU (Hover) */}
       {isHovered && (
         <div
           onClick={e => e.stopPropagation()}
@@ -203,11 +184,10 @@ const DraftProgramCard = ({
             display: 'flex',
             alignItems: 'center',
             gap: '2px',
-            background: 'var(--bg-secondary)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '6px',
-            padding: '2px',
-            boxShadow: '0 4px 12px rgba(15, 23, 42, 0.14)'
+            background: '#FFFFFF',
+            border: '1px solid var(--border-color, #DCE5E9)',
+            borderRadius: '4px',
+            padding: '2px'
           }}
         >
           {onMoveOrder && (
@@ -221,17 +201,16 @@ const DraftProgramCard = ({
                 }}
                 title="Programı Bir Üste Taşı"
                 style={{
-                  background: canMoveUp ? 'rgba(16, 185, 129, 0.12)' : 'transparent',
-                  border: 'none',
+                  background: 'transparent',
+                  border: 0,
                   width: '20px',
                   height: '20px',
-                  borderRadius: '4px',
-                  color: canMoveUp ? '#059669' : 'var(--text-muted)',
+                  borderRadius: '3px',
+                  color: canMoveUp ? 'var(--yesil, #468625)' : 'var(--text-muted)',
                   opacity: canMoveUp ? 1 : 0.35,
                   cursor: canMoveUp ? 'pointer' : 'not-allowed',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
+                  display: 'grid',
+                  placeItems: 'center'
                 }}
               >
                 <ArrowUp size={11} />
@@ -246,17 +225,16 @@ const DraftProgramCard = ({
                 }}
                 title="Programı Bir Alta Taşı"
                 style={{
-                  background: canMoveDown ? 'rgba(16, 185, 129, 0.12)' : 'transparent',
-                  border: 'none',
+                  background: 'transparent',
+                  border: 0,
                   width: '20px',
                   height: '20px',
-                  borderRadius: '4px',
-                  color: canMoveDown ? '#059669' : 'var(--text-muted)',
+                  borderRadius: '3px',
+                  color: canMoveDown ? 'var(--yesil, #468625)' : 'var(--text-muted)',
                   opacity: canMoveDown ? 1 : 0.35,
                   cursor: canMoveDown ? 'pointer' : 'not-allowed',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
+                  display: 'grid',
+                  placeItems: 'center'
                 }}
               >
                 <ArrowDown size={11} />
@@ -272,16 +250,15 @@ const DraftProgramCard = ({
             }}
             title="Programı Düzenle (Çift Tık)"
             style={{
-              background: 'rgba(37, 99, 235, 0.1)',
-              border: 'none',
+              background: 'transparent',
+              border: 0,
               width: '20px',
               height: '20px',
-              borderRadius: '4px',
-              color: 'var(--accent-primary)',
+              borderRadius: '3px',
+              color: 'var(--turkuaz, #0C617C)',
               cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
+              display: 'grid',
+              placeItems: 'center'
             }}
           >
             <Edit3 size={11} />
@@ -296,15 +273,14 @@ const DraftProgramCard = ({
             title="Kuşağı Kopyala"
             style={{
               background: 'transparent',
-              border: 'none',
+              border: 0,
               width: '20px',
               height: '20px',
-              borderRadius: '4px',
+              borderRadius: '3px',
               color: 'var(--text-secondary)',
               cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
+              display: 'grid',
+              placeItems: 'center'
             }}
           >
             <Copy size={11} />
@@ -319,15 +295,14 @@ const DraftProgramCard = ({
             title="Kuşağı Sil"
             style={{
               background: 'transparent',
-              border: 'none',
+              border: 0,
               width: '20px',
               height: '20px',
-              borderRadius: '4px',
-              color: 'var(--danger)',
+              borderRadius: '3px',
+              color: 'var(--danger, #DD1C40)',
               cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
+              display: 'grid',
+              placeItems: 'center'
             }}
           >
             <Trash2 size={11} />
@@ -347,7 +322,7 @@ const DraftProgramCard = ({
           <div
             title="Sırasını değiştirmek için sürükleyin"
             style={{
-              color: isHovered ? 'var(--accent-primary)' : 'var(--text-muted)',
+              color: isHovered ? 'var(--turkuaz, #0C617C)' : 'var(--text-muted)',
               opacity: isHovered ? 0.9 : 0.45,
               cursor: 'grab',
               display: 'flex',
@@ -364,17 +339,17 @@ const DraftProgramCard = ({
               <h4
                 title={prog.title}
                 style={{
-                  fontFamily: 'var(--draft-font-sans, var(--font-sans))',
-                  fontSize: px(isKisa ? 12.5 : 13),
-                  fontWeight: 800,
+                  fontFamily: 'var(--font-sans)',
+                  fontSize: px(isKisa ? 12 : 12.5),
+                  fontWeight: 700,
                   margin: 0,
                   color: isKisa
-                    ? '#0891b2'
+                    ? '#0B6C79'
                     : isLive
-                    ? '#e11d48'
-                    : (categoryTitleColor || 'var(--text-primary)'),
+                    ? '#DD1C40'
+                    : (categoryTitleColor || 'var(--text-primary, #0A101D)'),
                   lineHeight: 1.25,
-                  letterSpacing: '-0.02em',
+                  letterSpacing: '-0.01em',
                   display: '-webkit-box',
                   WebkitLineClamp: isKisa ? 1 : 2,
                   WebkitBoxOrient: 'vertical',
@@ -391,26 +366,25 @@ const DraftProgramCard = ({
                   alignItems: 'center',
                   gap: '2px',
                   fontSize: px(9),
-                  fontWeight: 800,
-                  background: '#e11d48',
-                  color: '#ffffff',
+                  fontWeight: 700,
+                  background: '#DD1C40',
+                  color: '#FFFFFF',
                   padding: '1px 5px',
-                  borderRadius: '4px',
-                  letterSpacing: '0.2px',
+                  borderRadius: '2px',
+                  letterSpacing: '0.03em',
                   whiteSpace: 'nowrap'
                 }}>
-                  ● CANLI
+                  CANLI
                 </span>
               )}
             </div>
 
-            {/* Alt Başlık: Sunucu veya Konu (Dolgu kuşağında tekrarı önlemek için gizlenir) */}
             {!isKisa && (prog.topic || prog.host) && (
               <div
                 title={`${prog.host || ''}${prog.host && prog.topic ? ' • ' : ''}${prog.topic || ''}`}
                 style={{
-                  fontSize: px(11),
-                  color: 'var(--text-muted)',
+                  fontSize: px(10.5),
+                  color: 'var(--text-secondary, #4B6478)',
                   lineHeight: 1.25,
                   fontWeight: 500,
                   whiteSpace: 'nowrap',
@@ -418,7 +392,7 @@ const DraftProgramCard = ({
                   textOverflow: 'ellipsis'
                 }}
               >
-                {prog.host && <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>{prog.host}</span>}
+                {prog.host && <span style={{ fontWeight: 700 }}>{prog.host}</span>}
                 {prog.host && prog.topic && ' • '}
                 {prog.topic}
               </div>
@@ -426,44 +400,39 @@ const DraftProgramCard = ({
           </div>
         </div>
 
-        {/* Sağ Üst: Çoklu Seçim Kutusu */}
+        {/* Seçim Kutusu */}
         <div
           onClick={(e) => {
             e.stopPropagation();
-            const targetId = prog.instanceId || prog.id;
             onToggleSelect && onToggleSelect(dateKey, targetId, e);
           }}
           title={isSelected ? 'Seçimi Kaldır' : 'Kuşağı Seç'}
           style={{
             cursor: 'pointer',
-            color: isSelected ? 'var(--accent-primary)' : 'var(--text-muted)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            color: isSelected ? 'var(--turkuaz, #0C617C)' : 'var(--text-muted)',
+            display: 'grid',
+            placeItems: 'center',
             width: '18px',
             height: '18px',
-            borderRadius: '4px',
             flexShrink: 0
           }}
         >
           {isSelected ? (
-            <CheckSquare size={14} style={{ color: 'var(--accent-primary)' }} />
+            <CheckSquare size={14} style={{ color: 'var(--turkuaz, #0C617C)' }} />
           ) : (
             <Square size={14} style={{ opacity: isHovered ? 0.85 : 0.35 }} />
           )}
         </div>
       </div>
 
-      {/* 2. DOLGU KUŞAĞI OPSİYONLARI (Ortalanmış kurumsal haplar) */}
+      {/* 2. DOLGU KUŞAĞI OPSİYONLARI */}
       {isKisa && (prog.availableOptions || []).length > 0 && (
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
           flexWrap: 'wrap',
-          gap: '4px',
-          marginTop: '3px',
-          textAlign: 'center'
+          gap: '3px',
+          marginTop: '2px'
         }}>
           {(prog.availableOptions || []).map(opt => {
             const isSelectedOption = (prog.selectedOptions || []).includes(opt);
@@ -478,99 +447,91 @@ const DraftProgramCard = ({
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
                   gap: '3px',
-                  padding: '2px 6px',
-                  borderRadius: '5px',
+                  padding: '1px 5px',
+                  borderRadius: '2px',
                   border: '1px solid',
-                  borderColor: isSelectedOption ? 'rgba(8, 145, 178, 0.45)' : 'var(--border-color)',
-                  background: isSelectedOption ? 'rgba(6, 182, 212, 0.13)' : 'var(--bg-primary)',
-                  color: isSelectedOption ? '#0e7490' : 'var(--text-muted)',
-                  fontSize: px(10),
+                  borderColor: isSelectedOption ? 'rgba(16, 154, 173, 0.45)' : 'var(--border-color, #DCE5E9)',
+                  background: isSelectedOption ? 'rgba(255, 255, 255, 0.78)' : '#FFFFFF',
+                  color: isSelectedOption ? '#0B6C79' : 'var(--text-muted, #6A7C88)',
+                  fontSize: px(9.5),
                   fontWeight: 700,
                   cursor: 'pointer',
                   lineHeight: 1.2,
                   whiteSpace: 'nowrap'
                 }}
-                title={isSelectedOption ? `${opt} (Kaldırmak için tıkla)` : `${opt} (Eklemek için tıkla)`}
               >
-                <span>{formatShortOptionLabel(opt)}</span>
-                {isSelectedOption && <span style={{ fontSize: px(9), fontWeight: 900 }}>✓</span>}
+                <span>{opt}</span>
+                {isSelectedOption && <span style={{ fontSize: px(9) }}>✓</span>}
               </button>
             );
           })}
         </div>
       )}
 
-      {/* 3. ALT KISIM: ORTALANMIŞ BÖLÜM, PART VE SÜRE ROZETLERİ */}
+      {/* 3. ALT KISIM: BÖLÜM, PART VE SÜRE ROZETLERİ */}
       {!isKisa && (prog.episode || compactDurationLabel || !hideTimeBadge) && (
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
           flexWrap: 'wrap',
-          gap: '5px',
+          gap: '4px',
           marginTop: 'auto',
-          paddingTop: '4px',
+          paddingTop: '2px',
           minWidth: 0,
-          width: '100%',
-          textAlign: 'center'
+          width: '100%'
         }}>
           {!hideTimeBadge && (
             <span style={{
               fontFamily: 'var(--font-mono)',
               fontVariantNumeric: 'tabular-nums',
-              fontSize: px(10.5),
+              fontSize: px(10),
               fontWeight: 700,
-              color: 'var(--accent-primary)',
-              background: 'rgba(37, 99, 235, 0.1)',
-              padding: '2px 6px',
-              borderRadius: '5px',
-              whiteSpace: 'nowrap',
-              textAlign: 'center'
+              color: 'var(--turkuaz, #0C617C)',
+              background: 'rgba(255, 255, 255, 0.78)',
+              border: '1px solid rgba(10, 16, 29, 0.1)',
+              padding: '1px 5px',
+              borderRadius: '2px',
+              whiteSpace: 'nowrap'
             }}>
               {prog.startTime}-{prog.endTime}
             </span>
           )}
 
-          {/* Bölüm Rozeti (B. yerine Bölüm yazılır ve ortalanır) */}
           {prog.episode && (
             <span style={{
-              fontFamily: 'var(--font-sans)',
+              fontFamily: 'var(--font-mono)',
               fontVariantNumeric: 'tabular-nums',
-              fontSize: px(11),
-              fontWeight: 800,
-              background: 'rgba(217, 119, 6, 0.14)',
-              color: '#b45309',
-              border: '1px solid rgba(217, 119, 6, 0.28)',
-              padding: '2px 7px',
-              borderRadius: '5px',
-              whiteSpace: 'nowrap',
-              textAlign: 'center'
+              fontSize: px(9.5),
+              fontWeight: 700,
+              background: 'rgba(255, 255, 255, 0.78)',
+              color: 'var(--text-primary, #0A101D)',
+              border: '1px solid rgba(10, 16, 29, 0.1)',
+              padding: '1px 5px',
+              borderRadius: '2px',
+              whiteSpace: 'nowrap'
             }}>
               Bölüm {prog.episode}
             </span>
           )}
 
-          {/* Arşiv Bölüm/Part Toplam Süre Rozeti (Ortalanmış) */}
           {compactDurationLabel && (
             <span
               title={`Bölüm Toplam Süresi: ${prog.episodeDurationFormatted}${prog.partsCount > 1 ? ` (${prog.partsCount} Part Toplamı)` : ''}`}
               style={{
                 fontFamily: 'var(--font-mono)',
                 fontVariantNumeric: 'tabular-nums',
-                fontSize: px(10.5),
-                color: '#047857',
+                fontSize: px(9.5),
+                color: 'var(--text-primary, #0A101D)',
                 fontWeight: 700,
-                background: 'rgba(16, 185, 129, 0.13)',
-                border: '1px solid rgba(16, 185, 129, 0.28)',
-                padding: '2px 7px',
-                borderRadius: '5px',
+                background: 'rgba(255, 255, 255, 0.78)',
+                border: '1px solid rgba(10, 16, 29, 0.1)',
+                padding: '1px 5px',
+                borderRadius: '2px',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
-                maxWidth: '100%',
-                textAlign: 'center'
+                maxWidth: '100%'
               }}
             >
               {compactDurationLabel}

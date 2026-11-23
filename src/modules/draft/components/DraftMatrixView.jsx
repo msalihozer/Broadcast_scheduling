@@ -46,14 +46,15 @@ const minutesToTime = (min) => {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 };
 
-// 4 Ana Yayın Kuşağı Tanımı (Her biri 6 saat = 360 dk)
+// 4 Ana Yayın Kuşağı Tanımı (Semerkand TV Kurumsal 2026)
 const KUŞAK_PERIODS = [
   {
     id: 'night',
     label: 'Gece Yayın Kuşağı (00:00 - 06:00)',
     shortLabel: 'Gece',
     icon: Moon,
-    color: '#6366f1',
+    color: '#0B2B54',
+    textColor: '#FFFFFF',
     startMinute: 0,
     endMinute: 360
   },
@@ -62,7 +63,8 @@ const KUŞAK_PERIODS = [
     label: 'Sabah Yayın Kuşağı (06:00 - 12:00)',
     shortLabel: 'Sabah',
     icon: Sunrise,
-    color: '#f59e0b',
+    color: '#E8B44C',
+    textColor: '#0A101D',
     startMinute: 360,
     endMinute: 720
   },
@@ -71,7 +73,8 @@ const KUŞAK_PERIODS = [
     label: 'Öğle Yayın Kuşağı (12:00 - 18:00)',
     shortLabel: 'Öğle',
     icon: Sun,
-    color: '#0ea5e9',
+    color: '#109AAD',
+    textColor: '#FFFFFF',
     startMinute: 720,
     endMinute: 1080
   },
@@ -80,7 +83,8 @@ const KUŞAK_PERIODS = [
     label: 'Akşam & Prime Time Kuşağı (18:00 - 24:00)',
     shortLabel: 'Akşam',
     icon: Sunset,
-    color: '#ec4899',
+    color: '#0C617C',
+    textColor: '#FFFFFF',
     startMinute: 1080,
     endMinute: 1440
   }
@@ -687,34 +691,24 @@ const DraftMatrixView = ({
 
           return (
             <div key={period.id} style={{ display: 'flex', flexDirection: 'column' }}>
-              {/* KUŞAK AYIRICI BAŞLIĞI (Gece, Sabah, Öğle, Akşam) */}
+              {/* KUŞAK AYIRICI BAŞLIĞI (Gece #0B2B54, Sabah #E8B44C, Öğle #109AAD, Akşam #0C617C) */}
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '7px 16px',
-                background: `linear-gradient(90deg, ${period.color}14 0%, #f8fafc 100%)`,
-                borderTop: '1.5px solid #cbd5e1',
-                borderBottom: '1.5px solid #cbd5e1'
+                padding: '6px 14px',
+                background: period.color,
+                color: period.id === 'morning' ? '#0A101D' : '#FFFFFF',
+                borderTop: '1px solid var(--border-color, #DCE5E9)',
+                borderBottom: '1px solid var(--border-color, #DCE5E9)'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{
-                    width: '22px',
-                    height: '22px',
-                    borderRadius: '6px',
-                    background: period.color,
-                    color: '#ffffff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    <PeriodIcon size={12} />
-                  </div>
+                  <PeriodIcon size={15} />
                   <span style={{
                     fontSize: px(11.5),
-                    fontWeight: 800,
-                    color: 'var(--text-primary)',
-                    letterSpacing: '0.02em',
+                    fontWeight: 700,
+                    color: period.id === 'morning' ? '#0A101D' : '#FFFFFF',
+                    letterSpacing: '0.04em',
                     textTransform: 'uppercase'
                   }}>
                     {period.label}
@@ -723,13 +717,9 @@ const DraftMatrixView = ({
 
                 <span style={{
                   fontFamily: 'var(--font-mono)',
-                  fontSize: px(10.5),
-                  fontWeight: 700,
-                  color: 'var(--text-secondary)',
-                  background: '#ffffff',
-                  padding: '2px 9px',
-                  borderRadius: '999px',
-                  border: '1px solid var(--border-color)'
+                  fontSize: px(11),
+                  fontWeight: 500,
+                  opacity: 0.9
                 }}>
                   {minutesToTime(period.startMinute)} – {minutesToTime(period.endMinute)}
                 </span>

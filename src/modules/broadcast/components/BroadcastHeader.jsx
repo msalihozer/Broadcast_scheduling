@@ -36,6 +36,7 @@ import { dialog } from '../../../store/dialogStore';
 import { format, parseISO } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import useResponsive from '../../../hooks/useResponsive';
+import Ikon from '../../../components/Ikon';
 
 const BroadcastHeader = ({ onOpenShortcuts, onOpenAdSettingsModal, onOpenIntroSettingsModal }) => {
   const navigate = useNavigate();
@@ -179,95 +180,110 @@ const BroadcastHeader = ({ onOpenShortcuts, onOpenAdSettingsModal, onOpenIntroSe
   return (
     <div
       style={{
-        background: 'var(--bg-secondary)',
-        borderBottom: '1px solid var(--border-color)',
-        padding: isMobile ? '8px 10px' : '10px 18px',
-        display: 'grid',
-        gridTemplateColumns: isCompact ? '1fr' : '1fr auto 1fr',
+        minHeight: isCompact ? 'auto' : '68px',
+        background: '#FFFFFF',
+        borderBottom: '1px solid var(--border-color, #DCE5E9)',
+        padding: isMobile ? '8px 10px' : '10px 20px',
+        display: 'flex',
         alignItems: 'center',
-        gap: isMobile ? '8px' : '16px',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: isMobile ? '8px' : '12px',
         flexShrink: 0
       }}
     >
-      {/* SOL ÜST: Modüller + Taslak Paneli + Tarih Seçme Alanı */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: isCompact ? 'center' : 'flex-start', gap: isMobile ? '6px' : '10px', flexWrap: 'wrap' }}>
-        <button
-          onClick={() => navigate('/')}
-          style={{
-            background: 'var(--bg-tertiary)',
-            border: '1px solid var(--border-color)',
-            color: 'var(--text-primary)',
-            padding: '8px 12px',
-            borderRadius: '9px',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            cursor: 'pointer',
-            fontSize: '13.5px',
-            fontWeight: '700'
-          }}
-          title="Ana Modül Seçimine Dön"
-        >
-          <ArrowLeft size={16} />
-          <span>Modüller</span>
-        </button>
+      {/* SOL GRUP: 34x34 Yeşil (#468625) İkon Karesi + Başlık + Taslak Paneli + Tarih Gezgini */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '6px' : '10px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginRight: '4px' }}>
+          <div style={{
+            width: '34px',
+            height: '34px',
+            borderRadius: '4px',
+            background: 'var(--m-ready, #468625)',
+            color: '#FFFFFF',
+            display: 'grid',
+            placeItems: 'center',
+            flexShrink: 0
+          }}>
+            <Ikon ad="hazir" size={20} />
+          </div>
+          <h1 style={{
+            fontSize: isMobile ? '17px' : '20px',
+            fontWeight: 300,
+            color: 'var(--text-primary, #0A101D)',
+            letterSpacing: '-0.02em',
+            whiteSpace: 'nowrap',
+            margin: 0
+          }}>
+            <b style={{ fontWeight: 700 }}>Yayın Planlama</b> (Ready)
+          </h1>
+        </div>
 
         {viewMode === 'daily' && (
           <button
             onClick={toggleDraftSidebar}
             style={{
+              height: '36px',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              background: isDraftSidebarOpen ? 'rgba(59, 130, 246, 0.15)' : 'var(--bg-primary)',
+              background: isDraftSidebarOpen ? 'var(--turkuaz-50, #E7F0F3)' : '#FFFFFF',
               border: isDraftSidebarOpen
-                ? '1px solid rgba(59, 130, 246, 0.45)'
-                : '1px solid var(--border-color)',
-              color: isDraftSidebarOpen ? 'var(--accent-primary)' : 'var(--text-secondary)',
-              padding: '8px 12px',
-              borderRadius: '9px',
+                ? '1px solid var(--turkuaz, #0C617C)'
+                : '1px solid var(--border-color, #DCE5E9)',
+              color: isDraftSidebarOpen ? 'var(--turkuaz, #0C617C)' : 'var(--text-primary, #0A101D)',
+              padding: '0 12px',
+              borderRadius: '4px',
               cursor: 'pointer',
-              fontSize: '13.5px',
-              fontWeight: '800'
+              fontSize: '12px',
+              fontWeight: 700
             }}
             title="Sol Taslak & Klip panelini göster/gizle (Kısayol: T)"
           >
-            {isDraftSidebarOpen ? <PanelLeftClose size={16} /> : <PanelLeftOpen size={16} />}
+            <Ikon ad="panel" size={15} />
             <span>Taslak Paneli</span>
           </button>
         )}
 
-        {/* Tarih Seçme Alanı (Sol Üstte) */}
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+        {/* Tarih Seçme Alanı */}
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          height: '36px',
+          border: '1px solid var(--border-color, #DCE5E9)',
+          borderRadius: '4px',
+          background: '#FFFFFF',
+          overflow: 'hidden'
+        }}>
           <button
             onClick={() => navigateDay(-1)}
             style={{
-              background: 'var(--bg-primary)',
-              border: '1px solid var(--border-color)',
-              color: 'var(--text-primary)',
-              padding: '8px 10px',
-              borderRadius: '9px',
+              width: '32px',
+              height: '100%',
+              background: 'transparent',
+              border: 0,
+              color: 'var(--text-secondary, #4B6478)',
               cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center'
+              display: 'grid',
+              placeItems: 'center'
             }}
             title="Önceki Gün"
           >
-            <ChevronLeft size={17} />
+            <Ikon ad="sol" size={16} />
           </button>
 
           <div
             style={{
+              height: '100%',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '8px',
-              background: 'var(--bg-primary)',
-              border: '1px solid var(--border-color)',
-              padding: '6px 12px',
-              borderRadius: '9px'
+              gap: '7px',
+              borderLeft: '1px solid var(--border-light, #EBF0F2)',
+              borderRight: '1px solid var(--border-light, #EBF0F2)',
+              padding: '0 10px'
             }}
           >
-            <Calendar size={16} color="var(--accent-primary)" />
+            <Ikon ad="hafta" size={15} color="var(--turkuaz, #0C617C)" />
             <input
               type="date"
               value={selectedDate}
@@ -276,20 +292,23 @@ const BroadcastHeader = ({ onOpenShortcuts, onOpenAdSettingsModal, onOpenIntroSe
                 background: 'transparent',
                 border: 'none',
                 outline: 'none',
-                color: 'var(--text-primary)',
-                fontSize: '14px',
-                fontWeight: '800',
-                cursor: 'pointer'
+                color: 'var(--text-primary, #0A101D)',
+                fontFamily: 'var(--font-mono)',
+                fontSize: '12px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                padding: 0,
+                height: '28px'
               }}
             />
             {dayName && (
               <span
                 style={{
-                  fontSize: '13.5px',
-                  fontWeight: '800',
-                  color: 'var(--accent-primary)',
-                  borderLeft: '1px solid var(--border-color)',
-                  paddingLeft: '8px'
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  color: 'var(--turkuaz, #0C617C)',
+                  borderLeft: '1px solid var(--border-color, #DCE5E9)',
+                  paddingLeft: '7px'
                 }}
               >
                 {dayName}
@@ -300,56 +319,48 @@ const BroadcastHeader = ({ onOpenShortcuts, onOpenAdSettingsModal, onOpenIntroSe
           <button
             onClick={() => navigateDay(1)}
             style={{
-              background: 'var(--bg-primary)',
-              border: '1px solid var(--border-color)',
-              color: 'var(--text-primary)',
-              padding: '8px 10px',
-              borderRadius: '9px',
+              width: '32px',
+              height: '100%',
+              background: 'transparent',
+              border: 0,
+              color: 'var(--text-secondary, #4B6478)',
               cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center'
+              display: 'grid',
+              placeItems: 'center'
             }}
             title="Sonraki Gün"
           >
-            <ChevronRight size={17} />
-          </button>
-
-          <button
-            onClick={goToToday}
-            style={{
-              background: 'var(--bg-tertiary)',
-              border: '1px solid var(--border-color)',
-              color: 'var(--text-primary)',
-              padding: '8px 12px',
-              borderRadius: '9px',
-              cursor: 'pointer',
-              fontSize: '13.5px',
-              fontWeight: '800'
-            }}
-          >
-            Bugün
+            <Ikon ad="sag" size={16} />
           </button>
         </div>
-      </div>
 
-      {/* ORTA ÜST: Üstte Kanal Seçimi, Hemen Altında Liste Seçimi */}
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '6px'
-        }}
-      >
-        {/* Kanal Seçimi */}
+        <button
+          onClick={goToToday}
+          style={{
+            height: '36px',
+            background: '#FFFFFF',
+            border: '1px solid var(--border-color, #DCE5E9)',
+            color: 'var(--text-primary, #0A101D)',
+            padding: '0 12px',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '12px',
+            fontWeight: 700
+          }}
+        >
+          Bugün
+        </button>
+
+        {/* Kanal Seçimi (Segmented) */}
         <div
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            background: 'var(--bg-primary)',
-            padding: '4px',
-            borderRadius: '10px',
-            border: '1px solid var(--border-color)'
+            background: 'var(--bg-primary, #F5F7F6)',
+            padding: '2px',
+            borderRadius: '4px',
+            border: '1px solid var(--border-color, #DCE5E9)',
+            gap: '2px'
           }}
         >
           {BROADCAST_CHANNELS.map(ch => {
@@ -359,50 +370,51 @@ const BroadcastHeader = ({ onOpenShortcuts, onOpenAdSettingsModal, onOpenIntroSe
                 key={ch.id}
                 onClick={() => setSelectedChannel(ch.id)}
                 style={{
+                  height: '32px',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '7px',
-                  padding: '6px 16px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  background: isSelected ? 'var(--accent-primary)' : 'transparent',
-                  color: isSelected ? '#fff' : 'var(--text-secondary)',
+                  gap: '6px',
+                  padding: '0 12px',
+                  borderRadius: '3px',
+                  border: 0,
+                  background: isSelected ? 'var(--turkuaz, #0C617C)' : 'transparent',
+                  color: isSelected ? '#FFFFFF' : 'var(--text-secondary, #4B6478)',
                   cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '800',
-                  transition: 'all 0.15s'
+                  fontSize: '12px',
+                  fontWeight: 700
                 }}
               >
-                <span style={{ fontSize: '15px' }}>{ch.logo}</span>
+                <Ikon ad="kanal" size={14} />
                 <span>{ch.name}</span>
               </button>
             );
           })}
         </div>
 
-        {/* Liste Seçimi (Kanalların Altında) */}
+        {/* Liste Seçimi (Liste A / Liste B) */}
         <div
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '4px',
-            background: 'var(--bg-primary)',
-            padding: '3px 6px',
-            borderRadius: '8px',
-            border: '1px solid var(--border-color)'
+            gap: '2px',
+            background: 'var(--bg-primary, #F5F7F6)',
+            padding: '2px',
+            borderRadius: '4px',
+            border: '1px solid var(--border-color, #DCE5E9)'
           }}
         >
           <button
             onClick={() => setActiveList('A')}
             style={{
-              padding: '4px 14px',
-              borderRadius: '6px',
-              border: 'none',
-              background: activeList === 'A' ? '#3b82f6' : 'transparent',
-              color: activeList === 'A' ? '#fff' : 'var(--text-secondary)',
+              height: '32px',
+              padding: '0 11px',
+              borderRadius: '3px',
+              border: 0,
+              background: activeList === 'A' ? 'var(--turkuaz, #0C617C)' : 'transparent',
+              color: activeList === 'A' ? '#FFFFFF' : 'var(--text-secondary, #4B6478)',
               cursor: 'pointer',
-              fontSize: '13px',
-              fontWeight: '800'
+              fontSize: '12px',
+              fontWeight: 700
             }}
           >
             Liste A
@@ -411,14 +423,15 @@ const BroadcastHeader = ({ onOpenShortcuts, onOpenAdSettingsModal, onOpenIntroSe
           <button
             onClick={() => setActiveList('B')}
             style={{
-              padding: '4px 14px',
-              borderRadius: '6px',
-              border: 'none',
-              background: activeList === 'B' ? '#8b5cf6' : 'transparent',
-              color: activeList === 'B' ? '#fff' : 'var(--text-secondary)',
+              height: '32px',
+              padding: '0 11px',
+              borderRadius: '3px',
+              border: 0,
+              background: activeList === 'B' ? 'var(--turkuaz, #0C617C)' : 'transparent',
+              color: activeList === 'B' ? '#FFFFFF' : 'var(--text-secondary, #4B6478)',
               cursor: 'pointer',
-              fontSize: '13px',
-              fontWeight: '800'
+              fontSize: '12px',
+              fontWeight: 700
             }}
           >
             Liste B
@@ -426,59 +439,78 @@ const BroadcastHeader = ({ onOpenShortcuts, onOpenAdSettingsModal, onOpenIntroSe
         </div>
       </div>
 
-      {/* SAĞ ÜST: Görünüm Modları (Günlük / Haftalık / Aylık) + Pano Sembolü + Çark İşlemler Menüsü */}
+      {/* SAĞ GRUP: Görünüm Modları (Günlük / Haftalık / Aylık) + Raporlar + Pano + Ayarlar */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: isCompact ? 'center' : 'flex-end',
           flexWrap: 'wrap',
-          gap: isMobile ? '6px' : '10px'
+          gap: isMobile ? '6px' : '8px'
         }}
       >
-        {/* Görünüm Modları */}
         <div
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            background: 'var(--bg-primary)',
-            padding: '4px',
-            borderRadius: '10px',
-            border: '1px solid var(--border-color)'
+            background: 'var(--bg-primary, #F5F7F6)',
+            padding: '2px',
+            borderRadius: '4px',
+            border: '1px solid var(--border-color, #DCE5E9)',
+            gap: '2px'
           }}
         >
           {[
-            { id: 'daily', label: 'Günlük', icon: Calendar },
-            { id: 'weekly', label: 'Haftalık', icon: CalendarDays },
-            { id: 'monthly', label: 'Aylık', icon: CalendarRange },
-            { id: 'reports', label: 'Raporlar', icon: BarChart3 }
+            { id: 'daily', label: 'Günlük' },
+            { id: 'weekly', label: 'Haftalık' },
+            { id: 'monthly', label: 'Aylık' }
           ].map(mode => {
-            const Icon = mode.icon;
             const active = viewMode === mode.id;
             return (
               <button
                 key={mode.id}
                 onClick={() => setViewMode(mode.id)}
                 style={{
+                  height: '32px',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '6px',
-                  padding: '6px 13px',
-                  borderRadius: '7px',
-                  border: 'none',
-                  background: active ? 'var(--bg-tertiary)' : 'transparent',
-                  color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  padding: '0 12px',
+                  borderRadius: '3px',
+                  border: 0,
+                  background: active ? 'var(--turkuaz, #0C617C)' : 'transparent',
+                  color: active ? '#FFFFFF' : 'var(--text-secondary, #4B6478)',
                   cursor: 'pointer',
-                  fontSize: '13.5px',
-                  fontWeight: '800'
+                  fontSize: '12px',
+                  fontWeight: 700
                 }}
               >
-                <Icon size={15} />
                 <span>{mode.label}</span>
               </button>
             );
           })}
         </div>
+
+        {/* Raporlar */}
+        <button
+          type="button"
+          onClick={() => setViewMode('reports')}
+          style={{
+            height: '36px',
+            padding: '0 12px',
+            borderRadius: '4px',
+            border: viewMode === 'reports' ? '1px solid var(--turkuaz, #0C617C)' : '1px solid var(--border-color, #DCE5E9)',
+            background: viewMode === 'reports' ? 'var(--turkuaz, #0C617C)' : '#FFFFFF',
+            color: viewMode === 'reports' ? '#FFFFFF' : 'var(--text-primary, #0A101D)',
+            fontSize: '12px',
+            fontWeight: 700,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '7px',
+            cursor: 'pointer'
+          }}
+        >
+          <Ikon ad="rapor" size={15} />
+          <span>Raporlar</span>
+        </button>
 
         {/* Pano Sembolü (Yalnızca Pano Kullanıma Başladığında Görünür, En Fazla Son 5 İşlemi Tutar) */}
         {hasClipboardData && (

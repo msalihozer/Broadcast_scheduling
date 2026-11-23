@@ -22,6 +22,7 @@ import AddAdBreakModal from './components/AddAdBreakModal';
 import DefaultIntroSettingsModal from './components/DefaultIntroSettingsModal';
 import BroadcastShortcutsModal from './components/BroadcastShortcutsModal';
 import { useBroadcastKeyboardShortcuts } from './hooks/useBroadcastKeyboardShortcuts';
+import TopNavbar from '../../components/Layout/TopNavbar';
 
 const BroadcastPlanningLayout = () => {
   const {
@@ -125,7 +126,10 @@ const BroadcastPlanningLayout = () => {
       color: 'var(--text-primary)',
       overflow: 'hidden'
     }}>
-      {/* Üst Yönetim Çubuğu */}
+      {/* 60px Derin Turkuaz Üst Gezinme Çubuğu */}
+      <TopNavbar />
+
+      {/* 68px Beyaz Modül Araç Çubuğu */}
       <BroadcastHeader
         onOpenAddModal={() => setIsAddModalOpen(true)}
         onOpenAdModal={handleQuickAddAdBreak}

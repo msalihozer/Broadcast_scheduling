@@ -132,20 +132,21 @@ export default function ListControlWarningsPanel({
       background: 'var(--bg-secondary)',
       borderBottom: '1px solid var(--border-color)'
     }}>
-      {/* 1. KOMPAKT 4'LÜ DURUM ÖZETİ: TASLAK • PROGRAM KLİPLERİ • REKLAMLAR • DB & HIGHRES (.MXF) */}
+      {/* 1. KOMPAKT 4'LÜ DURUM ÖZETİ: TASLAK (#0C617C) • PROGRAM KLİPLERİ (#468625) • REKLAMLAR (#E8B44C) • DB & HIGHRES (#142A44) */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
-        gap: '8px'
+        gap: '10px'
       }}>
         {/* KART 1: TASLAK PLANLAMA KONTROLÜ */}
         <div
           onClick={() => setExpandedPanel(prev => (prev === 'draft_compare' ? null : 'draft_compare'))}
           style={{
-            padding: '8px 11px',
-            borderRadius: '10px',
-            background: missingDraftCount > 0 ? 'rgba(245, 158, 11, 0.1)' : 'rgba(16, 185, 129, 0.08)',
-            border: missingDraftCount > 0 ? '1.5px solid rgba(245, 158, 11, 0.4)' : '1px solid rgba(16, 185, 129, 0.32)',
+            padding: '10px 12px',
+            borderRadius: '6px',
+            background: '#FFFFFF',
+            border: '1px solid var(--border-color, #DCE5E9)',
+            borderTop: '4px solid var(--m-taslak, #0C617C)',
             cursor: 'pointer',
             display: 'flex',
             flexDirection: 'column',
@@ -154,41 +155,43 @@ export default function ListControlWarningsPanel({
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
-            <span style={{ fontSize: '10.5px', fontWeight: 900, color: missingDraftCount > 0 ? '#d97706' : '#059669' }}>
+            <span style={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--text-muted, #6A7C88)', letterSpacing: '0.06em' }}>
               1. TASLAK PLANLAMA
             </span>
             <span style={{
-              fontSize: '10px',
-              fontWeight: 900,
-              padding: '1px 7px',
-              borderRadius: '999px',
-              background: missingDraftCount > 0 ? '#d97706' : '#10b981',
-              color: '#ffffff'
+              fontFamily: 'var(--font-mono)',
+              fontSize: '10.5px',
+              fontWeight: 700,
+              padding: '2px 7px',
+              borderRadius: '2px',
+              background: missingDraftCount > 0 ? '#FBEFD6' : '#E3EFDB',
+              color: missingDraftCount > 0 ? '#80632A' : '#3C721F'
             }}>
               {matchedDraft}/{totalDraft} Kuşak
             </span>
           </div>
-          <div style={{ fontSize: '11.5px', fontWeight: 800, color: 'var(--text-primary)' }}>
+          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary, #0A101D)' }}>
             {totalDraft === 0
               ? 'Kayıtlı taslak yok'
               : missingDraftCount === 0
-              ? '✓ Taslak programları tam'
-              : `⚠️ ${missingDraftCount} taslak programı eksik`}
+              ? 'Taslak programları tam'
+              : `${missingDraftCount} taslak programı eksik`}
           </div>
-          <div style={{ fontSize: '10.5px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ fontSize: '11px', color: 'var(--text-secondary, #4B6478)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span>Taslak karşılaştırma tablosu</span>
             {expandedPanel === 'draft_compare' ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
           </div>
         </div>
 
-        {/* KART 2: PROGRAM KLİPLERİ KONTROLÜ (REKLAMLAR GİBİ AYRINTILI KLİP ÖZETİ) */}
+        {/* KART 2: PROGRAM KLİPLERİ KONTROLÜ */}
         <div
           onClick={() => onSelectFilterCategory(activeFilterCategory === 'clips' ? 'all' : 'clips')}
           style={{
-            padding: '8px 11px',
-            borderRadius: '10px',
-            background: healthyClipItems < totalClipItems ? 'rgba(220, 38, 38, 0.08)' : 'rgba(37, 99, 235, 0.08)',
-            border: healthyClipItems < totalClipItems ? '1.5px solid rgba(220, 38, 38, 0.38)' : '1px solid rgba(37, 99, 235, 0.3)',
+            padding: '10px 12px',
+            borderRadius: '6px',
+            background: '#FFFFFF',
+            border: '1px solid var(--border-color, #DCE5E9)',
+            borderTop: '4px solid var(--m-ready, #468625)',
             cursor: 'pointer',
             display: 'flex',
             flexDirection: 'column',
@@ -197,37 +200,38 @@ export default function ListControlWarningsPanel({
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
-            <span style={{ fontSize: '10.5px', fontWeight: 900, color: '#2563eb' }}>
+            <span style={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--text-muted, #6A7C88)', letterSpacing: '0.06em' }}>
               2. PROGRAM KLİPLERİ
             </span>
             <span style={{
-              fontSize: '10px',
-              fontWeight: 900,
-              padding: '1px 7px',
-              borderRadius: '999px',
-              background: '#2563eb',
-              color: '#ffffff'
+              fontFamily: 'var(--font-mono)',
+              fontSize: '10.5px',
+              fontWeight: 700,
+              padding: '2px 7px',
+              borderRadius: '2px',
+              background: '#E3EFDB',
+              color: '#3C721F'
             }}>
               {mainProgramClipItems} Klip + {introClipItems} İntro
             </span>
           </div>
-          <div style={{ fontSize: '11.5px', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary, #0A101D)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span>Süre: {formatSecondsReadable(totalClipDurationSec)}</span>
-            <span style={{ color: healthyClipItems === totalClipItems ? '#059669' : '#dc2626', fontSize: '11px' }}>
+            <span style={{ color: healthyClipItems === totalClipItems ? '#3C721F' : '#DD1C40', fontSize: '11px', fontFamily: 'var(--font-mono)' }}>
               Sağlam: {healthyClipItems}/{totalClipItems}
             </span>
           </div>
-          <div style={{ fontSize: '10.5px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ fontSize: '11px', color: 'var(--text-secondary, #4B6478)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span
               onClick={(e) => {
                 e.stopPropagation();
                 setExpandedPanel(prev => (prev === 'broadcast_diff' ? null : 'broadcast_diff'));
               }}
-              style={{ textDecoration: 'underline', fontWeight: 700, color: '#2563eb' }}
+              style={{ textDecoration: 'underline', fontWeight: 600, color: 'var(--turkuaz, #0C617C)' }}
             >
-              🔄 {modifiedByBroadcastCount} Değişim • ➕ {addedByBroadcastCount} Yayın Planlama Ek
+              {modifiedByBroadcastCount} Değişim • +{addedByBroadcastCount} Yayın Planlama Ek
             </span>
-            <Film size={12} color="#2563eb" />
+            <Film size={12} color="var(--m-ready, #468625)" />
           </div>
         </div>
 
@@ -235,10 +239,11 @@ export default function ListControlWarningsPanel({
         <div
           onClick={() => onSelectFilterCategory(activeFilterCategory === 'ads' ? 'all' : 'ads')}
           style={{
-            padding: '8px 11px',
-            borderRadius: '10px',
-            background: (adsSummary.emptyAdBreaksCount > 0 || healthyAdItems < totalAdItems) ? 'rgba(220, 38, 38, 0.08)' : 'rgba(217, 119, 6, 0.08)',
-            border: (adsSummary.emptyAdBreaksCount > 0 || healthyAdItems < totalAdItems) ? '1.5px solid rgba(220, 38, 38, 0.38)' : '1px solid rgba(217, 119, 6, 0.32)',
+            padding: '10px 12px',
+            borderRadius: '6px',
+            background: '#FFFFFF',
+            border: '1px solid var(--border-color, #DCE5E9)',
+            borderTop: '4px solid var(--m-reklam, #E8B44C)',
             cursor: 'pointer',
             display: 'flex',
             flexDirection: 'column',
@@ -247,33 +252,34 @@ export default function ListControlWarningsPanel({
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
-            <span style={{ fontSize: '10.5px', fontWeight: 900, color: '#d97706' }}>
+            <span style={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--text-muted, #6A7C88)', letterSpacing: '0.06em' }}>
               3. REKLAM SPOTLARI
             </span>
             <span style={{
-              fontSize: '10px',
-              fontWeight: 900,
-              padding: '1px 7px',
-              borderRadius: '999px',
-              background: adsSummary.emptyAdBreaksCount > 0 ? '#dc2626' : '#d97706',
-              color: '#ffffff'
+              fontFamily: 'var(--font-mono)',
+              fontSize: '10.5px',
+              fontWeight: 700,
+              padding: '2px 7px',
+              borderRadius: '2px',
+              background: '#FBEFD6',
+              color: '#80632A'
             }}>
               {adsSummary.commercialSpotsCount} Spot + {adsSummary.bumperSpotsCount} RTÜK
             </span>
           </div>
-          <div style={{ fontSize: '11.5px', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary, #0A101D)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span>Süre: {formatSecondsReadable(adsSummary.totalAdDurationSec)}</span>
-            <span style={{ color: healthyAdItems === totalAdItems ? '#059669' : '#dc2626', fontSize: '11px' }}>
+            <span style={{ color: healthyAdItems === totalAdItems ? '#3C721F' : '#DD1C40', fontSize: '11px', fontFamily: 'var(--font-mono)' }}>
               Sağlam: {healthyAdItems}/{totalAdItems}
             </span>
           </div>
-          <div style={{ fontSize: '10.5px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ fontSize: '11px', color: 'var(--text-secondary, #4B6478)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span>
               {adsSummary.emptyAdBreaksCount > 0
-                ? `⚠️ ${adsSummary.emptyAdBreaksCount} boş kuşak var`
+                ? `${adsSummary.emptyAdBreaksCount} boş kuşak var`
                 : 'Sadece reklamları filtrele'}
             </span>
-            <Megaphone size={12} color="#d97706" />
+            <Megaphone size={12} color="#80632A" />
           </div>
         </div>
 
@@ -281,10 +287,11 @@ export default function ListControlWarningsPanel({
         <div
           onClick={() => setExpandedPanel(prev => (prev === 'issues' ? null : 'issues'))}
           style={{
-            padding: '8px 11px',
-            borderRadius: '10px',
-            background: problematicRowsCount > 0 ? 'rgba(220, 38, 38, 0.09)' : 'rgba(16, 185, 129, 0.08)',
-            border: problematicRowsCount > 0 ? '1.5px solid rgba(220, 38, 38, 0.42)' : '1px solid rgba(16, 185, 129, 0.32)',
+            padding: '10px 12px',
+            borderRadius: '6px',
+            background: '#FFFFFF',
+            border: '1px solid var(--border-color, #DCE5E9)',
+            borderTop: '4px solid var(--m-kontrol, #142A44)',
             cursor: 'pointer',
             display: 'flex',
             flexDirection: 'column',
@@ -295,8 +302,9 @@ export default function ListControlWarningsPanel({
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
             <span style={{
               fontSize: '10.5px',
-              fontWeight: 900,
-              color: problematicRowsCount > 0 ? '#dc2626' : '#059669'
+              fontWeight: 700,
+              color: 'var(--text-muted, #6A7C88)',
+              letterSpacing: '0.06em'
             }}>
               4. DB & HIGHRES ({allowedFormats.map(f => `.${f.toUpperCase()}`).join('/')})
             </span>
@@ -309,18 +317,17 @@ export default function ListControlWarningsPanel({
                 }}
                 style={{
                   padding: '2px 6px',
-                  borderRadius: '5px',
-                  border: '1px solid var(--border-color)',
-                  background: 'var(--bg-primary)',
-                  color: 'var(--text-primary)',
+                  borderRadius: '4px',
+                  border: '1px solid var(--border-color, #DCE5E9)',
+                  background: '#FFFFFF',
+                  color: 'var(--text-primary, #0A101D)',
                   fontSize: '10px',
-                  fontWeight: 800,
+                  fontWeight: 700,
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '3px'
                 }}
-                title="Dosya Formatı Ayarları (.mxf varsayılan)"
               >
                 <Settings size={10} />
                 <span>Format</span>
@@ -333,18 +340,17 @@ export default function ListControlWarningsPanel({
                 }}
                 style={{
                   padding: '2px 6px',
-                  borderRadius: '5px',
-                  border: '1px solid var(--border-color)',
-                  background: 'var(--bg-primary)',
-                  color: 'var(--text-primary)',
+                  borderRadius: '4px',
+                  border: '1px solid var(--border-color, #DCE5E9)',
+                  background: '#FFFFFF',
+                  color: 'var(--text-primary, #0A101D)',
                   fontSize: '10px',
-                  fontWeight: 800,
+                  fontWeight: 700,
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '3px'
                 }}
-                title="Bizim DB, MAM DB ve HighRes dosya yolunu yeniden denetle"
               >
                 <RefreshCw size={10} className={verifyingHealth ? 'animate-spin' : ''} />
                 <span>{verifyingHealth ? 'Taranıyor' : 'Denetle'}</span>
@@ -352,21 +358,21 @@ export default function ListControlWarningsPanel({
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', fontWeight: 800 }}>
-            <span style={{ color: dbOkCount === totalItems ? '#059669' : '#dc2626' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
+            <span style={{ color: dbOkCount === totalItems ? '#3C721F' : '#DD1C40' }}>
               DB: {dbOkCount}/{totalItems}
             </span>
-            <span style={{ color: fileOkCount === totalItems ? '#059669' : '#dc2626' }}>
+            <span style={{ color: fileOkCount === totalItems ? '#3C721F' : '#DD1C40' }}>
               HighRes: {fileOkCount}/{totalItems}
             </span>
-            <span style={{ color: healthyCount === totalItems ? '#059669' : '#dc2626' }}>
+            <span style={{ color: healthyCount === totalItems ? '#3C721F' : '#DD1C40' }}>
               Sağlam: {healthyCount}/{totalItems}
             </span>
           </div>
 
-          <div style={{ fontSize: '10.5px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ fontSize: '11px', color: 'var(--text-secondary, #4B6478)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span>
-              {problematicRowsCount > 0 ? `🔴 ${errorGroups.length} klipte sorun var` : '✓ Tüm klipler ve reklamlar sağlam'}
+              {problematicRowsCount > 0 ? `${errorGroups.length} klipte sorun var` : 'Tüm klipler ve reklamlar sağlam'}
             </span>
             {expandedPanel === 'issues' ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
           </div>

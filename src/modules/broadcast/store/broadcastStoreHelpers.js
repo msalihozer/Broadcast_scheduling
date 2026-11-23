@@ -17,8 +17,8 @@ import {
  * Yayın Planlama modülünde desteklenen TV kanalları.
  */
 export const BROADCAST_CHANNELS = [
-  { id: 'ch_hd', name: 'Semerkand HD', color: '#3b82f6', logo: '📺' },
-  { id: 'ch_way', name: 'Semerkand WAY', color: '#10b981', logo: '📡' }
+  { id: 'ch_hd', name: 'Semerkand HD', color: '#0C617C', logo: '' },
+  { id: 'ch_way', name: 'Semerkand WAY', color: '#468625', logo: '' }
 ];
 
 export { formatFramesHuman };
@@ -154,7 +154,7 @@ export function convertDraftSlotsToRundownItems(
         durationFrames: introFrames,
         durationSec: introSec,
         category: introSettings?.category || 'Jenerik / İntro',
-        categoryColor: '#6366f1',
+        categoryColor: '#0A101D',
         episodeNo: null,
         partNo: null,
         unitType: 'intro',
@@ -186,7 +186,7 @@ export function convertDraftSlotsToRundownItems(
       durationFrames: durationFrames,
       durationSec: Math.floor(durationFrames / BROADCAST_FPS),
       category: isFiller ? 'Dolgu Kuşağı' : isLive ? (d.category || 'Canlı Yayın') : (d.category || 'Genel'),
-      categoryColor: isFiller ? '#8b5cf6' : isLive ? '#ef4444' : (d.categoryColor || '#3b82f6'),
+      categoryColor: isFiller ? '#109AAD' : isLive ? '#DD1C40' : (d.categoryColor || '#0C617C'),
       episodeNo: d.episode || d.episodeNo || null,
       partNo: d.part || d.partNo || null,
       unitType: d.unitType || 'bolum',

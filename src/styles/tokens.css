@@ -1,0 +1,135 @@
+/* Yayın Planlama — tasarım değerleri (CSS değişkenleri). Kaynak: tokens.json */
+:root{
+  /* yazı */
+  --font-sans:'Roboto','Segoe UI',Arial,sans-serif;
+  --font-mono:'Roboto Mono',Consolas,monospace;
+  /* renk */
+  --renk-kurum-derin-turkuaz:#0C617C;
+  --renk-kurum-derin-turkuaz-koyu:#094B60;
+  --renk-kurum-derin-turkuaz-50:#E7F0F3;
+  --renk-kurum-derin-turkuaz-100:#CFE1E7;
+  --renk-kurum-gece:#0A101D;
+  --renk-kurum-lacivert:#142A44;
+  --renk-kurum-hardal:#E8B44C;
+  --renk-kurum-turuncu:#ED891E;
+  --renk-zemin-sayfa:#F5F7F6;
+  --renk-zemin-yuzey:#FFFFFF;
+  --renk-zemin-cizgi:#DCE5E9;
+  --renk-zemin-cizgi-ince:#EBF0F2;
+  --renk-zemin-ust-bar:#0C617C;
+  --renk-zemin-pencere-perdesi:rgba(10,16,29,.45);
+  --renk-metin-ana:#0A101D;
+  --renk-metin-ikincil:#4B6478;
+  --renk-metin-soluk:#6A7C88;
+  --renk-metin-koyu-zeminde:#FFFFFF;
+  --renk-metin-koyu-zeminde-ikincil:rgba(255,255,255,.72);
+  --renk-durum-canli:#DD1C40;
+  --renk-durum-yeni:#EDAB0A;
+  --renk-durum-tekrar:#109AAD;
+  --renk-durum-pasif:#5B5F66;
+  --renk-durum-basari-zemin:#E3EFDB;
+  --renk-durum-basari-yazi:#3C721F;
+  --renk-durum-uyari-zemin:#FBEFD6;
+  --renk-durum-uyari-yazi:#80632A;
+  --renk-durum-hata-zemin:color-mix(in srgb,#DD1C40 8%,#fff);
+  --renk-durum-hata-yazi:#DD1C40;
+  --renk-modul-taslak:#0C617C;
+  --renk-modul-ready:#468625;
+  --renk-modul-reklam:#E8B44C;
+  --renk-modul-reklam-yazi:#80632A;
+  --renk-modul-reklam-ikon:#0A101D;
+  --renk-modul-kontrol:#142A44;
+  --renk-modul-admin:#0A101D;
+  --renk-kategori-dini-ilim-kutu:#468625;
+  --renk-kategori-dini-ilim-yazi:#3C721F;
+  --renk-kategori-sohbet-tasavvuf-kutu:#058193;
+  --renk-kategori-sohbet-tasavvuf-yazi:#046E7D;
+  --renk-kategori-kultur-tarih-kutu:#ED891E;
+  --renk-kategori-kultur-tarih-yazi:#9A5914;
+  --renk-kategori-cocuk-genclik-kutu:#70AC42;
+  --renk-kategori-cocuk-genclik-yazi:#49702B;
+  --renk-kategori-kisa-dolgu-kutu:#109AAD;
+  --renk-kategori-kisa-dolgu-yazi:#0B6C79;
+  --renk-kategori-haber-kutu:#142A44;
+  --renk-kategori-haber-yazi:#142A44;
+  --renk-kategori-tanitim-kutu:#0C617C;
+  --renk-kategori-tanitim-yazi:#0C617C;
+  --renk-kategori-kadin-kutu:#C56D3B;
+  --renk-kategori-kadin-yazi:#94522C;
+  --renk-kategori-reklam-kutu:#E8B44C;
+  --renk-kategori-reklam-yazi:#80632A;
+  --renk-kategori-jenerik-intro-kutu:#0A101D;
+  --renk-kategori-jenerik-intro-yazi:#0A101D;
+  --renk-kategori-ham-kutu:#5B5F66;
+  --renk-kategori-ham-yazi:#5B5F66;
+  --renk-kusak-gece:#0B2B54;
+  --renk-kusak-sabah:#E8B44C;
+  --renk-kusak-gunduz-ogle:#109AAD;
+  --renk-kusak-aksam-prime:#0C617C;
+  --renk-reklam-kusagi-ana:#E8B44C;
+  --renk-reklam-kusagi-bos:#ED891E;
+  --renk-reklam-kusagi-dolu:#037181;
+  --renk-reklam-kusagi-dolgu:#109AAD;
+  --renk-reklam-kusagi-canli:#DD1C40;
+  --renk-reklam-kusagi-intro:#0A101D;
+  --renk-reklam-kusagi-giris-jenerigi:#468625;
+  --renk-reklam-kusagi-cikis-jenerigi:#ED891E;
+  --renk-gun-cizgi:#9CC3CF;
+  --renk-gun-saat-zemini:#E7F0F3;
+  --renk-gun-baslik-zemini:#F3F8FA;
+  --renk-gun-yazi:#0C617C;
+  --renk-liste-durumu-bekliyor:#E8B44C;
+  --renk-liste-durumu-planlandi:#0C617C;
+  --renk-liste-durumu-onaylandi:#468625;
+  --renk-liste-durumu-kontrol:#142A44;
+  --renk-liste-durumu-revize:#DD1C40;
+  --renk-liste-durumu-sarkma:#ED891E;
+  --renk-liste-durumu-bos:#F5F7F6;
+  /* köşe, çizgi, yükseklik */
+  --kose-kutu-dugme-alan:4px;
+  --kose-panel-kart:6px;
+  --kose-etiket:2px;
+  --kose-suzgec-hapi:999px;
+  --kose-avatar:50%;
+  --yukseklik-ust-bar:60px;
+  --yukseklik-arac-cubugu:68px;
+  --yukseklik-ikinci-cubuk:52px;
+  --yukseklik-dugme:36px;
+  --yukseklik-kucuk-dugme:30px;
+  --yukseklik-alan:36px;
+  --yukseklik-giris-alani:48px;
+  --yukseklik-ikon-dugme:28–34px;
+  --cizgi:1px;
+  --serit-kategori:5px;
+  --cizgi-modul:4px;
+  --cizgi-sekme:3px;
+  --golge-pencere:0 24px 60px rgba(10,16,29,.35);
+}
+
+/* temel */
+html{-webkit-font-smoothing:antialiased}
+body{font-family:var(--font-sans);color:var(--renk-metin-ana);background:var(--renk-zemin-sayfa)}
+.saat,.timecode,.dosya,.kod,time{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+
+/* kategori kutusu: --c kutu rengi, --t yazı rengi */
+.program-kutusu{background:color-mix(in srgb,var(--c) 12%,#fff);border:1px solid color-mix(in srgb,var(--c) 34%,#fff);border-left:var(--serit-kategori) solid var(--c);border-radius:var(--kose-kutu-dugme-alan)}
+.program-kutusu .ad{color:var(--t);font-weight:700}
+.program-kutusu.dolgu{border-style:dashed;border-left-style:solid}
+
+/* düğmeler */
+.dugme{height:var(--yukseklik-dugme);padding:0 14px;border-radius:var(--kose-kutu-dugme-alan);border:1px solid var(--renk-zemin-cizgi);background:#fff;font:500 13.5px var(--font-sans);display:inline-flex;align-items:center;gap:8px}
+.dugme.ana{background:var(--renk-kurum-derin-turkuaz);border-color:var(--renk-kurum-derin-turkuaz);color:#fff}
+.dugme.ana:hover{background:var(--renk-kurum-derin-turkuaz-koyu)}
+.dugme.ikincil{border-color:transparent;color:var(--renk-metin-ikincil)}
+.dugme.tehlike{border-color:color-mix(in srgb,var(--renk-durum-canli) 45%,#fff);color:var(--renk-durum-canli)}
+
+/* durum etiketleri */
+.etiket{font:900 10.5px var(--font-sans);letter-spacing:.08em;text-transform:uppercase;padding:3px 7px;border-radius:var(--kose-etiket)}
+.etiket.canli{background:var(--renk-durum-canli);color:#fff}
+.etiket.yeni{background:var(--renk-durum-yeni);color:var(--renk-kurum-gece)}
+.etiket.tekrar{background:var(--renk-durum-tekrar);color:#fff}
+.etiket.basari{background:var(--renk-durum-basari-zemin);color:var(--renk-durum-basari-yazi)}
+.etiket.uyari{background:var(--renk-durum-uyari-zemin);color:var(--renk-durum-uyari-yazi)}
+
+/* odak */
+.dugme:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--renk-kurum-hardal);outline-offset:2px}

@@ -87,23 +87,23 @@ export default function ListControlRundownRow({
   const themeConfig = useThemeStore(state => state.config);
   const lcMod = themeConfig?.modules?.['list-control'] || {};
   const sp = themeConfig?.specialColors || {};
-  const adBlockColor = lcMod.adBlockColor || sp.adBreakColor || '#d97706';
-  const introBlockColor = sp.introColor || '#6366f1';
-  const catColor = getCategoryColor(item.categoryName || item.category) || item.categoryColor || lcMod.programBlockColor || '#2563eb';
+  const adBlockColor = lcMod.adBlockColor || sp.adBreakColor || '#E8B44C';
+  const introBlockColor = sp.introColor || '#0A101D';
+  const catColor = getCategoryColor(item.categoryName || item.category) || item.categoryColor || lcMod.programBlockColor || '#0C617C';
   const catTitleColor = lcMod.useCategoryTitleColor !== false
     ? getCategoryTitleTextColor(item.categoryName || item.category)
     : null;
-  const lcLeftAccent = Number(lcMod.leftAccentWidth) || 4;
+  const lcLeftAccent = Number(lcMod.leftAccentWidth) || 5;
   const lcTintAlpha = Math.max(0.02, Math.min(0.25, (Number(lcMod.cardTintOpacity) || 8) / 100));
   const lcShadowObj = BOX_SHADOW_OPTIONS.find(s => s.id === lcMod.boxShadow) || BOX_SHADOW_OPTIONS[0];
 
   const leftBorderColor = hasHealthError
-    ? '#dc2626'
+    ? '#DD1C40'
     : item.revisionRequested
-    ? '#d97706'
+    ? '#E8B44C'
     : isAd
     ? item.isSponsor
-      ? '#7c3aed'
+      ? '#ED891E'
       : adBlockColor
     : isIntro
     ? introBlockColor
@@ -229,30 +229,31 @@ export default function ListControlRundownRow({
           {/* Açık Tür Rozeti: Klip mi Reklam mı */}
           <span style={{
             fontSize: fs(10),
-            fontWeight: 900,
-            padding: '1px 6px',
-            borderRadius: '4px',
+            fontWeight: 700,
+            padding: '2px 7px',
+            borderRadius: '2px',
             background: isAd
               ? item.isBumperAd
-                ? '#059669'
+                ? '#468625'
                 : item.isSponsor
-                ? '#7c3aed'
-                : '#d97706'
+                ? '#ED891E'
+                : '#E8B44C'
               : isIntro
-              ? '#6366f1'
-              : '#2563eb',
-            color: '#ffffff',
-            flexShrink: 0
+              ? '#0A101D'
+              : '#0C617C',
+            color: isAd && !item.isBumperAd && !item.isSponsor ? '#0A101D' : '#ffffff',
+            flexShrink: 0,
+            letterSpacing: '0.03em'
           }}>
             {isAd
               ? item.isBumperAd
-                ? `📢 RTÜK ${item.bumperType === 'intro' ? 'GİRİŞ' : 'ÇIKIŞ'}`
+                ? `RTÜK ${item.bumperType === 'intro' ? 'GİRİŞ' : 'ÇIKIŞ'}`
                 : item.isSponsor
-                ? '🏆 SPONSOR REKLAM'
-                : '📢 REKLAM'
+                ? 'SPONSOR REKLAM'
+                : 'REKLAM'
               : isIntro
-              ? '🎬 İNTRO KLİP'
-              : '🎬 PROGRAM KLİBİ'}
+              ? 'İNTRO KLİP'
+              : 'PROGRAM KLİBİ'}
           </span>
 
           <span style={{
@@ -396,7 +397,7 @@ export default function ListControlRundownRow({
                 textTransform: 'uppercase',
                 whiteSpace: 'nowrap'
               }}>
-                {isAdLogoEvent ? '📢 REKLAM LOGOSU GİRİŞ' : '📺 YAYIN LOGOSU GİRİŞ'}
+                {isAdLogoEvent ? 'REKLAM LOGOSU GİRİŞ' : 'YAYIN LOGOSU GİRİŞ'}
               </span>
 
               {onUpdateLogoEvent && (

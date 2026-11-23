@@ -1,36 +1,17 @@
 /**
  * @file DraftHeader.jsx
- * @description Taslak Planlama modülü kurumsal üst kontrol, aksiyon butonları, arama ve görünüm seçici barı.
- * Kurumsal SaaS tasarım dili (Plus Jakarta Sans & JetBrains Mono, katmanlı gölgeler ve zarif ikon rozetli butonlar).
+ * @description Semerkand TV Kurumsal Kimlik 2026 - Taslak Planlama modülü 68px beyaz araç çubuğu.
+ * Sol: 34x34 Derin Turkuaz (#0C617C) ikon karesi + Taslak Planlama başlığı + Kanal seçici + Hafta seçici + Görünüm (Izgara/Tablo).
+ * Sağ: Kütüphane, Taslaklar, Excel Akışı Yükle, Raporlar, ⋯ menüsü (Kısayollar, Haftayı/Günü Temizle) ve tek ana aksiyon butonu (Kaydet / Yayına Gönder).
  */
-import React from 'react';
-import {
-  Calendar,
-  Layers,
-  Search,
-  X,
-  Grid3X3,
-  ListFilter,
-  Upload,
-  Trash2,
-  RotateCcw,
-  ChevronLeft,
-  ChevronRight,
-  ChevronDown,
-  Keyboard,
-  Tv,
-  Save,
-  Check,
-  Loader2,
-  FolderPlus,
-  Send,
-  BarChart3
-} from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import usePlanningStore from '../../../store/planningStore';
+import useDialogStore from '../../../store/dialogStore';
 import useResponsive from '../../../hooks/useResponsive';
+import Ikon from '../../../components/Ikon';
 
 const DraftHeader = ({
-  currentChannel,
-  channels,
+  channels = [],
   selectedChannel,
   onSelectChannel,
   channelHasListMap = {},
@@ -53,122 +34,157 @@ const DraftHeader = ({
   onOpenReports
 }) => {
   const { isMobile, isCompact } = useResponsive();
+  const [draftMenuOpen, setDraftMenuOpen] = useState(false);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const [isPromptingDraft, setIsPromptingDraft] = useState(false);
+  const [newDraftName, setNewDraftName] = useState('');
+
+  const draftMenuRef = useRef(null);
+  const moreMenuRef = useRef(null);
+
+  const currentMode = usePlanningStore(state => state.currentMode) || 'draft';
+  const drafts = usePlanningStore(state => (state.drafts || []).filter(d => (d.mode || 'draft') === currentMode));
+  const saveDraft = usePlanningStore(state => state.saveDraft);
+  const applyDraft = usePlanningStore(state => state.applyDraft);
+  const deleteDraft = usePlanningStore(state => state.deleteDraft);
+
+  useEffect(() => {
+    const handleOutside = (e) => {
+      if (draftMenuRef.current && !draftMenuRef.current.contains(e.target)) {
+        setDraftMenuOpen(false);
+      }
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target)) {
+        setMoreMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, []);
+
   return (
     <div style={{
+      minHeight: isCompact ? 'auto' : '52px',
       display: 'flex',
-      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      flexWrap: 'wrap',
       gap: isMobile ? '8px' : '12px',
       width: '100%',
       fontFamily: 'var(--font-sans)'
     }}>
-      {/* 1. SATIR: SOL BAŞLIK | ORTA TARİH/HAFTA SEÇİMİ | SAĞ KANAL & IZGARA/TABLO */}
+      {/* SOL GRUP: Modül İkon Karesi + Başlık + Kanal + Hafta + Görünüm */}
       <div style={{
-        display: 'grid',
-        gridTemplateColumns: isCompact ? '1fr' : 'minmax(240px, 1fr) auto minmax(280px, 1fr)',
+        display: 'flex',
         alignItems: 'center',
-        gap: isMobile ? '10px' : '14px',
-        width: '100%'
+        flexWrap: 'wrap',
+        gap: isMobile ? '8px' : '12px'
       }}>
-        {/* Sol: Modül Logosu, Kurumsal Başlık ve Durum Rozeti */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px', justifySelf: isCompact ? 'center' : 'start', minWidth: 0, flexWrap: 'wrap', justifyContent: isCompact ? 'center' : 'flex-start' }}>
+        {/* 34x34 Modül Başlığı */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginRight: '4px' }}>
           <div style={{
-            width: isMobile ? '34px' : '42px',
-            height: isMobile ? '34px' : '42px',
-            borderRadius: '11px',
-            background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 55%, #0ea5e9 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 6px 16px -3px rgba(37, 99, 235, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25)',
+            width: '34px',
+            height: '34px',
+            borderRadius: '4px',
+            background: 'var(--m-taslak, #0C617C)',
+            color: '#FFFFFF',
+            display: 'grid',
+            placeItems: 'center',
             flexShrink: 0
           }}>
-            <Calendar size={isMobile ? 17 : 20} color="#ffffff" />
+            <Ikon ad="taslak" size={20} />
           </div>
-
-          <div style={{ textAlign: isCompact ? 'center' : 'left' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: isCompact ? 'center' : 'flex-start' }}>
-              <h1 style={{
-                fontFamily: 'var(--font-sans)',
-                fontSize: isMobile ? '15.5px' : '19px',
-                fontWeight: 800,
-                margin: 0,
-                letterSpacing: '-0.03em',
-                color: 'var(--text-primary)'
-              }}>
-                Taslak Yayın Planlama Stüdyosu
-              </h1>
-
-              {!isMobile && (
-                <span style={{
-                  fontSize: '10.5px',
-                  fontWeight: 700,
-                  padding: '2.5px 9px',
-                  borderRadius: '999px',
-                  background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.14) 0%, rgba(37, 99, 235, 0.1) 100%)',
-                  color: '#0891b2',
-                  border: '1px solid rgba(6, 182, 212, 0.3)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}>
-                  <Layers size={11} /> Akıllı Süre & Kuşak Motoru
-                </span>
-              )}
-            </div>
-
-            <div style={{
-              fontSize: '11px',
-              color: 'var(--text-muted)',
-              marginTop: '2px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: isCompact ? 'center' : 'flex-start',
-              flexWrap: 'wrap',
-              gap: '6px'
-            }}>
-              <span>Aktif Yayın Kanalı:</span>
-              <strong style={{ color: 'var(--text-primary)', fontWeight: 700 }}>
-                {currentChannel?.name || 'Semerkand HD'}
-              </strong>
-              <span>•</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600 }}>
-                7 Gün × 24 Saat (1440 dk)
-              </span>
-            </div>
-          </div>
+          <h1 style={{
+            fontSize: isMobile ? '17px' : '20px',
+            fontWeight: 300,
+            color: 'var(--text-primary, #0A101D)',
+            letterSpacing: '-0.02em',
+            whiteSpace: 'nowrap',
+            margin: 0
+          }}>
+            Taslak <b style={{ fontWeight: 700 }}>Planlama</b>
+          </h1>
         </div>
 
-        {/* Orta: Kurumsal Hafta ve Tarih Gezgini (Tam Ortada Sabit) */}
+        {/* Kanal Seçici (Segmented) */}
         <div style={{
-          display: 'flex',
+          display: 'inline-flex',
+          border: '1px solid var(--border-color, #DCE5E9)',
+          borderRadius: '4px',
+          background: 'var(--bg-primary, #F5F7F6)',
+          padding: '2px',
+          gap: '2px'
+        }}>
+          {channels.map(ch => {
+            const isActive = selectedChannel === ch.id;
+            const hasChannelList = Boolean(channelHasListMap?.[ch.id]);
+            return (
+              <button
+                key={ch.id}
+                type="button"
+                onClick={() => onSelectChannel(ch.id)}
+                title={
+                  hasChannelList
+                    ? `${ch.name} — Bu hafta için yayın listesi yüklü`
+                    : `${ch.name} — Bu hafta için henüz yayın listesi yüklü değil`
+                }
+                style={{
+                  height: '32px',
+                  padding: '0 12px',
+                  border: 0,
+                  background: isActive ? 'var(--turkuaz, #0C617C)' : 'transparent',
+                  color: isActive ? '#FFFFFF' : 'var(--text-secondary, #4B6478)',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  borderRadius: '3px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  fontFamily: 'inherit'
+                }}
+              >
+                <Ikon ad="kanal" size={14} />
+                <span>{ch.name}</span>
+                {!hasChannelList && (
+                  <span style={{
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '50%',
+                    background: 'var(--hardal, #E8B44C)'
+                  }} />
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Hafta / Tarih Seçici */}
+        <div style={{
+          display: 'inline-flex',
           alignItems: 'center',
-          justifyContent: 'center',
-          justifySelf: 'center',
-          gap: '4px',
-          background: 'var(--bg-primary)',
-          border: '1.5px solid var(--border-color)',
-          borderRadius: '11px',
-          padding: '4px',
-          boxShadow: 'var(--shadow-sm)'
+          height: '36px',
+          border: '1px solid var(--border-color, #DCE5E9)',
+          borderRadius: '4px',
+          background: '#FFFFFF',
+          overflow: 'hidden'
         }}>
           <button
             type="button"
             onClick={onPrevWeek}
-            title="Önceki Hafta (7 gün geri git)"
+            title="Önceki Hafta"
             style={{
-              background: 'var(--bg-secondary)',
-              border: '1px solid var(--border-light)',
               width: '32px',
-              height: '32px',
-              borderRadius: '8px',
-              color: 'var(--text-secondary)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
+              height: '100%',
+              border: 0,
+              background: 'transparent',
+              color: 'var(--text-secondary, #4B6478)',
+              display: 'grid',
+              placeItems: 'center',
+              cursor: 'pointer'
             }}
           >
-            <ChevronLeft size={16} />
+            <Ikon ad="sol" size={16} />
           </button>
 
           <button
@@ -176,363 +192,532 @@ const DraftHeader = ({
             onClick={onOpenCalendar}
             title="Takvim ve Hafta Gezginini Aç"
             style={{
-              background: 'var(--bg-secondary)',
-              border: '1px solid var(--border-light)',
-              borderRadius: '8px',
-              padding: '6px 16px',
-              height: '32px',
-              color: 'var(--text-primary)',
-              fontSize: '13px',
-              fontWeight: 800,
-              cursor: 'pointer',
-              display: 'flex',
+              height: '100%',
+              padding: '0 12px',
+              border: 0,
+              borderLeft: '1px solid var(--border-light, #EBF0F2)',
+              borderRight: '1px solid var(--border-light, #EBF0F2)',
+              background: 'transparent',
+              fontFamily: 'var(--font-mono)',
+              fontSize: '12px',
+              fontWeight: 700,
+              color: 'var(--text-primary, #0A101D)',
+              display: 'inline-flex',
               alignItems: 'center',
-              gap: '8px',
-              boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+              gap: '7px',
+              cursor: 'pointer',
               whiteSpace: 'nowrap'
             }}
           >
-            <Calendar size={14} color="var(--accent-primary)" />
-            <span style={{ letterSpacing: '-0.01em' }}>{dateRangeLabel || '27 Ekim - 2 Kasım 2025'}</span>
-            <ChevronDown size={13} color="var(--text-muted)" />
+            <Ikon ad="hafta" size={15} color="var(--turkuaz, #0C617C)" />
+            <span>{dateRangeLabel || '23 - 29 Kasım 2026'}</span>
           </button>
 
           <button
             type="button"
             onClick={onNextWeek}
-            title="Sonraki Hafta (7 gün ileri git)"
+            title="Sonraki Hafta"
             style={{
-              background: 'var(--bg-secondary)',
-              border: '1px solid var(--border-light)',
               width: '32px',
-              height: '32px',
-              borderRadius: '8px',
-              color: 'var(--text-secondary)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
+              height: '100%',
+              border: 0,
+              background: 'transparent',
+              color: 'var(--text-secondary, #4B6478)',
+              display: 'grid',
+              placeItems: 'center',
+              cursor: 'pointer'
             }}
           >
-            <ChevronRight size={16} />
+            <Ikon ad="sag" size={16} />
           </button>
         </div>
 
-        {/* Sağ: Belirgin Kanal Seçimi (Liste Yüklü Değilse Turuncu) & Izgara / Tablo Seçici */}
+        {/* Görünüm Modu (Izgara / Tablo) */}
         <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: isCompact ? 'center' : 'flex-end',
-          justifySelf: isCompact ? 'center' : 'end',
-          flexWrap: 'wrap',
-          gap: '8px',
-          flexShrink: 0
+          display: 'inline-flex',
+          border: '1px solid var(--border-color, #DCE5E9)',
+          borderRadius: '4px',
+          background: 'var(--bg-primary, #F5F7F6)',
+          padding: '2px',
+          gap: '2px'
         }}>
-          {/* Kanal Değiştirici (HD / WAY - Liste yüklü değil ise Turuncu) */}
-          <div style={{
-            display: 'flex',
-            background: 'var(--bg-primary)',
-            borderRadius: '12px',
-            padding: '4px',
-            border: '1.5px solid var(--border-color)',
-            gap: '5px',
-            boxShadow: 'var(--shadow-sm)'
-          }}>
-            {channels.map(ch => {
-              const isActive = selectedChannel === ch.id;
-              const hasChannelList = Boolean(channelHasListMap?.[ch.id]);
-              return (
-                <button
-                  key={ch.id}
-                  type="button"
-                  onClick={() => onSelectChannel(ch.id)}
-                  title={
-                    hasChannelList
-                      ? `${ch.name} — Bu hafta için yayın listesi yüklü`
-                      : `${ch.name} — Bu hafta için henüz yayın listesi yüklü değil`
-                  }
-                  style={{
-                    padding: '7px 14px',
-                    borderRadius: '9px',
-                    border: !hasChannelList
-                      ? isActive
-                        ? '1.5px solid #c2410c'
-                        : '1.5px solid rgba(245, 158, 11, 0.65)'
-                      : isActive
-                      ? '1.5px solid #1d4ed8'
-                      : '1.5px solid transparent',
-                    background: !hasChannelList
-                      ? isActive
-                        ? 'linear-gradient(135deg, #ea580c 0%, #f59e0b 100%)'
-                        : 'rgba(245, 158, 11, 0.16)'
-                      : isActive
-                      ? 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)'
-                      : 'var(--bg-secondary)',
-                    color: !hasChannelList
-                      ? isActive
-                        ? '#ffffff'
-                        : '#c2410c'
-                      : isActive
-                      ? '#ffffff'
-                      : 'var(--text-primary)',
-                    fontSize: '12.5px',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    boxShadow: isActive
-                      ? !hasChannelList
-                        ? '0 3px 10px rgba(234, 88, 12, 0.35)'
-                        : '0 3px 10px rgba(37, 99, 235, 0.32)'
-                      : 'none',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    whiteSpace: 'nowrap',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  <Tv size={14} />
-                  <span>{ch.name}</span>
-                  <span style={{
-                    width: '7px',
-                    height: '7px',
-                    borderRadius: '50%',
-                    background: !hasChannelList
-                      ? isActive ? '#fef08a' : '#f59e0b'
-                      : isActive ? '#34d399' : '#10b981',
-                    boxShadow: !hasChannelList
-                      ? '0 0 6px rgba(245, 158, 11, 0.8)'
-                      : '0 0 5px rgba(16, 185, 129, 0.6)'
-                  }} />
-                </button>
-              );
-            })}
-          </div>
+          <button
+            type="button"
+            onClick={() => onViewModeChange('grid')}
+            title="Haftalık Sütun Izgarası Görünümü (G)"
+            style={{
+              height: '32px',
+              padding: '0 12px',
+              border: 0,
+              background: viewMode === 'grid' ? 'var(--turkuaz, #0C617C)' : 'transparent',
+              color: viewMode === 'grid' ? '#FFFFFF' : 'var(--text-secondary, #4B6478)',
+              fontSize: '12px',
+              fontWeight: 700,
+              borderRadius: '3px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer'
+            }}
+          >
+            <Ikon ad="izgara" size={14} />
+            <span>Izgara</span>
+          </button>
 
-          {/* Görünüm Modu Seçici (Izgara / Tablo - Sağda Sabit) */}
-          <div style={{
-            display: 'flex',
-            background: 'var(--bg-primary)',
-            borderRadius: '11px',
-            padding: '4px',
-            border: '1.5px solid var(--border-color)',
-            gap: '3px',
-            boxShadow: 'var(--shadow-sm)'
-          }}>
-            <button
-              type="button"
-              onClick={() => onViewModeChange('grid')}
-              title="Haftalık Sütun Izgarası Görünümü (G)"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px',
-                padding: '6px 12px',
-                borderRadius: '8px',
-                border: 'none',
-                background: viewMode === 'grid' ? 'var(--accent-primary)' : 'transparent',
-                color: viewMode === 'grid' ? '#ffffff' : 'var(--text-secondary)',
-                fontSize: '12px',
-                fontWeight: 800,
-                cursor: 'pointer',
-                boxShadow: viewMode === 'grid' ? '0 2px 6px rgba(37, 99, 235, 0.25)' : 'none',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              <Grid3X3 size={13} />
-              <span>Izgara</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => onViewModeChange('rundown')}
-              title="Sıralı Rundown Tablosu Görünümü (R)"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px',
-                padding: '6px 12px',
-                borderRadius: '8px',
-                border: 'none',
-                background: viewMode === 'rundown' ? 'var(--accent-primary)' : 'transparent',
-                color: viewMode === 'rundown' ? '#ffffff' : 'var(--text-secondary)',
-                fontSize: '12px',
-                fontWeight: 800,
-                cursor: 'pointer',
-                boxShadow: viewMode === 'rundown' ? '0 2px 6px rgba(37, 99, 235, 0.25)' : 'none',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              <ListFilter size={13} />
-              <span>Tablo</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => onViewModeChange('rundown')}
+            title="Sıralı Rundown Tablosu Görünümü (R)"
+            style={{
+              height: '32px',
+              padding: '0 12px',
+              border: 0,
+              background: viewMode === 'rundown' ? 'var(--turkuaz, #0C617C)' : 'transparent',
+              color: viewMode === 'rundown' ? '#FFFFFF' : 'var(--text-secondary, #4B6478)',
+              fontSize: '12px',
+              fontWeight: 700,
+              borderRadius: '3px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer'
+            }}
+          >
+            <Ikon ad="tablo" size={14} />
+            <span>Tablo</span>
+          </button>
         </div>
       </div>
 
-      {/* 2. SATIR: KURUMSAL AKSİYON BUTONLARI */}
+      {/* SAĞ GRUP: İkincil Ghost Butonlar + Tek Ana Aksiyon Butonu */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between',
         flexWrap: 'wrap',
-        gap: '10px',
-        background: 'var(--bg-primary)',
-        padding: '8px 12px',
-        borderRadius: '12px',
-        border: '1px solid var(--border-color)',
-        boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.5)'
+        gap: '8px'
       }}>
-        {/* Sol Kurumsal Buton Grubu */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          {/* Program Kütüphanesi Aç/Kapat Butonu */}
-          <button
-            type="button"
-            onClick={onToggleLibrary}
-            className="corp-btn"
-            title={isLibraryOpen ? 'Program ve Dolgu Kuşağı panelini gizle' : 'Program Kütüphanesi ve Dolgu Kuşağı panelini aç'}
-            style={{
-              background: isLibraryOpen
-                ? 'linear-gradient(135deg, #312e81 0%, #4338ca 100%)'
-                : 'var(--bg-secondary)',
-              color: isLibraryOpen ? '#ffffff' : 'var(--text-primary)',
-              border: isLibraryOpen
-                ? '1px solid #312e81'
-                : '1px solid var(--border-color)',
-              boxShadow: isLibraryOpen
-                ? '0 3px 10px rgba(67, 56, 202, 0.28), inset 0 1px 0 rgba(255,255,255,0.2)'
-                : 'var(--shadow-sm)'
-            }}
-          >
-            <FolderPlus size={14} color={isLibraryOpen ? '#c7d2fe' : '#4f46e5'} />
-            <span>{isLibraryOpen ? 'Kütüphane Açık' : 'Program Kütüphanesi'}</span>
-          </button>
+        {/* Program Kütüphanesi Aç/Kapat */}
+        <button
+          type="button"
+          onClick={onToggleLibrary}
+          className="btn ghost"
+          title={isLibraryOpen ? 'Program Kütüphanesi panelini gizle' : 'Program Kütüphanesi panelini göster'}
+          style={{
+            height: '36px',
+            padding: '0 12px',
+            borderRadius: '4px',
+            border: isLibraryOpen ? '1px solid var(--turkuaz, #0C617C)' : '1px solid var(--border-color, #DCE5E9)',
+            background: isLibraryOpen ? 'var(--turkuaz-50, #E7F0F3)' : '#FFFFFF',
+            color: isLibraryOpen ? 'var(--turkuaz, #0C617C)' : 'var(--text-primary, #0A101D)',
+            fontSize: '12px',
+            fontWeight: 700,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '7px',
+            cursor: 'pointer'
+          }}
+        >
+          <Ikon ad="panel" size={15} />
+          <span>{isLibraryOpen ? 'Kütüphane Açık' : 'Kütüphane'}</span>
+        </button>
 
-          {/* Excel Akışı Yükle Butonu */}
+        {/* Taslaklar Açılır Menüsü */}
+        <div ref={draftMenuRef} style={{ position: 'relative' }}>
           <button
             type="button"
-            onClick={onOpenImportModal}
-            disabled={isImporting}
-            className="corp-btn"
-            title="Haftalık akış Excel dosyasını (.xlsx) yükleyip hedef kanallara aktarır (Ctrl+E)"
-            style={{
-              background: 'var(--bg-secondary)',
-              color: 'var(--text-primary)',
-              border: '1px solid var(--border-color)',
-              boxShadow: 'var(--shadow-sm)',
-              opacity: isImporting ? 0.7 : 1
+            onClick={() => {
+              setDraftMenuOpen(prev => !prev);
+              setIsPromptingDraft(false);
             }}
-          >
-            <span style={{
-              width: '20px',
-              height: '20px',
-              borderRadius: '5px',
-              background: 'rgba(16, 185, 129, 0.14)',
-              color: '#059669',
+            style={{
+              height: '36px',
+              padding: '0 12px',
+              borderRadius: '4px',
+              border: '1px solid var(--border-color, #DCE5E9)',
+              background: '#FFFFFF',
+              color: 'var(--text-primary, #0A101D)',
+              fontSize: '12px',
+              fontWeight: 700,
               display: 'inline-flex',
               alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <Upload size={12} />
-            </span>
-            <span>{isImporting ? 'Excel Aktarılıyor...' : 'Excel Akışı Yükle'}</span>
+              gap: '7px',
+              cursor: 'pointer'
+            }}
+          >
+            <Ikon ad="taslaklar" size={15} />
+            <span>Taslaklar</span>
           </button>
 
-          {/* Dinamik Kaydet / Yayına Gönder Butonu */}
-          {saveStatus === 'saving' ? (
-            <button
-              type="button"
-              disabled
-              className="corp-btn"
-              style={{
-                background: 'var(--bg-secondary)',
-                color: 'var(--text-primary)',
-                border: '1px solid var(--border-color)',
-                boxShadow: 'var(--shadow-sm)',
-                opacity: 0.8
-              }}
-            >
-              <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
-              <span>Kaydediliyor...</span>
-            </button>
-          ) : saveStatus === 'unsaved' ? (
-            <button
-              type="button"
-              onClick={onSaveSchedule}
-              className="corp-btn"
-              title="Yapılan değişiklikleri kaydet (Ctrl+S). Kaydedildikten sonra Yayına Gönder butonu aktif olur."
-              style={{
-                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                color: '#ffffff',
-                border: '1px solid #b45309',
-                boxShadow: '0 3px 12px rgba(245, 158, 11, 0.35), inset 0 1px 0 rgba(255,255,255,0.25)'
-              }}
-            >
-              <Save size={14} />
-              <span>Kaydet (Ctrl+S)</span>
-              <span style={{
-                width: '7px',
-                height: '7px',
-                borderRadius: '50%',
-                background: '#fef08a',
-                boxShadow: '0 0 6px #ffffff'
-              }} />
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={onOpenSendModal}
-              className="corp-btn"
-              title="Akış kaydedildi. Hazırlanan taslak akışını Yayın Planlama ekranına aktar."
-              style={{
-                background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)',
-                color: '#ffffff',
-                border: '1px solid #1d4ed8',
-                boxShadow: '0 3px 12px rgba(37, 99, 235, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.25)'
-              }}
-            >
-              <Send size={13} />
-              <span>Yayına Gönder</span>
-            </button>
-          )}
+          {draftMenuOpen && (
+            <div style={{
+              position: 'absolute',
+              top: '42px',
+              right: 0,
+              background: '#FFFFFF',
+              border: '1px solid var(--border-color, #DCE5E9)',
+              borderRadius: '6px',
+              padding: '8px',
+              zIndex: 1000,
+              minWidth: '240px',
+              boxShadow: 'var(--modal-shadow)'
+            }}>
+              {!isPromptingDraft ? (
+                <button
+                  type="button"
+                  onClick={() => setIsPromptingDraft(true)}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '8px 10px',
+                    border: 0,
+                    background: 'transparent',
+                    borderRadius: '4px',
+                    fontSize: '12.5px',
+                    fontWeight: 700,
+                    color: 'var(--turkuaz, #0C617C)',
+                    cursor: 'pointer',
+                    textAlign: 'left'
+                  }}
+                >
+                  <Ikon ad="ekle" size={15} />
+                  <span>Mevcut Akışı Taslak Yap</span>
+                </button>
+              ) : (
+                <div style={{ padding: '6px', display: 'flex', gap: '6px' }}>
+                  <input
+                    type="text"
+                    placeholder="Taslak İsmi"
+                    value={newDraftName}
+                    onChange={e => setNewDraftName(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && newDraftName.trim()) {
+                        saveDraft(newDraftName.trim());
+                        setNewDraftName('');
+                        setIsPromptingDraft(false);
+                      }
+                    }}
+                    autoFocus
+                    style={{
+                      flex: 1,
+                      background: 'var(--bg-primary, #F5F7F6)',
+                      color: 'var(--text-primary, #0A101D)',
+                      border: '1px solid var(--border-color, #DCE5E9)',
+                      borderRadius: '4px',
+                      padding: '5px 8px',
+                      fontSize: '12px'
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (newDraftName.trim()) {
+                        saveDraft(newDraftName.trim());
+                        setNewDraftName('');
+                        setIsPromptingDraft(false);
+                      }
+                    }}
+                    style={{
+                      background: 'var(--turkuaz, #0C617C)',
+                      color: '#FFFFFF',
+                      border: 0,
+                      borderRadius: '4px',
+                      padding: '0 10px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Kaydet
+                  </button>
+                </div>
+              )}
 
-          {/* Liste Temizleme Butonu */}
-          {hasPrograms && (
-            <button
-              type="button"
-              onClick={onClearSchedule}
-              className="corp-btn"
-              title={selectedDayKey === 'all' ? 'Tüm haftalık akışı temizle' : 'Seçili günün akışını temizle'}
-              style={{
-                background: 'var(--bg-secondary)',
-                color: 'var(--danger)',
-                border: '1px solid rgba(225, 29, 72, 0.25)',
-                boxShadow: 'var(--shadow-sm)'
-              }}
-            >
-              <Trash2 size={13} />
-              <span>{selectedDayKey === 'all' ? 'Haftayı Temizle' : 'Günü Temizle'}</span>
-            </button>
-          )}
-
-          {/* Detaylı Taslak Raporları & Yayın Planlama Karşılaştırma Butonu */}
-          {onOpenReports && (
-            <button
-              type="button"
-              onClick={onOpenReports}
-              className="corp-btn"
-              title="Taslak Planlama Detaylı Raporları, Haftalık/Aylık/Yıllık Analiz, Yayın Planlama Karşılaştırması ve PDF/Excel/CSV Çıktısı"
-              style={{
-                background: 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%)',
-                color: '#ffffff',
-                border: '1px solid #1e40af',
-                boxShadow: '0 3px 10px rgba(30, 58, 138, 0.25)'
-              }}
-            >
-              <BarChart3 size={14} color="#38bdf8" />
-              <span>Detaylı Raporlar &amp; Çıktı (PDF / Excel / CSV)</span>
-            </button>
+              {drafts.length > 0 && (
+                <>
+                  <div style={{ height: '1px', background: 'var(--border-color, #DCE5E9)', margin: '6px 0' }} />
+                  <div style={{ fontSize: '10px', color: 'var(--text-muted, #6A7C88)', padding: '2px 8px 4px', textTransform: 'uppercase', fontWeight: 700 }}>
+                    Kayıtlı Taslaklar ({drafts.length}/10)
+                  </div>
+                  <div style={{ maxHeight: '220px', overflowY: 'auto' }}>
+                    {drafts.map(draft => (
+                      <div
+                        key={draft.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '5px 8px',
+                          borderRadius: '4px'
+                        }}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => {
+                            useDialogStore.getState().showConfirm(
+                              'Taslağı Uygula',
+                              `"${draft.name}" taslağını uygulamak istiyor musunuz? (Mevcut akışın üzerine yazılır)`,
+                              () => {
+                                applyDraft(draft.id);
+                                setDraftMenuOpen(false);
+                              }
+                            );
+                          }}
+                          style={{
+                            flex: 1,
+                            border: 0,
+                            background: 'transparent',
+                            textAlign: 'left',
+                            fontSize: '12.5px',
+                            color: 'var(--text-primary, #0A101D)',
+                            cursor: 'pointer',
+                            padding: '2px 4px'
+                          }}
+                        >
+                          {draft.name}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteDraft(draft.id);
+                          }}
+                          title="Taslağı Sil"
+                          style={{
+                            border: 0,
+                            background: 'transparent',
+                            color: 'var(--danger, #DD1C40)',
+                            cursor: 'pointer',
+                            padding: '2px'
+                          }}
+                        >
+                          <Ikon ad="sil" size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           )}
         </div>
+
+        {/* Excel Akışı Yükle */}
+        <button
+          type="button"
+          onClick={onOpenImportModal}
+          disabled={isImporting}
+          title="Haftalık akış Excel dosyasını (.xlsx) yükle (Ctrl+E)"
+          style={{
+            height: '36px',
+            padding: '0 12px',
+            borderRadius: '4px',
+            border: '1px solid var(--border-color, #DCE5E9)',
+            background: '#FFFFFF',
+            color: 'var(--text-primary, #0A101D)',
+            fontSize: '12px',
+            fontWeight: 700,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '7px',
+            cursor: isImporting ? 'wait' : 'pointer',
+            opacity: isImporting ? 0.7 : 1
+          }}
+        >
+          <Ikon ad="yukle" size={15} />
+          <span>{isImporting ? 'Excel Aktarılıyor...' : 'Excel Akışı Yükle'}</span>
+        </button>
+
+        {/* Raporlar */}
+        {onOpenReports && (
+          <button
+            type="button"
+            onClick={onOpenReports}
+            title="Detaylı Raporlar & Çıktı (PDF / Excel / CSV)"
+            style={{
+              height: '36px',
+              padding: '0 12px',
+              borderRadius: '4px',
+              border: '1px solid var(--border-color, #DCE5E9)',
+              background: '#FFFFFF',
+              color: 'var(--text-primary, #0A101D)',
+              fontSize: '12px',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '7px',
+              cursor: 'pointer'
+            }}
+          >
+            <Ikon ad="rapor" size={15} />
+            <span>Raporlar</span>
+          </button>
+        )}
+
+        {/* ⋯ Menüsü (Kısayollar, Haftayı/Günü Temizle) */}
+        <div ref={moreMenuRef} style={{ position: 'relative' }}>
+          <button
+            type="button"
+            onClick={() => setMoreMenuOpen(prev => !prev)}
+            title="Görünüm, Kısayollar, Haftayı Temizle"
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '4px',
+              border: '1px solid var(--border-color, #DCE5E9)',
+              background: '#FFFFFF',
+              color: 'var(--text-primary, #0A101D)',
+              display: 'grid',
+              placeItems: 'center',
+              cursor: 'pointer'
+            }}
+          >
+            <Ikon ad="menu" size={16} />
+          </button>
+
+          {moreMenuOpen && (
+            <div style={{
+              position: 'absolute',
+              top: '42px',
+              right: 0,
+              background: '#FFFFFF',
+              border: '1px solid var(--border-color, #DCE5E9)',
+              borderRadius: '6px',
+              padding: '6px',
+              zIndex: 1000,
+              minWidth: '210px',
+              boxShadow: 'var(--modal-shadow)'
+            }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setMoreMenuOpen(false);
+                  window.dispatchEvent(new CustomEvent('draft:open-shortcuts'));
+                }}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 10px',
+                  border: 0,
+                  background: 'transparent',
+                  borderRadius: '4px',
+                  fontSize: '12.5px',
+                  fontWeight: 600,
+                  color: 'var(--text-primary, #0A101D)',
+                  cursor: 'pointer',
+                  textAlign: 'left'
+                }}
+              >
+                <Ikon ad="bilgi" size={15} />
+                <span>Klavye Kısayolları</span>
+              </button>
+
+              {hasPrograms && (
+                <>
+                  <div style={{ height: '1px', background: 'var(--border-color, #DCE5E9)', margin: '4px 0' }} />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMoreMenuOpen(false);
+                      onClearSchedule();
+                    }}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '8px 10px',
+                      border: 0,
+                      background: 'transparent',
+                      borderRadius: '4px',
+                      fontSize: '12.5px',
+                      fontWeight: 700,
+                      color: 'var(--danger, #DD1C40)',
+                      cursor: 'pointer',
+                      textAlign: 'left'
+                    }}
+                  >
+                    <Ikon ad="sil" size={15} />
+                    <span>{selectedDayKey === 'all' ? 'Haftayı Temizle' : 'Günü Temizle'}</span>
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Tek Ana Aksiyon Butonu (Kaydet veya Yayına Gönder) */}
+        {saveStatus === 'saving' ? (
+          <button
+            type="button"
+            disabled
+            style={{
+              height: '36px',
+              padding: '0 14px',
+              borderRadius: '4px',
+              border: '1px solid var(--turkuaz, #0C617C)',
+              background: 'var(--turkuaz, #0C617C)',
+              color: '#FFFFFF',
+              fontSize: '12px',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '7px',
+              opacity: 0.75
+            }}
+          >
+            <span>Kaydediliyor...</span>
+          </button>
+        ) : saveStatus === 'unsaved' ? (
+          <button
+            type="button"
+            onClick={onSaveSchedule}
+            title="Yapılan değişiklikleri kaydet (Ctrl+S)"
+            style={{
+              height: '36px',
+              padding: '0 14px',
+              borderRadius: '4px',
+              border: '1px solid var(--hardal, #E8B44C)',
+              background: 'var(--hardal, #E8B44C)',
+              color: 'var(--gece, #0A101D)',
+              fontSize: '12px',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '7px',
+              cursor: 'pointer'
+            }}
+          >
+            <Ikon ad="tamam" size={15} />
+            <span>Kaydet (Ctrl+S)</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={onOpenSendModal}
+            title="Hazırlanan taslak akışını Yayın Planlama ekranına aktar"
+            style={{
+              height: '36px',
+              padding: '0 14px',
+              borderRadius: '4px',
+              border: '1px solid var(--turkuaz, #0C617C)',
+              background: 'var(--turkuaz, #0C617C)',
+              color: '#FFFFFF',
+              fontSize: '12px',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '7px',
+              cursor: 'pointer'
+            }}
+          >
+            <Ikon ad="gonder" size={15} />
+            <span>Yayına Gönder</span>
+          </button>
+        )}
       </div>
     </div>
   );

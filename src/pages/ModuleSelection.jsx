@@ -1,118 +1,155 @@
 /**
  * @file src/pages/ModuleSelection.jsx
  * @description Sistemin ana giriş portalı (/).
- * Kullanıcının tanımlı yetkilerine (allowedModules ve allowedAdminTabs) göre
- * Taslak Planlama, Yayın Planlama, Reklam Rezervasyon, Yayın Liste Kontrol ve Admin Paneli modüllerini sunar.
+ * Semerkand TV Kurumsal Kimlik 2026 - 4 modül kimlik rengi ve Admin Paneli satırı.
  */
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, MonitorPlay, ShieldCheck, LogOut } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import useResponsive from '../hooks/useResponsive';
-
-const ModuleCard = ({ title, description, icon: Icon, color, onClick, isReady, isMobile }) => (
-  <div 
-    onClick={onClick}
-    style={{
-      background: 'var(--bg-secondary)',
-      border: '1px solid var(--border-color)',
-      borderRadius: isMobile ? '18px' : '24px',
-      padding: isMobile ? '20px 18px' : '32px',
-      cursor: 'pointer',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: isMobile ? '12px' : '16px',
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      position: 'relative',
-      overflow: 'hidden',
-      height: '100%',
-      opacity: isReady ? 1 : 0.7,
-      boxShadow: '0 10px 30px rgba(0,0,0,0.1)'
-    }}
-    onMouseEnter={(e) => {
-      e.currentTarget.style.transform = 'translateY(-8px)';
-      e.currentTarget.style.borderColor = color;
-      e.currentTarget.style.boxShadow = `0 20px 40px ${color}22`;
-    }}
-    onMouseLeave={(e) => {
-      e.currentTarget.style.transform = 'translateY(0)';
-      e.currentTarget.style.borderColor = 'var(--border-color)';
-      e.currentTarget.style.boxShadow = '0 10px 30px rgba(0,0,0,0.1)';
-    }}
-  >
-    <div style={{
-      width: isMobile ? '48px' : '64px',
-      height: isMobile ? '48px' : '64px',
-      borderRadius: isMobile ? '12px' : '16px',
-      background: `${color}15`,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
-    }}>
-      <Icon size={isMobile ? 24 : 32} color={color} />
-    </div>
-    
-    <div>
-      <h3 style={{ fontSize: isMobile ? '17px' : '20px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '6px' }}>
-        {title}
-      </h3>
-      <p style={{ fontSize: isMobile ? '13px' : '14px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-        {description}
-      </p>
-    </div>
-
-    {!isReady && (
-      <div style={{
-        position: 'absolute',
-        top: '24px',
-        right: '24px',
-        background: 'var(--bg-tertiary)',
-        padding: '4px 12px',
-        borderRadius: '12px',
-        fontSize: '11px',
-        fontWeight: 'bold',
-        color: 'var(--text-muted)'
-      }}>
-        YAKINDA
-      </div>
-    )}
-  </div>
-);
+import Ikon from '../components/Ikon';
 
 const ALL_MODULE_CARDS = [
   {
     id: 'draft',
     title: 'Taslak Planla',
     description: 'Gelecek haftaların yayın akışını serbestçe planlayın, taslaklar oluşturun ve zamanlamaları ayarlayın.',
-    icon: Calendar,
-    color: '#3b82f6',
+    iconName: 'taslak',
+    color: 'var(--m-taslak, #0C617C)',
+    headerTextColor: '#FFFFFF',
+    arrowColor: 'var(--m-taslak, #0C617C)',
     path: '/draft'
   },
   {
     id: 'ready',
     title: 'Yayın Planlama (Ready)',
     description: 'Yayına hazır taslakları kontrol edin ve reklam birimine yönlendirin.',
-    icon: MonitorPlay,
-    color: '#3b82f6',
+    iconName: 'hazir',
+    color: 'var(--m-ready, #468625)',
+    headerTextColor: '#FFFFFF',
+    arrowColor: 'var(--m-ready, #468625)',
     path: '/ready'
   },
   {
     id: 'ads',
     title: 'Reklam Rezervasyon',
     description: 'Reklam kuşaklarını, sponsorlukları ve müşteri rezervasyonlarını organize edin.',
-    icon: Calendar,
-    color: '#10b981',
+    iconName: 'reklam',
+    color: 'var(--m-reklam, #E8B44C)',
+    headerTextColor: 'var(--gece, #0A101D)',
+    arrowColor: '#80632A',
     path: '/ads'
   },
   {
     id: 'list-control',
     title: 'Yayın Liste Kontrol',
     description: 'Reklam Rezervasyon birimi tarafından onaylanıp gönderilmiş kesinleşmiş yayın akışlarını ve reklam listelerini inceleyin.',
-    icon: ShieldCheck,
-    color: '#f59e0b',
+    iconName: 'kontrol',
+    color: 'var(--m-kontrol, #142A44)',
+    headerTextColor: '#FFFFFF',
+    arrowColor: 'var(--m-kontrol, #142A44)',
     path: '/list-control'
   }
 ];
+
+const ModuleCard = ({ card, onClick, isMobile }) => (
+  <div
+    onClick={onClick}
+    style={{
+      background: '#FFFFFF',
+      border: '1px solid var(--border-color, #DCE5E9)',
+      borderRadius: '6px',
+      overflow: 'hidden',
+      display: 'flex',
+      flexDirection: 'column',
+      cursor: 'pointer',
+      transition: 'border-color 0.15s ease'
+    }}
+    onMouseEnter={(e) => {
+      e.currentTarget.style.borderColor = card.arrowColor;
+    }}
+    onMouseLeave={(e) => {
+      e.currentTarget.style.borderColor = 'var(--border-color, #DCE5E9)';
+    }}
+  >
+    {/* Modül Kimlik Rengi Başlığı */}
+    <div style={{
+      height: isMobile ? '136px' : '170px',
+      padding: isMobile ? '20px' : '26px',
+      background: card.color,
+      color: card.headerTextColor,
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'space-between',
+      position: 'relative',
+      overflow: 'hidden'
+    }}>
+      {/* Sağ Alt Filigran İkon */}
+      <div style={{
+        position: 'absolute',
+        right: '-18px',
+        bottom: '-24px',
+        width: '150px',
+        height: '150px',
+        opacity: card.id === 'ads' ? 0.10 : 0.13,
+        color: card.headerTextColor,
+        pointerEvents: 'none'
+      }}>
+        <Ikon ad={card.iconName} size={150} strokeWidth={1.35} />
+      </div>
+
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <Ikon ad={card.iconName} size={isMobile ? 36 : 44} color={card.headerTextColor} />
+      </div>
+
+      <h3 style={{
+        fontSize: isMobile ? '19px' : '22px',
+        fontWeight: 700,
+        lineHeight: 1.2,
+        letterSpacing: '-0.015em',
+        margin: 0,
+        color: card.headerTextColor,
+        position: 'relative',
+        zIndex: 1
+      }}>
+        {card.title}
+      </h3>
+    </div>
+
+    {/* Beyaz Gövde */}
+    <div style={{
+      padding: isMobile ? '18px 20px' : '24px 26px 26px',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'space-between',
+      flex: 1,
+      minHeight: isMobile ? '130px' : '180px'
+    }}>
+      <p style={{
+        fontSize: '14px',
+        lineHeight: 1.55,
+        color: 'var(--text-secondary, #4B6478)',
+        margin: 0
+      }}>
+        {card.description}
+      </p>
+
+      <div style={{
+        width: '36px',
+        height: '36px',
+        border: `1.5px solid ${card.arrowColor}`,
+        color: card.arrowColor,
+        borderRadius: '4px',
+        display: 'grid',
+        placeItems: 'center',
+        alignSelf: 'flex-end',
+        marginTop: '18px'
+      }}>
+        <Ikon ad="sag" size={18} />
+      </div>
+    </div>
+  </div>
+);
 
 const ModuleSelection = () => {
   const navigate = useNavigate();
@@ -148,82 +185,165 @@ const ModuleSelection = () => {
       minHeight: '100dvh',
       height: '100vh',
       overflowY: 'auto',
-      background: 'linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-tertiary) 100%)',
-      padding: isMobile ? '20px 14px 36px 14px' : '48px 24px',
+      background: 'var(--bg-primary, #F5F7F6)',
       display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center'
+      flexDirection: 'column'
     }}>
-      
-      {/* Navbar-like actions */}
-      <div style={{ width: '100%', maxWidth: '1100px', display: 'flex', justifyContent: 'flex-end', marginBottom: isMobile ? '20px' : '40px' }}>
-         <button 
-            onClick={() => signOut()}
-            style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: isMobile ? '8px 12px' : '10px 16px', borderRadius: '12px', fontSize: isMobile ? '12.5px' : '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--danger)'; e.currentTarget.style.color = 'var(--danger)'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
-          >
-            <LogOut size={15} /> Çıkış Yap
-          </button>
-      </div>
-
-      {/* Header */}
-      <div style={{ textAlign: 'center', marginBottom: isMobile ? '28px' : '64px', maxWidth: '600px', padding: isMobile ? '0 6px' : 0 }}>
-        <div style={{ 
-          width: isMobile ? '54px' : '72px', height: isMobile ? '54px' : '72px', background: 'var(--accent-primary)', 
-          borderRadius: isMobile ? '16px' : '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', 
-          margin: isMobile ? '0 auto 14px auto' : '0 auto 24px auto', boxShadow: '0 12px 36px var(--accent-primary)' 
-        }}>
-          <ShieldCheck size={isMobile ? 28 : 40} color="white" />
-        </div>
-        <h1 style={{ fontSize: isMobile ? '24px' : '36px', fontWeight: 900, color: 'var(--text-primary)', marginBottom: isMobile ? '8px' : '16px', letterSpacing: '-0.8px' }}>
-          Yayın Planlama Sistemi
-        </h1>
-        <p style={{ fontSize: isMobile ? '13.5px' : '16px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-          Hoş geldiniz, <span style={{ color: 'var(--accent-primary)', fontWeight: '600', textTransform: 'capitalize' }}>{displayUser}</span>. Lütfen çalışmak istediğiniz modülü seçin.
-        </p>
-      </div>
-
-      {/* Modules Grid */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(300px, 1fr))',
-        gap: isMobile ? '14px' : '32px',
-        width: '100%',
-        maxWidth: '1100px'
+      {/* Üst Kurumsal Bar (Derin Turkuaz 60px) */}
+      <header style={{
+        height: '60px',
+        minHeight: '60px',
+        background: 'var(--turkuaz, #0C617C)',
+        color: '#FFFFFF',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: isMobile ? '0 14px' : '0 24px',
+        flexShrink: 0
       }}>
-        {visibleModuleCards.map(card => (
-          <ModuleCard
-            key={card.id}
-            title={card.title}
-            description={card.description}
-            icon={card.icon}
-            color={card.color}
-            isReady={true}
-            isMobile={isMobile}
-            onClick={() => navigate(card.path)}
-          />
-        ))}
-      </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontWeight: 700, fontSize: '15px' }}>
+          <div style={{
+            width: '32px',
+            height: '32px',
+            border: '1.5px solid rgba(255, 255, 255, 0.6)',
+            borderRadius: '4px',
+            display: 'grid',
+            placeItems: 'center'
+          }}>
+            <Ikon ad="plan" size={19} />
+          </div>
+          <span>Yayın Planlama Sistemi</span>
+        </div>
 
-      {/* Admin Button at the very bottom */}
-      {canAccessAdminPanel && (
-        <div style={{ marginTop: 'auto', paddingTop: isMobile ? '28px' : '64px' }}>
-          <button 
-            onClick={() => navigate('/admin')}
-            style={{ 
-              background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)',
-              padding: '10px 20px', borderRadius: '12px', fontSize: '14px', fontWeight: '600', cursor: 'pointer',
-              transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '8px'
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {!isMobile && (
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              color: 'rgba(255, 255, 255, 0.88)',
+              fontSize: '13px',
+              marginRight: '4px'
+            }}>
+              <Ikon ad="kullanici" size={16} />
+              <span style={{ textTransform: 'capitalize' }}>{displayUser}</span>
+            </span>
+          )}
+          <button
+            onClick={() => signOut()}
+            style={{
+              height: '32px',
+              padding: '0 12px',
+              border: '1px solid rgba(255, 255, 255, 0.28)',
+              background: 'rgba(255, 255, 255, 0.08)',
+              color: '#FFFFFF',
+              borderRadius: '4px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '12px',
+              fontWeight: 600,
+              cursor: 'pointer'
             }}
-            onMouseEnter={e => { e.currentTarget.style.color = 'var(--accent-primary)'; e.currentTarget.style.borderColor = 'var(--accent-primary)'; }}
-            onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.borderColor = 'var(--border-color)'; }}
           >
-            <ShieldCheck size={16} /> Admin Paneli
+            <Ikon ad="cikis" size={15} />
+            <span>Çıkış Yap</span>
           </button>
         </div>
-      )}
+      </header>
 
+      {/* Gövde */}
+      <main style={{
+        flex: 1,
+        maxWidth: '1480px',
+        width: '100%',
+        margin: '0 auto',
+        padding: isMobile ? '24px 16px 36px' : '48px 56px 40px',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        boxSizing: 'border-box'
+      }}>
+        {/* Karşılama */}
+        <div>
+          <h1 style={{
+            fontSize: isMobile ? '28px' : '40px',
+            fontWeight: 300,
+            color: 'var(--text-primary, #0A101D)',
+            letterSpacing: '-0.02em',
+            margin: '0 0 8px 0'
+          }}>
+            Yayın Planlama <b style={{ fontWeight: 700, color: 'var(--turkuaz, #0C617C)' }}>Sistemi</b>
+          </h1>
+          <p style={{
+            fontSize: isMobile ? '14px' : '16px',
+            color: 'var(--text-secondary, #4B6478)',
+            margin: 0
+          }}>
+            Hoş geldiniz, <b style={{ color: 'var(--turkuaz, #0C617C)', fontWeight: 700 }}>{displayUser}</b>. Lütfen çalışmak istediğiniz modülü seçin.
+          </p>
+        </div>
+
+        {/* 4 Modül Kartı */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(280px, 1fr))',
+          gap: isMobile ? '16px' : '22px',
+          margin: isMobile ? '24px 0' : '32px 0'
+        }}>
+          {visibleModuleCards.map(card => (
+            <ModuleCard
+              key={card.id}
+              card={card}
+              isMobile={isMobile}
+              onClick={() => navigate(card.path)}
+            />
+          ))}
+        </div>
+
+        {/* Admin Paneli Satırı */}
+        {canAccessAdminPanel && (
+          <div
+            onClick={() => navigate('/admin')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: '#FFFFFF',
+              border: '1px solid var(--border-color, #DCE5E9)',
+              borderRadius: '6px',
+              padding: isMobile ? '14px 16px' : '16px 24px',
+              color: 'var(--text-primary, #0A101D)',
+              fontWeight: 700,
+              fontSize: '15px',
+              cursor: 'pointer',
+              transition: 'border-color 0.15s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = 'var(--gece, #0A101D)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = 'var(--border-color, #DCE5E9)';
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                border: '1.5px solid var(--gece, #0A101D)',
+                borderRadius: '4px',
+                display: 'grid',
+                placeItems: 'center',
+                color: 'var(--gece, #0A101D)'
+              }}>
+                <Ikon ad="admin" size={22} />
+              </div>
+              <span>Admin Paneli</span>
+            </div>
+            <Ikon ad="sag" size={20} />
+          </div>
+        )}
+      </main>
     </div>
   );
 };

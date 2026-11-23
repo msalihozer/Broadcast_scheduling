@@ -214,7 +214,7 @@ export const LibraryFilters = ({
             </button>
 
             {availableCategories.map(cat => {
-              const catColor = CATEGORY_COLORS[cat] || '#3b82f6';
+              const catColor = CATEGORY_COLORS[cat] || '#0C617C';
               const isSelected = selectedCategory === cat;
               const count = categoryCounts[cat] || 0;
               return (

@@ -51,6 +51,7 @@ import ListControlWeekView from './components/ListControlWeekView';
 import ListControlMonthView from './components/ListControlMonthView';
 import ListControlReportsLogsView from './components/ListControlReportsLogsView';
 import useResponsive from '../../hooks/useResponsive';
+import Ikon from '../../components/Ikon';
 
 export default function ListControlModule() {
   const { isMobile, isCompact } = useResponsive();
@@ -479,487 +480,486 @@ export default function ListControlModule() {
       background: 'var(--bg-primary)',
       overflow: 'hidden'
     }}>
-      {/* 1. ÜST KONTROL VE NAVİGASYON ÇUBUĞU:
-          - ORTADA: Tarih Alanı ve hemen altında Kanal Seçimi + Hangi Liste Bilgisi
-          - SAĞDA: Günlük / Haftalık / Aylık / Raporlar & Loglar + Yazı Boyutu Büyütme (A- / A+)
-          - SOLDA: Reklam Rezervasyondan Çek + Bütün Günü Revizeye Gönder + Listeyi Onayla */}
+      {/* 1. ÜST ARAÇ ÇUBUĞU (68px Beyaz) VE İKİNCİL ÇUBUK (52px #F5F7F6) */}
       <div style={{
+        minHeight: isCompact ? 'auto' : '68px',
         padding: isMobile ? '8px 10px' : '10px 20px',
-        background: 'var(--bg-secondary)',
-        borderBottom: '1.5px solid var(--border-color)',
+        background: '#FFFFFF',
+        borderBottom: '1px solid var(--border-color, #DCE5E9)',
         display: 'flex',
-        flexDirection: 'column',
-        gap: '8px',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: isMobile ? '8px' : '12px',
         flexShrink: 0
       }}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: isCompact ? '1fr' : '1fr auto 1fr',
-          alignItems: 'center',
-          gap: isMobile ? '8px' : '14px',
-          width: '100%'
-        }}>
-          {/* SOL: Liste İşlem Butonları */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: isCompact ? 'center' : 'flex-start', gap: '7px', flexWrap: 'wrap' }}>
+        {/* SOL GRUP: 34x34 Lacivert (#142A44) İkon Karesi + Başlık + Tarih + Bugün + Kanal + Aktif Liste */}
+        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: isMobile ? '8px' : '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginRight: '4px' }}>
+            <div style={{
+              width: '34px',
+              height: '34px',
+              borderRadius: '4px',
+              background: 'var(--m-kontrol, #142A44)',
+              color: '#FFFFFF',
+              display: 'grid',
+              placeItems: 'center',
+              flexShrink: 0
+            }}>
+              <Ikon ad="kontrol" size={20} />
+            </div>
+            <h1 style={{
+              fontSize: isMobile ? '17px' : '20px',
+              fontWeight: 300,
+              color: 'var(--text-primary, #0A101D)',
+              letterSpacing: '-0.02em',
+              whiteSpace: 'nowrap',
+              margin: 0
+            }}>
+              Yayın Liste <b style={{ fontWeight: 700 }}>Kontrol</b>
+            </h1>
+          </div>
+
+          {/* Tarih Seçici */}
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            height: '36px',
+            border: '1px solid var(--border-color, #DCE5E9)',
+            borderRadius: '4px',
+            background: '#FFFFFF',
+            overflow: 'hidden'
+          }}>
             <button
               type="button"
               onClick={() => {
-                const res = lcSyncFromAdsOrReady(selectedChannel, safeDate, { forceOverwrite: true, silent: false });
-                if (res.count > 0) {
-                  useDialogStore.getState().showAlert(
-                    'Liste Güncellendi',
-                    `${res.source} üzerinden ${res.count} yayın ve reklam satırı Liste Kontrol ekranına yeniden çekildi.`
-                  );
-                } else {
-                  useDialogStore.getState().showAlert(
-                    'Veri Bulunamadı',
-                    `Seçili gün (${safeDate}) için Reklam Rezervasyon veya Yayın Planlamada kayıtlı liste bulunamadı.`
-                  );
-                }
+                const base = parseISO(safeDate);
+                const next = lcViewMode === 'monthly' ? addMonths(base, -1) : addDays(base, lcViewMode === 'weekly' ? -7 : -1);
+                setSelectedDate(format(next, 'yyyy-MM-dd'));
               }}
               style={{
-                padding: '6px 11px',
-                borderRadius: '8px',
-                border: '1px solid var(--border-color)',
-                background: 'var(--bg-primary)',
-                color: 'var(--text-primary)',
-                fontSize: '11.5px',
-                fontWeight: 800,
+                width: '32px',
+                height: '100%',
+                border: 0,
+                background: 'transparent',
+                color: 'var(--text-secondary, #4B6478)',
+                display: 'grid',
+                placeItems: 'center',
+                cursor: 'pointer'
+              }}
+            >
+              <Ikon ad="sol" size={16} />
+            </button>
+
+            <CustomDatePicker selectedDate={safeDate} onDateChange={(d) => setSelectedDate(d)}>
+              <div style={{
+                height: '36px',
+                padding: '0 12px',
+                borderLeft: '1px solid var(--border-light, #EBF0F2)',
+                borderRight: '1px solid var(--border-light, #EBF0F2)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '7px',
                 cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              <RefreshCw size={12} />
-              <span>Reklam Rezervasyondan Çek</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() =>
-                handleOpenRevisionModal({
-                  isFullDayRevision: true,
-                  title: `${channelName} (${safeDate}) Tüm Gün Yayın & Reklam Listesi`,
-                  code: safeDate,
-                  durationSec: totalDurationSec,
-                  defaultTargetStage: 'broadcast'
-                })
-              }
-              disabled={programs.length === 0}
-              style={{
-                padding: '6px 12px',
-                borderRadius: '8px',
-                border: '1.5px solid rgba(220, 38, 38, 0.5)',
-                background: 'rgba(220, 38, 38, 0.12)',
-                color: '#dc2626',
-                fontSize: '11.5px',
-                fontWeight: 800,
-                cursor: programs.length === 0 ? 'not-allowed' : 'pointer',
-                opacity: programs.length === 0 ? 0.5 : 1,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                whiteSpace: 'nowrap'
-              }}
-              title="Bütün günü Taslak Planlama, Yayın Planlama veya Reklam Rezervasyon birimine (zorunlu açıklamayla) revizeye gönder"
-            >
-              <Send size={12} />
-              <span>Bütün Günü Revizeye Gönder</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleApproveList}
-              disabled={programs.length === 0}
-              style={{
-                padding: '6px 15px',
-                borderRadius: '8px',
-                border: 'none',
-                background: isApproved
-                  ? 'linear-gradient(135deg, #059669 0%, #10b981 100%)'
-                  : 'linear-gradient(135deg, #2563eb 0%, #4f46e5 100%)',
-                color: '#ffffff',
+                fontFamily: 'var(--font-mono)',
                 fontSize: '12px',
-                fontWeight: 800,
-                cursor: programs.length === 0 ? 'not-allowed' : 'pointer',
-                opacity: programs.length === 0 ? 0.5 : 1,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
+                fontWeight: 700,
+                color: 'var(--text-primary, #0A101D)',
+                textTransform: 'uppercase',
                 whiteSpace: 'nowrap'
+              }}>
+                <Ikon ad="hafta" size={15} color="var(--turkuaz, #0C617C)" />
+                <span>{format(parseISO(safeDate), 'd MMMM yyyy EEEE', { locale: tr })}</span>
+              </div>
+            </CustomDatePicker>
+
+            <button
+              type="button"
+              onClick={() => {
+                const base = parseISO(safeDate);
+                const next = lcViewMode === 'monthly' ? addMonths(base, 1) : addDays(base, lcViewMode === 'weekly' ? 7 : 1);
+                setSelectedDate(format(next, 'yyyy-MM-dd'));
+              }}
+              style={{
+                width: '32px',
+                height: '100%',
+                border: 0,
+                background: 'transparent',
+                color: 'var(--text-secondary, #4B6478)',
+                display: 'grid',
+                placeItems: 'center',
+                cursor: 'pointer'
               }}
             >
-              <Check size={14} />
-              <span>{isApproved ? '✓ Onaylandı' : 'Listeyi Onayla'}</span>
+              <Ikon ad="sag" size={16} />
             </button>
           </div>
 
-          {/* TAM ORTA: Üstte Tarih Alanı • Hemen Altında Kanal Seçimi ve Hangi Liste Bilgisi */}
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedDate(todayStr);
+              setLcViewMode('daily');
+            }}
+            style={{
+              height: '32px',
+              padding: '0 10px',
+              borderRadius: '4px',
+              border: '1px solid var(--turkuaz-100, #CFE1E7)',
+              background: 'var(--turkuaz-50, #E7F0F3)',
+              color: 'var(--turkuaz, #0C617C)',
+              fontSize: '11.5px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            Bugün ({format(parseISO(todayStr), 'd MMM', { locale: tr })})
+          </button>
+
+          {/* Kanal Seçici */}
           <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px'
+            display: 'inline-flex',
+            background: 'var(--bg-primary, #F5F7F6)',
+            padding: '2px',
+            borderRadius: '4px',
+            border: '1px solid var(--border-color, #DCE5E9)',
+            gap: '2px'
           }}>
-            {/* Üst: Tarih Seçici + Bugün */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+            {channels.map(ch => (
               <button
+                key={ch.id}
                 type="button"
-                onClick={() => {
-                  const base = parseISO(safeDate);
-                  const next = lcViewMode === 'monthly' ? addMonths(base, -1) : addDays(base, lcViewMode === 'weekly' ? -7 : -1);
-                  setSelectedDate(format(next, 'yyyy-MM-dd'));
-                }}
+                onClick={() => setSelectedChannel(ch.id)}
                 style={{
-                  width: '32px',
                   height: '32px',
-                  borderRadius: '8px',
-                  border: '1px solid var(--border-color)',
-                  background: 'var(--bg-primary)',
-                  color: 'var(--text-primary)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer'
-                }}
-              >
-                <ChevronLeft size={16} />
-              </button>
-
-              <CustomDatePicker selectedDate={safeDate} onDateChange={(d) => setSelectedDate(d)}>
-                <div style={{
-                  padding: '6px 16px',
-                  borderRadius: '10px',
-                  background: 'var(--bg-primary)',
-                  border: '1.5px solid var(--accent-primary)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
+                  padding: '0 12px',
+                  borderRadius: '3px',
+                  border: 0,
+                  background: selectedChannel === ch.id ? 'var(--turkuaz, #0C617C)' : 'transparent',
+                  color: selectedChannel === ch.id ? '#FFFFFF' : 'var(--text-secondary, #4B6478)',
+                  fontSize: '12px',
+                  fontWeight: 700,
                   cursor: 'pointer',
-                  boxShadow: '0 2px 8px rgba(37, 99, 235, 0.12)'
-                }}>
-                  <Calendar size={15} color="var(--accent-primary)" />
-                  <span style={{ fontSize: '14px', fontWeight: 900, color: 'var(--text-primary)', textTransform: 'uppercase', whiteSpace: 'nowrap', letterSpacing: '0.3px' }}>
-                    {format(parseISO(safeDate), 'd MMMM yyyy EEEE', { locale: tr })}
-                  </span>
-                  {safeDate === todayStr && (
-                    <span style={{
-                      fontSize: '10px',
-                      fontWeight: 900,
-                      padding: '1.5px 7px',
-                      borderRadius: '999px',
-                      background: '#10b981',
-                      color: '#ffffff'
-                    }}>
-                      BUGÜN
-                    </span>
-                  )}
-                </div>
-              </CustomDatePicker>
-
-              <button
-                type="button"
-                onClick={() => {
-                  const base = parseISO(safeDate);
-                  const next = lcViewMode === 'monthly' ? addMonths(base, 1) : addDays(base, lcViewMode === 'weekly' ? 7 : 1);
-                  setSelectedDate(format(next, 'yyyy-MM-dd'));
-                }}
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '8px',
-                  border: '1px solid var(--border-color)',
-                  background: 'var(--bg-primary)',
-                  color: 'var(--text-primary)',
-                  display: 'flex',
+                  display: 'inline-flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer'
+                  gap: '6px',
+                  whiteSpace: 'nowrap'
                 }}
               >
-                <ChevronRight size={16} />
+                <Ikon ad="kanal" size={14} />
+                <span>{ch.name}</span>
               </button>
+            ))}
+          </div>
 
+          {/* Aktif Liste Bilgisi */}
+          <span style={{
+            height: '32px',
+            padding: '0 10px',
+            borderRadius: '4px',
+            background: '#FFFFFF',
+            border: '1px solid var(--border-color, #DCE5E9)',
+            color: 'var(--text-secondary, #4B6478)',
+            fontSize: '11.5px',
+            fontWeight: 600,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '5px',
+            whiteSpace: 'nowrap'
+          }}>
+            <span>Aktif Liste:</span>
+            <b style={{ color: 'var(--text-primary, #0A101D)' }}>{activeListName}</b>
+          </span>
+        </div>
+
+        {/* SAĞ GRUP: Reklam Rezervasyondan Çek + Bütün Günü Revizeye Gönder + Listeyi Onayla */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => {
+              const res = lcSyncFromAdsOrReady(selectedChannel, safeDate, { forceOverwrite: true, silent: false });
+              if (res.count > 0) {
+                useDialogStore.getState().showAlert(
+                  'Liste Güncellendi',
+                  `${res.source} üzerinden ${res.count} yayın ve reklam satırı Liste Kontrol ekranına yeniden çekildi.`
+                );
+              } else {
+                useDialogStore.getState().showAlert(
+                  'Veri Bulunamadı',
+                  `Seçili gün (${safeDate}) için Reklam Rezervasyon veya Yayın Planlamada kayıtlı liste bulunamadı.`
+                );
+              }
+            }}
+            style={{
+              height: '36px',
+              padding: '0 12px',
+              borderRadius: '4px',
+              border: '1px solid var(--border-color, #DCE5E9)',
+              background: '#FFFFFF',
+              color: 'var(--text-primary, #0A101D)',
+              fontSize: '12px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '7px',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <Ikon ad="cek" size={15} />
+            <span>Reklam Rezervasyondan Çek</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              handleOpenRevisionModal({
+                isFullDayRevision: true,
+                title: `${channelName} (${safeDate}) Tüm Gün Yayın & Reklam Listesi`,
+                code: safeDate,
+                durationSec: totalDurationSec,
+                defaultTargetStage: 'broadcast'
+              })
+            }
+            disabled={programs.length === 0}
+            style={{
+              height: '36px',
+              padding: '0 12px',
+              borderRadius: '4px',
+              border: '1px solid rgba(221, 28, 64, 0.38)',
+              background: '#FFFFFF',
+              color: 'var(--danger, #DD1C40)',
+              fontSize: '12px',
+              fontWeight: 700,
+              cursor: programs.length === 0 ? 'not-allowed' : 'pointer',
+              opacity: programs.length === 0 ? 0.5 : 1,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '7px',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <Ikon ad="revize" size={15} />
+            <span>Bütün Günü Revizeye Gönder</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleApproveList}
+            disabled={programs.length === 0}
+            style={{
+              height: '36px',
+              padding: '0 14px',
+              borderRadius: '4px',
+              border: isApproved ? '1px solid var(--yesil, #468625)' : '1px solid var(--turkuaz, #0C617C)',
+              background: isApproved ? 'var(--yesil, #468625)' : 'var(--turkuaz, #0C617C)',
+              color: '#FFFFFF',
+              fontSize: '12px',
+              fontWeight: 700,
+              cursor: programs.length === 0 ? 'not-allowed' : 'pointer',
+              opacity: programs.length === 0 ? 0.5 : 1,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '7px',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <Ikon ad="tamam" size={15} />
+            <span>{isApproved ? 'Onaylandı' : 'Listeyi Onayla'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* İKİNCİL KONTROL ÇUBUĞU (52px #F5F7F6): Görünüm Modu + Hazır/İletilen Günler + Yazı Boyutu */}
+      <div style={{
+        minHeight: '52px',
+        padding: isMobile ? '6px 10px' : '8px 20px',
+        background: 'var(--bg-primary, #F5F7F6)',
+        borderBottom: '1px solid var(--border-color, #DCE5E9)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '10px',
+        flexShrink: 0
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', minWidth: 0 }}>
+          {/* Görünüm Modu Seçici */}
+          <div style={{
+            display: 'inline-flex',
+            background: '#FFFFFF',
+            padding: '2px',
+            borderRadius: '4px',
+            border: '1px solid var(--border-color, #DCE5E9)',
+            gap: '2px'
+          }}>
+            {[
+              { id: 'daily', label: 'Günlük' },
+              { id: 'weekly', label: 'Haftalık' },
+              { id: 'monthly', label: 'Aylık' },
+              { id: 'reports', label: `Raporlar & Loglar (${listControlLogs.length})` }
+            ].map(vm => (
               <button
+                key={vm.id}
                 type="button"
-                onClick={() => {
-                  setSelectedDate(todayStr);
-                  setLcViewMode('daily');
-                }}
+                onClick={() => setLcViewMode(vm.id)}
                 style={{
-                  padding: '6px 12px',
-                  borderRadius: '8px',
-                  border: safeDate === todayStr ? '1.5px solid #2563eb' : '1px solid var(--border-color)',
-                  background: safeDate === todayStr ? 'rgba(37, 99, 235, 0.14)' : 'var(--bg-primary)',
-                  color: safeDate === todayStr ? '#2563eb' : 'var(--text-primary)',
-                  fontSize: '11.5px',
-                  fontWeight: 800,
+                  height: '32px',
+                  padding: '0 12px',
+                  borderRadius: '3px',
+                  border: 0,
+                  background: lcViewMode === vm.id ? 'var(--turkuaz, #0C617C)' : 'transparent',
+                  color: lcViewMode === vm.id ? '#FFFFFF' : 'var(--text-secondary, #4B6478)',
+                  fontSize: '12px',
+                  fontWeight: 700,
                   cursor: 'pointer',
                   whiteSpace: 'nowrap'
                 }}
               >
-                Bugün ({format(parseISO(todayStr), 'd MMM', { locale: tr })})
+                {vm.label}
               </button>
-            </div>
+            ))}
+          </div>
 
-            {/* Alt: Tarihin Hemen Altında Kanal Seçimi + Hangi Liste Bilgisi */}
+          {/* Hazır / İletilen Günler Hızlı Geçiş */}
+          {availableTransmittedDates.length > 0 && (
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              flexWrap: 'wrap'
+              gap: '6px',
+              overflowX: 'auto',
+              fontSize: '11.5px'
             }}>
-              {/* Kanal Seçimi */}
-              <div style={{
-                display: 'flex',
-                background: 'var(--bg-tertiary)',
-                padding: '2.5px',
-                borderRadius: '8px',
-                border: '1px solid var(--border-color)',
-                gap: '3px'
-              }}>
-                {channels.map(ch => (
+              <span style={{ fontWeight: 700, color: 'var(--text-secondary, #4B6478)', flexShrink: 0 }}>
+                Hazır / İletilen Günler:
+              </span>
+              {availableTransmittedDates.map(dStr => {
+                const isCurr = dStr === safeDate;
+                const isTod = dStr === todayStr;
+                const rDay = days[`ready-${selectedChannel}-${dStr}`];
+                const lDay = listControlDays[`list-control-${selectedChannel}-${dStr}`];
+                const count =
+                  lDay?.variants?.[lDay?.activeVariant || 'v1']?.programs?.length ||
+                  rDay?.variants?.[rDay?.activeVariant || 'v1']?.programs?.length ||
+                  0;
+                return (
                   <button
-                    key={ch.id}
+                    key={dStr}
                     type="button"
-                    onClick={() => setSelectedChannel(ch.id)}
+                    onClick={() => {
+                      setSelectedDate(dStr);
+                      setLcViewMode('daily');
+                    }}
                     style={{
-                      padding: '4px 12px',
-                      borderRadius: '6px',
-                      border: 'none',
-                      background: selectedChannel === ch.id ? 'var(--accent-primary)' : 'transparent',
-                      color: selectedChannel === ch.id ? '#ffffff' : 'var(--text-secondary)',
+                      height: '28px',
+                      padding: '0 10px',
+                      borderRadius: '4px',
+                      border: isCurr ? '1px solid var(--turkuaz-100, #CFE1E7)' : '1px solid var(--border-color, #DCE5E9)',
+                      background: isCurr ? 'var(--turkuaz-50, #E7F0F3)' : '#FFFFFF',
+                      color: isCurr ? 'var(--turkuaz, #0C617C)' : 'var(--text-secondary, #4B6478)',
                       fontSize: '11.5px',
-                      fontWeight: 900,
+                      fontWeight: isCurr ? 700 : 600,
                       cursor: 'pointer',
-                      whiteSpace: 'nowrap'
+                      flexShrink: 0,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px'
                     }}
                   >
-                    📺 {ch.name}
+                    <span>{format(parseISO(dStr), 'd MMM EEE', { locale: tr })}</span>
+                    {isTod && <strong style={{ color: 'var(--yesil, #468625)' }}>(Bugün)</strong>}
+                    {count > 0 && (
+                      <b style={{ fontFamily: 'var(--font-mono)', fontSize: '10.5px' }}>
+                        {count}
+                      </b>
+                    )}
                   </button>
-                ))}
-              </div>
-
-              {/* Hangi Liste Bilgisi */}
-              <div style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '4px 12px',
-                borderRadius: '8px',
-                background: 'rgba(37, 99, 235, 0.12)',
-                border: '1.5px solid rgba(37, 99, 235, 0.35)',
-                color: '#1d4ed8',
-                fontSize: '11.5px',
-                fontWeight: 900,
-                whiteSpace: 'nowrap'
-              }}>
-                <span>📋 Aktif Liste: {activeListName}</span>
-                {day?.syncedFromSource && (
-                  <span style={{
-                    fontSize: '10px',
-                    fontWeight: 700,
-                    padding: '1px 6px',
-                    borderRadius: '999px',
-                    background: 'var(--bg-primary)',
-                    color: 'var(--text-secondary)',
-                    border: '1px solid var(--border-color)'
-                  }}>
-                    {day.syncedFromSource}
-                  </span>
-                )}
-              </div>
+                );
+              })}
             </div>
-          </div>
-
-          {/* SAĞ: Günlük / Haftalık / Aylık / Raporlar & Loglar + Yazı Boyutu Büyütme (A- / A+) */}
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: isCompact ? 'center' : 'flex-end',
-            justifyContent: 'center',
-            gap: '6px'
-          }}>
-            <div style={{
-              display: 'flex',
-              background: 'var(--bg-tertiary)',
-              padding: '3px',
-              borderRadius: '9px',
-              border: '1px solid var(--border-color)',
-              gap: '3px',
-              flexWrap: 'wrap',
-              justifyContent: isCompact ? 'center' : 'flex-end'
-            }}>
-              {[
-                { id: 'daily', label: '📅 Günlük' },
-                { id: 'weekly', label: '🗓️ Haftalık' },
-                { id: 'monthly', label: '📆 Aylık' },
-                { id: 'reports', label: `📊 Raporlar & Loglar (${listControlLogs.length})` }
-              ].map(vm => (
-                <button
-                  key={vm.id}
-                  type="button"
-                  onClick={() => setLcViewMode(vm.id)}
-                  style={{
-                    padding: '5px 11px',
-                    borderRadius: '6px',
-                    border: 'none',
-                    background: lcViewMode === vm.id ? '#2563eb' : 'transparent',
-                    color: lcViewMode === vm.id ? '#ffffff' : 'var(--text-secondary)',
-                    fontSize: '12px',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  {vm.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Yazı Boyutu Büyütme / Küçültme Kontrolü */}
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '2px 6px',
-              borderRadius: '8px',
-              background: 'var(--bg-tertiary)',
-              border: '1px solid var(--border-color)'
-            }}>
-              <span style={{ fontSize: '10.5px', fontWeight: 800, color: 'var(--text-secondary)', marginRight: '2px' }}>
-                Yazı Boyutu:
-              </span>
-              <button
-                type="button"
-                onClick={() => handleUpdateFontScale(fontScale - 0.08)}
-                disabled={fontScale <= 0.9}
-                style={{
-                  padding: '2px 7px',
-                  borderRadius: '5px',
-                  border: '1px solid var(--border-color)',
-                  background: 'var(--bg-primary)',
-                  color: 'var(--text-primary)',
-                  fontSize: '11px',
-                  fontWeight: 900,
-                  cursor: fontScale <= 0.9 ? 'not-allowed' : 'pointer',
-                  opacity: fontScale <= 0.9 ? 0.45 : 1
-                }}
-                title="Yazı Boyutunu Küçült"
-              >
-                A-
-              </button>
-              <button
-                type="button"
-                onClick={() => handleUpdateFontScale(1)}
-                style={{
-                  padding: '2px 7px',
-                  borderRadius: '5px',
-                  border: '1px solid var(--border-color)',
-                  background: fontScale !== 1 ? 'rgba(37, 99, 235, 0.14)' : 'var(--bg-primary)',
-                  color: fontScale !== 1 ? '#2563eb' : 'var(--text-secondary)',
-                  fontSize: '10.5px',
-                  fontWeight: 800,
-                  fontFamily: 'monospace',
-                  cursor: 'pointer'
-                }}
-                title="Varsayılan Yazı Boyutuna (%100) Sıfırla"
-              >
-                %{Math.round(fontScale * 100)}
-              </button>
-              <button
-                type="button"
-                onClick={() => handleUpdateFontScale(fontScale + 0.08)}
-                disabled={fontScale >= 1.35}
-                style={{
-                  padding: '2px 7px',
-                  borderRadius: '5px',
-                  border: '1px solid var(--border-color)',
-                  background: 'var(--bg-primary)',
-                  color: 'var(--text-primary)',
-                  fontSize: '11.5px',
-                  fontWeight: 900,
-                  cursor: fontScale >= 1.35 ? 'not-allowed' : 'pointer',
-                  opacity: fontScale >= 1.35 ? 0.45 : 1
-                }}
-                title="Yazı Boyutunu Büyüt"
-              >
-                A+
-              </button>
-            </div>
-          </div>
+          )}
         </div>
 
-        {/* Alt Şerit: Hazır / İletilen Günler Hızlı Geçiş (Ortalanmış) */}
-        {availableTransmittedDates.length > 0 && (
-          <div style={{
-            display: 'flex',
+        {/* Yazı Boyutu Kontrolü */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{
+            display: 'inline-flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px',
-            overflowX: 'auto',
-            paddingTop: '6px',
-            borderTop: '1px dashed var(--border-color)',
-            fontSize: '11px',
-            width: '100%'
+            gap: '5px',
+            fontSize: '11.5px',
+            fontWeight: 600,
+            color: 'var(--text-secondary, #4B6478)'
           }}>
-            <span style={{ fontWeight: 800, color: 'var(--text-secondary)', flexShrink: 0 }}>
-              Hazır / İletilen Günler:
-            </span>
-            {availableTransmittedDates.map(dStr => {
-              const isCurr = dStr === safeDate;
-              const isTod = dStr === todayStr;
-              const rDay = days[`ready-${selectedChannel}-${dStr}`];
-              const lDay = listControlDays[`list-control-${selectedChannel}-${dStr}`];
-              const count =
-                lDay?.variants?.[lDay?.activeVariant || 'v1']?.programs?.length ||
-                rDay?.variants?.[rDay?.activeVariant || 'v1']?.programs?.length ||
-                0;
-              return (
-                <button
-                  key={dStr}
-                  type="button"
-                  onClick={() => {
-                    setSelectedDate(dStr);
-                    setLcViewMode('daily');
-                  }}
-                  style={{
-                    padding: '3px 10px',
-                    borderRadius: '999px',
-                    border: isCurr ? '1.5px solid #2563eb' : '1px solid var(--border-color)',
-                    background: isCurr ? 'rgba(37, 99, 235, 0.14)' : 'var(--bg-primary)',
-                    color: isCurr ? '#2563eb' : 'var(--text-primary)',
-                    fontSize: '11px',
-                    fontWeight: isCurr ? 800 : 600,
-                    cursor: 'pointer',
-                    flexShrink: 0,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '5px'
-                  }}
-                >
-                  <span>{format(parseISO(dStr), 'd MMM EEE', { locale: tr })}</span>
-                  {isTod && <strong style={{ color: '#10b981' }}>(Bugün)</strong>}
-                  {count > 0 && (
-                    <span style={{
-                      fontSize: '9.5px',
-                      padding: '0 6px',
-                      borderRadius: '999px',
-                      background: isCurr ? '#2563eb' : 'var(--bg-tertiary)',
-                      color: isCurr ? '#ffffff' : 'var(--text-secondary)'
-                    }}>
-                      {count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+            <Ikon ad="yazi" size={14} />
+            <span>Yazı Boyutu:</span>
+          </span>
+          <div style={{
+            display: 'inline-flex',
+            background: '#FFFFFF',
+            padding: '2px',
+            borderRadius: '4px',
+            border: '1px solid var(--border-color, #DCE5E9)',
+            gap: '2px'
+          }}>
+            <button
+              type="button"
+              onClick={() => handleUpdateFontScale(fontScale - 0.08)}
+              disabled={fontScale <= 0.9}
+              style={{
+                height: '28px',
+                padding: '0 9px',
+                borderRadius: '3px',
+                border: 0,
+                background: 'transparent',
+                color: 'var(--text-secondary, #4B6478)',
+                fontSize: '11.5px',
+                fontWeight: 700,
+                cursor: fontScale <= 0.9 ? 'not-allowed' : 'pointer',
+                opacity: fontScale <= 0.9 ? 0.45 : 1
+              }}
+            >
+              A-
+            </button>
+            <button
+              type="button"
+              onClick={() => handleUpdateFontScale(1)}
+              style={{
+                height: '28px',
+                padding: '0 9px',
+                borderRadius: '3px',
+                border: 0,
+                background: 'var(--turkuaz, #0C617C)',
+                color: '#FFFFFF',
+                fontSize: '11px',
+                fontWeight: 700,
+                fontFamily: 'var(--font-mono)',
+                cursor: 'pointer'
+              }}
+            >
+              %{Math.round(fontScale * 100)}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleUpdateFontScale(fontScale + 0.08)}
+              disabled={fontScale >= 1.35}
+              style={{
+                height: '28px',
+                padding: '0 9px',
+                borderRadius: '3px',
+                border: 0,
+                background: 'transparent',
+                color: 'var(--text-secondary, #4B6478)',
+                fontSize: '11.5px',
+                fontWeight: 700,
+                cursor: fontScale >= 1.35 ? 'not-allowed' : 'pointer',
+                opacity: fontScale >= 1.35 ? 0.45 : 1
+              }}
+            >
+              A+
+            </button>
           </div>
-        )}
+        </div>
       </div>
 
       {/* 2. ANA İÇERİK ALANI */}
@@ -1076,43 +1076,43 @@ export default function ListControlModule() {
                   type="button"
                   onClick={() => setIsLeftSidebarOpen(prev => !prev)}
                   style={{
-                    padding: '4px 9px',
-                    borderRadius: '7px',
-                    border: '1px solid var(--border-color)',
-                    background: isLeftSidebarOpen ? 'var(--bg-primary)' : '#2563eb',
-                    color: isLeftSidebarOpen ? 'var(--text-primary)' : '#ffffff',
-                    fontSize: '11px',
-                    fontWeight: 800,
+                    padding: '4px 10px',
+                    borderRadius: '4px',
+                    border: '1px solid var(--border-color, #DCE5E9)',
+                    background: isLeftSidebarOpen ? '#FFFFFF' : 'var(--turkuaz, #0C617C)',
+                    color: isLeftSidebarOpen ? 'var(--text-primary, #0A101D)' : '#ffffff',
+                    fontSize: '11.5px',
+                    fontWeight: 700,
                     cursor: 'pointer'
                   }}
-                  title="Sol Medya & Reklam Kütüphanesini Gizle / Göster (Tabloyu Tam Genişlik Yap)"
+                  title="Sol Medya & Reklam Kütüphanesini Gizle / Göster"
                 >
-                  {isLeftSidebarOpen ? '◀ Kütüphaneyi Gizle' : '▶ Kütüphaneyi Aç'}
+                  {isLeftSidebarOpen ? 'Kütüphaneyi Gizle' : 'Kütüphaneyi Aç'}
                 </button>
                 {[
                   { id: 'all', label: `Tümü (${programs.length})` },
                   {
                     id: 'clips',
-                    label: `🎬 Klipler (${programs.filter(p => !p.isAdClip && !p.isFromAds).length})`
+                    label: `Klipler (${programs.filter(p => !p.isAdClip && !p.isFromAds).length})`
                   },
                   {
                     id: 'ads',
-                    label: `📢 Reklamlar (${programs.filter(p => p.isAdClip || p.isFromAds).length})`
+                    label: `Reklamlar (${programs.filter(p => p.isAdClip || p.isFromAds).length})`
                   },
                   {
                     id: 'broadcast_diff',
-                    label: `🔄 Yayın Planlama Ek/Değişim (${(stageAnalysis?.addedByBroadcastItems?.length || 0) + (stageAnalysis?.modifiedByBroadcastItems?.length || 0)})`
+                    label: `Yayın Planlama Ek/Değişim (${(stageAnalysis?.addedByBroadcastItems?.length || 0) + (stageAnalysis?.modifiedByBroadcastItems?.length || 0)})`
                   },
                   {
                     id: 'errors_only',
-                    label: `🔴 Hatalı Satırlar (${programs.filter(p => {
+                    label: `Hatalı Satırlar (${programs.filter(p => {
                       const h = healthMap[p.instanceId];
                       return (h && (!h.inDatabase || !h.fileExists || h.isCorrupted)) || p.isEmptyAdBreak;
                     }).length})`
                   },
                   {
                     id: 'revisions',
-                    label: `⚠️ Revize (${programs.filter(p => p.revisionRequested).length})`
+                    label: `Revize (${programs.filter(p => p.revisionRequested).length})`
                   }
                 ].map(f => (
                   <button
@@ -1121,12 +1121,12 @@ export default function ListControlModule() {
                     onClick={() => setActiveFilterCategory(f.id)}
                     style={{
                       padding: '4px 10px',
-                      borderRadius: '7px',
-                      border: activeFilterCategory === f.id ? 'none' : '1px solid var(--border-color)',
-                      background: activeFilterCategory === f.id ? 'var(--accent-primary)' : 'var(--bg-primary)',
-                      color: activeFilterCategory === f.id ? '#ffffff' : 'var(--text-secondary)',
-                      fontSize: '11px',
-                      fontWeight: 800,
+                      borderRadius: '4px',
+                      border: activeFilterCategory === f.id ? '1px solid var(--turkuaz, #0C617C)' : '1px solid var(--border-color, #DCE5E9)',
+                      background: activeFilterCategory === f.id ? 'var(--turkuaz, #0C617C)' : '#FFFFFF',
+                      color: activeFilterCategory === f.id ? '#ffffff' : 'var(--text-secondary, #4B6478)',
+                      fontSize: '11.5px',
+                      fontWeight: 700,
                       cursor: 'pointer'
                     }}
                   >
@@ -1250,62 +1250,51 @@ export default function ListControlModule() {
               </div>
             </div>
 
-            {/* LİSTENİN ÜSTÜNDE ORTADA BELİRGİN TOPLAM SÜRE GÖSTERGESİ */}
+            {/* LİSTENİN ÜSTÜNDE LACİVERT (#142A44) TOPLAM SÜRE ŞERİDİ (.total) */}
             {programs.length > 0 && (
               <div style={{
-                padding: '10px 16px 2px 16px',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center'
+                padding: '10px 16px 2px 16px'
               }}>
                 <div style={{
-                  padding: '8px 22px',
-                  borderRadius: '12px',
-                  background: Math.abs(totalDurationSec - 86400) < 300
-                    ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.14) 0%, rgba(5, 150, 105, 0.08) 100%)'
-                    : 'linear-gradient(135deg, rgba(37, 99, 235, 0.12) 0%, rgba(217, 119, 6, 0.1) 100%)',
-                  border: Math.abs(totalDurationSec - 86400) < 300
-                    ? '1.5px solid rgba(16, 185, 129, 0.45)'
-                    : '1.5px solid rgba(37, 99, 235, 0.38)',
+                  padding: '11px 16px',
+                  borderRadius: '6px',
+                  background: 'var(--lacivert, #142A44)',
+                  color: '#FFFFFF',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '14px',
-                  flexWrap: 'wrap',
-                  boxShadow: '0 3px 12px rgba(0, 0, 0, 0.05)'
+                  flexWrap: 'wrap'
                 }}>
                   <span style={{
                     fontSize: '12px',
-                    fontWeight: 900,
-                    color: 'var(--text-secondary)',
+                    fontWeight: 700,
+                    color: '#FFFFFF',
                     textTransform: 'uppercase',
-                    letterSpacing: '0.4px'
+                    letterSpacing: '0.03em',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
                   }}>
-                    ⏱️ Liste Toplam Yayın Süresi:
+                    <Ikon ad="saat" size={16} />
+                    <span>Liste Toplam Yayın Süresi:</span>
                   </span>
                   <span style={{
-                    fontSize: '16px',
-                    fontWeight: 900,
-                    fontFamily: 'monospace',
-                    color: Math.abs(totalDurationSec - 86400) < 300 ? '#059669' : '#2563eb',
-                    background: 'var(--bg-primary)',
-                    padding: '3px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--border-color)'
+                    fontSize: '17px',
+                    fontWeight: 700,
+                    fontFamily: 'var(--font-mono)',
+                    color: '#FFFFFF'
                   }}>
                     {formatSecondsReadable(totalDurationSec)} / 24 sa 00 dk
                   </span>
                   <span style={{
                     fontSize: '11.5px',
-                    fontWeight: 800,
-                    padding: '2px 10px',
-                    borderRadius: '999px',
-                    background: Math.abs(totalDurationSec - 86400) < 300
-                      ? '#10b981'
-                      : totalDurationSec < 86400
-                      ? '#d97706'
-                      : '#dc2626',
-                    color: '#ffffff'
+                    fontWeight: 700,
+                    padding: '3px 9px',
+                    borderRadius: '2px',
+                    background: 'var(--hardal, #E8B44C)',
+                    color: 'var(--gece, #0A101D)',
+                    fontFamily: 'var(--font-mono)'
                   }}>
                     %{Math.min(100, Number(((totalDurationSec / 86400) * 100).toFixed(1)))} Dolu
                     {totalDurationSec < 86400
@@ -1314,7 +1303,7 @@ export default function ListControlModule() {
                       ? ` • Fazla: +${formatSecondsReadable(totalDurationSec - 86400)}`
                       : ' • Tam 24 Saat'}
                   </span>
-                  <span style={{ fontSize: '11.5px', fontWeight: 800, color: 'var(--text-secondary)' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 500, color: 'rgba(255, 255, 255, 0.85)' }}>
                     ({channelName} • {activeListName} • {programs.length} Satır)
                   </span>
                 </div>

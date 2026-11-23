@@ -10,7 +10,7 @@ import { getProgramColor } from './constants';
  */
 export const LibraryProgramItem = ({
   prog,
-  catColor = '#3b82f6',
+  catColor = '#0C617C',
   onDragStartItem,
   onOpenAddModal
 }) => {

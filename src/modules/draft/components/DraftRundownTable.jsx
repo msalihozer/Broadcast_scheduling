@@ -21,13 +21,13 @@ import { filterAndSortBySearchPriority } from '../../../utils/searchRanker';
 import { getProgramColor } from './library/constants';
 
 const DAY_THEMES = {
-  Pazartesi: { color: '#2563eb', order: '1. GÜN' },
-  Salı:      { color: '#7c3aed', order: '2. GÜN' },
-  Çarşamba:  { color: '#0891b2', order: '3. GÜN' },
-  Perşembe:  { color: '#059669', order: '4. GÜN' },
-  Cuma:      { color: '#d97706', order: '5. GÜN' },
-  Cumartesi: { color: '#e11d48', order: '6. GÜN' },
-  Pazar:     { color: '#4f46e5', order: '7. GÜN' }
+  Pazartesi: { color: '#0C617C', order: '1. GÜN' },
+  Salı:      { color: '#142A44', order: '2. GÜN' },
+  Çarşamba:  { color: '#058193', order: '3. GÜN' },
+  Perşembe:  { color: '#468625', order: '4. GÜN' },
+  Cuma:      { color: '#E8B44C', order: '5. GÜN' },
+  Cumartesi: { color: '#ED891E', order: '6. GÜN' },
+  Pazar:     { color: '#109AAD', order: '7. GÜN' }
 };
 
 const DraftRundownTable = ({
@@ -117,11 +117,10 @@ const DraftRundownTable = ({
             key={dateKey}
             style={{
               background: 'var(--bg-secondary)',
-              borderRadius: '16px',
-              border: '1px solid #cbd5e1',
-              borderTop: '3.5px solid #3b82f6',
-              overflow: 'hidden',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)'
+              borderRadius: '6px',
+              border: '1px solid var(--border-color, #DCE5E9)',
+              borderTop: '4px solid var(--turkuaz, #0C617C)',
+              overflow: 'hidden'
             }}
           >
             {/* Tablo Kartı Başlığı */}

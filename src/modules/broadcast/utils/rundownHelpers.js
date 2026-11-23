@@ -48,15 +48,15 @@ export function parseTimecodeDisplay(tc) {
 export function getHourPeriodLabel(hour) {
   const customPeriods = useThemeStore.getState()?.config?.periodColors || {};
   if (hour >= 0 && hour < 6) {
-    return { id: 'night', label: 'GECE KUŞAĞI', range: '00:00 - 06:00', icon: '🌙', color: customPeriods.night?.color || '#6366f1' };
+    return { id: 'night', label: 'GECE KUŞAĞI', range: '00:00 - 06:00', icon: 'gece', color: customPeriods.night?.color || '#0B2B54', textColor: '#FFFFFF' };
   }
   if (hour >= 6 && hour < 12) {
-    return { id: 'morning', label: 'SABAH KUŞAĞI', range: '06:00 - 12:00', icon: '🌅', color: customPeriods.morning?.color || '#f59e0b' };
+    return { id: 'morning', label: 'SABAH KUŞAĞI', range: '06:00 - 12:00', icon: 'sabah', color: customPeriods.morning?.color || '#E8B44C', textColor: '#0A101D' };
   }
   if (hour >= 12 && hour < 18) {
-    return { id: 'day', label: 'GÜNDÜZ KUŞAĞI', range: '12:00 - 18:00', icon: '☀️', color: customPeriods.day?.color || '#0ea5e9' };
+    return { id: 'day', label: 'GÜNDÜZ KUŞAĞI', range: '12:00 - 18:00', icon: 'gunduz', color: customPeriods.day?.color || '#109AAD', textColor: '#FFFFFF' };
   }
-  return { id: 'evening', label: 'AKŞAM KUŞAĞI', range: '18:00 - 24:00', icon: '🌆', color: customPeriods.evening?.color || '#8b5cf6' };
+  return { id: 'evening', label: 'AKŞAM & PRİME KUŞAĞI', range: '18:00 - 24:00', icon: 'aksam', color: customPeriods.evening?.color || '#0C617C', textColor: '#FFFFFF' };
 }
 
 /**
