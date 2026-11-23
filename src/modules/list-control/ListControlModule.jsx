@@ -456,22 +456,24 @@ export default function ListControlModule() {
       background: 'var(--bg-primary)',
       overflow: 'hidden'
     }}>
-      {/* 1. ÜST KONTROL VE NAVİGASYON ÇUBUĞU */}
+      {/* 1. ÜST KONTROL VE NAVİGASYON ÇUBUĞU (2 SATIRLI, SOL-ORTA-SAĞ TAM DENGELİ KURUMSAL BAŞLIK) */}
       <div style={{
-        padding: '9px 16px',
+        padding: '10px 20px',
         background: 'var(--bg-secondary)',
         borderBottom: '1.5px solid var(--border-color)',
         display: 'flex',
         flexDirection: 'column',
-        gap: '7px',
+        gap: '8px',
         flexShrink: 0
       }}>
+        {/* 1. SATIR: Sol (Kanal & Görünüm) • Tam Orta (Tarih Seçici & Bugün) • Sağ (Toplam Süre & Listeyi Onayla) */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: '10px',
-          flexWrap: 'wrap'
+          gap: '12px',
+          flexWrap: 'wrap',
+          width: '100%'
         }}>
           {/* Sol: Kanal Seçici + Görünüm Seçici */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -489,14 +491,15 @@ export default function ListControlModule() {
                   type="button"
                   onClick={() => setSelectedChannel(ch.id)}
                   style={{
-                    padding: '5px 11px',
+                    padding: '5px 12px',
                     borderRadius: '6px',
                     border: 'none',
                     background: selectedChannel === ch.id ? 'var(--accent-primary)' : 'transparent',
                     color: selectedChannel === ch.id ? '#ffffff' : 'var(--text-secondary)',
                     fontSize: '12px',
                     fontWeight: 800,
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap'
                   }}
                 >
                   {ch.name}
@@ -530,37 +533,18 @@ export default function ListControlModule() {
                     color: lcViewMode === vm.id ? '#ffffff' : 'var(--text-secondary)',
                     fontSize: '12px',
                     fontWeight: 800,
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap'
                   }}
                 >
                   {vm.label}
                 </button>
               ))}
             </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedDate(todayStr);
-                setLcViewMode('daily');
-              }}
-              style={{
-                padding: '5px 11px',
-                borderRadius: '8px',
-                border: safeDate === todayStr ? '1.5px solid #2563eb' : '1px solid var(--border-color)',
-                background: safeDate === todayStr ? 'rgba(37, 99, 235, 0.14)' : 'var(--bg-primary)',
-                color: safeDate === todayStr ? '#2563eb' : 'var(--text-primary)',
-                fontSize: '11.5px',
-                fontWeight: 800,
-                cursor: 'pointer'
-              }}
-            >
-              Bugün ({format(parseISO(todayStr), 'd MMM', { locale: tr })})
-            </button>
           </div>
 
-          {/* Orta: Tarih Seçici */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {/* Orta: Tam Ortalanmış Tarih Seçici + Bugün Butonu */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
             <button
               type="button"
               onClick={() => {
@@ -586,17 +570,18 @@ export default function ListControlModule() {
 
             <CustomDatePicker selectedDate={safeDate} onDateChange={(d) => setSelectedDate(d)}>
               <div style={{
-                padding: '5px 12px',
+                padding: '5px 14px',
                 borderRadius: '9px',
                 background: 'var(--bg-primary)',
-                border: '1px solid var(--border-color)',
+                border: '1.5px solid var(--border-color)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '7px',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.04)'
               }}>
                 <Calendar size={14} color="var(--accent-primary)" />
-                <span style={{ fontSize: '13px', fontWeight: 900, color: 'var(--text-primary)', textTransform: 'uppercase' }}>
+                <span style={{ fontSize: '13px', fontWeight: 900, color: 'var(--text-primary)', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
                   {format(parseISO(safeDate), 'd MMMM yyyy EEEE', { locale: tr })}
                 </span>
                 {safeDate === todayStr && (
@@ -636,54 +621,42 @@ export default function ListControlModule() {
             >
               <ChevronRight size={15} />
             </button>
-          </div>
 
-          {/* Sağ: Senkronizasyon + Süre + Onay */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '7px', flexWrap: 'wrap' }}>
             <button
               type="button"
               onClick={() => {
-                const res = lcSyncFromAdsOrReady(selectedChannel, safeDate, { forceOverwrite: true, silent: false });
-                if (res.count > 0) {
-                  useDialogStore.getState().showAlert(
-                    'Liste Güncellendi',
-                    `${res.source} üzerinden ${res.count} yayın ve reklam satırı Liste Kontrol ekranına yeniden çekildi.`
-                  );
-                } else {
-                  useDialogStore.getState().showAlert(
-                    'Veri Bulunamadı',
-                    `Seçili gün (${safeDate}) için Reklam Rezervasyon veya Yayın Planlamada kayıtlı liste bulunamadı.`
-                  );
-                }
+                setSelectedDate(todayStr);
+                setLcViewMode('daily');
               }}
               style={{
-                padding: '5px 10px',
+                padding: '5px 11px',
                 borderRadius: '8px',
-                border: '1px solid var(--border-color)',
-                background: 'var(--bg-primary)',
-                color: 'var(--text-primary)',
+                border: safeDate === todayStr ? '1.5px solid #2563eb' : '1px solid var(--border-color)',
+                background: safeDate === todayStr ? 'rgba(37, 99, 235, 0.14)' : 'var(--bg-primary)',
+                color: safeDate === todayStr ? '#2563eb' : 'var(--text-primary)',
                 fontSize: '11.5px',
                 fontWeight: 800,
                 cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px'
+                whiteSpace: 'nowrap'
               }}
             >
-              <RefreshCw size={12} />
-              <span>Reklam Rezervasyondan Çek</span>
+              Bugün ({format(parseISO(todayStr), 'd MMM', { locale: tr })})
             </button>
+          </div>
 
+          {/* Sağ: Toplam Süre + Listeyi Onayla */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', flexWrap: 'wrap' }}>
             <div style={{
-              padding: '5px 10px',
+              padding: '6px 12px',
               borderRadius: '8px',
               background: 'var(--bg-tertiary)',
               border: '1px solid var(--border-color)',
-              fontSize: '11.5px',
+              fontSize: '12px',
               fontFamily: 'monospace',
-              fontWeight: 800
+              fontWeight: 800,
+              whiteSpace: 'nowrap'
             }}>
-              <span style={{ color: 'var(--text-secondary)' }}>Toplam: </span>
+              <span style={{ color: 'var(--text-secondary)' }}>Toplam Süre: </span>
               <span style={{ color: Math.abs(totalDurationSec - 86400) < 300 ? '#059669' : '#d97706' }}>
                 {formatSecondsReadable(totalDurationSec)} / 24 sa
               </span>
@@ -691,42 +664,10 @@ export default function ListControlModule() {
 
             <button
               type="button"
-              onClick={() =>
-                handleOpenRevisionModal({
-                  isFullDayRevision: true,
-                  title: `${channelName} (${safeDate}) Tüm Gün Yayın & Reklam Listesi`,
-                  code: safeDate,
-                  durationSec: totalDurationSec,
-                  defaultTargetStage: 'broadcast'
-                })
-              }
-              disabled={programs.length === 0}
-              style={{
-                padding: '6px 12px',
-                borderRadius: '8px',
-                border: '1.5px solid rgba(220, 38, 38, 0.5)',
-                background: 'rgba(220, 38, 38, 0.12)',
-                color: '#dc2626',
-                fontSize: '11.5px',
-                fontWeight: 800,
-                cursor: programs.length === 0 ? 'not-allowed' : 'pointer',
-                opacity: programs.length === 0 ? 0.5 : 1,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px'
-              }}
-              title="Bütün günü Taslak Planlama, Yayın Planlama veya Reklam Rezervasyon birimine (zorunlu açıklamayla) revizeye gönder"
-            >
-              <Send size={13} />
-              <span>Bütün Günü Revizeye Gönder</span>
-            </button>
-
-            <button
-              type="button"
               onClick={handleApproveList}
               disabled={programs.length === 0}
               style={{
-                padding: '6px 14px',
+                padding: '6px 16px',
                 borderRadius: '8px',
                 border: 'none',
                 background: isApproved
@@ -739,7 +680,8 @@ export default function ListControlModule() {
                 opacity: programs.length === 0 ? 0.5 : 1,
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '5px'
+                gap: '5px',
+                whiteSpace: 'nowrap'
               }}
             >
               <Check size={14} />
@@ -748,16 +690,25 @@ export default function ListControlModule() {
           </div>
         </div>
 
-        {/* İletilen / Hazır Günler Hızlı Geçiş Şeridi */}
-        {availableTransmittedDates.length > 0 && (
+        {/* 2. SATIR: Sol (Hazır / İletilen Günler Hızlı Geçiş Şeridi) • Sağ (Reklam Rezervasyondan Çek & Bütün Günü Revizeye Gönder) */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px',
+          flexWrap: 'wrap',
+          paddingTop: '6px',
+          borderTop: '1px dashed var(--border-color)',
+          width: '100%'
+        }}>
           <div style={{
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
             overflowX: 'auto',
-            paddingTop: '4px',
-            borderTop: '1px dashed var(--border-color)',
-            fontSize: '11px'
+            fontSize: '11px',
+            minWidth: 0,
+            flex: 1
           }}>
             <span style={{ fontWeight: 800, color: 'var(--text-secondary)', flexShrink: 0 }}>
               Hazır / İletilen Günler:
@@ -780,7 +731,7 @@ export default function ListControlModule() {
                     setLcViewMode('daily');
                   }}
                   style={{
-                    padding: '2px 8px',
+                    padding: '3px 10px',
                     borderRadius: '999px',
                     border: isCurr ? '1.5px solid #2563eb' : '1px solid var(--border-color)',
                     background: isCurr ? 'rgba(37, 99, 235, 0.14)' : 'var(--bg-primary)',
@@ -791,7 +742,7 @@ export default function ListControlModule() {
                     flexShrink: 0,
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '4px'
+                    gap: '5px'
                   }}
                 >
                   <span>{format(parseISO(dStr), 'd MMM EEE', { locale: tr })}</span>
@@ -799,7 +750,7 @@ export default function ListControlModule() {
                   {count > 0 && (
                     <span style={{
                       fontSize: '9.5px',
-                      padding: '0 5px',
+                      padding: '0 6px',
                       borderRadius: '999px',
                       background: isCurr ? '#2563eb' : 'var(--bg-tertiary)',
                       color: isCurr ? '#ffffff' : 'var(--text-secondary)'
@@ -811,7 +762,77 @@ export default function ListControlModule() {
               );
             })}
           </div>
-        )}
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', flexShrink: 0 }}>
+            <button
+              type="button"
+              onClick={() => {
+                const res = lcSyncFromAdsOrReady(selectedChannel, safeDate, { forceOverwrite: true, silent: false });
+                if (res.count > 0) {
+                  useDialogStore.getState().showAlert(
+                    'Liste Güncellendi',
+                    `${res.source} üzerinden ${res.count} yayın ve reklam satırı Liste Kontrol ekranına yeniden çekildi.`
+                  );
+                } else {
+                  useDialogStore.getState().showAlert(
+                    'Veri Bulunamadı',
+                    `Seçili gün (${safeDate}) için Reklam Rezervasyon veya Yayın Planlamada kayıtlı liste bulunamadı.`
+                  );
+                }
+              }}
+              style={{
+                padding: '5px 11px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)',
+                background: 'var(--bg-primary)',
+                color: 'var(--text-primary)',
+                fontSize: '11.5px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              <RefreshCw size={12} />
+              <span>Reklam Rezervasyondan Çek</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                handleOpenRevisionModal({
+                  isFullDayRevision: true,
+                  title: `${channelName} (${safeDate}) Tüm Gün Yayın & Reklam Listesi`,
+                  code: safeDate,
+                  durationSec: totalDurationSec,
+                  defaultTargetStage: 'broadcast'
+                })
+              }
+              disabled={programs.length === 0}
+              style={{
+                padding: '5px 12px',
+                borderRadius: '8px',
+                border: '1.5px solid rgba(220, 38, 38, 0.5)',
+                background: 'rgba(220, 38, 38, 0.12)',
+                color: '#dc2626',
+                fontSize: '11.5px',
+                fontWeight: 800,
+                cursor: programs.length === 0 ? 'not-allowed' : 'pointer',
+                opacity: programs.length === 0 ? 0.5 : 1,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                whiteSpace: 'nowrap'
+              }}
+              title="Bütün günü Taslak Planlama, Yayın Planlama veya Reklam Rezervasyon birimine (zorunlu açıklamayla) revizeye gönder"
+            >
+              <Send size={12} />
+              <span>Bütün Günü Revizeye Gönder</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* 2. ANA İÇERİK ALANI */}
