@@ -35,13 +35,18 @@ const SettingsTab = () => {
   const [categoryStatsMap, setCategoryStatsMap] = useState({});
 
   useEffect(() => {
-    fetch('/api/archive/categories-status')
-      .then(res => res.json())
+    fetch('/api/archive/categories')
+      .then(res => (res.ok ? res.json() : null))
       .then(data => {
-        if (Array.isArray(data)) {
+        const list = Array.isArray(data) ? data : (Array.isArray(data?.categories) ? data.categories : []);
+        if (list.length > 0) {
           const map = {};
-          data.forEach(item => {
-            map[Number(item.categoryId)] = item;
+          list.forEach(item => {
+            map[Number(item.categoryId)] = {
+              ...item,
+              totalPrograms: item.totalPrograms ?? item.programsCount ?? 0,
+              totalClips: item.totalClips ?? item.syncedClipCount ?? item.mssqlClipCount ?? 0
+            };
           });
           setCategoryStatsMap(map);
         }

@@ -45,7 +45,7 @@ export function createArchiveRouter(poolPromise) {
     const router = express.Router();
 
     // 1. Kategoriler ve senkronizasyon durumu (Varsayılan olarak hızlı yerel PostgreSQL okuma)
-    router.get('/categories', async (req, res) => {
+    const handleGetCategoriesStatus = async (req, res) => {
         try {
             const forceMssql = req.query.refreshMssql === 'true';
             const stats = await getArchiveCategoriesStatus(forceMssql);
@@ -54,7 +54,9 @@ export function createArchiveRouter(poolPromise) {
             console.error('[API ARCHIVE CATEGORIES ERROR]:', err);
             res.status(500).json({ error: 'Kategoriler alınamadı: ' + err.message });
         }
-    });
+    };
+    router.get('/categories', handleGetCategoriesStatus);
+    router.get('/categories-status', handleGetCategoriesStatus);
 
     // 1a. Bizim DB Planlama Kategorileri CRUD (Listele / Ekle / Düzenle / Sil)
     router.get('/our-categories', async (req, res) => {
@@ -110,7 +112,7 @@ export function createArchiveRouter(poolPromise) {
     });
 
     // 1c. Akıllı Delta Senkronizasyon (Tüm arşivi baştan taramak yerine sadece TV MAM DB'ye yeni eklenen klipleri çeker)
-    router.post('/syncDelta', async (req, res) => {
+    const handleSyncDeltaRoute = async (req, res) => {
         try {
             const categoryId = req.body?.categoryId ? parseInt(req.body.categoryId, 10) : null;
             const result = await syncDeltaUpdatesFromMam(categoryId);
@@ -119,7 +121,9 @@ export function createArchiveRouter(poolPromise) {
             console.error('[API ARCHIVE SYNC DELTA ERROR]:', err);
             res.status(500).json({ error: 'Akıllı Delta senkronizasyon hatası: ' + err.message });
         }
-    });
+    };
+    router.post('/syncDelta', handleSyncDeltaRoute);
+    router.post('/sync-delta', handleSyncDeltaRoute);
 
     // 2. Belirli bir kategorinin programları ve klipleri (Filtre: isActive=true/false/all, filterMode='our'|'mam')
     router.get('/programs', async (req, res) => {

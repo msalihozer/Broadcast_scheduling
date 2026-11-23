@@ -53,7 +53,17 @@ const TopNavbar = () => {
   };
 
   const displayEmail = user?.email || '';
-  const displayUser = user?.name || (displayEmail.includes('@') ? displayEmail.split('@')[0] : displayEmail);
+  const matchedManagedUser = useMemo(() => {
+    const emailLow = String(displayEmail).toLowerCase().trim();
+    return (managedUsers || []).find(
+      u => String(u.email || '').toLowerCase().trim() === emailLow || String(u.id || '') === String(user?.id || '')
+    );
+  }, [managedUsers, displayEmail, user]);
+  const displayUser =
+    matchedManagedUser?.name ||
+    user?.name ||
+    user?.user_metadata?.name ||
+    (displayEmail.includes('@') ? displayEmail.split('@')[0] : displayEmail);
 
   return (
     <header style={{

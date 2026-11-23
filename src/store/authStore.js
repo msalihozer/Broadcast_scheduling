@@ -550,9 +550,18 @@ const useAuthStore = create((set, get) => ({
           return;
         }
         const resolvedRole = validUser.role || determineRole(email, managedUsers);
+        const enrichedUser = {
+          ...localSession.user,
+          name: validUser.name || localSession.user?.name || localSession.user?.user_metadata?.name || validUser.username,
+          username: validUser.username || localSession.user?.username,
+          user_metadata: {
+            ...(localSession.user?.user_metadata || {}),
+            name: validUser.name || localSession.user?.user_metadata?.name || validUser.username
+          }
+        };
         set({
           session: localSession.session || localSession,
-          user: localSession.user,
+          user: enrichedUser,
           role: resolvedRole,
           isLoading: false
         });
@@ -664,6 +673,8 @@ const useAuthStore = create((set, get) => ({
     const mockUser = {
       id: matchedManaged.id,
       email: matchedManaged.email,
+      username: matchedManaged.username || (matchedManaged.email || '').split('@')[0],
+      name: matchedManaged.name || matchedManaged.username || (matchedManaged.email || '').split('@')[0],
       user_metadata: {
         name: matchedManaged.name || matchedManaged.username
       }

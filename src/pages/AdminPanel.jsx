@@ -314,7 +314,7 @@ const AdminPanel = () => {
               color: 'var(--text-secondary, #4B6478)'
             }}>
               <div style={{ fontWeight: 700, color: 'var(--text-primary, #0A101D)', marginBottom: '2px' }}>
-                {user?.name || user?.email || 'Aktif Kullanıcı'}
+                {permissions?.userRecord?.name || user?.name || user?.user_metadata?.name || user?.email || 'Aktif Kullanıcı'}
               </div>
               <div>Yetkili Sekme: {navItems.length} / {ALL_NAV_ITEMS.length}</div>
             </div>
