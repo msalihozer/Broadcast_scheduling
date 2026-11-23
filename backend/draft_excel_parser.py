@@ -1,11 +1,15 @@
 """
-draft_excel_parser.py - Haftalık Taslak Akış Excel Ayrıştırıcısı (Katalog + AKIŞ Sekmesi Entegreli)
+draft_excel_parser.py - Yapısal (Hücre Kenarlığı / Kutu Çizgisi + AKIŞ Sekmesi + Dinamik DB) Haftalık Taslak Akış Ayrıştırıcısı
 
-Bu script '23-29 KASIM 2026 AKIŞ.xlsx', '31 AĞUSTOS-6 EYLÜL 2026 AKIŞ.xlsx' ve benzeri
-haftalık yayın akışı Excel dosyalarını okur, hem 30 dakikalık detay matrisini hem de
-'AKIŞ' özet sekmesini çapraz doğrulayarak konuşmacı/dergah/konu alt satırlarının
-(örn: 'Sadrettin Koç-İznik Dergah', 'Düzce', 'A.Enes Bilge') yanlışlıkla yeni program
-olarak ayrıştırılmasını %100 önler ve 7 günlük 24 saatlik (1440 dk) eksiksiz akışı üretir.
+Çalışma Mantığı (Sabit İsim Listesine Bağımlı Değildir!):
+1. Excel'deki 30 dakikalık detay matrisinde her program kuşağı bir kutu (hücre grubu) olarak çizilmiştir:
+   - Yeni bir programın başladığı ilk 30 dakikalık satırın ÜST KENARLIĞI (cell.border.top) veya bir üst hücrenin ALT KENARLIĞI (prev_cell.border.bottom) bulunur.
+   - Aynı programın devam eden 30 dakikalık alt satırlarında (konuşmacı, hoca, şehir, konu, dergah vb.) ise aradaki yatay çizgi YOKTUR (border=None).
+2. Ayrıca Excel'deki 2. sekme olan 'AKIŞ' sayfasında o günün program başlangıç saatleri yer alır.
+3. Bu sayede sisteme daha önce hiç bilinmeyen, yepyeni bir program adı eklense bile:
+   - Hücrenin üst ayırıcı çizgisinden (veya AKIŞ sekmesinden / bölüm numarası kalıbından) yeni program olduğu %100 otomatik anlaşılır.
+   - Programın adı hiçbir sabit listeye zorlanmadan doğrudan Excel'de yazıldığı şekliyle (sadece sondaki '- BölümNo' ve '- Canlı' kısmı ayrıştırılarak) alınır.
+   - Altındaki çizgisiz satırlar ise o programın Sunucu/Konuk/Konu (host & topic) detayı olarak birleştirilir.
 """
 import sys
 import os
@@ -63,11 +67,10 @@ def norm_tr(text):
     return s
 
 def norm_compact(text):
-    """Tire, kesme işareti ve boşlukları kaldırarak karşılaştırma için saf alfanümerik anahtar üretir."""
     s = norm_tr(text)
     return re.sub(r"[^a-z0-9ğüşıöç]", "", s)
 
-# Program kataloğunu yükle (eğer yoksa otomatik oluştur)
+# Program kataloğunu yalnızca kategori rengi/rozeti eşleştirmesi için yardımcı olarak yükle
 CATALOG_PROGRAMS = {}
 
 def load_catalog():
@@ -81,162 +84,57 @@ def load_catalog():
         os.path.join(base_dir, 'src', 'data', 'program_categories_catalog.json')
     ]
 
-    cat_file = None
     for p in cat_paths:
         if os.path.exists(p):
-            cat_file = p
-            break
-
-    if not cat_file:
-        try:
-            from backend.extract_program_catalog import extract_catalog
-            cat_data = extract_catalog()
-            for prog in cat_data.get('programs', []):
-                CATALOG_PROGRAMS[norm_tr(prog['name'])] = prog
-            return CATALOG_PROGRAMS
-        except Exception as e:
-            print(f"[CATALOG WARNING] Katalog oluşturulamadı: {e}", file=sys.stderr)
-            return {}
-
-    try:
-        with open(cat_file, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-            for prog in data.get('programs', []):
-                CATALOG_PROGRAMS[norm_tr(prog['name'])] = prog
-    except Exception as e:
-        print(f"[CATALOG WARNING] Katalog yüklenemedi: {e}", file=sys.stderr)
+            try:
+                with open(p, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    for prog in data.get('programs', []):
+                        CATALOG_PROGRAMS[norm_tr(prog['name'])] = prog
+                break
+            except Exception:
+                pass
 
     return CATALOG_PROGRAMS
 
 load_catalog()
 
-# Bilinen standart program adları ve ön ekleri
-STANDARDIZED_TITLES = {
+# Yalnızca yazım farkı olan klasik programlarda (örn: Excel'de 'SEMERKAND SOHBETİ' yazılıp arşivde 'SEMERKAND SOHBETLERİ' olması gibi)
+# isteğe bağlı kanonik isim eşleştirmesi; burada olmayan TÜM yeni programlar Excel'de yazıldığı orijinal adıyla korunur!
+CANONICAL_TITLE_ALIASES = {
     'ilim dersleri- tecvid': 'İlim Dersleri- TECVİD',
     'ilim dersleri - tecvid': 'İlim Dersleri- TECVİD',
     'ilim dersleri-tecvid': 'İlim Dersleri- TECVİD',
-    'ilim dersleri tecvid': 'İlim Dersleri- TECVİD',
-    'tecvid': 'İlim Dersleri- TECVİD',
-    'ilim dersleri': 'İlim Dersleri- TECVİD',
-    'hatm-i şerif': 'HATM-İ ŞERİF',
-    'hatm-i serif': 'HATM-İ ŞERİF',
-    'hatmi şerif': 'HATM-İ ŞERİF',
-    'mukabele': 'MUKABELE',
-    'tefsir-i mevakib': 'TEFSİR-İ MEVAKİB',
-    'tefsiri mevakib': 'TEFSİR-İ MEVAKİB',
-    'delail-ül hayrat': 'DELAİL-ÜL HAYRAT',
-    'delail-ul hayrat': 'DELAİL-ÜL HAYRAT',
-    "delailü'l-hayrat": 'DELAİL-ÜL HAYRAT',
-    'delailül hayrat': 'DELAİL-ÜL HAYRAT',
-    'neşeli petek': 'NEŞELİ PETEK',
-    'neseli petek': 'NEŞELİ PETEK',
-    'semerkand sohbetleri': 'SEMERKAND SOHBETLERİ',
     'semerkand sohbeti': 'SEMERKAND SOHBETLERİ',
-    'semerkand sohbet': 'SEMERKAND SOHBETLERİ',
-    'hasbihal': 'HASBİHAL',
-    'beş vakit bir şehir': 'BEŞ VAKİT BİR ŞEHİR',
-    'bes vakit bir sehir': 'BEŞ VAKİT BİR ŞEHİR',
-    'yüzyılın alimleri': 'YÜZYILIN ALİMLERİ',
-    'yuzyilin alimleri': 'YÜZYILIN ALİMLERİ',
+    'semerkand sohbetleri': 'SEMERKAND SOHBETLERİ',
     'kısas-ı enbiya': 'KISAS-I ENBİYA',
     'kisas-i enbiya': 'KISAS-I ENBİYA',
-    'kısası enbiya': 'KISAS-I ENBİYA',
-    'hacegan sohbetleri': 'HACEGAN SOHBETLERİ',
-    'hacegan sohbeti': 'HACEGAN SOHBETLERİ',
-    'hacegan': 'HACEGAN SOHBETLERİ',
-    'güzergah': 'GÜZERGAH',
-    'guzergah': 'GÜZERGAH',
-    'bedesten': 'BEDESTEN',
-    'çerçeve': 'ÇERÇEVE',
-    'cerceve': 'ÇERÇEVE',
-    'hattın izinde': 'HATTIN İZİNDE',
-    'hattin izinde': 'HATTIN İZİNDE',
-    'mesneviden dersler': 'MESNEVİDEN DERSLER',
-    'mesneviden': 'MESNEVİDEN DERSLER',
-    'aziz istanbul': 'AZİZ İSTANBUL',
-    'ulu cami': 'ULU CAMİ',
-    'son inci': 'SON İNCİ',
-    "taliü'l - büşra": 'Taliü’l – Büşra',
-    "taliü'l-büşra": 'Taliü’l – Büşra',
-    'taliül büşra': 'Taliü’l – Büşra',
-    "taliu'l": 'Taliü’l – Büşra',
-    "taliü'l": 'Taliü’l – Büşra',
-    "muhtasaru'l - kuduri": 'Muhtasaru’l – Kuduri',
-    "muhtasaru'l-kuduri": 'Muhtasaru’l – Kuduri',
-    'muhtasarul kuduri': 'Muhtasaru’l – Kuduri',
-    "muhtasaru'l": 'Muhtasaru’l – Kuduri',
-    "el-yakutu'n-nefis": 'El-Yakutu’n-Nefis',
-    "el-yakutu'n - nefis": 'El-Yakutu’n-Nefis',
-    'el yakutun nefis': 'El-Yakutu’n-Nefis',
-    'el-yakutu': 'El-Yakutu’n-Nefis',
-    'safvetüt- tefasir': 'Safvetüt- Tefasir',
-    'safvetüt-tefasir': 'Safvetüt- Tefasir',
-    "safvetü't-tefasir": 'Safvetüt- Tefasir',
-    'safvetüt': 'Safvetüt- Tefasir',
-    'safvetut': 'Safvetüt- Tefasir',
-    'riyazüs - salihin': 'Riyazüs – Salihin',
-    'riyazüs-salihin': 'Riyazüs – Salihin',
-    'riyazüs salihin': 'Riyazüs – Salihin',
-    'riyazüs': 'Riyazüs – Salihin',
-    'riyazus': 'Riyazüs – Salihin',
-    "minhacü's seni": 'Minhâcü’s Senî',
-    "minhacü's-seni": 'Minhâcü’s Senî',
-    'minhacüs seni': 'Minhâcü’s Senî',
-    "minhacü's": 'Minhâcü’s Senî',
-    'minhacu': 'Minhâcü’s Senî',
-    'hac rehberi': 'Hac Rehberi'
 }
-
-KNOWN_PROGRAM_PREFIXES = [
-    'ilim dersleri', 'kisas-i enbiya', 'kısas-ı enbiya', 'kısası enbiya',
-    'cerceve', 'çerçeve', 'hasbihal', 'bes vakit bir sehir', 'beş vakit bir şehir',
-    'yuzyilin alimleri', 'yüzyılın alimleri', 'bedesten',
-    'semerkand sohbet', 'hacegan sohbet', 'hacegan', 'ulu cami',
-    'mesneviden dersler', 'mesneviden', 'hattin izinde', 'hattın izinde',
-    'son inci', "taliu'l", "taliü'l", 'taliül', "muhtasaru'l", 'muhtasarul',
-    'el-yakutu', 'el yakutu', 'safvetut', 'safvetüt', "safvetü't",
-    'riyazus', 'riyazüs', "minhacu's", "minhacü's", 'minhacüs',
-    'hac rehberi', 'delail', 'hatm-i serif', 'hatm-i şerif', 'hatmi şerif',
-    'mukabele', 'tefsir-i mevakib', 'tefsiri mevakib',
-    'neseli petek', 'neşeli petek', 'guzergah', 'güzergah',
-    'aziz istanbul', 'kasideler', 'kısa prog', 'kisa prog', 'dolgu'
-]
-
-# Konuşmacı / ders konusu / mekan alt satırlarında geçebilen ve ASLA tek başına program başlangıcı sayılmaması gereken ifadeler
-SPEAKER_OR_DETAIL_PREFIXES = [
-    'akaid-', 'akaid ', 'hanefi ilmihali', 'şafii ilmihali', 'safii ilmihali',
-    'tefsir-abdulaziz', 'tefsir - abdulaziz', 'hadis-', 'tasavvuf-', 'ses:', 'cüz -', 'cüz-', 'kerim öztürk',
-    'sadrettin koç', 'ebubekir arvas', 'hakan öner', 'a.enes bilge', 'a. enes bilge',
-    'mustafa yıldız', 'fatih yasin demiral', 'yusuf erbaş', 'ömer faruk',
-    'murat alkan', 'yunus e.özsaray', 'izani turan', 'şeyh m.', 'mahmud sami',
-    'hz.', 'hz..', 'aklı selim', 'akl-ı selim', 'kanaat ve şükür', 'insanın hakikat',
-    'yardımlaşma ve dayanışma'
-]
 
 CATEGORY_RULES = [
     {
         'category': 'Dini / İlim',
         'color': '#10b981',
         'badge': 'İlim',
-        'keywords': ['hatm', 'mukabele', 'tefsir', 'tecvid', 'delail', 'kuduri', 'yakut', 'safvet', 'ilmihal', 'ilim', 'son inci', 'hac rehber']
+        'keywords': ['hatm', 'mukabele', 'tefsir', 'tecvid', 'delail', 'kuduri', 'yakut', 'safvet', 'ilmihal', 'ilim', 'son inci', 'hac rehber', 'akaid', 'fıkıh', 'fikih', 'hadis', 'kur\'an', 'kuran']
     },
     {
         'category': 'Sohbet / Tasavvuf',
         'color': '#8b5cf6',
         'badge': 'Sohbet',
-        'keywords': ['semerkand sohbet', 'hasbihal', 'hacegan', 'mesnevi', 'sohbet', 'minhac', 'riyaz', 'taliü', 'taliu']
+        'keywords': ['semerkand sohbet', 'hasbihal', 'hacegan', 'mesnevi', 'sohbet', 'minhac', 'riyaz', 'taliü', 'taliu', 'tasavvuf', 'hikmet', 'irfan']
     },
     {
         'category': 'Kültür / Tarih',
         'color': '#3b82f6',
         'badge': 'Kültür',
-        'keywords': ['beş vakit', 'bes vakit', 'yüzyıl', 'yuzyil', 'alimler', 'bedesten', 'aziz istanbul', 'ulu cami', 'kısas', 'kisas', 'hattın izinde', 'hattin izinde', 'güzergah', 'guzergah', 'çerçeve', 'cerceve']
+        'keywords': ['beş vakit', 'bes vakit', 'yüzyıl', 'yuzyil', 'alimler', 'bedesten', 'aziz istanbul', 'ulu cami', 'kısas', 'kisas', 'hattın izinde', 'hattin izinde', 'güzergah', 'guzergah', 'çerçeve', 'cerceve', 'tarih', 'kültür', 'şehir']
     },
     {
         'category': 'Çocuk / Gençlik',
         'color': '#f59e0b',
         'badge': 'Çocuk',
-        'keywords': ['neşeli petek', 'neseli petek', 'çocuk', 'cocuk']
+        'keywords': ['neşeli petek', 'neseli petek', 'çocuk', 'cocuk', 'genç', 'genc']
     },
     {
         'category': 'Dolgu Kuşağı',
@@ -252,22 +150,20 @@ def determine_category(title, is_kisa=False):
 
     t_norm = norm_tr(title)
 
-    # 1. Önce kategori kurallarından kontrol et (tutarlı rozet ve renk için)
     for rule in CATEGORY_RULES:
         for kw in rule['keywords']:
             if kw in t_norm:
                 return rule['category'], rule['color'], rule['badge']
 
-    # 2. Katalogdan kontrol et
     if t_norm in CATALOG_PROGRAMS:
         p_info = CATALOG_PROGRAMS[t_norm]
-        cat = p_info.get('category', 'Genel Yayın')
+        cat = p_info.get('category', 'Kültür / Tarih')
         for r in CATEGORY_RULES:
             if r['category'].lower() in cat.lower():
                 return r['category'], r['color'], r['badge']
         return cat, '#3b82f6', cat[:6]
 
-    return 'Genel Yayın', '#6b7280', 'Genel'
+    return 'Kültür / Tarih', '#3b82f6', 'Program'
 
 def is_live_cell_text(text):
     """Metinde 'Canlı' / 'Canlı Yayın' ibaresi olup olmadığını kontrol eder."""
@@ -278,77 +174,53 @@ def is_live_cell_text(text):
 
 def parse_title_episode_and_inline_detail(raw_t, akis_hint=''):
     """
-    Excel hücresindeki ham program satırından (örn:
-      - 'İlim Dersleri- Tecvid - 107'
-      - 'El-Yakutu’n-Nefis-11'
-      - 'Safvetüt- Tefasir-22'
-      - 'Taliü’l – Büşra -28'
-      - 'Muhtasaru’l – Kuduri-61'
-      - 'KISAS-I ENBİYA  - 71'
-      - 'ÇERÇEVE-127-Canlı'
-      - 'HASBİHAL-Tekrar-53'
-      - 'ULU CAMİ-9- Akşehir'
-      - 'AZİZ İSTANBUL-36-Eyüp-Karyağdı'
-    ) temiz program adını (clean_title), bölüm numarasını (episode) ve varsa satır içi mekan/detayı (inline_detail) ayıklar.
-    Bölüm numarasının veya 'Nefis', 'Tefasir', 'Tecvid' gibi program adı parçalarının host alanına sızmasını %100 engeller.
+    Herhangi bir program satırını (bilinen veya sisteme yeni eklenmiş yepyeni bir program adını)
+    genel kurallarla ayrıştırır:
+      1. Varsa 'Canlı' / 'Canlı Yayın' ve 'Tekrar' etiketlerini ayırır.
+      2. Sondaki bölüm numarasını ('- 107', '-11', '- 3') ve varsa bölüm numarasından sonraki
+         satır içi mekan/detay bilgisini ('ULU CAMİ-9- Akşehir' -> title='ULU CAMİ', ep='9', detail='Akşehir') ayırır.
+      3. Programın kendi adındaki tireleri ('El-Yakutu’n-Nefis', 'İlim Dersleri- Tecvid', 'Safvetüt- Tefasir'
+         veya gelecekteki 'Yeni-Program Adı - 1') olduğu gibi korur!
     """
     if not raw_t and not akis_hint:
         return '', '', ''
 
     source_str = str(raw_t or akis_hint).strip()
-    # 1. Canlı / Canlı Yayın ve Tekrar ibarelerini temizle
+
+    # 1. 'Canlı' / 'Canlı Yayın' ve 'Tekrar' ibarelerini temizle
     cleaned = re.sub(r'[\(\[\-\–\—\s]*\bcanl[ıi](?:\s+yay[ıi]n)?\b[\)\]\s]*', ' ', source_str, flags=re.IGNORECASE).strip()
     cleaned = re.sub(r'[\(\[\-\–\—\s]*\btekrar\b[\)\]\s]*', '-', cleaned, flags=re.IGNORECASE).strip()
-    cleaned = re.sub(r'[-–—]+', '-', cleaned)
+    cleaned = re.sub(r'\s+', ' ', cleaned)
     cleaned = re.sub(r'[-–—\s]+$', '', cleaned).strip()
 
     episode = ''
     inline_detail = ''
     title_candidate = cleaned
 
-    # 2. Kalıp A: "<Program Adı> - <Bölüm No> - <Mekan/Detay>" (Örn: 'ULU CAMİ-9- Akşehir', 'AZİZ İSTANBUL-36-Eyüp-Karyağdı')
-    m_with_tail = re.match(r'^(.*?)[-\s]+(\d{1,4})\s*-\s*(.+)$', cleaned)
+    # 2. Kalıp A: "<Program Adı> - <Bölüm No> - <Mekan/Detay>" (Örn: 'ULU CAMİ-9- Akşehir', 'AZİZ İSTANBUL-36-Eyüp-Karyağdı', 'YENİ BELGESEL - 4 - Bursa')
+    m_with_tail = re.match(r'^(.*?)\s*[-–—]\s*(\d{1,4})\s*[-–—]\s*(.+)$', cleaned)
     if m_with_tail:
         head_cand = m_with_tail.group(1).strip(' -–—')
         ep_cand = m_with_tail.group(2).strip()
         tail_cand = m_with_tail.group(3).strip(' -–—')
-        # Eğer head_cand geçerli bir program adıysa (örn: ULU CAMİ, AZİZ İSTANBUL)
-        if len(head_cand) >= 3 and not head_cand.isdigit():
+        if len(head_cand) >= 2 and not head_cand.isdigit():
             title_candidate = head_cand
             episode = ep_cand
             inline_detail = tail_cand
     else:
-        # 3. Kalıp B: "<Program Adı> - <Bölüm No>" veya "<Program Adı> <Bölüm No>" (Örn: 'İlim Dersleri- Tecvid - 107', 'El-Yakutu’n-Nefis-11')
+        # 3. Kalıp B: "<Program Adı> - <Bölüm No>" veya "<Program Adı> <Bölüm No>" (Örn: 'Herhangi Bir Yeni Program - 15', 'El-Yakutu’n-Nefis-11')
         m_trailing_ep = re.match(r'^(.*?)(?:\s*[-–—]\s*|\s+)(\d{1,4})$', cleaned)
         if m_trailing_ep:
-            title_candidate = m_trailing_ep.group(1).strip(' -–—')
-            episode = m_trailing_ep.group(2).strip()
+            head_cand = m_trailing_ep.group(1).strip(' -–—')
+            if len(head_cand) >= 2 and not head_cand.isdigit():
+                title_candidate = head_cand
+                episode = m_trailing_ep.group(2).strip()
 
-    # 4. Standart başlık eşleştirmesi (Önce tam/uzun anahtar, sonra AKIŞ ipucu)
+    # 4. Sadece bilinen ufak yazım varyasyonları için (örn. SEMERKAND SOHBETİ -> SEMERKAND SOHBETLERİ) kanonik karşılığı varsa düzelt,
+    #    yoksa Excel'de yazılan orijinal program adını HİÇ BOZMADAN olduğu gibi döndür!
     norm_cand = norm_tr(title_candidate)
-    norm_full = norm_tr(cleaned)
-    norm_akis = norm_tr(akis_hint) if akis_hint else ''
-
-    # En uzun eşleşen anahtara öncelik ver
-    sorted_std = sorted(STANDARDIZED_TITLES.items(), key=lambda x: len(x[0]), reverse=True)
-    for k, v in sorted_std:
-        if norm_cand == k or norm_cand.startswith(k) or k in norm_cand:
-            return v, episode, inline_detail
-
-    if norm_akis:
-        for k, v in sorted_std:
-            if norm_akis == k or norm_akis.startswith(k) or k in norm_akis:
-                return v, episode, inline_detail
-
-    for k, v in sorted_std:
-        if norm_full.startswith(k):
-            return v, episode, inline_detail
-
-    # Katalogdan tam eşleşme kontrolü
-    if norm_cand in CATALOG_PROGRAMS:
-        return CATALOG_PROGRAMS[norm_cand]['name'], episode, inline_detail
-    if norm_akis and norm_akis in CATALOG_PROGRAMS:
-        return CATALOG_PROGRAMS[norm_akis]['name'], episode, inline_detail
+    if norm_cand in CANONICAL_TITLE_ALIASES:
+        return CANONICAL_TITLE_ALIASES[norm_cand], episode, inline_detail
 
     return (title_candidate or akis_hint or source_str).strip(), episode, inline_detail
 
@@ -356,66 +228,42 @@ def clean_program_title(raw_t, akis_hint=''):
     clean_t, _, _ = parse_title_episode_and_inline_detail(raw_t, akis_hint)
     return clean_t
 
-def is_program_cell(cell_val):
+def has_cell_top_separator(ws, row_idx, col_idx):
     """
-    Bir hücre metninin yeni bir program başlangıcı mı yoksa açıklama/konuk/mekan alt satırı mı olduğunu belirler.
-    DİKKAT: 'Sadrettin Koç-İznik Dergah' gibi konuşmacı-mekan satırlarının içinde 'dergah' geçtiği için
-    katalogdaki 'DERGAH' programıyla yanlış eşleşmesini %100 engeller; yalnızca hücrenin BAŞINDAKİ
-    program adını kontrol eder!
+    Excel'deki 30 dakikalık detay matrisinde bu hücrenin yeni bir kutu/program başlangıcı
+    olup olmadığını Excel'in kendi hücre kenarlığı (border) çizgisinden kontrol eder:
+    - Hücrenin üst kenarlığı (border.top.style) varsa VEYA
+    - Bir üst satırdaki hücrenin alt kenarlığı (border.bottom.style) varsa -> True döner.
+    - Aynı kutunun içindeki 2., 3., 4. alt satırlarda (konuşmacı/konu/mekan) bu çizgi yoktur -> False döner.
     """
-    if not cell_val:
-        return False, None
-    c_norm = norm_tr(cell_val)
-    if not c_norm:
-        return False, None
-
-    # 0. Haftanın günleri (Delail-ül Hayrat alt satırı) veya konuşmacı/ders detayı ise KESİNLİKLE program değildir
-    if c_norm in ('pazartesi', 'salı', 'sali', 'çarşamba', 'carsamba', 'perşembe', 'persembe', 'cuma', 'cumartesi', 'pazar'):
-        return False, None
-
-    for spk in SPEAKER_OR_DETAIL_PREFIXES:
-        if c_norm.startswith(spk):
-            return False, None
-
-    # Hücre başlığını bölüm numarasından ayırıp baş kısmını al
-    title_head, ep, _ = parse_title_episode_and_inline_detail(cell_val)
-    head_norm = norm_tr(title_head)
-
-    # 1. Bilinen program ön ekleri (Yalnızca hücrenin veya ayıklanan başlığın BAŞINDA yer alıyorsa!)
-    for pfx in KNOWN_PROGRAM_PREFIXES:
-        if c_norm.startswith(pfx) or head_norm.startswith(pfx) or head_norm == pfx:
-            return True, pfx
-
-    # 2. Katalog eşleşmesi (Yalnızca tam başlık eşleşmesi veya hücrenin başında program adı + bölüm no varsa!)
-    # 'Sadrettin Koç-İznik Dergah' -> head_norm='sadrettin koç-iznik dergah' -> 'dergah' ile BAŞLAMAZ ve eşit değildir!
-    for cat_n in CATALOG_PROGRAMS:
-        if len(cat_n) >= 4:
-            if head_norm == cat_n:
-                return True, cat_n
-            if c_norm.startswith(cat_n):
-                rest = c_norm[len(cat_n):].strip()
-                if not rest or rest[0] in ('-', '–', '—') or rest[0].isdigit():
-                    return True, cat_n
-
-    # 3. Hücrede açıkça 'Canlı' / 'Canlı Yayın' ibaresi varsa ve bölüm/program formatındaysa
-    if is_live_cell_text(cell_val) and len(c_norm) > 6 and c_norm not in ('canlı', 'canli', 'canlı yayın', 'canli yayin'):
-        return True, 'canli_yayin'
-
-    return False, None
-
-def titles_roughly_match(detail_cell, akis_title):
-    """Detay sayfasındaki hücre ile AKIŞ sayfasındaki program adının aynı programa ait olup olmadığını kontrol eder."""
-    if not detail_cell or not akis_title:
-        return False
-    t1 = clean_program_title(detail_cell)
-    t2 = clean_program_title(akis_title)
-    if norm_compact(t1) == norm_compact(t2):
+    if row_idx <= 3:
         return True
-    c1 = norm_compact(detail_cell)
-    c2 = norm_compact(akis_title)
-    if len(c2) >= 5 and (c1.startswith(c2[:5]) or c2 in c1):
+    cell = ws.cell(row_idx, col_idx)
+    if cell.border and cell.border.top and cell.border.top.style:
+        return True
+    prev_cell = ws.cell(row_idx - 1, col_idx)
+    if prev_cell.border and prev_cell.border.bottom and prev_cell.border.bottom.style:
         return True
     return False
+
+def looks_like_program_with_episode(cell_str):
+    """
+    Kenarlık çizgisi unutulmuş olsa bile bir hücrenin '<Program Adı> - <Bölüm No>' formatında
+    olup olmadığını yapısal olarak kontrol eder (örn. 'HATTIN İZİNDE - 3').
+    Konuşmacı veya konu satırlarını ('Hz.. Muhammed-9', 'Şeyh M. Esat Erbili Hz.-2', 'Mahmud Sami Ramazanoğlu-1', 'Cüz - 9')
+    hariç tutar.
+    """
+    if not cell_str:
+        return False
+    c_norm = norm_tr(cell_str)
+    # Konu/Konuşmacı/Cüz satırı kalıpları
+    if re.match(r'^(?:c[üu]z|hz\.|şeyh|seyh|mahmud\s+sami|ses:|kerim\s+öztürk)', c_norm):
+        return False
+    # Tamamı BÜYÜK HARF olan ve sonunda '- <Sayı>' bulunan program başlığı (örn: 'SON İNCİ - 5', 'MESNEVİDEN DERSLER-10')
+    alpha_chars = [ch for ch in cell_str if ch.isalpha()]
+    is_all_upper = len(alpha_chars) >= 4 and all(ch.isupper() for ch in alpha_chars)
+    has_ep_suffix = bool(re.search(r'[-–—]\s*\d{1,4}(?:\s*[-–—].+)?$', cell_str.strip()))
+    return is_all_upper and has_ep_suffix
 
 def parse_draft_excel(file_path):
     if not os.path.exists(file_path):
@@ -483,7 +331,7 @@ def parse_draft_excel(file_path):
         except Exception:
             formatted_date = date_key
 
-        # 1. Eğer 'AKIŞ' sayfası mevcutsa o günün resmi program başlangıç saatlerini ve temiz program adlarını oku
+        # 1. 'AKIŞ' özet sekmesindeki program başlangıç saatlerini ve başlıklarını oku
         akis_map = {}
         if ws_akis:
             t_col = d_idx * 2 + 1
@@ -510,15 +358,23 @@ def parse_draft_excel(file_path):
                 if not t_str:
                     continue
 
-                is_p, matched_key = is_program_cell(c_str)
                 akis_title_at_time = akis_map.get(t_str, '')
+                has_border_sep = has_cell_top_separator(ws_detail, r, col_idx)
 
-                # AKIŞ sekmesinde bu saatte bir program başlangıcı tanımlıysa kesinlikle yeni programdır
-                if akis_title_at_time and not is_p:
+                # YENİ PROGRAM BAŞLANGICI KARAR MEKANİZMASI (Tamamen Yapısal!):
+                # 1. Excel'de hücrenin üst ayırıcı kenarlık çizgisi varsa (has_border_sep) ve hücre doluysa -> Yeni Program!
+                # 2. Veya AKIŞ sekmesinde bu saatte bir program başlangıcı tanımlıysa -> Yeni Program!
+                # 3. Veya hücre çizgisi unutulmuş olsa bile BÜYÜK HARFLİ '<PROGRAM ADI> - <BölümNo>' formatındaysa -> Yeni Program!
+                is_p = False
+                if c_str and has_border_sep:
+                    is_p = True
+                elif akis_title_at_time:
+                    is_p = True
+                elif c_str and looks_like_program_with_episode(c_str):
                     is_p = True
 
-                # Özel Durum: Neşeli Petek saatleri (08:30 ve 16:30 60 dk sürer, 09:30 ve 17:30 dolgudur)
-                if t_str in ('09:30', '17:30') and not is_p and current_block and 'neşeli' in norm_tr(current_block['raw']):
+                # Özel Durum: Neşeli Petek / 60 dk çocuk kuşağı sonrası 09:30 ve 17:30 dolgu kuşağı
+                if t_str in ('09:30', '17:30') and not is_p and current_block and ('neşeli' in norm_tr(current_block['raw']) or has_border_sep):
                     is_p = True
                     c_str = c_str or 'Kasideler + Aşr-ı Şerifler'
 
@@ -539,7 +395,7 @@ def parse_draft_excel(file_path):
                 current_block['endTime'] = '24:00'
                 raw_program_blocks.append(current_block)
 
-        # Eğer detay sayfası bulunamadıysa doğrudan AKIŞ sayfasından oku
+        # Eğer detay sayfası yoksa doğrudan AKIŞ sayfasından oku
         if not raw_program_blocks and akis_map:
             raw_slots = sorted(akis_map.items(), key=lambda x: x[0])
             for i, (st, ptitle) in enumerate(raw_slots):
@@ -561,9 +417,7 @@ def parse_draft_excel(file_path):
             akis_hint = blk.get('akisHint', '')
             details = blk['details']
 
-            # Eğer detay hücresinde program adı yerine başka bir şey varsa ama AKIŞ sekmesinde o saatin programı belliyse
-            effective_akis_hint = akis_hint if titles_roughly_match(raw_t, akis_hint) else ''
-            clean_t, episode, inline_detail = parse_title_episode_and_inline_detail(raw_t, effective_akis_hint)
+            clean_t, episode, inline_detail = parse_title_episode_and_inline_detail(raw_t, akis_hint)
 
             is_kisa = (
                 'dolgu' in norm_tr(clean_t) or
@@ -578,19 +432,17 @@ def parse_draft_excel(file_path):
             host = ''
             topic = ''
 
-            # Details dizisinden 'Canlı' tekil etiketini temizle
             clean_details = [
                 d.strip() for d in details
                 if d.strip() and norm_tr(d.strip()) not in ('canlı', 'canli', 'canlı yayın', 'canli yayin')
             ]
 
-            # Eğer alt satırların ilki sadece bir sayıysa (örn: 27 Ekim 2025 dosyasında KISAS-I ENBİYA alt satırı '68') bu bölüm numarasıdır!
+            # Eğer alt satırların ilki sadece bir sayıysa (örn: KISAS-I ENBİYA alt satırı '68') bu bölüm numarasıdır
             if clean_details and clean_details[0].isdigit():
                 if not episode:
                     episode = clean_details[0]
                 clean_details = clean_details[1:]
 
-            # Eğer başlık satırında bölüm numarasından sonra mekan/şehir varsa (örn: 'ULU CAMİ-9- Akşehir', 'AZİZ İSTANBUL-36-Eyüp-Karyağdı')
             if inline_detail:
                 host = inline_detail
 
@@ -602,14 +454,13 @@ def parse_draft_excel(file_path):
                 else:
                     topic = ' - '.join(clean_details)
 
-            # Cüz bazlı programlarda (Hatm-i Şerif, Tefsir-i Mevakib) alt satırdaki 'Cüz - 9' bilgisinden episode (cüz no) çıkar
-            if not episode and ('hatm' in norm_tr(clean_t) or 'mevakib' in norm_tr(clean_t) or 'mukabele' in norm_tr(clean_t)):
+            # Cüz bazlı programlarda alt satırdaki 'Cüz - 9' bilgisinden episode (cüz no) çıkar
+            if not episode and ('hatm' in norm_tr(clean_t) or 'mevakib' in norm_tr(clean_t) or 'mukabele' in norm_tr(clean_t) or 'cüz' in norm_tr(host)):
                 cuz_search_text = f"{host} {topic} {raw_t}"
                 cuz_m = re.search(r'c[üu]z[\s\-:]*(\d{1,2})\b', cuz_search_text, flags=re.IGNORECASE)
                 if cuz_m:
                     episode = cuz_m.group(1)
 
-            # Dolgu kuşağı ayarları
             if is_kisa:
                 clean_t = 'Dolgu Kuşağı'
                 cat = 'Dolgu Kuşağı'
