@@ -192,6 +192,7 @@ const DraftPlanningModule = () => {
     setSaveStatus,
     createEmptyWeek,
     setSelectedDayKey,
+    handleSelectWeek,
     showToast
   });
 

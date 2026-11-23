@@ -16,6 +16,7 @@ export const useDraftExcelImport = ({
   setSaveStatus,
   createEmptyWeek,
   setSelectedDayKey,
+  handleSelectWeek,
   showToast
 }) => {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -135,6 +136,10 @@ export const useDraftExcelImport = ({
                 return updatedObj;
               });
 
+              const targetWeekMonday = format(startOfWeek(targetParsed, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+              if (handleSelectWeek) {
+                handleSelectWeek([targetWeekMonday]);
+              }
               if (setSaveStatus) setSaveStatus('unsaved');
               setSelectedDayKey(targetKey);
               setIsImportModalOpen(false);
@@ -170,6 +175,14 @@ export const useDraftExcelImport = ({
                 return updatedObj;
               });
 
+              const importedDateKeys = Object.keys(finalSchedule).sort();
+              if (importedDateKeys.length > 0 && handleSelectWeek) {
+                const firstImportedMonday = format(
+                  startOfWeek(parseISO(importedDateKeys[0]), { weekStartsOn: 1 }),
+                  'yyyy-MM-dd'
+                );
+                handleSelectWeek([firstImportedMonday]);
+              }
               if (setSaveStatus) setSaveStatus('unsaved');
               setSelectedDayKey('all');
               setIsImportModalOpen(false);
@@ -205,7 +218,7 @@ export const useDraftExcelImport = ({
       dialog.error('Dosya Okuma Hatası', err.message);
       setIsImporting(false);
     }
-  }, [channels, remapScheduleDates, createEmptyWeek, setSchedulesByChannel, setSelectedDayKey, showToast]);
+  }, [channels, remapScheduleDates, createEmptyWeek, setSchedulesByChannel, setSelectedDayKey, handleSelectWeek, showToast]);
 
   return {
     isImportModalOpen,
