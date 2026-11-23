@@ -19,8 +19,48 @@ import { createNavigationAndUiSlice } from './slices/navigationAndUiSlice';
 import { createTimelineCalculationSlice } from './slices/timelineCalculationSlice';
 import { createProgramCrudSlice } from './slices/programCrudSlice';
 import { createClipboardAndSyncSlice } from './slices/clipboardAndSyncSlice';
+import { pushAdsStoreToServer } from '../../../store/slices/ads/adsCatalogHelpers';
 
 export { BROADCAST_CHANNELS, formatFramesHuman, renumberAdBreaksInList };
+
+let isApplyingRemoteBroadcastDays = false;
+let broadcastSyncTimer = null;
+
+export function applyServerBroadcastDaysToStore(serverBroadcastDays = {}) {
+  if (!serverBroadcastDays || typeof serverBroadcastDays !== 'object') return;
+  const currentDays = useBroadcastStore.getState().days || {};
+  let hasChanges = false;
+  const nextDays = { ...currentDays };
+
+  Object.entries(serverBroadcastDays).forEach(([dayKey, serverDay]) => {
+    if (!serverDay || typeof serverDay !== 'object') return;
+    const localDay = currentDays[dayKey];
+    const localTime = Number(localDay?.updatedAt || localDay?.savedAt || 0) || (localDay?.updatedAt ? new Date(localDay.updatedAt).getTime() : 0);
+    const serverTime = Number(serverDay?.updatedAt || serverDay?.savedAt || 0) || (serverDay?.updatedAt ? new Date(serverDay.updatedAt).getTime() : 0);
+    const localCount =
+      (localDay?.variants?.A?.programs?.length || 0) +
+      (localDay?.variants?.B?.programs?.length || 0);
+    const serverCount =
+      (serverDay?.variants?.A?.programs?.length || 0) +
+      (serverDay?.variants?.B?.programs?.length || 0);
+
+    if (!localDay || serverTime > localTime || (localCount === 0 && serverCount > 0)) {
+      nextDays[dayKey] = serverDay;
+      hasChanges = true;
+    }
+  });
+
+  if (hasChanges) {
+    isApplyingRemoteBroadcastDays = true;
+    try {
+      useBroadcastStore.setState({ days: nextDays });
+    } finally {
+      setTimeout(() => {
+        isApplyingRemoteBroadcastDays = false;
+      }, 50);
+    }
+  }
+}
 
 const useBroadcastStore = create(
   persist(
@@ -52,5 +92,31 @@ const useBroadcastStore = create(
     }
   )
 );
+
+// Yayın Planlama (BroadcastStore) üzerinde yapılan her değişikliği (.80 IP <-> seyare.semerkand.com eşitliği için) sunucuya otomatik kaydet
+let prevDaysRef = useBroadcastStore.getState().days;
+useBroadcastStore.subscribe((state) => {
+  if (isApplyingRemoteBroadcastDays) return;
+  if (state.days !== prevDaysRef) {
+    const changedDays = {};
+    const nowMs = Date.now();
+    Object.entries(state.days || {}).forEach(([k, v]) => {
+      if (v && v !== prevDaysRef?.[k]) {
+        changedDays[k] = {
+          ...v,
+          updatedAt: nowMs
+        };
+      }
+    });
+    prevDaysRef = state.days;
+
+    if (Object.keys(changedDays).length > 0) {
+      if (broadcastSyncTimer) clearTimeout(broadcastSyncTimer);
+      broadcastSyncTimer = setTimeout(() => {
+        pushAdsStoreToServer({ broadcastDays: changedDays });
+      }, 350);
+    }
+  }
+});
 
 export default useBroadcastStore;

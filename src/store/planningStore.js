@@ -179,6 +179,20 @@ const usePlanningStore = create(
               state.loadAdsData();
             }
           }
+          // Uygulama açılışında ve sekme odaklandığında (.80 IP <-> seyare.semerkand.com arasında) sunucu veritabanını otomatik eşitle
+          if (typeof state.syncAdsStoreWithServer === 'function') {
+            setTimeout(() => {
+              state.syncAdsStoreWithServer();
+            }, 30);
+            if (typeof window !== 'undefined' && !window.__yayinCrossOriginSyncRegistered) {
+              window.__yayinCrossOriginSyncRegistered = true;
+              window.addEventListener('focus', () => {
+                try {
+                  usePlanningStore.getState().syncAdsStoreWithServer();
+                } catch (_) {}
+              });
+            }
+          }
           if (typeof state.syncAdsCatalogFromArchive === 'function') {
             setTimeout(() => {
               state.syncAdsCatalogFromArchive({ showNotification: false });

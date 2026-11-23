@@ -132,14 +132,22 @@ export default function ListControlModule() {
     [listControlSettings]
   );
 
-  // Taslak verisini backend'den senkronize et
+  // Taslak verisini ve sunucu ortak veritabanını (.80 IP <-> seyare.semerkand.com) backend'den senkronize et
+  const syncAdsStoreWithServer = usePlanningStore(state => state.syncAdsStoreWithServer);
   useEffect(() => {
     let mounted = true;
+    if (typeof syncAdsStoreWithServer === 'function') {
+      syncAdsStoreWithServer().then(() => {
+        if (mounted && typeof lcSyncFromAdsOrReady === 'function') {
+          lcSyncFromAdsOrReady(selectedChannel, safeDate, { forceOverwrite: false, silent: true });
+        }
+      });
+    }
     fetchAndSyncDraftSchedule(selectedChannel).then(() => {
       if (mounted) setDraftVersionTick(t => t + 1);
     });
     return () => { mounted = false; };
-  }, [selectedChannel]);
+  }, [selectedChannel, safeDate, syncAdsStoreWithServer, lcSyncFromAdsOrReady]);
 
   // Gün veya kanal değiştiğinde Reklam Rezervasyondan iletilen listeyi otomatik senkronize et
   useEffect(() => {

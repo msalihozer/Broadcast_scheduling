@@ -912,6 +912,7 @@ export function createDraftRouter() {
             manualProducts: mergeByIdList(base.manualProducts, inc.manualProducts),
             manualMaterials: mergeByIdList(base.manualMaterials, inc.manualMaterials),
             planningDays: mergeDayObjectsMap(base.planningDays, inc.planningDays),
+            broadcastDays: mergeDayObjectsMap(base.broadcastDays, inc.broadcastDays),
             listControlDays: mergeDayObjectsMap(base.listControlDays, inc.listControlDays),
             listControlLogs: mergeByIdList(base.listControlLogs, inc.listControlLogs).slice(-1000),
             updatedAt: new Date().toISOString()

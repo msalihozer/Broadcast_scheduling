@@ -17,6 +17,7 @@ import adsData from '../../data/adsData.json';
 import adsMedia from '../../data/adsMedia.json';
 import { dialog } from '../dialogStore';
 import useAdminLogStore from '../adminLogStore';
+import useBroadcastStore, { applyServerBroadcastDaysToStore } from '../../modules/broadcast/store/broadcastStore';
 
 import {
   ADS_CATALOG_VERSION,
@@ -257,6 +258,7 @@ export const createAdsSlice = (set, get) => ({
       const localListControlLogs = Array.isArray(state.listControlLogs)
         ? state.listControlLogs.slice(0, 400)
         : [];
+      const localBroadcastDays = useBroadcastStore.getState().days || {};
 
       const mergedStore = await pushAdsStoreToServer({
         reservations: localReservations,
@@ -270,11 +272,16 @@ export const createAdsSlice = (set, get) => ({
         manualProducts,
         manualMaterials,
         planningDays: localPlanningDays,
+        broadcastDays: localBroadcastDays,
         listControlDays: localListControlDays,
         listControlLogs: localListControlLogs
       });
 
       if (!mergedStore) return null;
+
+      if (mergedStore.broadcastDays && typeof mergedStore.broadcastDays === 'object') {
+        applyServerBroadcastDaysToStore(mergedStore.broadcastDays);
+      }
 
       const serverReservations = Array.isArray(mergedStore.reservations)
         ? mergedStore.reservations
