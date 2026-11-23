@@ -32,6 +32,7 @@ export default function ListControlRundownRow({
   stageInfo,
   defaultBroadcastLogo = 'Semerkand_Tv_Logo_Corner',
   defaultAdLogo = 'Semerkand_HD_Reklam_Logo',
+  fontScale = 1,
   rowRef,
   onSelectRow,
   onUpdateDurationSec,
@@ -109,6 +110,12 @@ export default function ListControlRundownRow({
     ? (item.logo || (isAdLogoEvent ? defaultAdLogo : defaultBroadcastLogo))
     : '';
 
+  const fs = (px) => `${(px * (Number(fontScale) || 1)).toFixed(1)}px`;
+  const sColWidth = Math.round(54 * (Number(fontScale) || 1));
+  const timeColWidth = Math.round(84 * (Number(fontScale) || 1));
+  const durColWidth = Math.round(112 * (Number(fontScale) || 1));
+  const actColWidth = Math.round(148 * (Number(fontScale) || 1));
+
   return (
     <div
       ref={rowRef}
@@ -119,7 +126,7 @@ export default function ListControlRundownRow({
       onDrop={(e) => onRowDrop && onRowDrop(e, index, item)}
       onClick={() => onSelectRow(item, index)}
       style={{
-        padding: '7px 10px',
+        padding: '8px 12px',
         borderBottom: '1px solid var(--border-color)',
         background: isDragOver
           ? 'rgba(37, 99, 235, 0.18)'
@@ -143,7 +150,7 @@ export default function ListControlRundownRow({
         borderLeft: `4px solid ${leftBorderColor}`,
         display: 'flex',
         alignItems: 'center',
-        gap: '8px',
+        gap: '10px',
         width: '100%',
         minWidth: 0,
         boxSizing: 'border-box',
@@ -151,20 +158,20 @@ export default function ListControlRundownRow({
         transition: 'background-color 0.12s ease'
       }}
     >
-      {/* SÜTUN 1: SÜRÜKLE TUTAMACI & SIRA NO (50px) */}
+      {/* SÜTUN 1: SÜRÜKLE TUTAMACI & SIRA NO */}
       <div
         style={{
-          width: '50px',
+          width: `${sColWidth}px`,
           flexShrink: 0,
           display: 'flex',
           alignItems: 'center',
-          gap: '2px'
+          gap: '3px'
         }}
         title="Sürükleyerek satır sırasını değiştirin"
       >
         <GripVertical size={14} color="var(--text-muted)" style={{ cursor: 'grab', flexShrink: 0 }} />
         <span style={{
-          fontSize: '11.5px',
+          fontSize: fs(12),
           fontWeight: 900,
           fontFamily: 'monospace',
           color: isAd ? '#d97706' : 'var(--text-primary)'
@@ -173,38 +180,38 @@ export default function ListControlRundownRow({
         </span>
       </div>
 
-      {/* SÜTUN 2: YAYIN SAATİ (GİRİŞ / ÇIKIŞ - 76px) */}
+      {/* SÜTUN 2: YAYIN SAATİ (GİRİŞ / ÇIKIŞ) */}
       <div style={{
-        width: '76px',
+        width: `${timeColWidth}px`,
         flexShrink: 0,
         display: 'flex',
         flexDirection: 'column',
         fontFamily: 'monospace',
         lineHeight: 1.25
       }}>
-        <span style={{ fontSize: '11.5px', fontWeight: 900, color: 'var(--text-primary)' }}>
+        <span style={{ fontSize: fs(12), fontWeight: 900, color: 'var(--text-primary)' }}>
           {startClock}
         </span>
-        <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)' }}>
+        <span style={{ fontSize: fs(10.5), fontWeight: 700, color: 'var(--text-muted)' }}>
           → {endClock}
         </span>
       </div>
 
-      {/* SÜTUN 3: TÜR (KLİP / REKLAM) • BAŞLIK • KLİP ID & DOSYA KODU (.MXF) (flex: 2.2 1 170px, minWidth: 0) */}
+      {/* SÜTUN 3: TÜR (KLİP / REKLAM) • BAŞLIK • KLİP ID & DOSYA KODU (.MXF) */}
       <div style={{
         flex: '2.2 1 170px',
         minWidth: 0,
         display: 'flex',
         flexDirection: 'column',
-        gap: '2px',
+        gap: '3px',
         overflow: 'hidden'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
           {/* Açık Tür Rozeti: Klip mi Reklam mı */}
           <span style={{
-            fontSize: '9.5px',
+            fontSize: fs(10),
             fontWeight: 900,
-            padding: '1px 5px',
+            padding: '1px 6px',
             borderRadius: '4px',
             background: isAd
               ? item.isBumperAd
@@ -230,7 +237,7 @@ export default function ListControlRundownRow({
           </span>
 
           <span style={{
-            fontSize: '12.5px',
+            fontSize: fs(13),
             fontWeight: 800,
             color: 'var(--text-primary)',
             whiteSpace: 'nowrap',
@@ -242,7 +249,7 @@ export default function ListControlRundownRow({
 
           {item.episodeNo != null && (
             <span style={{
-              fontSize: '9.5px',
+              fontSize: fs(10),
               fontWeight: 800,
               padding: '1px 5px',
               borderRadius: '4px',
@@ -255,7 +262,7 @@ export default function ListControlRundownRow({
           )}
           {item.partNo != null && (
             <span style={{
-              fontSize: '9.5px',
+              fontSize: fs(10),
               fontWeight: 800,
               padding: '1px 5px',
               borderRadius: '4px',
@@ -274,7 +281,7 @@ export default function ListControlRundownRow({
           alignItems: 'center',
           gap: '6px',
           flexWrap: 'wrap',
-          fontSize: '10.5px',
+          fontSize: fs(11),
           color: 'var(--text-secondary)'
         }}>
           {resolvedClipId && (
@@ -510,7 +517,7 @@ export default function ListControlRundownRow({
         </div>
 
         <div style={{
-          fontSize: '10.5px',
+          fontSize: fs(11),
           fontWeight: 700,
           color: hasHealthError ? '#dc2626' : '#059669',
           whiteSpace: 'normal',
@@ -525,8 +532,14 @@ export default function ListControlRundownRow({
         </div>
       </div>
 
-      {/* SÜTUN 6: DÜZENLENEBİLİR SÜRE (78px) */}
-      <div style={{ width: '78px', flexShrink: 0, display: 'flex', justifyContent: 'flex-start' }}>
+      {/* SÜTUN 6: DÜZENLENEBİLİR SÜRE (Taşma ve üst üste binme önlendi!) */}
+      <div style={{
+        width: `${durColWidth}px`,
+        flexShrink: 0,
+        display: 'flex',
+        justifyContent: 'center',
+        overflow: 'hidden'
+      }}>
         {isEditingDuration ? (
           <div
             onClick={(e) => e.stopPropagation()}
@@ -599,7 +612,7 @@ export default function ListControlRundownRow({
               setIsEditingDuration(true);
             }}
             style={{
-              padding: '3px 7px',
+              padding: '4px 8px',
               borderRadius: '6px',
               border: item.durationModifiedInListControl
                 ? '1.5px solid #0284c7'
@@ -608,26 +621,28 @@ export default function ListControlRundownRow({
                 ? 'rgba(2, 132, 199, 0.12)'
                 : 'var(--bg-primary)',
               color: 'var(--text-primary)',
-              fontSize: '11px',
+              fontSize: fs(11),
               fontWeight: 800,
               fontFamily: 'monospace',
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '3px',
-              whiteSpace: 'nowrap'
+              justifyContent: 'center',
+              gap: '4px',
+              whiteSpace: 'nowrap',
+              maxWidth: '100%'
             }}
             title="Süreyi düzenlemek için tıklayın"
           >
-            <Clock size={10} color="var(--accent-primary)" />
+            <Clock size={11} color="var(--accent-primary)" style={{ flexShrink: 0 }} />
             <span>{formatSecondsReadable(durSec)}</span>
           </button>
         )}
       </div>
 
-      {/* SÜTUN 7: İŞLEMLER (132px — ⓘ Bilgi Popup + Revize + Sıralama + Sil) */}
+      {/* SÜTUN 7: İŞLEMLER (ⓘ Bilgi Popup + Revize + Sıralama + Sil) */}
       <div style={{
-        width: '132px',
+        width: `${actColWidth}px`,
         flexShrink: 0,
         display: 'flex',
         alignItems: 'center',
