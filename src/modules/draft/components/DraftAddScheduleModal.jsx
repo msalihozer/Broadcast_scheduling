@@ -147,7 +147,11 @@ const DraftAddScheduleModal = ({
   }, [data]);
 
   const prog = selectedProgram || DOLGU_DEFAULT;
-  const isDolgu = prog.title === 'Dolgu Kuşağı' || prog.category === 'Dolgu Kuşağı' || prog.isKisaSlot;
+  const isDolgu =
+    prog.title === 'Dolgu Kuşağı' ||
+    prog.category === 'Dolgu Kuşağı' ||
+    prog.id === 'prog_dolgu_default' ||
+    (prog.isKisaSlot && !prog.programId && (typeof prog.id !== 'number') && /^dolgu/i.test(prog.title || ''));
   const isCustomProgram = Boolean(prog.isCustomProgram || prog.id === 'prog_custom_live');
   const effectiveTitle = isCustomProgram
     ? (customTitleInput.trim() || (isLive ? 'Canlı Yayın Özel' : 'Özel Program'))
@@ -804,15 +808,17 @@ const DraftAddScheduleModal = ({
                           const autoLive = Boolean(/\bcanl[ıi]\b/i.test(p.title || p.name || ''));
                           setSelectedProgram({
                             id: p.id,
+                            programId: p.id,
                             title: p.title || p.name || 'Program',
                             episode: '',
                             duration: p.categoryId === 10 ? 30 : 60,
                             category: pCat,
+                            categoryId: p.categoryId,
                             categoryColor: pColor,
                             categoryBadge: pCat,
                             host: p.host || '',
                             topic: '',
-                            isKisaSlot: p.categoryId === 10,
+                            isKisaSlot: false,
                             isCustomProgram: false,
                             isLive: autoLive,
                             totalEpisodes: p.totalEpisodes,

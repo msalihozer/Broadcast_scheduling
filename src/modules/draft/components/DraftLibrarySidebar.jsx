@@ -98,7 +98,8 @@ const DraftLibrarySidebar = ({
         categoryBadge: catName,
         host: prog.host || '',
         topic: '',
-        isKisaSlot: prog.categoryId === 10,
+        isKisaSlot: false,
+        categoryId: prog.categoryId,
         totalEpisodes: prog.totalEpisodes,
         totalClips: prog.totalClips
       }

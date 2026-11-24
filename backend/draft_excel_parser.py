@@ -114,31 +114,31 @@ CANONICAL_TITLE_ALIASES = {
 CATEGORY_RULES = [
     {
         'category': 'Dini / İlim',
-        'color': '#10b981',
+        'color': '#468625',
         'badge': 'İlim',
         'keywords': ['hatm', 'mukabele', 'tefsir', 'tecvid', 'delail', 'kuduri', 'yakut', 'safvet', 'ilmihal', 'ilim', 'son inci', 'hac rehber', 'akaid', 'fıkıh', 'fikih', 'hadis', 'kur\'an', 'kuran']
     },
     {
         'category': 'Sohbet / Tasavvuf',
-        'color': '#8b5cf6',
+        'color': '#058193',
         'badge': 'Sohbet',
         'keywords': ['semerkand sohbet', 'hasbihal', 'hacegan', 'mesnevi', 'sohbet', 'minhac', 'riyaz', 'taliü', 'taliu', 'tasavvuf', 'hikmet', 'irfan']
     },
     {
         'category': 'Kültür / Tarih',
-        'color': '#3b82f6',
+        'color': '#ED891E',
         'badge': 'Kültür',
         'keywords': ['beş vakit', 'bes vakit', 'yüzyıl', 'yuzyil', 'alimler', 'bedesten', 'aziz istanbul', 'ulu cami', 'kısas', 'kisas', 'hattın izinde', 'hattin izinde', 'güzergah', 'guzergah', 'çerçeve', 'cerceve', 'tarih', 'kültür', 'şehir']
     },
     {
         'category': 'Çocuk / Gençlik',
-        'color': '#f59e0b',
+        'color': '#70AC42',
         'badge': 'Çocuk',
         'keywords': ['neşeli petek', 'neseli petek', 'çocuk', 'cocuk', 'genç', 'genc']
     },
     {
         'category': 'Dolgu Kuşağı',
-        'color': '#06b6d4',
+        'color': '#109AAD',
         'badge': 'Dolgu Kuşağı',
         'keywords': ['dolgu', 'kısa prog', 'kaside', 'aşr-ı şerif', 'asr-i serif', 'kasideler']
     }

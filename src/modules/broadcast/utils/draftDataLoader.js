@@ -8,6 +8,7 @@
 import scheduleHd from '../../../data/draft_schedule_ch_hd.json';
 import scheduleWay from '../../../data/draft_schedule_ch_way.json';
 import { parseISO, getDay } from 'date-fns';
+import { getCategoryColor } from '../../draft/components/library/constants';
 
 // Canlı bellek önbelleği (Taslak Planlama'da yapılan değişikliklerin milisaniyesinde yansıması için)
 const liveDraftSchedules = {
@@ -288,6 +289,20 @@ function normalizeDraftPrograms(rawPrograms, dateStr, isTemplate = false) {
     if (topicStr) displayNoteParts.push(topicStr);
     if (noteStr && !displayNoteParts.includes(noteStr)) displayNoteParts.push(noteStr);
 
+    const isTrulyFillerSlot = Boolean(
+      /dolgu\s*ku[sş]a[gğ][ıi]|^dolgu$/i.test(rawTitle) ||
+      p.category === 'Dolgu Kuşağı' ||
+      (p.isKisaSlot && !p.programId && (typeof p.id !== 'number') && /dolgu|k[ıi]sa\s*prog|kasideler|a[sş]r-[ıi]\s*[sş]erif/i.test(rawTitle))
+    );
+    const resolvedCat = isTrulyFillerSlot
+      ? 'Dolgu Kuşağı'
+      : (p.category || (isLive ? 'Canlı Yayın' : 'Genel'));
+    const resolvedCatColor = isTrulyFillerSlot
+      ? '#109AAD'
+      : isLive
+      ? '#DD1C40'
+      : (getCategoryColor({ title: rawTitle, category: resolvedCat, categoryId: p.categoryId }) || '#0C617C');
+
     return {
       id: p.id || `draft_p_${dateStr}_${idx}`,
       programId: p.programId || (typeof p.id === 'number' ? p.id : null),
@@ -302,8 +317,8 @@ function normalizeDraftPrograms(rawPrograms, dateStr, isTemplate = false) {
       endTime: p.endTime || '',
       duration: durationMin,
       durationSec: durationSec,
-      category: p.category || (isLive ? 'Canlı Yayın' : 'Genel'),
-      categoryColor: p.categoryColor || (isLive ? '#ef4444' : '#3b82f6'),
+      category: resolvedCat,
+      categoryColor: resolvedCatColor,
       episode: resolvedEpisode,
       episodeNo: resolvedEpisodeNo,
       unitType: unitType,
@@ -311,7 +326,7 @@ function normalizeDraftPrograms(rawPrograms, dateStr, isTemplate = false) {
       dayName: dayName,
       part: p.part || p.partNo || '',
       note: displayNoteParts.join(' • ') || (isLive ? 'Canlı Yayın' : (isTemplate ? 'Haftalık Şablon' : '')),
-      isKisaSlot: Boolean(p.isKisaSlot),
+      isKisaSlot: isTrulyFillerSlot,
       isLive: isLive,
       selectedOptions: isLive ? ['Canlı'] : (p.selectedOptions || ['Bant']),
       isDraftItem: true

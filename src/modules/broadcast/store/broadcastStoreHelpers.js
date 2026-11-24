@@ -12,6 +12,7 @@ import {
   secondsToTimecode,
   formatFramesHuman
 } from '../utils/timecodeUtils';
+import { getCategoryColor } from '../../draft/components/library/constants';
 
 /**
  * Yayın Planlama modülünde desteklenen TV kanalları.
@@ -122,7 +123,11 @@ export function convertDraftSlotsToRundownItems(
 
   draftPrograms.forEach((d, idx) => {
     const rawTitle = String(d.title || d.name || 'İsimsiz Program').trim();
-    const isFiller = Boolean(d.isKisaSlot || /dolgu\s*ku[sş]a[gğ][ıi]/i.test(rawTitle));
+    const isFiller = Boolean(
+      /dolgu\s*ku[sş]a[gğ][ıi]|^dolgu$/i.test(rawTitle) ||
+      d.category === 'Dolgu Kuşağı' ||
+      (d.isKisaSlot && !d.programId && (typeof d.id !== 'number') && /dolgu|k[ıi]sa\s*prog|kasideler|a[sş]r-[ıi]\s*[sş]erif/i.test(rawTitle))
+    );
     const isLive = Boolean(
       d.isLive ||
       (Array.isArray(d.selectedOptions) && d.selectedOptions.some(o => /canl[ıi]/i.test(String(o)))) ||
@@ -136,6 +141,12 @@ export function convertDraftSlotsToRundownItems(
       (typeof d.duration === 'string' && d.duration.includes('.') ? d.duration : secondsToTimecode(durationSec));
     const durationFrames = timecodeToFrames(durationTc);
     const draftIdVal = d.id || `draft_p_${channelId}_${dateStr}_${idx}`;
+    const resolvedCat = isFiller ? 'Dolgu Kuşağı' : isLive ? (d.category || 'Canlı Yayın') : (d.category || 'Genel');
+    const resolvedColor = isFiller
+      ? '#109AAD'
+      : isLive
+      ? '#DD1C40'
+      : (getCategoryColor({ title: rawTitle, category: resolvedCat, categoryId: d.categoryId }) || '#0C617C');
 
     // 1. Her programdan önce (Dolgu Kuşağı hariç ve Otomatik İntro açıksa) İntro klibi girer
     if (!isFiller && shouldInsertIntro) {
@@ -185,8 +196,8 @@ export function convertDraftSlotsToRundownItems(
       durationTc: durationTc,
       durationFrames: durationFrames,
       durationSec: Math.floor(durationFrames / BROADCAST_FPS),
-      category: isFiller ? 'Dolgu Kuşağı' : isLive ? (d.category || 'Canlı Yayın') : (d.category || 'Genel'),
-      categoryColor: isFiller ? '#109AAD' : isLive ? '#DD1C40' : (d.categoryColor || '#0C617C'),
+      category: resolvedCat,
+      categoryColor: resolvedColor,
       episodeNo: d.episode || d.episodeNo || null,
       partNo: d.part || d.partNo || null,
       unitType: d.unitType || 'bolum',

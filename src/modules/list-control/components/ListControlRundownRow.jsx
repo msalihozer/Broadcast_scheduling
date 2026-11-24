@@ -89,9 +89,9 @@ export default function ListControlRundownRow({
   const sp = themeConfig?.specialColors || {};
   const adBlockColor = lcMod.adBlockColor || sp.adBreakColor || '#E8B44C';
   const introBlockColor = sp.introColor || '#0A101D';
-  const catColor = getCategoryColor(item.categoryName || item.category) || item.categoryColor || lcMod.programBlockColor || '#0C617C';
+  const catColor = getCategoryColor(item) || item.categoryColor || lcMod.programBlockColor || '#0C617C';
   const catTitleColor = lcMod.useCategoryTitleColor !== false
-    ? getCategoryTitleTextColor(item.categoryName || item.category)
+    ? getCategoryTitleTextColor(item)
     : null;
   const lcLeftAccent = Number(lcMod.leftAccentWidth) || 5;
   const lcTintAlpha = Math.max(0.02, Math.min(0.25, (Number(lcMod.cardTintOpacity) || 8) / 100));

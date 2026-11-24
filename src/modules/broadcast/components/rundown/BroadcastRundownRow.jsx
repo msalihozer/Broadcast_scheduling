@@ -31,9 +31,11 @@ import Ikon from '../../../../components/Ikon';
 
 export function isFillerRundownItem(item) {
   if (!item) return false;
-  if (item.type === 'filler_slot' || item.isKisaSlot) return true;
+  if (item.type === 'filler_slot') return true;
   const norm = normalizeProgramText(item.title || item.name || '');
-  return norm.includes('dolgu kusagi') || norm === 'dolgu';
+  if (norm.includes('dolgu kusagi') || norm === 'dolgu') return true;
+  if (item.isKisaSlot && !item.fileId && item.type !== 'clip') return true;
+  return false;
 }
 
 export function isFillerClipRundownItem(item) {
@@ -41,7 +43,6 @@ export function isFillerClipRundownItem(item) {
   if (item.isFillerClip) return true;
   if (item.category === 'Dolgu Kuşağı') return true;
   if (item.note && String(item.note).startsWith('Dolgu Kuşağı')) return true;
-  if (item.categoryColor === '#8b5cf6' && (item.type === 'clip' || Boolean(item.fileId))) return true;
   return false;
 }
 
@@ -102,9 +103,9 @@ const BroadcastRundownRow = memo(function BroadcastRundownRow({
   const fillerColor = readyMod.fillerColor || sp.fillerSlotColor || '#109AAD';
   const liveColor = readyMod.liveColor || sp.liveColor || '#DD1C40';
   const introColor = sp.introColor || '#0A101D';
-  const clipColor = getCategoryColor(item.categoryName || item.category) || sp.clipColor || '#0C617C';
+  const clipColor = getCategoryColor(item) || sp.clipColor || '#0C617C';
   const readyTitleColor = readyMod.useCategoryTitleColor !== false
-    ? getCategoryTitleTextColor(item.categoryName || item.category)
+    ? getCategoryTitleTextColor(item)
     : null;
   const readyLeftAccent = Number(readyMod.leftAccentWidth) || 5;
   const readyTintAlpha = Math.max(0.03, Math.min(0.28, (Number(readyMod.cardTintOpacity) || 12) / 100));

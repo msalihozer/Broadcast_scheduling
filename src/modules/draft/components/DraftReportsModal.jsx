@@ -59,7 +59,7 @@ const cleanDisplayProgramTitle = (p = {}) => {
 };
 
 const resolveCleanCategory = (p = {}) => {
-  const isDolgu = p.isKisaSlot || p.title === 'Dolgu Kuşağı' || p.category === 'Kısa Program';
+  const isDolgu = p.isKisaSlot || p.title === 'Dolgu Kuşağı' || p.category === 'Dolgu Kuşağı';
   const isLive = Boolean(p.isLive);
   if (isLive) return 'Canlı Yayın';
   if (isDolgu) return 'Dolgu Kuşağı';
@@ -265,7 +265,7 @@ const DraftReportsModal = ({
         totalSeconds += sec;
         dayTotalSec += sec;
 
-        const isDolgu = Boolean(p.isKisaSlot || p.title === 'Dolgu Kuşağı' || p.category === 'Kısa Program');
+        const isDolgu = Boolean(p.isKisaSlot || p.title === 'Dolgu Kuşağı' || p.category === 'Dolgu Kuşağı');
         const isLive = Boolean(p.isLive);
 
         if (isLive) {

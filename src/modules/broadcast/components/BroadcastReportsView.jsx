@@ -355,10 +355,10 @@ const BroadcastReportsView = () => {
         const isLive = Boolean(prog.isLive || prog.type === 'live');
         const isFiller = Boolean(
           prog.type === 'filler_slot' ||
-            prog.isKisaSlot ||
+            (prog.isKisaSlot && !prog.fileId && prog.type !== 'clip') ||
             prog.isFillerClip ||
             prog.category === 'Dolgu Kuşağı' ||
-            prog.category === 'Kısa Program'
+            (prog.note && String(prog.note).startsWith('Dolgu Kuşağı'))
         );
 
         const durSec =

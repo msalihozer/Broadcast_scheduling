@@ -27,6 +27,7 @@ import {
   timecodeToFrames,
   secondsToTimecode
 } from '../utils/timecodeUtils';
+import { getCategoryColor } from '../../draft/components/library/constants';
 
 export default function useSmartDraftApplier({
   draftSlotsForToday = [],
@@ -260,7 +261,7 @@ export default function useSmartDraftApplier({
             durationFrames,
             durationSec: computedDurSec,
             category: slot.category || 'Dolgu Kuşağı',
-            categoryColor: '#8b5cf6',
+            categoryColor: '#109AAD',
             note: 'Klip Seç ve Doldur butonuna tıklayarak klip seçin',
             isFromDraft: true,
             addedAt: Date.now()
@@ -397,6 +398,13 @@ export default function useSmartDraftApplier({
         }
 
         const primaryProg = matchedProgs[0];
+        const resolvedProgCategory = primaryProg?.categoryName || slot.category || 'Programlar';
+        const resolvedProgCatId = primaryProg?.categoryId || slot.categoryId || null;
+        const resolvedProgColor = getCategoryColor({
+          title: primaryProg?.title || rawTitle,
+          category: resolvedProgCategory,
+          categoryId: resolvedProgCatId
+        }) || '#0C617C';
         selectedClips.forEach((clip, partIdx) => {
           const clipSec = clip.durationSec || clip.duration || slot.durationSec || 1800;
           const durTc = clip.durationFormatted || secondsToTimecode(clipSec);
@@ -415,8 +423,12 @@ export default function useSmartDraftApplier({
             durationTc: durTc,
             durationFrames: durFrames,
             durationSec: Math.floor(durFrames / BROADCAST_FPS),
-            category: slot.category || primaryProg?.categoryName || 'Programlar',
-            categoryColor: slot.categoryColor || '#0d9488',
+            category: resolvedProgCategory,
+            categoryName: resolvedProgCategory,
+            categoryId: resolvedProgCatId,
+            categoryColor: resolvedProgColor,
+            isFillerClip: false,
+            isKisaSlot: false,
             episodeNo: clip.episodeNo ?? targetInfo.targetNo ?? null,
             partNo: clip.partNo ?? null,
             unitType: clip.unitType || 'bolum',
