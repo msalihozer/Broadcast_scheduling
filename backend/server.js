@@ -11,6 +11,7 @@ import './config/envLoader.js';
 import { SERVER_TOPOLOGY } from './config/envLoader.js';
 import express from 'express';
 import http from 'http';
+import https from 'https';
 import cors from 'cors';
 import sql from 'mssql';
 import NodeCache from 'node-cache';
@@ -2197,12 +2198,54 @@ function startExtraListener(extraPort) {
     } catch (_) {}
 }
 
+// SSL / HTTPS (Port 443) Otomatik Dinleyici — Sertifika dosyaları varsa doğrudan HTTPS açar
+function startHttpsListenerIfCertsExist() {
+    const httpsPort = parseInt(process.env.HTTPS_PORT || '443', 10);
+    const certCandidates = [
+        process.env.SSL_CERT_PATH,
+        '/etc/ssl/seyare/cert.pem',
+        '/etc/ssl/seyare/fullchain.pem',
+        path.resolve('ssl', 'cert.pem'),
+        path.resolve('backend', 'ssl', 'cert.pem')
+    ].filter(Boolean);
+
+    const keyCandidates = [
+        process.env.SSL_KEY_PATH,
+        '/etc/ssl/seyare/key.pem',
+        '/etc/ssl/seyare/privkey.pem',
+        path.resolve('ssl', 'key.pem'),
+        path.resolve('backend', 'ssl', 'key.pem')
+    ].filter(Boolean);
+
+    const certPath = certCandidates.find(p => { try { return fs.existsSync(p); } catch (_) { return false; } });
+    const keyPath = keyCandidates.find(p => { try { return fs.existsSync(p); } catch (_) { return false; } });
+
+    if (!certPath || !keyPath) return;
+
+    try {
+        const sslOptions = {
+            cert: fs.readFileSync(certPath, 'utf-8'),
+            key: fs.readFileSync(keyPath, 'utf-8')
+        };
+        const httpsServer = https.createServer(sslOptions, app);
+        httpsServer.on('error', (err) => {
+            console.warn(`[HTTPS PORT ${httpsPort} WARN]:`, err.message);
+        });
+        httpsServer.listen(httpsPort, '0.0.0.0', () => {
+            console.log(`[SSL/HTTPS] Güvenli Web Arayüzü & API https://0.0.0.0:${httpsPort} portunda yayında! (Sertifika: ${certPath})`);
+        });
+    } catch (err) {
+        console.warn('[SSL/HTTPS INIT ERROR]:', err.message);
+    }
+}
+
 app.listen(PORT, '0.0.0.0', async () => {
     console.log(`Backend sunucusu http://0.0.0.0:${PORT} (Tüm ağ arayüzleri) portunda çalışıyor`);
     if (process.env.SERVE_STATIC === 'true' || !IS_WINDOWS) {
         startExtraListener(5173);
         startExtraListener(80);
     }
+    startHttpsListenerIfCertsExist();
     try {
         if (!isPostgresReady()) {
             await testPgConnection();
