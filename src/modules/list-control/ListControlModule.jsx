@@ -1048,6 +1048,7 @@ export default function ListControlModule() {
               programs={programs}
               issues={unifiedIssues}
               verifyingHealth={verifyingHealth}
+              fontScale={fontScale}
               allowedFormats={allowedFormats}
               onUpdateAllowedFormats={(nextFormats) => {
                 lcUpdateFormatSettings({ allowedFormats: nextFormats });
