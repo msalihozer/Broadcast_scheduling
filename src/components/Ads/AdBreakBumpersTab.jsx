@@ -853,7 +853,7 @@ const AdBreakBumpersTab = () => {
                 gap: '5px'
               }}
             >
-              🔴 CANLI YAYINLAR &amp; DEFAULT GİRİŞ / ÇIKIŞ
+              CANLI YAYINLAR &amp; DEFAULT GİRİŞ / ÇIKIŞ
             </span>
             <span style={{ fontSize: '13.5px', fontWeight: '900', color: 'var(--ads-text-main)' }}>
               Canlı Yayın Programları Otomatik Kategori &amp; Kanal Bazlı Varsayılan (Default) Ayarı
@@ -968,10 +968,10 @@ const AdBreakBumpersTab = () => {
                   </div>
                   <div style={{ fontSize: '11.5px', fontFamily: 'monospace', color: 'var(--ads-text-main)', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                     <span>
-                      <strong style={{ color: '#059669' }}>🟢 Giriş:</strong> {introName} ({introSec}sn)
+                      <strong style={{ color: '#059669' }}>Giriş:</strong> {introName} ({introSec}sn)
                     </span>
                     <span>
-                      <strong style={{ color: '#d97706' }}>🟠 Çıkış:</strong> {outroName} ({outroSec}sn)
+                      <strong style={{ color: '#d97706' }}>Çıkış:</strong> {outroName} ({outroSec}sn)
                     </span>
                   </div>
                 </div>
@@ -1058,7 +1058,7 @@ const AdBreakBumpersTab = () => {
                             fontWeight: '900'
                           }}
                         >
-                          🔴 CANLI
+                          CANLI
                         </span>
                         <span style={{ fontSize: '12.5px', fontWeight: '900', color: 'var(--ads-text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {liveItem.baseTitle}
@@ -1097,20 +1097,20 @@ const AdBreakBumpersTab = () => {
                       <div>
                         {isCustomLiveRule ? (
                           <span style={{ color: '#e11d48', fontWeight: '800' }}>
-                            ✓ 1. Yöntem: Canlı Yayın Özel Kuralı Tanımlı
+                            1. Yöntem: Canlı Yayın Özel Kuralı Tanımlı
                           </span>
                         ) : isFromPrevEpisodes ? (
                           <span style={{ color: '#2563eb', fontWeight: '800' }}>
-                            ✓ Önceki Bölümlerden Kategori Tespit Edildi: {liveItem.previousEpisodeCategory}
+                            Önceki Bölümlerden Kategori Tespit Edildi: {liveItem.previousEpisodeCategory}
                           </span>
                         ) : (
                           <span style={{ color: '#0d9488', fontWeight: '800' }}>
-                            ⚙️ 2. Yöntem: Önceki Bölümü Yok &rarr; Kanal Default ({liveItem.resolvedIntroName})
+                            2. Yöntem: Önceki Bölümü Yok &rarr; Kanal Default ({liveItem.resolvedIntroName})
                           </span>
                         )}
                       </div>
                       <div style={{ fontFamily: 'monospace', fontSize: '10.5px', color: 'var(--ads-text-muted)' }}>
-                        🟢 {liveItem.resolvedIntroName} • 🟠 {liveItem.resolvedOutroName}
+                        {liveItem.resolvedIntroName} • {liveItem.resolvedOutroName}
                       </div>
                     </div>
                   </div>
@@ -1129,8 +1129,8 @@ const AdBreakBumpersTab = () => {
               <tr>
                 <th style={{ width: '140px' }}>Yayın Kanalı</th>
                 <th style={{ width: '240px' }}>Bağlı Program Kategorileri</th>
-                <th>🟢 Reklam Giriş Jeneriği (Kuşak Başı)</th>
-                <th>🟠 Reklam Çıkış Jeneriği (Kuşak Sonu)</th>
+                <th>Reklam Giriş Jeneriği (Kuşak Başı)</th>
+                <th>Reklam Çıkış Jeneriği (Kuşak Sonu)</th>
                 <th style={{ width: '110px' }}>Toplam Süre</th>
                 <th style={{ width: '100px' }}>Durum</th>
                 <th style={{ width: '140px', textAlign: 'right' }}>İşlemler</th>
@@ -1186,7 +1186,7 @@ const AdBreakBumpersTab = () => {
                                 fontWeight: '900'
                               }}
                             >
-                              ⚙️ KANAL VARSAYILANI (DEFAULT)
+                              KANAL VARSAYILANI (DEFAULT)
                             </span>
                           )}
                           {!rule.isChannelDefault &&
@@ -1221,7 +1221,7 @@ const AdBreakBumpersTab = () => {
                               }}
                               title="Bu canlı yayın kaç part olursa olsun tüm partları için geçerlidir"
                             >
-                              🔴 Canlı: {lpName} (Tüm Partlar)
+                              Canlı: {lpName} (Tüm Partlar)
                             </span>
                           ))}
                         </div>
@@ -1622,7 +1622,7 @@ const AdBreakBumpersTab = () => {
                 >
                   <div>
                     <div style={{ fontSize: '13px', fontWeight: '900', color: '#0d9488' }}>
-                      ⚙️ Kanal Varsayılan (Default) Giriş &amp; Çıkış Ayarı Düzenleniyor
+                      Kanal Varsayılan (Default) Giriş &amp; Çıkış Ayarı Düzenleniyor
                     </div>
                     <div style={{ fontSize: '11.5px', color: 'var(--ads-text-sub)', marginTop: '3px' }}>
                       Reklam Giriş &amp; Çıkış alanına özel olarak eklenmemiş ve arşivde daha önce bölümü / kategori bilgisi bulunmayan canlı yayınlar için seçili kanalda aşağıdaki Giriş ve Çıkış klipleri otomatik olarak yerleşir.
@@ -1737,7 +1737,7 @@ const AdBreakBumpersTab = () => {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
                       <div>
                         <span style={{ fontSize: '12.5px', fontWeight: '900', color: '#e11d48' }}>
-                          2B. 🔴 Canlı Yayın / Özel Program İsmi Seçimi (Kaç Part Olduğu Önemli Değil - Tüm Partlar İçin Geçerli)
+                          2B. Canlı Yayın / Özel Program İsmi Seçimi (Kaç Part Olduğu Önemli Değil - Tüm Partlar İçin Geçerli)
                         </span>
                         <div style={{ fontSize: '11.5px', color: 'var(--ads-text-muted)', marginTop: '2px' }}>
                           Yayın listesindeki canlı etiketli programlardan seçebilir veya program adını yazarak ekleyebilirsiniz.
@@ -1788,7 +1788,7 @@ const AdBreakBumpersTab = () => {
                               gap: '6px'
                             }}
                           >
-                            <span>🔴 {lpName} (Tüm Partlar)</span>
+                            <span>{lpName} (Tüm Partlar)</span>
                             <button
                               type="button"
                               onClick={() => toggleFormLiveProgram(lpName)}
@@ -2066,7 +2066,7 @@ const AdBreakBumpersTab = () => {
                         className={`ads-saas-pill-btn ${pickerSourceTab === 'jingles' ? 'active' : ''}`}
                         style={{ fontSize: '11.5px' }}
                       >
-                        🎯 Giriş / Çıkış Jenerikleri ({bumperJingleClips.length})
+                        Giriş / Çıkış Jenerikleri ({bumperJingleClips.length})
                       </button>
                       <button
                         type="button"
@@ -2074,7 +2074,7 @@ const AdBreakBumpersTab = () => {
                         className={`ads-saas-pill-btn ${pickerSourceTab === 'library' ? 'active' : ''}`}
                         style={{ fontSize: '11.5px' }}
                       >
-                        📚 Tüm Medya Kütüphanesi ({fullMediaLibraryClips.length})
+                        Tüm Medya Kütüphanesi ({fullMediaLibraryClips.length})
                       </button>
                       <button
                         type="button"
@@ -2082,7 +2082,7 @@ const AdBreakBumpersTab = () => {
                         className={`ads-saas-pill-btn ${pickerSourceTab === 'archive' ? 'active' : ''}`}
                         style={{ fontSize: '11.5px' }}
                       >
-                        🗄️ MAM Arşivde Ara
+                        MAM Arşivde Ara
                       </button>
                     </div>
 
@@ -2150,12 +2150,12 @@ const AdBreakBumpersTab = () => {
                                 </span>
                                 {isPickedAsIntro && (
                                   <span style={{ padding: '1px 7px', borderRadius: '999px', background: '#059669', color: '#fff', fontSize: '10px', fontWeight: '800' }}>
-                                    ✓ Giriş Olarak Seçili
+                                    Giriş Olarak Seçili
                                   </span>
                                 )}
                                 {isPickedAsOutro && (
                                   <span style={{ padding: '1px 7px', borderRadius: '999px', background: '#d97706', color: '#fff', fontSize: '10px', fontWeight: '800' }}>
-                                    ✓ Çıkış Olarak Seçili
+                                    Çıkış Olarak Seçili
                                   </span>
                                 )}
                               </div>

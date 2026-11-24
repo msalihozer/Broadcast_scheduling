@@ -5,8 +5,8 @@
  * Özellikler:
  * 1. İki ayrı kutunun üst üste binip ekranı daraltması kaldırıldı; panel Yayın Planlama gibi TEK PARÇA TAM BOY kaydırılabilir listedir.
  * 2. Sağdaki tabloda bir program klibine (örn: Tecvid_70_270722) tıklandığında otomatik olarak
- *    "🎯 Seçili Programın Bölümleri" moduna geçer ve o programın tüm bölüm/partlarını tam boy listeler;
- *    operatör tek tıkla "📚 Tüm Medya Arşivi" sekmesine geçerek tüm arşivde arama yapabilir.
+ *    "Seçili Programın Bölümleri" moduna geçer ve o programın tüm bölüm/partlarını tam boy listeler;
+ *    operatör tek tıkla "Tüm Medya Arşivi" sekmesine geçerek tüm arşivde arama yapabilir.
  * 3. Kanal introları (örn: SEMERKAND_intro_v3_2014) yanlışlıkla "Semerkand Sohbetleri" ile eşleştirilmez.
  * 4. Kartlarda "İzle" yazısı yerine "ⓘ" (Information / Bilgi & Önizleme Popup) ikonu yer alır.
  * 5. Dolgu Kuşağı (Filler Slot) ekleme alanı KESİNLİKLE YOKTUR.
@@ -474,7 +474,7 @@ export default function ListControlSidebar({
                   background: '#10b981',
                   color: '#ffffff'
                 }}>
-                  ✓ Listedeki Klip
+                  Listedeki Klip
                 </span>
               )}
             </div>
@@ -774,7 +774,7 @@ export default function ListControlSidebar({
               fontSize: '10px',
               textTransform: 'uppercase'
             }}>
-              {isSelectedAd ? '📢 Seçili Reklam Satırı:' : '🎬 Seçili Tablo Satırı:'}
+              {isSelectedAd ? 'Seçili Reklam Satırı:' : 'Seçili Tablo Satırı:'}
             </span>
             <div style={{
               fontWeight: 800,

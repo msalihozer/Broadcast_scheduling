@@ -722,7 +722,7 @@ const AdsReportsTab = ({ setActiveTab }) => {
           title="Yayın Planı & Ücretlendirme Detay Tablosunu Aç"
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '11.5px', fontWeight: '800', color: '#059669' }}>💰 Ücretlendirme &amp; Bütçe</span>
+            <span style={{ fontSize: '11.5px', fontWeight: '800', color: '#059669' }}>Ücretlendirme &amp; Bütçe</span>
             <Wallet size={16} color="#059669" />
           </div>
           <div style={{ fontSize: '18px', fontWeight: '900', color: '#059669' }}>
@@ -1400,7 +1400,7 @@ const AdsReportsTab = ({ setActiveTab }) => {
           >
             <div>
               <div style={{ fontSize: '14px', fontWeight: '900', color: 'var(--ads-text-main)' }}>
-                💰 Yayın Planı, Kota ve Ücretlendirme / Tahsilat Raporu ({planReports.length} Rezervasyon)
+                Yayın Planı, Kota ve Ücretlendirme / Tahsilat Raporu ({planReports.length} Rezervasyon)
               </div>
               <div style={{ fontSize: '11.5px', color: 'var(--ads-text-muted)', marginTop: '2px' }}>
                 Planlanan kota, gerçekleşen yayın, birim ücret, toplam bütçe ve tahsilat verilerini doğrudan güncelleyebilirsiniz.
@@ -1577,7 +1577,7 @@ const AdsReportsTab = ({ setActiveTab }) => {
                       {pr.remainingReceivable > 0
                         ? `Kalan: ₺${pr.remainingReceivable.toLocaleString('tr-TR')}`
                         : pr.plannedBudget > 0
-                        ? '✓ Tahsil Edildi'
+                        ? 'Tahsil Edildi'
                         : '-'}
                     </span>
                   </div>
@@ -1594,9 +1594,9 @@ const AdsReportsTab = ({ setActiveTab }) => {
       {reportView === 'periods' && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
           {[
-            { title: '📅 Haftalık Yayınlanma Raporu', colLabel: 'Hafta', data: periodReports.weekly },
-            { title: '🗓️ Aylık Yayınlanma Raporu', colLabel: 'Ay', data: periodReports.monthly },
-            { title: '📊 Yıllık Yayınlanma Raporu', colLabel: 'Yıl', data: periodReports.yearly }
+            { title: 'Haftalık Yayınlanma Raporu', colLabel: 'Hafta', data: periodReports.weekly },
+            { title: 'Aylık Yayınlanma Raporu', colLabel: 'Ay', data: periodReports.monthly },
+            { title: 'Yıllık Yayınlanma Raporu', colLabel: 'Yıl', data: periodReports.yearly }
           ].map(sec => (
             <div
               key={sec.title}

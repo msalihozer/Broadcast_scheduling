@@ -1,7 +1,7 @@
 /**
  * @file src/pages/Login.jsx
  * @description Kullanıcı kimlik doğrulama (Giriş) sayfası (/login).
- * Semerkand TV Kurumsal Kimlik 2026 - 2 sütunlu karşılama + temiz form ekranı.
+ * Semerkand TV Kurumsal Kimlik 2026 - 01_Giris.png tasarımına birebir uyumlu 2 sütunlu karşılama + sade giriş formu.
  */
 import React, { useState } from 'react';
 import useAuthStore from '../store/authStore';
@@ -21,7 +21,8 @@ const Login = () => {
   const [botTrap, setBotTrap] = useState('');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
+  const [focusedField, setFocusedField] = useState('username');
 
   const { isMobile } = useResponsive();
   const signIn = useAuthStore(state => state.signIn);
@@ -51,107 +52,96 @@ const Login = () => {
       minHeight: '100dvh',
       display: 'grid',
       gridTemplateColumns: isMobile ? '1fr' : '56% 44%',
-      background: 'var(--bg-secondary)',
-      color: 'var(--text-primary)',
+      background: '#FFFFFF',
+      color: 'var(--text-primary, #0A101D)',
       overflowX: 'hidden',
       boxSizing: 'border-box'
     }}>
-      {/* Sol Sütun: Derin Turkuaz Kurumsal Marka Yüzü */}
+      {/* Sol Sütun: Derin Turkuaz (#0C617C) Kurumsal Marka Yüzü (01_Giris.png) */}
       <div style={{
-        background: 'var(--turkuaz, #0C617C)',
-        color: '#ffffff',
-        padding: isMobile ? '36px 24px 32px' : '72px 84px',
+        position: 'relative',
+        background: '#0C617C',
+        color: '#FFFFFF',
+        padding: isMobile ? '44px 28px 36px' : '64px 72px',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'space-between',
-        position: 'relative',
         overflow: 'hidden'
       }}>
-        {/* Arka Plan Filigran İkon */}
+        {/* Büyük Ürün Çizgi İkonu (Başlıkla aynı sol hizada, başlığın üstünde) */}
         <div style={{
-          position: 'absolute',
-          right: isMobile ? '-60px' : '-120px',
-          bottom: isMobile ? '-60px' : '-120px',
-          width: isMobile ? '280px' : '560px',
-          height: isMobile ? '280px' : '560px',
-          color: 'rgba(255, 255, 255, 0.055)',
+          position: isMobile ? 'relative' : 'absolute',
+          left: isMobile ? '-12px' : '2px',
+          top: isMobile ? '0px' : '110px',
+          width: isMobile ? '240px' : '560px',
+          height: isMobile ? '240px' : '560px',
+          color: 'rgba(255, 255, 255, 0.22)',
           pointerEvents: 'none'
         }}>
-          <Ikon ad="plan" size={isMobile ? 280 : 560} strokeWidth={1.2} />
+          <Ikon
+            ad="plan"
+            size={isMobile ? 240 : 560}
+            strokeWidth={0.32}
+            color="rgba(255, 255, 255, 0.22)"
+          />
         </div>
 
-        {/* Üst İkon Kutusu */}
-        <div style={{
-          width: isMobile ? '44px' : '56px',
-          height: isMobile ? '44px' : '56px',
-          border: '1.75px solid rgba(255, 255, 255, 0.65)',
-          borderRadius: '4px',
-          display: 'grid',
-          placeItems: 'center',
+        {/* Ana Başlık: Alt kısımda, biraz daha büyük ve aşağıda (Light 300 + Bold 700) */}
+        <h1 style={{
           position: 'relative',
-          zIndex: 1
+          zIndex: 1,
+          margin: isMobile ? '16px 0 0 0' : 'auto 0 0 0',
+          fontSize: isMobile ? '52px' : '84px',
+          lineHeight: 1.02,
+          fontWeight: 300,
+          letterSpacing: '-0.015em',
+          color: '#FFFFFF'
         }}>
-          <Ikon ad="plan" size={isMobile ? 24 : 30} />
-        </div>
+          Yayın
+          <b style={{ fontWeight: 700, display: 'block' }}>Planlama</b>
+        </h1>
 
-        {/* Ana Başlık: Light + Bold */}
-        <div style={{ position: 'relative', zIndex: 1, margin: isMobile ? '24px 0' : '0' }}>
-          <h1 style={{
-            fontSize: isMobile ? '42px' : '76px',
-            fontWeight: 300,
-            lineHeight: 1.02,
-            letterSpacing: '-0.025em',
-            margin: 0,
-            color: '#ffffff'
-          }}>
-            Yayın<br />
-            <b style={{ fontWeight: 700 }}>Planlama</b>
-          </h1>
-        </div>
-
-        {/* Alt Akış Adımları */}
+        {/* Alt 4 Akış Aşaması (Çizgisiz, Beyaz İkonlarla) */}
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
-          gap: isMobile ? '12px' : '16px',
-          borderTop: '1px solid rgba(255, 255, 255, 0.22)',
-          paddingTop: isMobile ? '18px' : '24px',
           position: 'relative',
-          zIndex: 1
+          zIndex: 1,
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: isMobile ? '16px 22px' : '28px',
+          marginTop: isMobile ? '24px' : '36px',
+          fontSize: '14px',
+          fontWeight: 400,
+          color: 'rgba(255, 255, 255, 0.88)'
         }}>
           {WORKFLOW_STEPS.map(step => (
-            <div
+            <span
               key={step.id}
               style={{
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
-                gap: '10px',
-                fontSize: '13px',
-                fontWeight: 500,
-                color: 'rgba(255, 255, 255, 0.92)'
+                gap: '8px'
               }}
             >
-              <Ikon ad={step.icon} size={22} color="#E8B44C" />
+              <Ikon ad={step.icon} size={20} color="rgba(255, 255, 255, 0.9)" />
               <span>{step.label}</span>
-            </div>
+            </span>
           ))}
         </div>
       </div>
 
-      {/* Sağ Sütun: Temiz Giriş Formu */}
+      {/* Sağ Sütun: Sade Giriş Formu (01_Giris.png) */}
       <div style={{
-        background: '#ffffff',
+        background: '#FFFFFF',
         display: 'grid',
         placeItems: 'center',
-        padding: isMobile ? '36px 20px 48px' : '64px'
+        padding: isMobile ? '36px 24px 48px' : '64px'
       }}>
         <form
           onSubmit={handleSubmit}
           style={{
             width: '100%',
             maxWidth: '400px',
-            display: 'flex',
-            flexDirection: 'column'
+            display: 'grid',
+            gap: '22px'
           }}
         >
           {/* Otomatik Bot / Robot Tuzağı (Honeypot) */}
@@ -166,32 +156,12 @@ const Login = () => {
             style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px', opacity: 0, pointerEvents: 'none' }}
           />
 
-          <div style={{
-            width: '48px',
-            height: '48px',
-            background: 'var(--turkuaz, #0C617C)',
-            color: '#ffffff',
-            borderRadius: '4px',
-            display: 'grid',
-            placeItems: 'center',
-            marginBottom: '22px'
-          }}>
-            <Ikon ad="plan" size={26} />
-          </div>
-
-          <h2 style={{
-            fontSize: '28px',
-            fontWeight: 700,
-            color: 'var(--text-primary, #0A101D)',
-            letterSpacing: '-0.015em',
-            margin: '0 0 6px 0'
-          }}>
-            Yayın Planlama
-          </h2>
           <p style={{
-            fontSize: '14px',
-            color: 'var(--text-secondary, #4B6478)',
-            margin: '0 0 32px 0'
+            fontSize: '20px',
+            fontWeight: 300,
+            lineHeight: 1.45,
+            color: '#0A101D',
+            margin: '0 0 6px 0'
           }}>
             Sisteme giriş yapmak için bilgilerinizi girin.
           </p>
@@ -207,43 +177,48 @@ const Login = () => {
               fontWeight: 500,
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              marginBottom: '20px'
+              gap: '8px'
             }}>
               <Ikon ad="uyari" size={16} />
               <span>{error}</span>
             </div>
           )}
 
-          {/* Kullanıcı Adı */}
-          <div style={{ marginBottom: '20px' }}>
+          {/* KULLANICI ADI */}
+          <div style={{ display: 'grid', gap: '7px' }}>
             <label style={{
-              display: 'block',
-              fontSize: '12px',
-              fontWeight: 700,
-              color: 'var(--text-primary, #0A101D)',
-              letterSpacing: '0.04em',
+              fontSize: '11px',
+              fontWeight: 900,
+              letterSpacing: '0.12em',
               textTransform: 'uppercase',
-              marginBottom: '8px'
+              color: '#4B6478'
             }}>
-              Kullanıcı Adı
+              KULLANICI ADI
             </label>
             <div style={{
+              height: '48px',
+              border: focusedField === 'username' ? '1px solid #0C617C' : '1px solid #DCE5E9',
+              boxShadow: focusedField === 'username' ? '0 0 0 3px #E7F0F3' : 'none',
+              borderRadius: '4px',
               display: 'flex',
               alignItems: 'center',
-              gap: '12px',
-              height: '48px',
+              gap: '10px',
               padding: '0 14px',
-              border: '1px solid var(--border-color, #DCE5E9)',
-              borderRadius: '4px',
-              background: '#ffffff',
-              color: 'var(--text-primary, #0A101D)'
+              background: '#FFFFFF',
+              color: focusedField === 'username' ? '#0A101D' : '#6A7C88',
+              transition: 'border-color 0.15s ease, box-shadow 0.15s ease'
             }}>
-              <Ikon ad="kullanici" size={18} color="var(--text-muted, #6A7C88)" />
+              <Ikon
+                ad="kullanici"
+                size={18}
+                color={focusedField === 'username' ? '#0A101D' : '#6A7C88'}
+              />
               <input
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
+                onFocus={() => setFocusedField('username')}
+                onBlur={() => setFocusedField(null)}
                 required
                 placeholder="Örn: admin"
                 style={{
@@ -253,7 +228,7 @@ const Login = () => {
                   height: '100%',
                   font: 'inherit',
                   fontSize: '15px',
-                  color: 'var(--text-primary, #0A101D)',
+                  color: '#0A101D',
                   background: 'transparent',
                   padding: 0
                 }}
@@ -261,35 +236,41 @@ const Login = () => {
             </div>
           </div>
 
-          {/* Şifre */}
-          <div style={{ marginBottom: '20px' }}>
+          {/* ŞİFRE */}
+          <div style={{ display: 'grid', gap: '7px' }}>
             <label style={{
-              display: 'block',
-              fontSize: '12px',
-              fontWeight: 700,
-              color: 'var(--text-primary, #0A101D)',
-              letterSpacing: '0.04em',
+              fontSize: '11px',
+              fontWeight: 900,
+              letterSpacing: '0.12em',
               textTransform: 'uppercase',
-              marginBottom: '8px'
+              color: '#4B6478'
             }}>
-              Şifre
+              ŞİFRE
             </label>
             <div style={{
+              height: '48px',
+              border: focusedField === 'password' ? '1px solid #0C617C' : '1px solid #DCE5E9',
+              boxShadow: focusedField === 'password' ? '0 0 0 3px #E7F0F3' : 'none',
+              borderRadius: '4px',
               display: 'flex',
               alignItems: 'center',
-              gap: '12px',
-              height: '48px',
+              gap: '10px',
               padding: '0 14px',
-              border: '1px solid var(--border-color, #DCE5E9)',
-              borderRadius: '4px',
-              background: '#ffffff',
-              color: 'var(--text-primary, #0A101D)'
+              background: '#FFFFFF',
+              color: focusedField === 'password' ? '#0A101D' : '#6A7C88',
+              transition: 'border-color 0.15s ease, box-shadow 0.15s ease'
             }}>
-              <Ikon ad="kilit" size={18} color="var(--text-muted, #6A7C88)" />
+              <Ikon
+                ad="kilit"
+                size={18}
+                color={focusedField === 'password' ? '#0A101D' : '#6A7C88'}
+              />
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onFocus={() => setFocusedField('password')}
+                onBlur={() => setFocusedField(null)}
                 required
                 placeholder="••••••••"
                 style={{
@@ -299,7 +280,7 @@ const Login = () => {
                   height: '100%',
                   font: 'inherit',
                   fontSize: '15px',
-                  color: 'var(--text-primary, #0A101D)',
+                  color: '#0A101D',
                   background: 'transparent',
                   padding: 0
                 }}
@@ -307,50 +288,50 @@ const Login = () => {
             </div>
           </div>
 
-          {/* Beni Hatırla */}
+          {/* Beni Hatırla (Özel 18x18px Kurumsal Turkuaz Onay Kutusu + tamam ikonu) */}
           <label
-            htmlFor="rememberMe"
+            onClick={() => setRememberMe(prev => !prev)}
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '10px',
-              fontSize: '13px',
-              color: 'var(--text-secondary, #4B6478)',
-              margin: '6px 0 26px',
+              fontSize: '14px',
+              color: '#4B6478',
               cursor: 'pointer',
               userSelect: 'none'
             }}
           >
-            <input
-              type="checkbox"
-              id="rememberMe"
-              checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
-              style={{
-                width: '18px',
-                height: '18px',
-                accentColor: 'var(--turkuaz, #0C617C)',
-                cursor: 'pointer',
-                margin: 0
-              }}
-            />
+            <span style={{
+              width: '18px',
+              height: '18px',
+              border: '1.5px solid #0C617C',
+              borderRadius: '2px',
+              display: 'grid',
+              placeItems: 'center',
+              background: rememberMe ? '#0C617C' : '#FFFFFF',
+              flexShrink: 0,
+              transition: 'background 0.12s ease'
+            }}>
+              {rememberMe && <Ikon ad="tamam" size={14} color="#FFFFFF" />}
+            </span>
             <span>Beni Hatırla (Oturum açık kalsın)</span>
           </label>
 
-          {/* Giriş Yap Butonu */}
+          {/* Giriş Yap Ana Düğmesi */}
           <button
             type="submit"
             disabled={loading}
             style={{
               width: '100%',
               height: '50px',
-              background: 'var(--turkuaz, #0C617C)',
-              color: '#ffffff',
-              border: 0,
+              background: '#0C617C',
+              color: '#FFFFFF',
+              border: '1px solid #0C617C',
               borderRadius: '4px',
               font: 'inherit',
               fontSize: '15px',
               fontWeight: 700,
+              letterSpacing: '0.02em',
               cursor: loading ? 'not-allowed' : 'pointer',
               opacity: loading ? 0.75 : 1,
               display: 'flex',
@@ -358,8 +339,8 @@ const Login = () => {
               justifyContent: 'center',
               transition: 'background 0.15s ease'
             }}
-            onMouseEnter={(e) => !loading && (e.currentTarget.style.background = 'var(--turkuaz-koyu, #094B60)')}
-            onMouseLeave={(e) => !loading && (e.currentTarget.style.background = 'var(--turkuaz, #0C617C)')}
+            onMouseEnter={(e) => !loading && (e.currentTarget.style.background = '#094B60')}
+            onMouseLeave={(e) => !loading && (e.currentTarget.style.background = '#0C617C')}
           >
             {loading ? 'Giriş Yapılıyor...' : 'Giriş Yap'}
           </button>

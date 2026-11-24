@@ -348,7 +348,7 @@ const AdBreakInteractiveSpotsList = ({
               }}
               title="Seçimi Kaldır"
             >
-              ✕
+              X
             </button>
           </div>
         </div>
@@ -381,7 +381,7 @@ const AdBreakInteractiveSpotsList = ({
           }}
         >
           {dragOverState?.emptyBreak
-            ? '📥 Reklamı Bu Kuşağa Eklemek İçin Bırakın!'
+            ? 'Reklamı Bu Kuşağa Eklemek İçin Bırakın!'
             : 'Bu kuşak boş. Sol paneldeki havuzdan reklam sürükleyip bırakabilir, "+ Ekle" butonuna basabilir veya buraya tıklayabilirsiniz.'}
         </div>
       ) : (
@@ -589,7 +589,7 @@ const AdBreakInteractiveSpotsList = ({
                             color: '#ffffff'
                           }}
                         >
-                          {isIntroBumper ? '🟢 RTÜK Giriş' : '🟠 RTÜK Çıkış'} • {spInfo.bumperCategoryName}
+                          {isIntroBumper ? 'RTÜK Giriş' : 'RTÜK Çıkış'} • {spInfo.bumperCategoryName}
                         </span>
                         <span
                           style={{
@@ -632,7 +632,7 @@ const AdBreakInteractiveSpotsList = ({
                                 color: '#ffffff'
                               }}
                             >
-                              🎯 SEÇİLİ {clipOcc?.count > 1 ? `(${clipOcc.count} Kuşakta Var)` : ''}
+                              SEÇİLİ {clipOcc?.count > 1 ? `(${clipOcc.count} Kuşakta Var)` : ''}
                             </span>
                           )}
 
@@ -667,7 +667,7 @@ const AdBreakInteractiveSpotsList = ({
                                 color: '#ffffff'
                               }}
                             >
-                              🏆 {spInfo.roleLabel}
+                              {spInfo.roleLabel}
                               {spInfo.programTitle ? ` • ${spInfo.programTitle}` : ''}
                             </span>
                           )}
@@ -698,7 +698,7 @@ const AdBreakInteractiveSpotsList = ({
                     )}
                   </div>
 
-                  {/* Sağ Aksiyon Butonları: Süre, ⓘ Önizleme, ↑ Yukarı, ↓ Aşağı, 🗑 Sil */}
+                  {/* Sağ Aksiyon Butonları: Süre, ⓘ Önizleme, ↑ Yukarı, ↓ Aşağı, Sil */}
                   <div
                     style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0, marginLeft: 'auto' }}
                     onClick={e => e.stopPropagation()}
@@ -1152,13 +1152,13 @@ export const AdBreaksListView = ({
                       border: '1px solid var(--ads-border-strong)'
                     }}
                   >
-                    <option value="">🌙 Ramazan İşaretle...</option>
-                    <option value="sahur_before">🌙 Sahur Öncesi</option>
-                    <option value="sahur_middle">🌙 Sahur Arası</option>
-                    <option value="sahur_after">🌙 Sahur Sonrası</option>
-                    <option value="iftar_before">🕌 İftar Öncesi</option>
-                    <option value="iftar_middle">🕌 İftar Arası</option>
-                    <option value="iftar_after">🕌 İftar Sonrası</option>
+                    <option value="">Ramazan İşaretle...</option>
+                    <option value="sahur_before">Sahur Öncesi</option>
+                    <option value="sahur_middle">Sahur Arası</option>
+                    <option value="sahur_after">Sahur Sonrası</option>
+                    <option value="iftar_before">İftar Öncesi</option>
+                    <option value="iftar_middle">İftar Arası</option>
+                    <option value="iftar_after">İftar Sonrası</option>
                   </select>
                 )}
 
@@ -1331,7 +1331,7 @@ export const AdBreaksListView = ({
                             color: '#ffffff'
                           }}
                         >
-                          🏆 Sponsorlu
+                          Sponsorlu
                         </span>
                       )}
                     </div>
@@ -1384,7 +1384,7 @@ export const AdBreaksListView = ({
                           color: '#ffffff'
                         }}
                       >
-                        🏆 Sponsorlu
+                        Sponsorlu
                       </span>
                     )}
                   </div>
@@ -1503,7 +1503,7 @@ export const AdQuickSpotPoolPanel = ({
                 }}
                 title="Sol Paneli Sağa Doğru Genişlet / Normal Boyuta Döndür"
               >
-                <span>{isWidened ? 'Daralt' : 'Genişlet ➡'}</span>
+                <span>{isWidened ? 'Daralt' : 'Genişlet'}</span>
                 <ArrowRightToLine size={12} />
               </button>
             )}
@@ -1551,7 +1551,7 @@ export const AdQuickSpotPoolPanel = ({
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
               <span style={{ fontSize: '11px', fontWeight: '800', color: '#0369a1' }}>
-                🎯 Seçili: #{selectedAdTarget.adIndex + 1} {selectedAdTarget.adTitle}
+                Seçili: #{selectedAdTarget.adIndex + 1} {selectedAdTarget.adTitle}
               </span>
               <button
                 type="button"
@@ -1566,7 +1566,7 @@ export const AdQuickSpotPoolPanel = ({
                   padding: 0
                 }}
               >
-                Seçimi Kaldır ✕
+                Seçimi Kaldır X
               </button>
             </div>
 
@@ -1633,7 +1633,7 @@ export const AdQuickSpotPoolPanel = ({
               lineHeight: 1.35
             }}
           >
-            💡 Reklamı fareyle <strong>sürükleyip kuşağa bırakabilir</strong> veya kuşak içinden bir reklama tıklayarak <strong>üstüne / altına</strong> ekleyebilirsiniz.
+            Reklamı fareyle <strong>sürükleyip kuşağa bırakabilir</strong> veya kuşak içinden bir reklama tıklayarak <strong>üstüne / altına</strong> ekleyebilirsiniz.
           </div>
         )}
       </div>
@@ -1782,13 +1782,13 @@ export const AdQuickSpotPoolPanel = ({
                                 color: '#fff'
                               }}
                             >
-                              🏆 SPONSOR
+                              SPONSOR
                             </span>
                           )}
                         </div>
                         {item.isSponsor && item.sponsorProgramTitle && (
                           <div style={{ fontSize: '10px', fontWeight: '800', color: '#9333ea', marginTop: '1px' }}>
-                            📺 Program: {item.sponsorProgramTitle}
+                            Program: {item.sponsorProgramTitle}
                           </div>
                         )}
                         <div style={{ fontSize: '10.5px', color: 'var(--ads-text-muted)', marginTop: '1px' }}>
@@ -2205,7 +2205,7 @@ export const AdBroadcastFlowView = ({
                         boxShadow: '0 2px 8px rgba(147, 51, 234, 0.3)'
                       }}
                     >
-                      🏆 SPONSORLU PROGRAM • {item.sponsorSummaryText}
+                      SPONSORLU PROGRAM • {item.sponsorSummaryText}
                     </span>
                   )}
 
@@ -2221,7 +2221,7 @@ export const AdBroadcastFlowView = ({
                         border: '1px solid rgba(147, 51, 234, 0.4)'
                       }}
                     >
-                      🏆 Sponsor Reklamı İçeriyor
+                      Sponsor Reklamı İçeriyor
                     </span>
                   )}
 
@@ -2247,7 +2247,7 @@ export const AdBroadcastFlowView = ({
                         color: '#2563eb'
                       }}
                     >
-                      🏷️ {item.categoryName}
+                      {item.categoryName}
                     </span>
                   )}
                   {item.isAdBlock && item.prevProgramCategoryName && (
@@ -2263,9 +2263,9 @@ export const AdBroadcastFlowView = ({
                       }}
                       title={`Önceki program (${item.prevProgramTitle || '-'}) kategorisi: ${item.prevProgramCategoryName}`}
                     >
-                      🎬 Önceki Kategori: {item.prevProgramCategoryName}
-                      {item.expectedIntroBumperName ? ` • 🟢 ${item.expectedIntroBumperName}` : ''}
-                      {item.expectedOutroBumperName ? ` • 🟠 ${item.expectedOutroBumperName}` : ''}
+                      Önceki Kategori: {item.prevProgramCategoryName}
+                      {item.expectedIntroBumperName ? ` • ${item.expectedIntroBumperName}` : ''}
+                      {item.expectedOutroBumperName ? ` • ${item.expectedOutroBumperName}` : ''}
                     </span>
                   )}
                   <span style={{ fontSize: '11.5px', color: 'var(--ads-text-muted)', fontWeight: '600' }}>
@@ -2394,13 +2394,13 @@ export const AdHourlyMatrixView = ({
                           color: '#fff'
                         }}
                       >
-                        🏆 Sponsorlu
+                        Sponsorlu
                       </span>
                     )}
                   </div>
                   <div style={{ fontSize: '11px', color: 'var(--ads-text-muted)' }}>
-                    {brk.prevProgramIsSponsored ? '🏆 ' : ''}{brk.prevProgramTitle || '-'} &rarr;{' '}
-                    {brk.nextProgramIsSponsored ? '🏆 ' : ''}{brk.nextProgramTitle || '-'}
+                    {brk.prevProgramIsSponsored ? '' : ''}{brk.prevProgramTitle || '-'} &rarr;{' '}
+                    {brk.nextProgramIsSponsored ? '' : ''}{brk.nextProgramTitle || '-'}
                   </div>
                 </td>
                 <td>
@@ -2476,9 +2476,9 @@ export const AdHourlyMatrixView = ({
                           }}
                         >
                           {spInfo.isBumper ? (
-                            <span>{spInfo.bumperType === 'intro' ? '🟢' : '🟠'}</span>
+                            <span>{spInfo.bumperType === 'intro' ? '' : ''}</span>
                           ) : (
-                            spInfo.isSponsor && <span>🏆</span>
+                            spInfo.isSponsor && <span></span>
                           )}
                           <span>{ad.name || mat?.name || 'Spot'} ({ad.duration}sn)</span>
                           {onPreviewMaterial && <Info size={11} />}
@@ -2610,7 +2610,7 @@ export const AdManualSpotModal = ({
                     border: '1px solid rgba(2, 132, 199, 0.4)'
                   }}
                 >
-                  🎯 Seçili Reklam: #{selectedAdTarget.adIndex + 1} {selectedAdTarget.adTitle}
+                  Seçili Reklam: #{selectedAdTarget.adIndex + 1} {selectedAdTarget.adTitle}
                 </span>
               )}
             </div>
@@ -2698,7 +2698,7 @@ export const AdManualSpotModal = ({
                             color: '#fff'
                           }}
                         >
-                          🏆 SPONSOR {item.sponsorProgramTitle ? `• ${item.sponsorProgramTitle}` : ''}
+                          SPONSOR {item.sponsorProgramTitle ? `• ${item.sponsorProgramTitle}` : ''}
                         </span>
                       )}
                     </div>

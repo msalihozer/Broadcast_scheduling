@@ -131,12 +131,12 @@ export function analyzeThreeStageVerification({
       itemVerificationMap[instId] = {
         originStage: 'ads',
         badgeLabel: item.isEmptyAdBreak
-          ? '⚠️ Boş Kuşak'
+          ? 'Boş Kuşak'
           : item.isBumperAd
-          ? `📢 RTÜK ${item.bumperType === 'intro' ? 'Giriş' : 'Çıkış'}`
+          ? `RTÜK ${item.bumperType === 'intro' ? 'Giriş' : 'Çıkış'}`
           : item.isSponsor
-          ? '🏆 Sponsor'
-          : '📢 Reklam',
+          ? 'Sponsor'
+          : 'Reklam',
         badgeColor: item.isEmptyAdBreak ? '#dc2626' : item.isSponsor ? '#7c3aed' : '#d97706',
         badgeBg: item.isEmptyAdBreak
           ? 'rgba(220, 38, 38, 0.12)'
@@ -166,7 +166,7 @@ export function analyzeThreeStageVerification({
     if (item.addedInListControl) {
       itemVerificationMap[instId] = {
         originStage: 'list-control',
-        badgeLabel: '➕ Liste Kontrolde Eklendi',
+        badgeLabel: '+ Liste Kontrolde Eklendi',
         badgeColor: '#0d9488',
         badgeBg: 'rgba(13, 148, 136, 0.14)',
         detailText: 'Operatör tarafından Liste Kontrol ekranında eklendi',
@@ -181,7 +181,7 @@ export function analyzeThreeStageVerification({
       const prevTitle = item.previousItemSnapshot?.title || 'Önceki Klip';
       itemVerificationMap[instId] = {
         originStage: 'list-control-modified',
-        badgeLabel: '✏️ Liste Kontrolde Değişti',
+        badgeLabel: 'Liste Kontrolde Değişti',
         badgeColor: '#0284c7',
         badgeBg: 'rgba(2, 132, 199, 0.14)',
         detailText: `Eski: ${prevTitle} → Yeni: ${item.title}`,
@@ -201,7 +201,7 @@ export function analyzeThreeStageVerification({
       if (epChanged) {
         const infoObj = {
           originStage: 'broadcast-modified',
-          badgeLabel: `🔄 Yayın Planlama (Bl.${draftEp}→${itemEp})`,
+          badgeLabel: `Yayın Planlama (Bl.${draftEp}→${itemEp})`,
           badgeColor: '#2563eb',
           badgeBg: 'rgba(37, 99, 235, 0.12)',
           detailText: `Taslakta "${matchedDraftSlot.title}" Bl.${draftEp} planlanmıştı, Yayın Planlama Bl.${itemEp} seçti.`,
@@ -215,7 +215,7 @@ export function analyzeThreeStageVerification({
       } else {
         itemVerificationMap[instId] = {
           originStage: 'draft-matched',
-          badgeLabel: '✓ Taslak & Yayın Uyumlu',
+          badgeLabel: 'Taslak & Yayın Uyumlu',
           badgeColor: '#059669',
           badgeBg: 'rgba(16, 185, 129, 0.12)',
           detailText: `Taslak Kuşağı: ${matchedDraftSlot.startTime} - ${matchedDraftSlot.title}`,
@@ -228,7 +228,7 @@ export function analyzeThreeStageVerification({
     } else if (isIntro) {
       itemVerificationMap[instId] = {
         originStage: 'broadcast-intro',
-        badgeLabel: '🎬 Program İntrosu',
+        badgeLabel: 'Program İntrosu',
         badgeColor: '#6366f1',
         badgeBg: 'rgba(99, 102, 241, 0.12)',
         detailText: 'Yayın Planlama aşamasında program introsu olarak eklendi',
@@ -239,7 +239,7 @@ export function analyzeThreeStageVerification({
     } else {
       const infoObj = {
         originStage: 'broadcast-added',
-        badgeLabel: '➕ Yayın Planlama Ekledi',
+        badgeLabel: '+ Yayın Planlama Ekledi',
         badgeColor: '#7c3aed',
         badgeBg: 'rgba(124, 58, 237, 0.12)',
         detailText: matchedBroadcastItem

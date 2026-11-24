@@ -566,7 +566,7 @@ const AdPlanningDaySummaryCard = ({
                         cursor: 'pointer'
                       }}
                     >
-                      {active ? '✓ ' : ''}{opt.label}
+                      {active ? '' : ''}{opt.label}
                     </button>
                   );
                 })}
@@ -616,7 +616,7 @@ const AdPlanningDaySummaryCard = ({
                         cursor: 'pointer'
                       }}
                     >
-                      {active ? '✓ ' : ''}{opt.label}
+                      {active ? '' : ''}{opt.label}
                     </button>
                   );
                 })}
@@ -667,7 +667,7 @@ const AdPlanningDaySummaryCard = ({
                         cursor: 'pointer'
                       }}
                     >
-                      {activeGap ? '✓ ' : ''}{gOpt.label}
+                      {activeGap ? '' : ''}{gOpt.label}
                     </button>
                   );
                 })}
@@ -1003,7 +1003,7 @@ const AdPlanningDaySummaryCard = ({
               }}
               title={isRightPanelCollapsed ? 'Sağ Yayın Listeleri Panelini Aç' : 'Orta Paneli Sağa Genişlet (Sağ Paneli Daralt)'}
             >
-              <span>{isRightPanelCollapsed ? 'Sağ Paneli Aç' : 'Sağa Genişlet ➡'}</span>
+              <span>{isRightPanelCollapsed ? 'Sağ Paneli Aç' : 'Sağa Genişlet'}</span>
               <ArrowRightToLine size={13} />
             </button>
           )}

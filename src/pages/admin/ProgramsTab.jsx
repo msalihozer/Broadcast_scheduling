@@ -166,8 +166,8 @@ const ProgramsTab = ({ onNavigateToArchive }) => {
       if (res.ok) {
         showToast(
           newStatus
-            ? `🟢 "${programTitle || 'Program'}" kullanıma AÇILDI.`
-            : `⚪ "${programTitle || 'Program'}" kullanımdan kaldırıldı.`
+            ? `"${programTitle || 'Program'}" kullanıma AÇILDI.`
+            : `"${programTitle || 'Program'}" kullanımdan kaldırıldı.`
         );
 
         if (!newStatus) {
@@ -293,7 +293,7 @@ const ProgramsTab = ({ onNavigateToArchive }) => {
       if (res.ok && data.success) {
         const dynNext = ourCategories.find(c => Number(c.id) === Number(nextCatId));
         const nextName = dynNext?.name || MSSQL_CATEGORIES[nextCatId]?.name || `Kategori #${nextCatId}`;
-        showToast(`🏷️ "${prog.title}" Bizim Kategorisi "#${nextCatId} ${nextName}" olarak güncellendi.`);
+        showToast(`"${prog.title}" Bizim Kategorisi "#${nextCatId} ${nextName}" olarak güncellendi.`);
         fetchUsedPrograms();
         fetchOurCategories();
       }
@@ -398,8 +398,8 @@ const ProgramsTab = ({ onNavigateToArchive }) => {
         const data = await res.json();
         showToast(
           isActive
-            ? `🟢 ${data.count || selectedCount} program başarıyla kullanıma açıldı.`
-            : `⚪ ${data.count || selectedCount} program kullanımdan kaldırıldı.`
+            ? `${data.count || selectedCount} program başarıyla kullanıma açıldı.`
+            : `${data.count || selectedCount} program kullanımdan kaldırıldı.`
         );
 
         addLog({
@@ -449,7 +449,7 @@ const ProgramsTab = ({ onNavigateToArchive }) => {
       }
 
       setUsedPrograms(prev => prev.filter(p => p.id !== prog.id));
-      showToast(`🗑️ "${prog.title}" programı silindi (${data.detachedCount || 0} klip Genel Arşiv'e aktarıldı).`);
+      showToast(`"${prog.title}" programı silindi (${data.detachedCount || 0} klip Genel Arşiv'e aktarıldı).`);
       addLog({
         panel: 'programs',
         action: 'Program Silindi',
@@ -468,7 +468,7 @@ const ProgramsTab = ({ onNavigateToArchive }) => {
   // Seçili Programları Toplu Silme
   const handleBulkDeletePrograms = async () => {
     if (selectedCount === 0) return;
-    const confirmMsg = `⚠️ DİKKAT: Seçili ${selectedCount} adet programı silmek istediğinize emin misiniz?\n\nProgramlara bağlı klipler silinmeyecek, kendi kategorilerindeki (Genel / Atanmamış) listelerine aktarılacaktır.`;
+    const confirmMsg = `DİKKAT: Seçili ${selectedCount} adet programı silmek istediğinize emin misiniz?\n\nProgramlara bağlı klipler silinmeyecek, kendi kategorilerindeki (Genel / Atanmamış) listelerine aktarılacaktır.`;
     if (!window.confirm(confirmMsg)) return;
 
     try {
@@ -486,7 +486,7 @@ const ProgramsTab = ({ onNavigateToArchive }) => {
         throw new Error(data.error || 'Toplu silme işlemi başarısız oldu');
       }
 
-      showToast(`🗑️ ${data.deletedCount || selectedCount} program başarıyla silindi.`);
+      showToast(`${data.deletedCount || selectedCount} program başarıyla silindi.`);
       addLog({
         panel: 'programs',
         action: 'Toplu Program Silindi',
@@ -601,7 +601,7 @@ const ProgramsTab = ({ onNavigateToArchive }) => {
             if (res.ok && data.success) {
               const catObj = ourCategories.find(c => Number(c.id) === Number(targetCategoryId));
               const catLabel = catObj?.name || MSSQL_CATEGORIES[targetCategoryId]?.name || `Kategori #${targetCategoryId}`;
-              showToast(`🏷️ ${data.count} programın Bizim Kategorisi "#${targetCategoryId} ${catLabel}" olarak güncellendi.`);
+              showToast(`${data.count} programın Bizim Kategorisi "#${targetCategoryId} ${catLabel}" olarak güncellendi.`);
               deselectAll();
               fetchUsedPrograms();
               fetchOurCategories();
@@ -657,7 +657,7 @@ const ProgramsTab = ({ onNavigateToArchive }) => {
           setIsCreateProgramModalOpen(false);
           fetchUsedPrograms();
           showToast(
-            `🟢 "${createdProgram?.title || 'Yeni Program'}" oluşturuldu${assignedClipsCount > 0 ? ` ve ${assignedClipsCount} klip eklendi` : ''}.`
+            `"${createdProgram?.title || 'Yeni Program'}" oluşturuldu${assignedClipsCount > 0 ? ` ve ${assignedClipsCount} klip eklendi` : ''}.`
           );
           addLog({
             panel: 'programs',
@@ -683,7 +683,7 @@ const ProgramsTab = ({ onNavigateToArchive }) => {
             if (expandedClips[progId]) {
               handleRefreshClips(progId);
             }
-            showToast(`🟢 "${progTitle}" programına yeni klipler eklendi.`);
+            showToast(`"${progTitle}" programına yeni klipler eklendi.`);
             addLog({
               panel: 'programs',
               action: 'Programa Klip Eklendi',

@@ -627,7 +627,7 @@ const BroadcastReportsView = () => {
       let statusColor = '#2563eb';
       let statusBg = 'rgba(37, 99, 235, 0.12)';
       if (adsStatus === 'completed') {
-        statusLabel = '✓ Yayına Hazır (Reklam Onaylı)';
+        statusLabel = 'Yayına Hazır (Reklam Onaylı)';
         statusColor = '#059669';
         statusBg = 'rgba(5, 150, 105, 0.14)';
       } else if (dayRealizedSpots > 0) {
@@ -635,7 +635,7 @@ const BroadcastReportsView = () => {
         statusColor = '#0891b2';
         statusBg = 'rgba(8, 145, 178, 0.14)';
       } else if (sentAt) {
-        statusLabel = '📤 Reklam Rezervasyona İletildi';
+        statusLabel = 'Reklam Rezervasyona İletildi';
         statusColor = '#d97706';
         statusBg = 'rgba(217, 119, 6, 0.14)';
       } else if (listSourceType === 'draft_archive') {
@@ -2280,7 +2280,7 @@ const BroadcastReportsView = () => {
                       justifyContent: 'space-between'
                     }}
                   >
-                    <span>📋 Kayıtlı Günlük Yayın Listeleri ({filteredArchiveLists.length})</span>
+                    <span>Kayıtlı Günlük Yayın Listeleri ({filteredArchiveLists.length})</span>
                     <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700 }}>Liste {activeList}</span>
                   </div>
 
@@ -2735,7 +2735,7 @@ const BroadcastReportsView = () => {
                           <tr key={`${b.date}-${b.breakNo}-${idx}`} style={{ borderTop: '1px solid var(--border-color)' }}>
                             <td style={{ padding: '8px 10px', fontWeight: 700 }}>{b.date} ({b.dayName})</td>
                             <td style={{ padding: '8px 10px', fontWeight: 800, color: '#d97706' }}>
-                              {b.breakNo}. Kuşak ({b.time}) {b.ramadanTag ? `• 🌙 ${b.ramadanTag}` : ''}
+                              {b.breakNo}. Kuşak ({b.time}) {b.ramadanTag ? `• ${b.ramadanTag}` : ''}
                             </td>
                             <td style={{ padding: '8px 10px' }}>{b.plannedCapSec} sn</td>
                             <td style={{ padding: '8px 10px', fontWeight: 800, color: '#059669' }}>
@@ -2757,7 +2757,7 @@ const BroadcastReportsView = () => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', padding: '16px' }}>
               <div style={{ border: '1px solid var(--border-color)', borderRadius: '10px', overflow: 'hidden' }}>
                 <div style={{ padding: '10px 12px', background: 'var(--bg-tertiary)', fontWeight: 800, fontSize: '12.5px' }}>
-                  📅 Haftalık Yayın &amp; Reklam Özeti (Pazartesi – Pazar)
+                  Haftalık Yayın &amp; Reklam Özeti (Pazartesi – Pazar)
                 </div>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11.5px' }}>
                   <thead>
@@ -2785,7 +2785,7 @@ const BroadcastReportsView = () => {
 
               <div style={{ border: '1px solid var(--border-color)', borderRadius: '10px', overflow: 'hidden' }}>
                 <div style={{ padding: '10px 12px', background: 'var(--bg-tertiary)', fontWeight: 800, fontSize: '12.5px' }}>
-                  🗓️ Aylık Yayın &amp; Reklam Özeti (Kayıtlı Gerçek Veri)
+                  Aylık Yayın &amp; Reklam Özeti (Kayıtlı Gerçek Veri)
                 </div>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11.5px' }}>
                   <thead>
@@ -2813,7 +2813,7 @@ const BroadcastReportsView = () => {
 
               <div style={{ border: '1px solid var(--border-color)', borderRadius: '10px', overflow: 'hidden' }}>
                 <div style={{ padding: '10px 12px', background: 'var(--bg-tertiary)', fontWeight: 800, fontSize: '12.5px' }}>
-                  📊 Yıllık Yayın &amp; Reklam Özeti (Kayıtlı Gerçek Veri)
+                  Yıllık Yayın &amp; Reklam Özeti (Kayıtlı Gerçek Veri)
                 </div>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11.5px' }}>
                   <thead>

@@ -125,7 +125,7 @@ const AdsTab = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* 🌙 RAMAZAN ÖZEL PLANLAMA TARİHLERİ & OTOMATİK 2 HAFTA ÖNCEDEN GÖSTERİM AYARI */}
+      {/* RAMAZAN ÖZEL PLANLAMA TARİHLERİ & OTOMATİK 2 HAFTA ÖNCEDEN GÖSTERİM AYARI */}
       <div
         style={{
           background: 'var(--bg-secondary)',
@@ -153,11 +153,11 @@ const AdsTab = () => {
                 fontSize: '18px'
               }}
             >
-              🌙
+              
             </div>
             <div>
               <div style={{ fontSize: '15px', fontWeight: '800', color: 'var(--text-primary)' }}>
-                🌙 Ramazan Özel Planlama Tarihleri (Başlangıçtan {ramadanConfig?.leadDays ?? 14} Gün / 2 Hafta Önce Otomatik Açılır)
+                Ramazan Özel Planlama Tarihleri (Başlangıçtan {ramadanConfig?.leadDays ?? 14} Gün / 2 Hafta Önce Otomatik Açılır)
               </div>
               <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
                 Tarih girilmediğinde veya Ramazan başlangıcına 2 haftadan fazla süre varken Yayın Planlama ve Reklam ekranlarında <strong>&ldquo;Ramazan Özel&rdquo;</strong> işaretleri gizlenir.

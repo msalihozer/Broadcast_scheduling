@@ -829,7 +829,7 @@ const DraftProgramSlotItem = memo(function DraftProgramSlotItem({
                       const isTarget = targetEpisodeNum === epNum;
                       return (
                         <option key={epNum} value={String(epNum)}>
-                          {formatSlotUnitText(epNum)} ({epCount} Klip){isTarget ? ' ★ Taslak Bölümü' : ''}
+                          {formatSlotUnitText(epNum)} ({epCount} Klip){isTarget ? ' • Taslak Bölümü' : ''}
                         </option>
                       );
                     })}

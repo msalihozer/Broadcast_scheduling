@@ -248,7 +248,7 @@ const UsedProgramsTable = ({
                             alignItems: 'center',
                             gap: '4px'
                           }} title="Bizim Planlama Kategorimiz (Değiştirmek için tıklayın)">
-                            <span>🏷️</span>
+                            <span></span>
                             <select
                               value={prog.categoryId}
                               onChange={(e) => {
@@ -286,7 +286,7 @@ const UsedProgramsTable = ({
                             padding: '1px 6px',
                             borderRadius: '5px'
                           }} title="TV MAM Veritabanından Çekilen Orijinal Kategori">
-                            🗄️ MAM DB: #{prog.mamCategoryId || prog.categoryId} {prog.mamCategoryName || prog.categoryName}
+                            MAM DB: #{prog.mamCategoryId || prog.categoryId} {prog.mamCategoryName || prog.categoryName}
                           </span>
                         </div>
                       </td>

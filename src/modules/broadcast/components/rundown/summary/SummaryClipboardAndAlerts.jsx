@@ -116,7 +116,7 @@ const SummaryClipboardAndAlerts = memo(function SummaryClipboardAndAlerts({
                 fontSize: '12px'
               }}
             >
-              ✕
+              X
             </button>
           )}
         </div>

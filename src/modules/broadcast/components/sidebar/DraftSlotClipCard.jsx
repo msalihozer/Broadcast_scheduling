@@ -203,7 +203,7 @@ const DraftSlotClipCard = memo(function DraftSlotClipCard({
                 fontWeight: '700'
               }}
             >
-              🎤 {clip.metadataSummary.sunucu}
+              Sunucu: {clip.metadataSummary.sunucu}
             </span>
           )}
 
@@ -220,7 +220,7 @@ const DraftSlotClipCard = memo(function DraftSlotClipCard({
                 fontWeight: '700'
               }}
             >
-              👤 Konuk: {clip.metadataSummary.konuk}
+              Konuk: {clip.metadataSummary.konuk}
             </span>
           )}
 
@@ -238,7 +238,7 @@ const DraftSlotClipCard = memo(function DraftSlotClipCard({
                 fontFamily: 'monospace'
               }}
             >
-              📅 {clip.metadataSummary.yayinTarihi}
+              {clip.metadataSummary.yayinTarihi}
             </span>
           )}
         </div>

@@ -181,7 +181,7 @@ export default function ListControlMonthView({
                     : '#2563eb',
                   alignSelf: 'flex-start'
                 }}>
-                  {cell.isApproved ? '✓ Onaylandı' : cell.isRevised ? '⚠️ Revize' : '📺 Kontrol'}
+                  {cell.isApproved ? 'Onaylandı' : cell.isRevised ? 'Revize' : 'Kontrol'}
                 </span>
                 <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-primary)' }}>
                   {cell.clipCount} Klip • {cell.adCount} Reklam

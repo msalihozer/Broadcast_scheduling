@@ -164,13 +164,13 @@ const SettingsTab = () => {
         </div>
       </section>
 
-      {/* 🌙 Ramazan Ayı Takvimi ve 2 Hafta Öncesi Otomatik Gösterim Ayarı */}
+      {/* Ramazan Ayı Takvimi ve 2 Hafta Öncesi Otomatik Gösterim Ayarı */}
       <section>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <Calendar size={20} color="#d97706" />
             <h3 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0 }}>
-              🌙 Ramazan Özel Planlama Tarihleri &amp; Otomatik Gösterim Ayarları
+              Ramazan Özel Planlama Tarihleri &amp; Otomatik Gösterim Ayarları
             </h3>
           </div>
           {isRamadanFeatureWindowOpen(ramadanConfig) ? (
@@ -209,7 +209,7 @@ const SettingsTab = () => {
         <div className="glass" style={{ padding: '24px', borderRadius: '16px', border: '1.5px solid rgba(217, 119, 6, 0.35)', display: 'flex', flexDirection: 'column', gap: '18px' }}>
           <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '13.5px', lineHeight: 1.5 }}>
             Burada girdiğiniz <strong>Ramazan Başlangıç ve Bitiş Tarihi</strong> baz alınarak; Yayın Planlama ve Reklam Rezervasyon ekranlarındaki{' '}
-            <strong>&quot;🌙 Ramazan Özel (Sahur / İftar)&quot;</strong> işaretleme alanları normal zamanda gizli tutulur ve{' '}
+            <strong>&quot;Ramazan Özel (Sahur / İftar)&quot;</strong> işaretleme alanları normal zamanda gizli tutulur ve{' '}
             <strong>Ramazan başlamadan 2 hafta ({ramadanConfig?.leadDays || 14} gün) öncesinde</strong> otomatik olarak aktif hale gelir.
           </p>
 
@@ -348,7 +348,7 @@ const SettingsTab = () => {
               gap: '10px'
             }}>
               <div>
-                📅 <strong>Ramazan Dönemi:</strong> {ramadanConfig.startDate} – {ramadanConfig.endDate} •{' '}
+                <strong>Ramazan Dönemi:</strong> {ramadanConfig.startDate} – {ramadanConfig.endDate} •{' '}
                 <strong>Otomatik Açılış Tarihi ({ramadanConfig.leadDays || 14} gün önce):</strong>{' '}
                 <span style={{ color: '#d97706', fontWeight: '800' }}>
                   {(() => {
@@ -633,7 +633,7 @@ const SettingsTab = () => {
                     {/* 1. Yayına Girerken Girecek Logo */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       <label style={{ fontSize: '12px', fontWeight: '800', color: '#10b981', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                        📺 Yayına Girerken Girecek Logo İsmi:
+                        Yayına Girerken Girecek Logo İsmi:
                       </label>
                       <input
                         type="text"
@@ -663,7 +663,7 @@ const SettingsTab = () => {
                     {/* 2. Reklama Girerken Girecek Logo */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       <label style={{ fontSize: '12px', fontWeight: '800', color: '#d97706', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                        📢 Reklama Girerken Girecek Logo İsmi:
+                        Reklama Girerken Girecek Logo İsmi:
                       </label>
                       <input
                         type="text"
@@ -757,8 +757,8 @@ const SettingsTab = () => {
                                 fontSize: '12px'
                               }}
                             >
-                              <option value="broadcast_in">📺 Yayına Girerken Logo</option>
-                              <option value="ad_in">📢 Reklama Girerken Logo</option>
+                              <option value="broadcast_in">Yayına Girerken Logo</option>
+                              <option value="ad_in">Reklama Girerken Logo</option>
                             </select>
 
                             <input

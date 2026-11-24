@@ -898,7 +898,7 @@ const DraftAddScheduleModal = ({
                       transition: 'all 0.15s ease'
                     }}
                   >
-                    <span>🎬 Bant Yayın</span>
+                    <span>Bant Yayın</span>
                   </button>
                   <button
                     type="button"
@@ -1463,7 +1463,7 @@ const DraftAddScheduleModal = ({
                     >
                       <span style={{ fontSize: '11px', fontWeight: 800 }}>{info.shortName}</span>
                       <span style={{ fontSize: '9px', opacity: isDayInList ? 0.95 : 0.7 }}>{info.dateFormatted}</span>
-                      {isDayInList && <span style={{ fontSize: '8px', lineHeight: 1 }}>✓</span>}
+                      {isDayInList && <span style={{ fontSize: '8px', lineHeight: 1 }}>Tamam</span>}
                     </button>
                   );
                 })}
@@ -1621,7 +1621,7 @@ const DraftAddScheduleModal = ({
               boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)'
             }}
           >
-            <span>✓ {targetDaysList.length} Güne Akışa Ekle</span>
+            <span>{targetDaysList.length} Güne Akışa Ekle</span>
           </button>
         </div>
       </div>

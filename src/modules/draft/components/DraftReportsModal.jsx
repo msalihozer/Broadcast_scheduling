@@ -1823,7 +1823,7 @@ const DraftReportsModal = ({
                 {/* Seçili Programın Gün Gün ve Saat Saat Yayın Dökümü */}
                 <div style={{ border: '1px solid var(--border-color)', borderRadius: '10px', overflow: 'hidden', background: 'var(--bg-secondary)' }}>
                   <div style={{ padding: '8px 12px', background: 'var(--bg-tertiary)', fontSize: '12px', fontWeight: 800, color: 'var(--text-primary)' }}>
-                    📅 &ldquo;{focusedProgram.title}&rdquo; — Gün Gün &amp; Saat Saat Yayınlanma Listesi ({focusedProgram.detailedDates.length} Gün)
+                    &ldquo;{focusedProgram.title}&rdquo; — Gün Gün &amp; Saat Saat Yayınlanma Listesi ({focusedProgram.detailedDates.length} Gün)
                   </div>
                   <div style={{ maxHeight: '240px', overflowY: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11.5px' }}>
@@ -2105,7 +2105,7 @@ const DraftReportsModal = ({
               {/* Haftalık Tablo */}
               <div style={{ border: '1px solid var(--border-color)', borderRadius: '12px', overflow: 'hidden', background: 'var(--bg-primary)' }}>
                 <div style={{ padding: '10px 14px', background: 'var(--bg-tertiary)', fontWeight: 800, fontSize: '12.5px' }}>
-                  📅 Haftalık Yayınlanma Özeti
+                  Haftalık Yayınlanma Özeti
                 </div>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11.5px' }}>
                   <thead>
@@ -2132,7 +2132,7 @@ const DraftReportsModal = ({
               {/* Aylık Tablo */}
               <div style={{ border: '1px solid var(--border-color)', borderRadius: '12px', overflow: 'hidden', background: 'var(--bg-primary)' }}>
                 <div style={{ padding: '10px 14px', background: 'var(--bg-tertiary)', fontWeight: 800, fontSize: '12.5px' }}>
-                  🗓️ Aylık Yayınlanma Özeti
+                  Aylık Yayınlanma Özeti
                 </div>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11.5px' }}>
                   <thead>
@@ -2159,7 +2159,7 @@ const DraftReportsModal = ({
               {/* Yıllık Tablo */}
               <div style={{ border: '1px solid var(--border-color)', borderRadius: '12px', overflow: 'hidden', background: 'var(--bg-primary)' }}>
                 <div style={{ padding: '10px 14px', background: 'var(--bg-tertiary)', fontWeight: 800, fontSize: '12.5px' }}>
-                  📊 Yıllık Yayınlanma Özeti
+                  Yıllık Yayınlanma Özeti
                 </div>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11.5px' }}>
                   <thead>

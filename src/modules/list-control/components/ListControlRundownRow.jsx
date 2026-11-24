@@ -5,8 +5,8 @@
  * 7 Hizalı Flexbox Sütunu:
  * 1. Sıra & Sürükle Tutamacı (⋮⋮ #1) -> 50px
  * 2. Yayın Saati (Giriş / Çıkış) -> 76px (2 satırlı kompakt saat)
- * 3. Tür (🎬 KLİP / 📢 REKLAM), Başlık, Klip ID (#21673) & Fiziksel Dosya Kodu (4SDR4VPM.mxf) -> flex: 2.2 1 170px, minWidth: 0
- * 4. Logo Bilgisi (📺 Yayın Logosu / 📢 Reklam Logosu) -> flex: 1.1 1 125px, minWidth: 0
+ * 3. Tür (KLİP / REKLAM), Başlık, Klip ID (#21673) & Fiziksel Dosya Kodu (4SDR4VPM.mxf) -> flex: 2.2 1 170px, minWidth: 0
+ * 4. Logo Bilgisi (Yayın Logosu / Reklam Logosu) -> flex: 1.1 1 125px, minWidth: 0
  * 5. Aşama & Teknik Kontrol (Bizim DB • MAM DB • HighRes .MXF • Detaylı Açıklama) -> flex: 2 1 185px, minWidth: 0
  * 6. Düzenlenebilir Süre -> 78px
  * 7. İşlemler (ⓘ İzle, Revize, ↑, ↓, Sil) -> 144px
@@ -358,7 +358,7 @@ export default function ListControlRundownRow({
             borderRadius: '4px',
             alignSelf: 'flex-start'
           }}>
-            ⚠️ Revize ({item.revisionTargetLabel}): {item.revisionReason}
+            Revize ({item.revisionTargetLabel}): {item.revisionReason}
           </div>
         )}
       </div>
@@ -417,8 +417,8 @@ export default function ListControlRundownRow({
                   title="Logo Girişini Değiştir"
                 >
                   <option value="auto">Oto</option>
-                  <option value="yayin_giris">📺 Yayın Logosu Giriş</option>
-                  <option value="reklam_giris">📢 Reklam Logosu Giriş</option>
+                  <option value="yayin_giris">Yayın Logosu Giriş</option>
+                  <option value="reklam_giris">Reklam Logosu Giriş</option>
                   <option value="none">— Kaldır</option>
                 </select>
               )}
@@ -470,8 +470,8 @@ export default function ListControlRundownRow({
                 title="Bu satıra manuel Logo Girişi ekle"
               >
                 <option value="auto">+ Logo Giriş</option>
-                <option value="yayin_giris">📺 Yayın Logosu Giriş</option>
-                <option value="reklam_giris">📢 Reklam Logosu Giriş</option>
+                <option value="yayin_giris">Yayın Logosu Giriş</option>
+                <option value="reklam_giris">Reklam Logosu Giriş</option>
                 <option value="none">— Yok</option>
               </select>
             )}
@@ -514,7 +514,7 @@ export default function ListControlRundownRow({
             background: h.inDatabase ? 'rgba(16, 185, 129, 0.14)' : 'rgba(220, 38, 38, 0.15)',
             color: h.inDatabase ? '#059669' : '#dc2626'
           }}>
-            {h.inDatabase ? 'DB ✓' : 'DB ✗'}
+            {h.inDatabase ? 'DB' : 'DB (Yok)'}
           </span>
           <span style={{
             fontSize: '9.5px',
@@ -526,13 +526,13 @@ export default function ListControlRundownRow({
           }}>
             {h.fileExists
               ? (h.matchedInHighRes && h.matchedInArsiv
-                  ? `HighRes(ID) & Arşiv(İsim) .${(h.detectedFormat || 'mxf').toUpperCase()} ✓`
+                  ? `HighRes(ID) & Arşiv(İsim) .${(h.detectedFormat || 'mxf').toUpperCase()}`
                   : h.matchedInHighRes
-                  ? `HighRes (ID) .${(h.detectedFormat || 'mxf').toUpperCase()} ✓`
+                  ? `HighRes (ID) .${(h.detectedFormat || 'mxf').toUpperCase()}`
                   : h.matchedInArsiv
-                  ? `Yayın Arşiv (İsim) .${(h.detectedFormat || 'mxf').toUpperCase()} ✓`
-                  : `HighRes/Arşiv .${(h.detectedFormat || 'mxf').toUpperCase()} ✓`)
-              : 'Dosya Yolu ✗'}
+                  ? `Yayın Arşiv (İsim) .${(h.detectedFormat || 'mxf').toUpperCase()}`
+                  : `HighRes/Arşiv .${(h.detectedFormat || 'mxf').toUpperCase()}`)
+              : 'Dosya Yolu (Yok)'}
           </span>
         </div>
 

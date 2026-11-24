@@ -107,10 +107,10 @@ const SponsorshipsTab = ({ setActiveTab }) => {
         const isRamadan = Boolean(res.isRamadanSpecial || items.some(it => it.isRamadanSpecial));
         const ramadanTarget = res.ramadanTarget || firstItem.ramadanTarget || 'iftar';
         const ramadanProgLabel = ramadanTarget === 'sahur'
-          ? '🌙 Ramazan Sahur Programı'
+          ? 'Ramazan Sahur Programı'
           : ramadanTarget === 'both'
-          ? '🌙+🕌 Ramazan Sahur & İftar Programları'
-          : '🕌 Ramazan İftar Programı';
+          ? 'Ramazan Sahur & İftar Programları'
+          : 'Ramazan İftar Programı';
 
         return {
           ...res,

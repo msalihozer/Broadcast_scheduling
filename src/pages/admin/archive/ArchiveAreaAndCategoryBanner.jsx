@@ -88,8 +88,8 @@ export const ArchiveAreaSwitcher = ({
           border: `1px solid ${isMamConnected ? 'rgba(16, 185, 129, 0.35)' : 'rgba(239, 68, 68, 0.35)'}`
         }}>
           {isMamConnected
-            ? `🟢 Bağlı (${mamConnInfo?.latencyMs != null ? `${mamConnInfo.latencyMs} ms` : 'Aktif'})`
-            : '🔴 Bağlantı Yok'}
+            ? `Bağlı (${mamConnInfo?.latencyMs != null ? `${mamConnInfo.latencyMs} ms` : 'Aktif'})`
+            : 'Bağlantı Yok'}
         </span>
         {pendingUpdateCategoriesCount > 0 ? (
           <span style={{
@@ -101,11 +101,11 @@ export const ArchiveAreaSwitcher = ({
             color: '#f59e0b',
             border: '1px solid rgba(245, 158, 11, 0.4)'
           }}>
-            🟠 +{totalNewClipsCount} Yeni Klip ({pendingUpdateCategoriesCount} Kat.)
+            +{totalNewClipsCount} Yeni Klip ({pendingUpdateCategoriesCount} Kat.)
           </span>
         ) : (
           <span style={{ fontSize: '10.5px', fontWeight: '700', color: '#10b981' }}>
-            ✓ Güncel
+            Güncel
           </span>
         )}
       </div>
@@ -216,8 +216,8 @@ export const ArchiveSelectedCategoryBanner = ({
           fontWeight: '800'
         }}>
           {activeArea === 'mam_db'
-            ? `🗄️ TV MAM Kaynak Kategori #${selectedCategoryId}`
-            : `🏷️ Bizim Kategori #${selectedCategoryId}`}
+            ? `TV MAM Kaynak Kategori #${selectedCategoryId}`
+            : `Bizim Kategori #${selectedCategoryId}`}
         </span>
         <span style={{ fontSize: '15px', fontWeight: '800', color: 'var(--text-primary)' }}>
           {currentCategoryObj?.categoryName || currentCatMeta.name}

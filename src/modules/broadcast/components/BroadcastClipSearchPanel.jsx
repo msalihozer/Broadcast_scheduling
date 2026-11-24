@@ -617,7 +617,7 @@ export default function BroadcastClipSearchPanel({ usedPrograms = [] }) {
                         fontSize: '11.5px',
                         fontWeight: '700'
                       }} title={`Sunucu: ${clip.metadataSummary.sunucu}`}>
-                        🎤 {clip.metadataSummary.sunucu}
+                        Sunucu: {clip.metadataSummary.sunucu}
                       </span>
                     )}
                     {clip.metadataSummary?.konuk && (
@@ -630,7 +630,7 @@ export default function BroadcastClipSearchPanel({ usedPrograms = [] }) {
                         fontSize: '11.5px',
                         fontWeight: '700'
                       }} title={`Konuk: ${clip.metadataSummary.konuk}`}>
-                        👤 {clip.metadataSummary.konuk}
+                        Konuk: {clip.metadataSummary.konuk}
                       </span>
                     )}
                     {clip.metadataSummary?.yayinTarihi && (
@@ -643,7 +643,7 @@ export default function BroadcastClipSearchPanel({ usedPrograms = [] }) {
                         fontSize: '11.5px',
                         fontWeight: '700'
                       }} title={`Yayın Tarihi: ${clip.metadataSummary.yayinTarihi}`}>
-                        📅 {clip.metadataSummary.yayinTarihi}
+                        {clip.metadataSummary.yayinTarihi}
                       </span>
                     )}
                   </div>

@@ -731,7 +731,7 @@ export default function FillerSlotModal({
                       fontWeight: '900',
                       flexShrink: 0
                     }}>
-                      ✓ Eklendi
+                      Eklendi
                     </span>
                   )}
 
@@ -766,7 +766,7 @@ export default function FillerSlotModal({
                         fontSize: '10.5px',
                         fontWeight: '800'
                       }}>
-                        📺 {clip.programTitle}
+                        {clip.programTitle}
                       </span>
                     )}
 

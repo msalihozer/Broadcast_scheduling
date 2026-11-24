@@ -138,7 +138,7 @@ const DashboardTab = ({ setActiveTab }) => {
     if (autoPlanAdsForWeek) {
       autoPlanAdsForWeek(targetChannel, res.startDate || analytics.todayStr);
     }
-    showToast(`🔄 "${res.companyName}" için +${missingCount} adet Makegood (Telafi Spotu) tanımlandı ve kuşaklara dağıtıldı.`);
+    showToast(`"${res.companyName}" için +${missingCount} adet Makegood (Telafi Spotu) tanımlandı ve kuşaklara dağıtıldı.`);
   };
 
   // Rezervasyonu Haftalık Kuşaklara Otomatik Dağıt
@@ -148,7 +148,7 @@ const DashboardTab = ({ setActiveTab }) => {
     if (autoPlanAdsForWeek) {
       autoPlanAdsForWeek(targetChannel, res.startDate || analytics.todayStr);
     }
-    showToast(`⚡ "${res.companyName}" rezervasyonu ${targetChannel === 'ch_way' ? 'Semerkand WAY' : 'Semerkand HD'} kuşaklarına dağıtıldı.`);
+    showToast(`"${res.companyName}" rezervasyonu ${targetChannel === 'ch_way' ? 'Semerkand WAY' : 'Semerkand HD'} kuşaklarına dağıtıldı.`);
   };
 
   // Çakışan Kuşağı Otomatik Dengele
@@ -157,7 +157,7 @@ const DashboardTab = ({ setActiveTab }) => {
     if (autoPlanAdsForDay) {
       autoPlanAdsForDay(conflict.channelId || 'ch_hd', conflict.date);
     }
-    showToast(`🛠️ ${conflict.channelLabel} (${conflict.date} • ${conflict.time}) kuşağı 6 aşamalı algoritma ile yeniden dengelendi.`);
+    showToast(`${conflict.channelLabel} (${conflict.date} • ${conflict.time}) kuşağı 6 aşamalı algoritma ile yeniden dengelendi.`);
   };
 
   // Materyal Hızlı Onay
@@ -168,7 +168,7 @@ const DashboardTab = ({ setActiveTab }) => {
       approvalStatus: 'approved',
       technicalStatus: 'ok'
     });
-    showToast('✅ Materyal teknik kontrol ve yayın onayı tamamlandı.');
+    showToast('Materyal teknik kontrol ve yayın onayı tamamlandı.');
   };
 
   // Rezervasyon Silme Onayı
@@ -180,7 +180,7 @@ const DashboardTab = ({ setActiveTab }) => {
         'Bu rezervasyonu ve bağlı reklam kuşağı spotlarını silmek istediğinize emin misiniz?',
         () => {
           if (removeReservation) removeReservation(resId);
-          showToast('🗑️ Rezervasyon silindi.');
+          showToast('Rezervasyon silindi.');
         }
       );
   };
@@ -274,7 +274,7 @@ const DashboardTab = ({ setActiveTab }) => {
           materials={analytics.materialControlAnalytics.attentionMaterials}
           onUpdateReservation={(id, patch) => {
             if (updateReservation) updateReservation(id, patch);
-            showToast('✅ Rezervasyon durumu güncellendi.');
+            showToast('Rezervasyon durumu güncellendi.');
           }}
           onDeleteReservation={handleDeleteReservation}
           onEditReservation={res => {
@@ -285,7 +285,7 @@ const DashboardTab = ({ setActiveTab }) => {
           onAutoDistributeReservation={handleAutoDistributeReservation}
           onUpdateMaterial={(id, patch) => {
             if (updateMaterial) updateMaterial(id, patch);
-            showToast('✅ Materyal geçerlilik ve teknik onay durumu güncellendi.');
+            showToast('Materyal geçerlilik ve teknik onay durumu güncellendi.');
           }}
           onPreviewMaterial={mat => setPreviewMaterial(mat)}
           onOpenNewReservation={() => {

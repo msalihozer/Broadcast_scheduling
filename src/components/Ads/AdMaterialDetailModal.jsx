@@ -381,7 +381,7 @@ const AdMaterialDetailModal = ({
                       fontWeight: '900'
                     }}
                   >
-                    🏆 SPONSOR • {resolvedContext.sponsorTagLabel}
+                    SPONSOR • {resolvedContext.sponsorTagLabel}
                   </span>
                 ) : (
                   <span
@@ -717,7 +717,7 @@ const AdMaterialDetailModal = ({
                   label="Yayın Türü"
                   value={
                     resolvedContext.isSponsor
-                      ? `🏆 SPONSOR REKLAMI (${resolvedContext.sponsorTagLabel})`
+                      ? `SPONSOR REKLAMI (${resolvedContext.sponsorTagLabel})`
                       : 'Standart Ticari Spot Reklam'
                   }
                   highlightColor={resolvedContext.isSponsor ? '#9333ea' : '#0284c7'}
@@ -725,7 +725,7 @@ const AdMaterialDetailModal = ({
                 {resolvedContext.sponsorProgramTitle && (
                   <InfoRow
                     label="Sponsorlu Program"
-                    value={`📺 ${resolvedContext.sponsorProgramTitle}`}
+                    value={`${resolvedContext.sponsorProgramTitle}`}
                     highlightColor="#9333ea"
                   />
                 )}
@@ -772,7 +772,7 @@ const AdMaterialDetailModal = ({
                     {(resolvedContext.breakContext.prevProgramTitle || resolvedContext.breakContext.nextProgramTitle) && (
                       <InfoRow
                         label="Komşu Programlar"
-                        value={`${resolvedContext.breakContext.prevProgramTitle || 'Başlangıç'}  ➔  [KUŞAK]  ➔  ${
+                        value={`${resolvedContext.breakContext.prevProgramTitle || 'Başlangıç'}  ->  [KUŞAK]  ->  ${
                           resolvedContext.breakContext.nextProgramTitle || 'Bitiş'
                         }`}
                       />

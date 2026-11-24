@@ -117,10 +117,10 @@ const OverviewTab = ({ onNavigateTab }) => {
         });
         await fetchDashboardData(false);
       } else {
-        setSyncMessage(`🔴 Klip çekme hatası: ${data.error || 'MAM sunucusuna ulaşılamadı.'}`);
+        setSyncMessage(`Klip çekme hatası: ${data.error || 'MAM sunucusuna ulaşılamadı.'}`);
       }
     } catch (e) {
-      setSyncMessage(`🔴 Bağlantı hatası: ${e.message}`);
+      setSyncMessage(`Bağlantı hatası: ${e.message}`);
     } finally {
       setIsSyncingDelta(false);
       setTimeout(() => setSyncMessage(''), 5500);

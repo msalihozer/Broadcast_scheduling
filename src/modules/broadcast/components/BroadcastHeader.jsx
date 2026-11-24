@@ -5,7 +5,7 @@
  * Yerleşim Düzeni:
  * - Sol Üst: Modüller, Taslak Paneli Aç/Kapat ve Tarih Seçme Alanı (< | Tarih | > | Bugün)
  * - Orta Üst: Üstte Kanal Seçimi (Semerkand HD / Semerkand WAY), hemen altında Liste Seçimi (Liste A / Liste B)
- * - Sağ Üst: Görünüm Seçimi (Günlük / Haftalık / Aylık) ve Çark (⚙️) İşlemler & Kısayollar Menüsü
+ * - Sağ Üst: Görünüm Seçimi (Günlük / Haftalık / Aylık) ve Çark () İşlemler & Kısayollar Menüsü
  */
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';

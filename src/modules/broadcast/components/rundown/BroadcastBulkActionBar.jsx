@@ -1,7 +1,7 @@
 /**
  * @file src/modules/broadcast/components/rundown/BroadcastBulkActionBar.jsx
  * @description Yayın akışı tablosunda bir klip/satır seçildiğinde beliren sade "ⓘ" (Klip Bilgileri, Detaylar & Oynatma)
- * ve "📌" (Saate Sabitleme - Otomatik Çıkış Saati Hesaplamalı) alt işlem çubuğu.
+ * ve "" (Saate Sabitleme - Otomatik Çıkış Saati Hesaplamalı) alt işlem çubuğu.
  */
 import React, { memo, useState, useEffect, useMemo } from 'react';
 import { Info, Play, Copy, X, Pin, PinOff, Check, Clock } from 'lucide-react';
@@ -425,7 +425,7 @@ const BroadcastBulkActionBar = memo(function BroadcastBulkActionBar({
                 borderRadius: '6px'
               }}
             >
-              {isPinned ? '📌 ' : ''}{startInfo.hhmm}:{startInfo.ss} → {endInfo.hhmm}:{endInfo.ss} ({readableDur})
+              {isPinned ? '' : ''}{startInfo.hhmm}:{startInfo.ss} → {endInfo.hhmm}:{endInfo.ss} ({readableDur})
             </span>
 
             <span

@@ -182,7 +182,7 @@ export default function ListControlWarningsPanel({
             {totalDraft === 0
               ? 'Kayıtlı taslak yok'
               : missingDraftCount === 0
-              ? '✓ Taslak programları tam'
+              ? 'Taslak programları tam'
               : `${missingDraftCount} taslak programı eksik`}
           </div>
           <div style={{
@@ -336,7 +336,7 @@ export default function ListControlWarningsPanel({
               {adsSummary.emptyAdBreaksCount > 0
                 ? `${adsSummary.emptyAdBreaksCount} boş kuşak var`
                 : activeFilterCategory === 'ads'
-                ? '✓ Sadece reklamlar filtreleniyor'
+                ? 'Sadece reklamlar filtreleniyor'
                 : 'Sadece reklamları filtrele'}
             </span>
             <Megaphone size={15} color="#80632A" />
@@ -445,7 +445,7 @@ export default function ListControlWarningsPanel({
             borderTop: '1px solid rgba(220, 229, 233, 0.65)'
           }}>
             <span>
-              {problematicRowsCount > 0 ? `${errorGroups.length} klipte teknik sorun var` : '✓ Tüm klipler ve reklamlar sağlam'}
+              {problematicRowsCount > 0 ? `${errorGroups.length} klipte teknik sorun var` : 'Tüm klipler ve reklamlar sağlam'}
             </span>
             {expandedPanel === 'issues' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </div>
@@ -466,7 +466,7 @@ export default function ListControlWarningsPanel({
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
             <div>
               <strong style={{ fontSize: '12px', color: 'var(--text-primary)' }}>
-                ⚙️ Yayın & Arşiv Dosya Formatı Kontrol Ayarları
+                Yayın & Arşiv Dosya Formatı Kontrol Ayarları
               </strong>
               <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
                 Dosyalar genel itibarıyla <strong>.MXF</strong> formatındadır. Geçerli kabul edilecek formatları seçebilir veya yeni format ekleyebilirsiniz.
@@ -520,7 +520,7 @@ export default function ListControlWarningsPanel({
                         Varsayılan
                       </span>
                     )}
-                    {isActive && <span>✓</span>}
+                    {isActive && <span>Tamam</span>}
                   </button>
                 );
               })}
@@ -702,7 +702,7 @@ export default function ListControlWarningsPanel({
           <div style={{ maxHeight: '300px', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
             {issues.length === 0 ? (
               <div style={{ padding: '16px', textAlign: 'center', color: '#059669', fontSize: px(13.5), fontWeight: 700 }}>
-                ✓ Tüm program klipleri ve reklamlar Bizim DB, MAM DB ve HighRes dosya yolu ({allowedFormats.map(f => `.${f}`).join(', ')}) kontrolünden başarıyla geçti.
+                Tüm program klipleri ve reklamlar Bizim DB, MAM DB ve HighRes dosya yolu ({allowedFormats.map(f => `.${f}`).join(', ')}) kontrolünden başarıyla geçti.
               </div>
             ) : (
               issues.map(issue => {
@@ -736,7 +736,7 @@ export default function ListControlWarningsPanel({
                           background: issue.isAd ? '#d97706' : '#0C617C',
                           color: '#ffffff'
                         }}>
-                          {issue.isAd ? '📢 REKLAM' : '🎬 PROGRAM KLİBİ'}
+                          {issue.isAd ? 'REKLAM' : 'PROGRAM KLİBİ'}
                         </span>
                         <span style={{
                           fontSize: px(11),
@@ -914,7 +914,7 @@ export default function ListControlWarningsPanel({
                     background: 'rgba(37, 99, 235, 0.14)',
                     color: '#2563eb'
                   }}>
-                    🔄 {slot.modificationDetail}
+                    {slot.modificationDetail}
                   </span>
                 )}
               </div>
@@ -923,7 +923,7 @@ export default function ListControlWarningsPanel({
                 {slot.isPresentInList ? (
                   <>
                     <span style={{ fontSize: px(12), fontWeight: 800, color: '#059669' }}>
-                      ✓ Listede Var ({slot.matchedItemsCount} Parça)
+                      Listede Var ({slot.matchedItemsCount} Parça)
                     </span>
                     {slot.primaryMatchInstanceId && (
                       <button
@@ -947,7 +947,7 @@ export default function ListControlWarningsPanel({
                 ) : (
                   <>
                     <span style={{ fontSize: px(12), fontWeight: 800, color: '#d97706' }}>
-                      ⚠️ Listede Eksik!
+                      Listede Eksik!
                     </span>
                     <button
                       type="button"

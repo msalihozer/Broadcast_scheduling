@@ -413,8 +413,8 @@ const ReservationsTab = ({ setActiveTab }) => {
               { id: 'all', label: `Tümü (${enrichedReservations.length})` },
               { id: 'standard', label: 'Standart Kuşak' },
               { id: 'sponsor', label: `Sponsorluklar (${kpiStats.sponsorCount})` },
-              { id: 'ramadan', label: `🌙 Ramazan Özel (${kpiStats.ramadanCount})` },
-              { id: 'overage', label: `⚠️ Aşımlı (- Fark) (${kpiStats.overageCount})` },
+              { id: 'ramadan', label: `Ramazan Özel (${kpiStats.ramadanCount})` },
+              { id: 'overage', label: `Aşımlı (- Fark) (${kpiStats.overageCount})` },
               { id: 'multi', label: 'Çoklu Ürünlü Planlar' }
             ].map(tab => (
               <button
@@ -627,7 +627,7 @@ const ReservationsTab = ({ setActiveTab }) => {
                               gap: '3px'
                             }}
                           >
-                            🌙 Ramazan
+                            Ramazan
                           </span>
                         )}
                       </div>
@@ -834,7 +834,7 @@ const ReservationsTab = ({ setActiveTab }) => {
                               color: '#d97706'
                             }}
                           >
-                            {res.ramadanTarget === 'sahur' ? '🌙 Ramazan Sahur' : res.ramadanTarget === 'both' ? '🌙+🕌 Sahur & İftar' : '🕌 Ramazan İftar'}
+                            {res.ramadanTarget === 'sahur' ? 'Ramazan Sahur' : res.ramadanTarget === 'both' ? 'Sahur & İftar' : 'Ramazan İftar'}
                           </span>
                         </div>
                       )}

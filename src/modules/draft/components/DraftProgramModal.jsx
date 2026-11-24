@@ -370,7 +370,7 @@ const DraftProgramModal = ({
                       cursor: 'pointer'
                     }}
                   >
-                    🎬 Bant Yayın (Kayıt)
+                    Bant Yayın (Kayıt)
                   </button>
                   <button
                     type="button"
@@ -551,7 +551,7 @@ const DraftProgramModal = ({
                     >
                       {OPTION_ICONS[opt] || <Check size={14} />}
                       <span>{opt}</span>
-                      {isSelected && <span style={{ fontSize: '11px', color: '#0369a1' }}>✓</span>}
+                      {isSelected && <span style={{ fontSize: '11px', color: '#0369a1' }}>Tamam</span>}
                     </button>
                   );
                 })}

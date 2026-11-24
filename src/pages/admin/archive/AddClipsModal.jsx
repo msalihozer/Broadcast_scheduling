@@ -451,7 +451,7 @@ const AddClipsModal = ({
                         </td>
                         <td style={{ padding: '10px 12px', fontSize: '12px', color: 'var(--text-secondary)' }}>
                           {isAlreadyInTarget ? (
-                            <span style={{ color: '#10b981', fontWeight: '700' }}>✓ Zaten Bu Programda</span>
+                            <span style={{ color: '#10b981', fontWeight: '700' }}>Zaten Bu Programda</span>
                           ) : (
                             clip.programTitle || 'Atanmamış'
                           )}

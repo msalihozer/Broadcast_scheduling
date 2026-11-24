@@ -139,8 +139,8 @@ const ThemesTab = () => {
       });
       triggerSavedToast(
         ok
-          ? '✓ Tüm tema, renk, kutu ve font değişiklikleri sunucu veritabanına kaydedildi ve tüm modüllere uygulandı!'
-          : '✓ Tüm tema ve renk değişiklikleri kaydedildi ve modüllere uygulandı!'
+          ? 'Tüm tema, renk, kutu ve font değişiklikleri sunucu veritabanına kaydedildi ve tüm modüllere uygulandı!'
+          : 'Tüm tema ve renk değişiklikleri kaydedildi ve modüllere uygulandı!'
       );
     } finally {
       setIsSavingTheme(false);

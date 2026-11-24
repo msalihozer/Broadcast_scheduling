@@ -1,6 +1,6 @@
 /**
  * @file src/modules/broadcast/hooks/useSmartDraftApplier.js
- * @description "⚡ Taslak Uygula" butonuna tıklandığında çalışan Akıllı Taslak Uygulama özel kancası (Custom Hook).
+ * @description "Taslak Uygula" butonuna tıklandığında çalışan Akıllı Taslak Uygulama özel kancası (Custom Hook).
  * Tüm onay, başarı, eksik kuşak uyarısı ve hata mesajlarını `dialog` (merkezi pop-up) üzerinden türe göre renkli gösterir.
  */
 import { useState, useCallback, useEffect, useRef } from 'react';
@@ -962,7 +962,7 @@ export default function useSmartDraftApplier({
           summaryParts.push(`${updatedSlotsCount} güncellenen taslak kuşağı yenilendi (${updatedTitles.slice(0, 3).join(', ')})`);
         }
 
-        const bannerMsg = `✓ Senkronizasyon Tamamlandı: ${summaryParts.join(' • ')}`;
+        const bannerMsg = `Senkronizasyon Tamamlandı: ${summaryParts.join(' • ')}`;
         if (onSyncBanner) {
           onSyncBanner({
             type: 'success',
@@ -987,7 +987,7 @@ export default function useSmartDraftApplier({
           if (onSyncBanner) {
             onSyncBanner({
               type: 'success',
-              message: '✓ Taslak ve arşiv kontrol edildi: Tüm kuşaklar ve klipler güncel, eksik program yok.'
+              message: 'Taslak ve arşiv kontrol edildi: Tüm kuşaklar ve klipler güncel, eksik program yok.'
             });
           }
           await dialog.success(
@@ -1050,7 +1050,7 @@ export default function useSmartDraftApplier({
         }
         onSyncBanner({
           type: 'warning',
-          message: `🔔 Taslak Planlamada değişiklik algılandı: ${parts.join(' • ')}. Sol panelden istediğiniz kuşağı ekleyebilir/güncelleyebilir veya "Eksikleri & Taslağı Kontrol Et" butonuna tıklayabilirsiniz.`
+          message: `Taslak Planlamada değişiklik algılandı: ${parts.join(' • ')}. Sol panelden istediğiniz kuşağı ekleyebilir/güncelleyebilir veya "Eksikleri & Taslağı Kontrol Et" butonuna tıklayabilirsiniz.`
         });
       } else if (onSyncBanner) {
         onSyncBanner(prev => (prev?.type === 'warning' ? null : prev));

@@ -591,7 +591,7 @@ const AddBroadcastProgramModal = ({ isOpen, onClose }) => {
                   border: ramadanProgramType ? '1.5px solid #d97706' : '1px solid var(--border-color)'
                 }}>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', color: ramadanProgramType ? '#d97706' : 'var(--text-primary)', marginBottom: '6px' }}>
-                    🌙 Ramazan Özel Programı mı? (Sahur / İftar Başlangıç Saati Tespiti İçin):
+                    Ramazan Özel Programı mı? (Sahur / İftar Başlangıç Saati Tespiti İçin):
                   </label>
                   <select
                     value={ramadanProgramType}
@@ -609,8 +609,8 @@ const AddBroadcastProgramModal = ({ isOpen, onClose }) => {
                     }}
                   >
                     <option value="">Normal Program (Ramazan Özel Değil)</option>
-                    <option value="sahur">🌙 Ramazan Sahur Programı (Canlı / Özel)</option>
-                    <option value="iftar">🕌 Ramazan İftar Programı (Canlı / Özel)</option>
+                    <option value="sahur">Ramazan Sahur Programı (Canlı / Özel)</option>
+                    <option value="iftar">Ramazan İftar Programı (Canlı / Özel)</option>
                   </select>
                   <div style={{ fontSize: '10.5px', color: 'var(--text-secondary)', marginTop: '4px' }}>
                     Seçildiğinde bu programın yayın listesindeki <strong>başlangıç saati</strong> otomatik olarak Sahur/İftar başlangıç saati olarak çekilir ve komşu reklam kuşakları Ramazan Özel olarak değerlendirilir.

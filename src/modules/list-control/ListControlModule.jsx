@@ -1179,7 +1179,7 @@ export default function ListControlModule() {
                       cursor: 'pointer'
                     }}
                   >
-                    🔄 Üzerine Bırakınca Değiştir
+                    Üzerine Bırakınca Değiştir
                   </button>
                 </div>
 

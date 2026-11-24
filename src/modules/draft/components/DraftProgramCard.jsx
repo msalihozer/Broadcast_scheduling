@@ -462,7 +462,7 @@ const DraftProgramCard = ({
                 }}
               >
                 <span>{opt}</span>
-                {isSelectedOption && <span style={{ fontSize: px(9) }}>✓</span>}
+                {isSelectedOption && <span style={{ fontSize: px(9) }}>Tamam</span>}
               </button>
             );
           })}

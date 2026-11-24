@@ -457,7 +457,7 @@ const DraftDayColumn = ({
           </div>
         </div>
 
-        {/* Sütun İçi [ 🕒 SAAT | 📺 PROGRAM ] Alt Başlığı */}
+        {/* Sütun İçi [ SAAT | PROGRAM ] Alt Başlığı */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: `${timeColWidth} minmax(0, 1fr)`,

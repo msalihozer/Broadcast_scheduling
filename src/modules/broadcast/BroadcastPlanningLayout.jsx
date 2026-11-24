@@ -106,7 +106,7 @@ const BroadcastPlanningLayout = () => {
   const handlePullDraft = () => {
     const res = pullFromDraft(selectedChannel, selectedDate, activeList);
     if (res.success) {
-      alert(`✓ O günün taslağındaki ${res.count} program başarıyla Liste ${activeList} akışına aktarıldı.`);
+      alert(`O günün taslağındaki ${res.count} program başarıyla Liste ${activeList} akışına aktarıldı.`);
     } else {
       alert('Bu gün için taslakta aktarılacak program bulunamadı.');
     }

@@ -441,7 +441,7 @@ const DailyTimeline = ({ date, channelId, viewMode }) => {
       {/* Up to date info */}
       {overrunMinutes > 0 && !needsOverrunUpdate && (
         <div className="overrun-warning" style={{ background: 'rgba(34, 197, 94, 0.1)', borderColor: 'var(--success)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'var(--success)' }}>
-          <span style={{ fontSize: '13px', fontWeight: 'bold' }}>✓ Sonraki güne {overrunMinutes} dakika aktarıldı.</span>
+          <span style={{ fontSize: '13px', fontWeight: 'bold' }}>Sonraki güne {overrunMinutes} dakika aktarıldı.</span>
         </div>
       )}
 

@@ -212,7 +212,7 @@ export default function DraftSendToBroadcastModal({
 
         setSentResult(resultInfo);
         if (showToast) {
-          showToast(`✓ Taslak sol paneldeki 'Günün Taslağı' alanına aktarıldı! (${count} Kuşak)`, 'success', 3500);
+          showToast(`Taslak sol paneldeki 'Günün Taslağı' alanına aktarıldı! (${count} Kuşak)`, 'success', 3500);
         }
         return;
       }
@@ -286,7 +286,7 @@ export default function DraftSendToBroadcastModal({
 
       setSentResult(resultInfo);
       if (showToast) {
-        showToast(`✓ Taslak akışı doğrudan Yayın Planlama tablosuna aktarıldı! (${resultInfo.count} Program)`, 'success', 3500);
+        showToast(`Taslak akışı doğrudan Yayın Planlama tablosuna aktarıldı! (${resultInfo.count} Program)`, 'success', 3500);
       }
     } catch (err) {
       console.error('Yayına gönderme hatası:', err);

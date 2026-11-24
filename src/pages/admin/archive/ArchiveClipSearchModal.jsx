@@ -337,7 +337,7 @@ export default function ArchiveClipSearchModal({ isOpen, onClose, onClipsModifie
             fontSize: '12px'
           }}>
             <span style={{ fontWeight: '700', color: 'var(--accent-primary)' }}>
-              ✓ {selectedCount} klip seçildi (Shift+Click ile aralık seçebilirsiniz)
+              {selectedCount} klip seçildi (Shift+Click ile aralık seçebilirsiniz)
             </span>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

@@ -522,10 +522,10 @@ export function exportToPresentationPDF({
     <body>
       <div class="top-bar">
         <div>
-          <strong>📄 ${escapeHtml(title)}</strong>
+          <strong>${escapeHtml(title)}</strong>
           <span style="font-size:12px; color:#94a3b8; margin-left:10px;">Sunum PDF Görünümü</span>
         </div>
-        <button class="print-btn" onclick="window.print()">🖨️ PDF Olarak Kaydet / Yazdır (Ctrl+P)</button>
+        <button class="print-btn" onclick="window.print()">PDF Olarak Kaydet / Yazdır (Ctrl+P)</button>
       </div>
       <div class="container">
         <div class="cover-banner">

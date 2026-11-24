@@ -135,7 +135,7 @@ const ArchiveAnalysisTab = ({ initialCategoryId = 4, initialSearch = '' }) => {
         if (!silent || data.totalNewSynced > 0) {
           showToast(
             data.totalNewSynced > 0
-              ? `⚡ ${data.totalNewSynced} yeni klip TV MAM DB'den hızlıca çekildi (${data.affectedProgramsCount} program güncellendi)!`
+              ? `${data.totalNewSynced} yeni klip TV MAM DB'den hızlıca çekildi (${data.affectedProgramsCount} program güncellendi)!`
               : 'Yeni eklenecek klip bulunmadı, tüm kayıtlar güncel.'
           );
         }
@@ -218,8 +218,8 @@ const ArchiveAnalysisTab = ({ initialCategoryId = 4, initialSearch = '' }) => {
       if (res.ok) {
         showToast(
           newStatus
-            ? `🟢 "${programTitle || 'Program'}" kullanıma AÇILDI.`
-            : `⚪ "${programTitle || 'Program'}" kullanımdan KAPATILDI.`
+            ? `"${programTitle || 'Program'}" kullanıma AÇILDI.`
+            : `"${programTitle || 'Program'}" kullanımdan KAPATILDI.`
         );
 
         setArchiveData(prev => {
@@ -304,7 +304,7 @@ const ArchiveAnalysisTab = ({ initialCategoryId = 4, initialSearch = '' }) => {
       }
 
       showToast(
-        `🏷️ "${prog.title}" programının Bizim Kategorisi "#${nextCategoryId} ${targetCatName}" olarak güncellendi (TV MAM DB Kategorisi: #${mamCatId} ${mamCatName} korundu).`
+        `"${prog.title}" programının Bizim Kategorisi "#${nextCategoryId} ${targetCatName}" olarak güncellendi (TV MAM DB Kategorisi: #${mamCatId} ${mamCatName} korundu).`
       );
       addLog({
         panel: 'mam',
@@ -341,7 +341,7 @@ const ArchiveAnalysisTab = ({ initialCategoryId = 4, initialSearch = '' }) => {
         throw new Error(data.error || 'Program silinemedi');
       }
 
-      showToast(`🗑️ "${prog.title}" programı silindi (${data.affectedClipsCount || 0} klip Genel Arşiv'e aktarıldı).`);
+      showToast(`"${prog.title}" programı silindi (${data.affectedClipsCount || 0} klip Genel Arşiv'e aktarıldı).`);
       addLog({
         panel: 'mam',
         action: 'Program Silindi',

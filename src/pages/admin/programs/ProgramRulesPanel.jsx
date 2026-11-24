@@ -133,8 +133,8 @@ export default function ProgramRulesPanel({ onRulesApplied }) {
       const updatedClips = data.applyResult?.updatedClipsCount ?? 0;
       showNotice(
         isNew
-          ? `✅ "${formData.programTitle}" kuralı eklendi ve arşivdeki kliplere uygulandı (${updatedClips} klip güncellendi).`
-          : `✅ "${formData.programTitle}" kuralı güncellendi ve arşive uygulandı (${updatedClips} klip güncellendi).`
+          ? `"${formData.programTitle}" kuralı eklendi ve arşivdeki kliplere uygulandı (${updatedClips} klip güncellendi).`
+          : `"${formData.programTitle}" kuralı güncellendi ve arşive uygulandı (${updatedClips} klip güncellendi).`
       );
 
       addLog({
@@ -168,7 +168,7 @@ export default function ProgramRulesPanel({ onRulesApplied }) {
       }
 
       setRules(data.rules || []);
-      showNotice(`🗑️ "${rule.programTitle}" kuralı çıkarıldı ve arşiv güncellendi.`);
+      showNotice(`"${rule.programTitle}" kuralı çıkarıldı ve arşiv güncellendi.`);
 
       addLog({
         panel: 'programs',
@@ -194,7 +194,7 @@ export default function ProgramRulesPanel({ onRulesApplied }) {
         throw new Error(data.error || 'Kurallar uygulanamadı.');
       }
       if (data.rules) setRules(data.rules);
-      showNotice(`⚡ Tüm kurallar (${data.rulesCount || rules.length} kural) arşive uygulandı; ${data.updatedClipsCount || 0} klip güncellendi.`);
+      showNotice(`Tüm kurallar (${data.rulesCount || rules.length} kural) arşive uygulandı; ${data.updatedClipsCount || 0} klip güncellendi.`);
       if (onRulesApplied) onRulesApplied();
     } catch (err) {
       showNotice(err.message, 'error');

@@ -118,7 +118,7 @@ const DashboardMiddleGridSections = ({
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '2px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontSize: '12.5px', fontWeight: '700', color: 'var(--ads-text-main)' }}>
-                📊 Envanter Doluluk Tahmini (7 / 15 / 30 Günlük Projeksiyon)
+                Envanter Doluluk Tahmini (7 / 15 / 30 Günlük Projeksiyon)
               </span>
               <span className="ta-badge ta-badge-brand">Kapasite Tahmini</span>
             </div>
@@ -502,7 +502,7 @@ const DashboardMiddleGridSections = ({
               }}
             >
               <div style={{ fontSize: '11.5px', fontWeight: '700', color: operationsAlertsAnalytics.conflictingBreaksCount > 0 ? 'var(--ads-error-text)' : 'var(--ads-success-text)' }}>
-                ⚡ Kuşak Çakışması / Aşım
+                Kuşak Çakışması / Aşım
               </div>
               <div style={{ fontSize: '21px', fontWeight: '800', color: 'var(--ads-text-main)', marginTop: '3px' }}>
                 {operationsAlertsAnalytics.conflictingBreaksCount} Kuşak
@@ -518,7 +518,7 @@ const DashboardMiddleGridSections = ({
               }}
             >
               <div style={{ fontSize: '11.5px', fontWeight: '700', color: 'var(--ads-warning-text)' }}>
-                📅 Yaklaşan Yayınlar (7g)
+                Yaklaşan Yayınlar (7g)
               </div>
               <div style={{ fontSize: '21px', fontWeight: '800', color: 'var(--ads-text-main)', marginTop: '3px' }}>
                 {operationsAlertsAnalytics.upcomingBroadcastsCount} Plan
@@ -534,7 +534,7 @@ const DashboardMiddleGridSections = ({
               }}
             >
               <div style={{ fontSize: '11.5px', fontWeight: '700', color: 'var(--ads-brand)' }}>
-                🔄 Eksik Yayın / Telafi
+                Eksik Yayın / Telafi
               </div>
               <div style={{ fontSize: '21px', fontWeight: '800', color: 'var(--ads-text-main)', marginTop: '3px' }}>
                 {operationsAlertsAnalytics.missingBroadcastsCount} Kampanya
@@ -560,7 +560,7 @@ const DashboardMiddleGridSections = ({
               >
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--ads-error-text)' }}>
-                    ⚠️ {cf.channelLabel} • {cf.date} ({cf.time}) — {cf.label}
+                    {cf.channelLabel} • {cf.date} ({cf.time}) — {cf.label}
                   </div>
                   <div style={{ fontSize: '11px', color: 'var(--ads-text-sub)' }}>
                     {cf.reasons.join(' • ')}
@@ -595,7 +595,7 @@ const DashboardMiddleGridSections = ({
               >
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--ads-text-main)' }}>
-                    🔄 {mb.companyName} — {mb.productName}
+                    {mb.companyName} — {mb.productName}
                   </div>
                   <div style={{ fontSize: '11px', color: 'var(--ads-text-sub)' }}>
                     Planlanan: {mb.totalPlanned} • Yayınlanan: {mb.effectiveRealized} • Telafi Gerekli:{' '}

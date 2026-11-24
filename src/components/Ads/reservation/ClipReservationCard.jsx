@@ -179,7 +179,7 @@ const ClipReservationCard = ({
                 gap: '4px'
               }}
             >
-              🌙 RAMAZAN ÖZEL ({item.ramadanTarget === 'sahur' ? 'SAHUR' : item.ramadanTarget === 'both' ? 'SAHUR & İFTAR' : 'İFTAR'})
+              RAMAZAN ÖZEL ({item.ramadanTarget === 'sahur' ? 'SAHUR' : item.ramadanTarget === 'both' ? 'SAHUR & İFTAR' : 'İFTAR'})
             </span>
           )}
         </div>
@@ -198,7 +198,7 @@ const ClipReservationCard = ({
               }}
               title="Spot sayısı, gün süresi veya bütçe aşımı (- eksi fark)"
             >
-              ⚠️ AŞIM:
+              AŞIM:
               {overageMetrics.spotNegativeBalance < 0 ? ` ${overageMetrics.spotNegativeBalance} Spot` : ''}
               {overageMetrics.dayNegativeBalance < 0 ? ` • ${overageMetrics.dayNegativeBalance} Gün` : ''}
               {overageMetrics.budgetNegativeBalance < 0 ? ` • ${overageMetrics.budgetNegativeBalance.toLocaleString('tr-TR')} ₺` : ''}
@@ -678,7 +678,7 @@ const ClipReservationCard = ({
           }}
         >
           <div style={{ fontSize: '11.5px', fontWeight: '700', color: '#dc2626', lineHeight: 1.4 }}>
-            <strong>⚠️ Kota / Süre / Fiyat Aşımı Tespit Edildi:</strong>{' '}
+            <strong>Kota / Süre / Fiyat Aşımı Tespit Edildi:</strong>{' '}
             {overageMetrics.spotNegativeBalance < 0 && (
               <span>
                 Seçilen {overageMetrics.totalDays} gün × günlük min {item.dailyMinSpots} spot = <strong>{overageMetrics.minRequiredSpotsForDays} spot</strong> gerekiyor (Planlanan: {overageMetrics.plannedSpots} spot → <strong style={{ textDecoration: 'underline' }}>{overageMetrics.spotNegativeBalance} Spot Fark</strong>).{' '}
@@ -1200,8 +1200,8 @@ const ClipReservationCard = ({
                           }}
                         >
                           {holder.source === 'internal'
-                            ? `⚠️ Bu formdaki Klip #${holder.rowNumber} (${holder.materialName}) üzerinde seçili. Tıklarsanız bu klibe geçer.`
-                            : `⚠️ Şu an ${holder.companyName} (${holder.materialName}) üzerinde tanımlı. Seçip kaydederseniz bu kliple değiştirilir.`}
+                            ? `Bu formdaki Klip #${holder.rowNumber} (${holder.materialName}) üzerinde seçili. Tıklarsanız bu klibe geçer.`
+                            : `Şu an ${holder.companyName} (${holder.materialName}) üzerinde tanımlı. Seçip kaydederseniz bu kliple değiştirilir.`}
                         </div>
                       )}
                     </div>
@@ -1213,7 +1213,7 @@ const ClipReservationCard = ({
         )}
       </div>
 
-      {/* 5. SATIR: 🌙 RAMAZAN ÖZEL (SAHUR & İFTAR PROGRAM BAŞLANGIÇ SAATİ VE KUŞAK PLANLAMASI) - SADECE RAMAZAN'A 2 HAFTA KALA VEYA RAMAZAN ÖZEL AKTİFSE GÖRÜNÜR */}
+      {/* 5. SATIR: RAMAZAN ÖZEL (SAHUR & İFTAR PROGRAM BAŞLANGIÇ SAATİ VE KUŞAK PLANLAMASI) - SADECE RAMAZAN'A 2 HAFTA KALA VEYA RAMAZAN ÖZEL AKTİFSE GÖRÜNÜR */}
       {(isRamadanFeatureWindowOpen(ramadanConfig, item.startDate) || Boolean(item.isRamadanSpecial)) && (
       <div
         style={{
@@ -1241,11 +1241,11 @@ const ClipReservationCard = ({
                 fontSize: '17px'
               }}
             >
-              🌙
+              
             </div>
             <div>
               <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--ads-text-main)' }}>
-                🌙 Ramazan Özel Rezervasyon &amp; Sahur / İftar Sponsorluğu
+                Ramazan Özel Rezervasyon &amp; Sahur / İftar Sponsorluğu
               </div>
               <div style={{ fontSize: '11px', color: 'var(--ads-text-muted)' }}>
                 Sadece Ramazan ayı tarih aralığında değerlendirilir; yayın listesindeki <strong>Sahur ve İftar programlarının başlangıç saatine</strong> ve işaretlenen Ramazan kuşaklarına göre yerleşir.
@@ -1281,7 +1281,7 @@ const ClipReservationCard = ({
               }}
               style={{ accentColor: '#fff', cursor: 'pointer' }}
             />
-            <span>{item.isRamadanSpecial ? '🌙 Ramazan Özel Aktif' : '🌙 Ramazan Özel Olarak İşaretle'}</span>
+            <span>{item.isRamadanSpecial ? 'Ramazan Özel Aktif' : 'Ramazan Özel Olarak İşaretle'}</span>
           </label>
         </div>
 
@@ -1302,17 +1302,17 @@ const ClipReservationCard = ({
               }}
             >
               <div style={{ fontSize: '11.5px', color: 'var(--ads-text-main)', fontWeight: '700' }}>
-                📅 Ramazan Ayı Vakit Aralığı:{' '}
+                Ramazan Ayı Vakit Aralığı:{' '}
                 <strong style={{ color: '#d97706' }}>
                   {ramadanConfig?.startDate || '2026-02-18'} — {ramadanConfig?.endDate || '2026-03-19'}
                 </strong>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', fontSize: '11.5px' }}>
                 <span style={{ padding: '3px 9px', borderRadius: '6px', background: 'rgba(2, 132, 199, 0.12)', color: '#0284c7', fontWeight: '800' }}>
-                  🌙 Sahur Programı Başlangıç: {detectedRamadanPrograms?.sahurStartTime || 'Akıştan Otomatik Çekilir (Ör: 03:30)'}
+                  Sahur Programı Başlangıç: {detectedRamadanPrograms?.sahurStartTime || 'Akıştan Otomatik Çekilir (Ör: 03:30)'}
                 </span>
                 <span style={{ padding: '3px 9px', borderRadius: '6px', background: 'rgba(217, 119, 6, 0.14)', color: '#d97706', fontWeight: '800' }}>
-                  🕌 İftar Programı Başlangıç: {detectedRamadanPrograms?.iftarStartTime || 'Akıştan Otomatik Çekilir (Ör: 18:30)'}
+                  İftar Programı Başlangıç: {detectedRamadanPrograms?.iftarStartTime || 'Akıştan Otomatik Çekilir (Ör: 18:30)'}
                 </span>
               </div>
             </div>

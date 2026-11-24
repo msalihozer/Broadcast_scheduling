@@ -168,7 +168,7 @@ export const AdPlanningTopControlBar = ({
                         marginTop: '2px'
                       }}
                     >
-                      {isSelected ? '✓ Seçili Kanal' : 'Kanala Geç'}
+                      {isSelected ? 'Seçili Kanal' : 'Kanala Geç'}
                     </div>
                   </div>
                 </button>
@@ -673,11 +673,11 @@ export const AdPlanningDaysSidebar = ({
                   {/* Durum Rozeti */}
                   {entry.isRevised ? (
                     <span className="ta-badge ta-badge-error" style={{ fontSize: '10px', padding: '2px 7px' }}>
-                      🔄 REVİZE {entry.revisionCount > 0 ? `#${entry.revisionCount}` : ''}
+                      REVİZE {entry.revisionCount > 0 ? `#${entry.revisionCount}` : ''}
                     </span>
                   ) : entry.adsStatus === 'completed' ? (
                     <span className="ta-badge ta-badge-success" style={{ fontSize: '10px', padding: '2px 7px' }}>
-                      ✓ Onaylandı
+                      Onaylandı
                     </span>
                   ) : entry.spotsCount > 0 ? (
                     <span className="ta-badge ta-badge-brand" style={{ fontSize: '10px', padding: '2px 7px' }}>

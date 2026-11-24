@@ -1718,7 +1718,7 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
     const rPositions = Array.isArray(rc.ramadanPositions) && rc.ramadanPositions.length > 0
       ? rc.ramadanPositions
       : (Array.isArray(rc.sponsorPositions) && rc.sponsorPositions.length > 0 ? rc.sponsorPositions : ['before', 'middle', 'after']);
-    const rLabelPrefix = rc.ramadanTarget === 'sahur' ? '🌙 Sahur' : rc.ramadanTarget === 'both' ? '🌙+🕌 Ramazan' : '🕌 İftar';
+    const rLabelPrefix = rc.ramadanTarget === 'sahur' ? 'Sahur' : rc.ramadanTarget === 'both' ? 'Ramazan' : 'İftar';
 
     SINGULAR_SPONSOR_ROLES.forEach(roleId => {
       if (!rPositions.includes(roleId)) return;

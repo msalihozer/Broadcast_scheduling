@@ -49,7 +49,7 @@ const DashboardPricingPanel = ({
     try {
       await onSyncWithServer();
       if (onShowToast) {
-        onShowToast('✅ Rezervasyon, yerleşim ve ücretlendirme verileri sunucu veritabanı ile eşitlendi.');
+        onShowToast('Rezervasyon, yerleşim ve ücretlendirme verileri sunucu veritabanı ile eşitlendi.');
       }
     } finally {
       setIsSyncingDb(false);
@@ -176,7 +176,7 @@ const DashboardPricingPanel = ({
                   fontWeight: '900'
                 }}
               >
-                💰 SPOT &amp; ÜCRETLENDİRME MERKEZİ
+                SPOT &amp; ÜCRETLENDİRME MERKEZİ
               </span>
               <h3 className="ta-card-title" style={{ fontSize: '15.5px', margin: 0 }}>
                 Spot Adedi, Birim Ücret, Bütçe ve Tahsilat Veri Girişi (Sunucu Veritabanı Korumalı)
@@ -269,7 +269,7 @@ const DashboardPricingPanel = ({
                   onClick={() => {
                     if (onApplyTariffToReservations) {
                       onApplyTariffToReservations({ overwriteExisting: false });
-                      if (onShowToast) onShowToast('💰 Tarife yalnızca fiyatı girilmemiş rezervasyonlara uygulandı.');
+                      if (onShowToast) onShowToast('Tarife yalnızca fiyatı girilmemiş rezervasyonlara uygulandı.');
                     }
                   }}
                   className="ads-saas-btn ads-saas-btn-sm"
@@ -282,7 +282,7 @@ const DashboardPricingPanel = ({
                   onClick={() => {
                     if (onApplyTariffToReservations) {
                       onApplyTariffToReservations({ overwriteExisting: true });
-                      if (onShowToast) onShowToast('💰 Tarife tüm rezervasyonlara uygulandı.');
+                      if (onShowToast) onShowToast('Tarife tüm rezervasyonlara uygulandı.');
                     }
                   }}
                   className="ads-saas-btn ads-saas-btn-primary ads-saas-btn-sm"
@@ -338,7 +338,7 @@ const DashboardPricingPanel = ({
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <label style={{ fontSize: '11px', fontWeight: '800', color: '#9333ea' }}>
-                  🏆 Sponsorluk Birim Spot Ücreti (₺/Spot)
+                  Sponsorluk Birim Spot Ücreti (₺/Spot)
                 </label>
                 <input
                   type="number"
@@ -448,7 +448,7 @@ const DashboardPricingPanel = ({
                             <span>{res.companyName}</span>
                             {res.isSponsor && (
                               <span style={{ padding: '1px 6px', borderRadius: '999px', background: '#9333ea', color: '#fff', fontSize: '9.5px', fontWeight: '900' }}>
-                                🏆 Sponsor
+                                Sponsor
                               </span>
                             )}
                           </div>
@@ -558,7 +558,7 @@ const DashboardPricingPanel = ({
 
                         {/* Kalan Alacak */}
                         <td style={{ fontWeight: '800', fontSize: '12.5px', fontFamily: 'monospace', color: res.remainingReceivable > 0 ? '#d97706' : '#059669' }}>
-                          {res.remainingReceivable > 0 ? formatCurrency(res.remainingReceivable) : '✓ Kapandı'}
+                          {res.remainingReceivable > 0 ? formatCurrency(res.remainingReceivable) : 'Kapandı'}
                         </td>
                       </tr>
                     ))}

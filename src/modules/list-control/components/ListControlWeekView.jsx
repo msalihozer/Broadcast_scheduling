@@ -160,11 +160,11 @@ export default function ListControlWeekView({
                     : 'var(--text-muted)'
                 }}>
                   {day.isApproved
-                    ? '✓ Onaylandı'
+                    ? 'Onaylandı'
                     : day.isRevised
-                    ? '⚠️ Revize İstendi'
+                    ? 'Revize İstendi'
                     : day.isFromAds
-                    ? '📺 Kontrol Bekliyor'
+                    ? 'Kontrol Bekliyor'
                     : 'Liste Yok'}
                 </span>
               </div>

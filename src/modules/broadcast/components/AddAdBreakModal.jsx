@@ -28,12 +28,12 @@ const OTHER_PRESETS = [
 
 export const RAMADAN_BREAK_TAG_OPTIONS = [
   { value: '', label: 'Standart Reklam Kuşağı (Ramazan Özel Değil)', badge: '', color: '#f59e0b' },
-  { value: 'sahur_before', label: '🌙 Ramazan Sahur Öncesi Kuşağı', badge: '🌙 SAHUR ÖNCESİ', color: '#0ea5e9' },
-  { value: 'sahur_middle', label: '🌙 Ramazan Sahur Arası Kuşağı', badge: '🌙 SAHUR ARASI', color: '#0284c7' },
-  { value: 'sahur_after', label: '🌙 Ramazan Sahur Sonrası Kuşağı', badge: '🌙 SAHUR SONRASI', color: '#0369a1' },
-  { value: 'iftar_before', label: '🕌 Ramazan İftar Öncesi Kuşağı', badge: '🕌 İFTAR ÖNCESİ', color: '#d97706' },
-  { value: 'iftar_middle', label: '🕌 Ramazan İftar Arası Kuşağı', badge: '🕌 İFTAR ARASI', color: '#b45309' },
-  { value: 'iftar_after', label: '🕌 Ramazan İftar Sonrası Kuşağı', badge: '🕌 İFTAR SONRASI', color: '#92400e' }
+  { value: 'sahur_before', label: 'Ramazan Sahur Öncesi Kuşağı', badge: 'SAHUR ÖNCESİ', color: '#0ea5e9' },
+  { value: 'sahur_middle', label: 'Ramazan Sahur Arası Kuşağı', badge: 'SAHUR ARASI', color: '#0284c7' },
+  { value: 'sahur_after', label: 'Ramazan Sahur Sonrası Kuşağı', badge: 'SAHUR SONRASI', color: '#0369a1' },
+  { value: 'iftar_before', label: 'Ramazan İftar Öncesi Kuşağı', badge: 'İFTAR ÖNCESİ', color: '#d97706' },
+  { value: 'iftar_middle', label: 'Ramazan İftar Arası Kuşağı', badge: 'İFTAR ARASI', color: '#b45309' },
+  { value: 'iftar_after', label: 'Ramazan İftar Sonrası Kuşağı', badge: 'İFTAR SONRASI', color: '#92400e' }
 ];
 
 export default function AddAdBreakModal({ isOpen, onClose }) {
@@ -440,7 +440,7 @@ export default function AddAdBreakModal({ isOpen, onClose }) {
               border: ramadanBreakTag ? '1.5px solid #d97706' : '1px solid var(--border-color)'
             }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', fontWeight: '800', color: ramadanBreakTag ? '#d97706' : 'var(--text-primary)', marginBottom: '6px' }}>
-                <span>🌙 Ramazan Özel Kuşak İşaretlemesi (Opsiyonel):</span>
+                <span>Ramazan Özel Kuşak İşaretlemesi (Opsiyonel):</span>
               </label>
               <select
                 value={ramadanBreakTag}

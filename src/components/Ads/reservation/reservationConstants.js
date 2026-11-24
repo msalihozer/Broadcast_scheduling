@@ -120,24 +120,24 @@ export const SPONSOR_POSITIONS = [
 export const RAMADAN_TARGET_OPTIONS = [
   {
     id: 'sahur',
-    label: '🌙 Ramazan Sahur Programı',
-    shortLabel: '🌙 Sahur Programı',
+    label: 'Ramazan Sahur Programı',
+    shortLabel: 'Sahur Programı',
     desc: 'Sahur programının başlangıç saatine göre Öncesi, Arası ve Sonrası reklam kuşakları',
     color: '#0284c7',
     bg: 'rgba(2, 132, 199, 0.14)'
   },
   {
     id: 'iftar',
-    label: '🕌 Ramazan İftar Programı',
-    shortLabel: '🕌 İftar Programı',
+    label: 'Ramazan İftar Programı',
+    shortLabel: 'İftar Programı',
     desc: 'İftar programının başlangıç saatine göre Öncesi, Arası ve Sonrası reklam kuşakları',
     color: '#d97706',
     bg: 'rgba(217, 119, 6, 0.14)'
   },
   {
     id: 'both',
-    label: '🌙+🕌 Hem Sahur Hem İftar Programları',
-    shortLabel: '🌙+🕌 Sahur & İftar',
+    label: 'Hem Sahur Hem İftar Programları',
+    shortLabel: 'Sahur & İftar',
     desc: 'Günün hem Sahur hem de İftar programı kuşaklarında yayınlanır',
     color: '#059669',
     bg: 'rgba(5, 150, 105, 0.14)'
@@ -149,12 +149,12 @@ export const RAMADAN_TARGET_OPTIONS = [
  */
 export const RAMADAN_BREAK_TAGS = [
   { value: '', label: 'Standart Kuşak', shortLabel: 'Standart', color: '#64748b' },
-  { value: 'sahur_before', label: '🌙 Ramazan Sahur Öncesi Kuşağı', shortLabel: '🌙 Sahur Öncesi', target: 'sahur', pos: 'before', color: '#0284c7' },
-  { value: 'sahur_middle', label: '🌙 Ramazan Sahur Arası Kuşağı', shortLabel: '🌙 Sahur Arası', target: 'sahur', pos: 'middle', color: '#0369a1' },
-  { value: 'sahur_after', label: '🌙 Ramazan Sahur Sonrası Kuşağı', shortLabel: '🌙 Sahur Sonrası', target: 'sahur', pos: 'after', color: '#075985' },
-  { value: 'iftar_before', label: '🕌 Ramazan İftar Öncesi Kuşağı', shortLabel: '🕌 İftar Öncesi', target: 'iftar', pos: 'before', color: '#d97706' },
-  { value: 'iftar_middle', label: '🕌 Ramazan İftar Arası Kuşağı', shortLabel: '🕌 İftar Arası', target: 'iftar', pos: 'middle', color: '#b45309' },
-  { value: 'iftar_after', label: '🕌 Ramazan İftar Sonrası Kuşağı', shortLabel: '🕌 İftar Sonrası', target: 'iftar', pos: 'after', color: '#92400e' }
+  { value: 'sahur_before', label: 'Ramazan Sahur Öncesi Kuşağı', shortLabel: 'Sahur Öncesi', target: 'sahur', pos: 'before', color: '#0284c7' },
+  { value: 'sahur_middle', label: 'Ramazan Sahur Arası Kuşağı', shortLabel: 'Sahur Arası', target: 'sahur', pos: 'middle', color: '#0369a1' },
+  { value: 'sahur_after', label: 'Ramazan Sahur Sonrası Kuşağı', shortLabel: 'Sahur Sonrası', target: 'sahur', pos: 'after', color: '#075985' },
+  { value: 'iftar_before', label: 'Ramazan İftar Öncesi Kuşağı', shortLabel: 'İftar Öncesi', target: 'iftar', pos: 'before', color: '#d97706' },
+  { value: 'iftar_middle', label: 'Ramazan İftar Arası Kuşağı', shortLabel: 'İftar Arası', target: 'iftar', pos: 'middle', color: '#b45309' },
+  { value: 'iftar_after', label: 'Ramazan İftar Sonrası Kuşağı', shortLabel: 'İftar Sonrası', target: 'iftar', pos: 'after', color: '#92400e' }
 ];
 
 export const FALLBACK_BROADCAST_PROGRAMS = [

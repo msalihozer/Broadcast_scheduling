@@ -192,10 +192,10 @@ const DashboardOperationsTable = ({
                             outline: 'none'
                           }}
                         >
-                          <option value="active">🟢 Aktif (Yayında)</option>
-                          <option value="pending">🟠 Onay Bekliyor</option>
-                          <option value="completed">🔵 Tamamlandı (Biten)</option>
-                          <option value="cancelled">🔴 İptal Edildi</option>
+                          <option value="active">Aktif (Yayında)</option>
+                          <option value="pending">Onay Bekliyor</option>
+                          <option value="completed">Tamamlandı (Biten)</option>
+                          <option value="cancelled">İptal Edildi</option>
                         </select>
                       </td>
 
@@ -245,7 +245,7 @@ const DashboardOperationsTable = ({
                           </div>
                         ) : (
                           <span className="ta-badge ta-badge-success">
-                            ✓ Telafi Yok {res.makegoodScheduledSpots > 0 ? `(+${res.makegoodScheduledSpots} telafi)` : ''}
+                            Telafi Yok {res.makegoodScheduledSpots > 0 ? `(+${res.makegoodScheduledSpots} telafi)` : ''}
                           </span>
                         )}
                       </td>
@@ -259,7 +259,7 @@ const DashboardOperationsTable = ({
                           <span style={{ fontSize: '11px', color: res.remainingReceivable > 0 ? 'var(--ads-warning-text)' : 'var(--ads-success-text)', fontWeight: '600' }}>
                             {res.remainingReceivable > 0
                               ? `Kalan: ${formatCurrency(res.remainingReceivable)}`
-                              : '✓ Tamamı Tahsil Edildi'}
+                              : 'Tamamı Tahsil Edildi'}
                           </span>
                           {res.remainingReceivable > 0 && onUpdateReservation && (
                             <button
@@ -410,11 +410,11 @@ const DashboardOperationsTable = ({
                           outline: 'none'
                         }}
                       >
-                        <option value="approved">🟢 Yayına Uygun (Onaylı)</option>
-                        <option value="pending">🟠 Onay Bekliyor</option>
-                        <option value="technical_error">🔴 Teknik Hatalı (Ses/TC)</option>
-                        <option value="expired">🟣 Süresi Dolan</option>
-                        <option value="missing">⚪ Eksik Dosya / Süre</option>
+                        <option value="approved">Yayına Uygun (Onaylı)</option>
+                        <option value="pending">Onay Bekliyor</option>
+                        <option value="technical_error">Teknik Hatalı (Ses/TC)</option>
+                        <option value="expired">Süresi Dolan</option>
+                        <option value="missing">Eksik Dosya / Süre</option>
                       </select>
                     </td>
 

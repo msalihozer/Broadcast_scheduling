@@ -609,7 +609,7 @@ const DraftExcelImportModal = ({
                               <span>{customWeekDetails.weekLabel}</span>
                             </div>
                             <div style={{ fontSize: '11px', color: 'var(--accent-primary)', fontWeight: 700, marginTop: '2px' }}>
-                              ✓ 7 GÜNLÜK TAM YAYIN AKIŞI SEÇİLİ
+                              7 GÜNLÜK TAM YAYIN AKIŞI SEÇİLİ
                             </div>
                           </div>
 
@@ -642,7 +642,7 @@ const DraftExcelImportModal = ({
                           <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                             <span>SEÇİLEN HAFTANIN 7 GÜNÜ (PAZARTESİ - PAZAR TAM BLOK):</span>
                             <span style={{ color: '#10b981', fontWeight: 700, textTransform: 'none' }}>
-                              ✓ 7 Günün Tamamı Excel ile Doldurulacak
+                              7 Günün Tamamı Excel ile Doldurulacak
                             </span>
                           </div>
 
@@ -681,7 +681,7 @@ const DraftExcelImportModal = ({
                                   padding: '1px 4px',
                                   borderRadius: '4px'
                                 }}>
-                                  ✓ Dahil
+                                  Dahil
                                 </div>
                               </div>
                             ))}
@@ -892,7 +892,7 @@ const DraftExcelImportModal = ({
                           <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                             <span>Excel'den Hangi Günün Akışı Alınsın?</span>
                             <span style={{ fontSize: '10px', color: singleDayDetails.isDayMatched ? '#059669' : 'var(--text-muted)' }}>
-                              {singleDayDetails.isDayMatched ? '✓ Hedef günle otomatik eşleşti' : 'Özel kaynak gün seçildi'}
+                              {singleDayDetails.isDayMatched ? 'Hedef günle otomatik eşleşti' : 'Özel kaynak gün seçildi'}
                             </span>
                           </div>
 

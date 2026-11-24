@@ -345,9 +345,9 @@ const AdPlanningTab = () => {
           : (dayObj.adsStatus || 'pending');
 
         let statusBadgeText = '⏳ Bekliyor';
-        if (isRevised) statusBadgeText = '🔄 REVİZE';
-        else if (adsStatus === 'completed') statusBadgeText = '✓ Onaylandı';
-        else if (spotsCount > 0) statusBadgeText = '🔵 Planlandı';
+        if (isRevised) statusBadgeText = 'REVİZE';
+        else if (adsStatus === 'completed') statusBadgeText = 'Onaylandı';
+        else if (spotsCount > 0) statusBadgeText = 'Planlandı';
 
         let formattedDate = dateStr;
         try {
@@ -983,7 +983,7 @@ const AdPlanningTab = () => {
 
     if (warnings.length > 0) {
       const ok = await dialog.confirm(
-        '⚠️ Spot / Süre / Fiyat Aşımı Uyarısı',
+        'Spot / Süre / Fiyat Aşımı Uyarısı',
         `Bu spot eklendiğinde aşağıdaki sınırlar aşılacaktır:\n\n` +
           `${warnings.join('\n')}\n\n` +
           `"Devam Et" derseniz spot kuşağa eklenecek ve eksi (-) aşım bilgisi rezervasyonda tutulacaktır. Devam edilsin mi?`,
@@ -1251,7 +1251,7 @@ const AdPlanningTab = () => {
                 onClearHighlightedClip={() => setSelectedAdTarget(null)}
               />
 
-              {/* 🌙 RAMAZAN ÖZEL KONTROL ŞERİDİ: SADECE RAMAZAN BAŞLANGICINA 2 HAFTA KALA VEYA RAMAZAN AYINDA GÖSTERİLİR */}
+              {/* RAMAZAN ÖZEL KONTROL ŞERİDİ: SADECE RAMAZAN BAŞLANGICINA 2 HAFTA KALA VEYA RAMAZAN AYINDA GÖSTERİLİR */}
               {isRamadanFeatureWindowOpen(ramadanConfig, selectedDayInfo?.date || selectedDate) && (
                 <div
                   className="ta-card"
@@ -1277,7 +1277,7 @@ const AdPlanningTab = () => {
                         fontWeight: '900'
                       }}
                     >
-                      🌙 Ramazan Özel Planlama
+                      Ramazan Özel Planlama
                     </span>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', fontWeight: '700', color: 'var(--ads-text-main)' }}>
@@ -1311,7 +1311,7 @@ const AdPlanningTab = () => {
                         fontWeight: '800'
                       }}
                     >
-                      🌙 Sahur Programı Başlangıç:{' '}
+                      Sahur Programı Başlangıç:{' '}
                       {todayRamadanScheduleInfo.sahurProg
                         ? `${todayRamadanScheduleInfo.sahurProg.exactStartClock} (${todayRamadanScheduleInfo.sahurProg.title})`
                         : 'Kuşak üzerinden işaretleyebilirsiniz'}
@@ -1327,7 +1327,7 @@ const AdPlanningTab = () => {
                         fontWeight: '800'
                       }}
                     >
-                      🕌 İftar Programı Başlangıç:{' '}
+                      İftar Programı Başlangıç:{' '}
                       {todayRamadanScheduleInfo.iftarProg
                         ? `${todayRamadanScheduleInfo.iftarProg.exactStartClock} (${todayRamadanScheduleInfo.iftarProg.title})`
                         : 'Kuşak üzerinden işaretleyebilirsiniz'}

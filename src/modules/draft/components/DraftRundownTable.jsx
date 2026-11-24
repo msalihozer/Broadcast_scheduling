@@ -408,7 +408,7 @@ const DraftRundownTable = ({
                                   >
                                     {OPTION_ICONS[opt] || <CheckCircle2 size={10} />}
                                     <span>{opt}</span>
-                                    {isSelectedOption && <span style={{ fontSize: '8px' }}>✓</span>}
+                                    {isSelectedOption && <span style={{ fontSize: '8px' }}>Tamam</span>}
                                   </button>
                                 );
                               })}

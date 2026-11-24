@@ -108,8 +108,8 @@ const sanitizeProgramCodeAndFileId = (prog = {}) => {
 
 /**
  * Yayın akışında Logo mantığı:
- * 1. Reklam Girişinde (kuşağın ilk satırı / RTÜK Giriş): Reklam Logosu girer (`📢 REKLAM LOGOSU GİRİŞ` -> `Semerkand_HD_Reklam_Logo`).
- * 2. Reklam Çıkıştan hemen sonra yani Programa Girerken (ve yayın başlangıcında): Yayın Logosu girer (`📺 YAYIN LOGOSU GİRİŞ` -> `Semerkand_Tv_Logo_Corner`).
+ * 1. Reklam Girişinde (kuşağın ilk satırı / RTÜK Giriş): Reklam Logosu girer (`REKLAM LOGOSU GİRİŞ` -> `Semerkand_HD_Reklam_Logo`).
+ * 2. Reklam Çıkıştan hemen sonra yani Programa Girerken (ve yayın başlangıcında): Yayın Logosu girer (`YAYIN LOGOSU GİRİŞ` -> `Semerkand_Tv_Logo_Corner`).
  * 3. Ara reklam spotlarında, RTÜK Çıkış klibinde ve devam eden program partlarında tekrar logo tanımlanmaz (`none`).
  */
 export const applySmartLogoTransitions = (programs = [], channelId = 'ch_hd', adSettings = {}) => {
@@ -146,13 +146,13 @@ export const applySmartLogoTransitions = (programs = [], channelId = 'ch_hd', ad
       const isAdEv = ev === 'reklam_giris';
       const activeLogoName = item.manualLogoName || (isAdEv ? adLogo : broadcastLogo);
       const labelMap = {
-        reklam_giris: '📢 REKLAM LOGOSU GİRİŞ',
-        yayin_giris: '📺 YAYIN LOGOSU GİRİŞ'
+        reklam_giris: 'REKLAM LOGOSU GİRİŞ',
+        yayin_giris: 'YAYIN LOGOSU GİRİŞ'
       };
       return {
         ...item,
         logoEvent: isAdEv ? 'reklam_giris' : 'yayin_giris',
-        logoEventLabel: labelMap[ev] || '📺 YAYIN LOGOSU GİRİŞ',
+        logoEventLabel: labelMap[ev] || 'YAYIN LOGOSU GİRİŞ',
         logo: activeLogoName
       };
     }
@@ -168,14 +168,14 @@ export const applySmartLogoTransitions = (programs = [], channelId = 'ch_hd', ad
       // Sadece Reklam Girişinde (RTÜK Giriş veya kuşağın ilk reklam satırında) Reklam Logosu girer
       if ((item.isBumperAd && item.bumperType === 'intro') || isBreakFirstRow) {
         autoEvent = 'reklam_giris';
-        autoLabel = '📢 REKLAM LOGOSU GİRİŞ';
+        autoLabel = 'REKLAM LOGOSU GİRİŞ';
         autoLogo = adLogo;
       }
     } else {
       // Reklam çıkıştan hemen sonra programa girerken (prevIsAd === true) veya günün ilk programına girerken Yayın Logosu girer
       if ((prevIsAd || !broadcastLogoActive) && !isChannelOpeningIntro(item, idx)) {
         autoEvent = 'yayin_giris';
-        autoLabel = '📺 YAYIN LOGOSU GİRİŞ';
+        autoLabel = 'YAYIN LOGOSU GİRİŞ';
         autoLogo = broadcastLogo;
         broadcastLogoActive = true;
       }
@@ -825,10 +825,10 @@ export const createListControlSlice = (set, get) => ({
     if (targetTitle) {
       const labelMap = {
         auto: 'Otomatik (Giriş/Çıkış)',
-        yayin_giris: '📺 Yayın Logo Giriş',
-        yayin_cikis: '📺 Yayın Logo Çıkış',
-        reklam_giris: '📢 Reklam Logo Giriş',
-        reklam_cikis: '📢 Reklam Logo Çıkış',
+        yayin_giris: 'Yayın Logo Giriş',
+        yayin_cikis: 'Yayın Logo Çıkış',
+        reklam_giris: 'Reklam Logo Giriş',
+        reklam_cikis: 'Reklam Logo Çıkış',
         none: '— (Logo Tetiklemesi Yok)'
       };
       get().lcAddAuditLog({

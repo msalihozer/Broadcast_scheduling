@@ -248,7 +248,7 @@ const EditBroadcastProgramModal = ({ isOpen, onClose, program }) => {
               border: (ramadanProgramType || ramadanBreakTag) ? '1.5px solid #d97706' : '1px solid var(--border-color)'
             }}>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', color: (ramadanProgramType || ramadanBreakTag) ? '#d97706' : 'var(--text-primary)', marginBottom: '6px' }}>
-                {isAdBreak ? '🌙 Ramazan Özel Reklam Kuşağı İşareti:' : '🌙 Ramazan Özel Program Türü (Sahur / İftar):'}
+                {isAdBreak ? 'Ramazan Özel Reklam Kuşağı İşareti:' : 'Ramazan Özel Program Türü (Sahur / İftar):'}
               </label>
               {isAdBreak ? (
                 <select
@@ -287,8 +287,8 @@ const EditBroadcastProgramModal = ({ isOpen, onClose, program }) => {
                   }}
                 >
                   <option value="">Normal Program (Ramazan Özel Değil)</option>
-                  <option value="sahur">🌙 Ramazan Sahur Programı (Başlangıç Saati Referansı)</option>
-                  <option value="iftar">🕌 Ramazan İftar Programı (Başlangıç Saati Referansı)</option>
+                  <option value="sahur">Ramazan Sahur Programı (Başlangıç Saati Referansı)</option>
+                  <option value="iftar">Ramazan İftar Programı (Başlangıç Saati Referansı)</option>
                 </select>
               )}
             </div>

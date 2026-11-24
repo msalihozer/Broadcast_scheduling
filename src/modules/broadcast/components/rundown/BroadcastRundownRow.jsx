@@ -523,7 +523,7 @@ const BroadcastRundownRow = memo(function BroadcastRundownRow({
                 boxShadow: '0 2px 6px rgba(37, 99, 235, 0.35)',
                 whiteSpace: 'nowrap'
               }}>
-                ✓ SEÇİLİ
+                SEÇİLİ
               </span>
             )}
 
@@ -605,9 +605,9 @@ const BroadcastRundownRow = memo(function BroadcastRundownRow({
                   border: effectiveRamadanProgType ? '1px solid rgba(255,255,255,0.28)' : '1px dashed var(--border-color)'
                 }}
               >
-                <option value="" style={{ background: '#1e293b', color: '#f8fafc' }}>🌙 Ramazan İşareti Yok</option>
-                <option value="sahur" style={{ background: '#1e293b', color: '#38bdf8' }}>🌙 SAHUR PROGRAMI (Başlangıç: {startInfo.hhmm})</option>
-                <option value="iftar" style={{ background: '#1e293b', color: '#fbbf24' }}>🕌 İFTAR PROGRAMI (Başlangıç: {startInfo.hhmm})</option>
+                <option value="" style={{ background: '#1e293b', color: '#f8fafc' }}>Ramazan İşareti Yok</option>
+                <option value="sahur" style={{ background: '#1e293b', color: '#38bdf8' }}>SAHUR PROGRAMI (Başlangıç: {startInfo.hhmm})</option>
+                <option value="iftar" style={{ background: '#1e293b', color: '#fbbf24' }}>İFTAR PROGRAMI (Başlangıç: {startInfo.hhmm})</option>
               </select>
             )}
 
@@ -639,13 +639,13 @@ const BroadcastRundownRow = memo(function BroadcastRundownRow({
                   border: effectiveRamadanBreakTag ? '1px solid rgba(255,255,255,0.3)' : '1px dashed rgba(245, 158, 11, 0.5)'
                 }}
               >
-                <option value="" style={{ background: '#1e293b', color: '#f8fafc' }}>🌙 Ramazan Özel İşaretle...</option>
-                <option value="sahur_before" style={{ background: '#1e293b', color: '#38bdf8' }}>🌙 RAMAZAN: SAHUR ÖNCESİ KUŞAĞI</option>
-                <option value="sahur_middle" style={{ background: '#1e293b', color: '#38bdf8' }}>🌙 RAMAZAN: SAHUR ARASI KUŞAĞI</option>
-                <option value="sahur_after" style={{ background: '#1e293b', color: '#38bdf8' }}>🌙 RAMAZAN: SAHUR SONRASI KUŞAĞI</option>
-                <option value="iftar_before" style={{ background: '#1e293b', color: '#fbbf24' }}>🕌 RAMAZAN: İFTAR ÖNCESİ KUŞAĞI</option>
-                <option value="iftar_middle" style={{ background: '#1e293b', color: '#fbbf24' }}>🕌 RAMAZAN: İFTAR ARASI KUŞAĞI</option>
-                <option value="iftar_after" style={{ background: '#1e293b', color: '#fbbf24' }}>🕌 RAMAZAN: İFTAR SONRASI KUŞAĞI</option>
+                <option value="" style={{ background: '#1e293b', color: '#f8fafc' }}>Ramazan Özel İşaretle...</option>
+                <option value="sahur_before" style={{ background: '#1e293b', color: '#38bdf8' }}>RAMAZAN: SAHUR ÖNCESİ KUŞAĞI</option>
+                <option value="sahur_middle" style={{ background: '#1e293b', color: '#38bdf8' }}>RAMAZAN: SAHUR ARASI KUŞAĞI</option>
+                <option value="sahur_after" style={{ background: '#1e293b', color: '#38bdf8' }}>RAMAZAN: SAHUR SONRASI KUŞAĞI</option>
+                <option value="iftar_before" style={{ background: '#1e293b', color: '#fbbf24' }}>RAMAZAN: İFTAR ÖNCESİ KUŞAĞI</option>
+                <option value="iftar_middle" style={{ background: '#1e293b', color: '#fbbf24' }}>RAMAZAN: İFTAR ARASI KUŞAĞI</option>
+                <option value="iftar_after" style={{ background: '#1e293b', color: '#fbbf24' }}>RAMAZAN: İFTAR SONRASI KUŞAĞI</option>
               </select>
             )}
 

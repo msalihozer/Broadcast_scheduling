@@ -103,28 +103,28 @@ export default function ListControlRevisionModal({
     ? [
         {
           id: 'draft',
-          title: '📋 Taslak Planlama',
+          title: 'Taslak Planlama',
           desc: 'Bütün günü Taslak Planlama birimine revizeye gönder',
           color: '#0284c7',
           bg: 'rgba(2, 132, 199, 0.12)'
         },
         {
           id: 'broadcast',
-          title: '🎬 Yayın Planlama',
+          title: 'Yayın Planlama',
           desc: 'Bütün günü Yayın Planlama birimine revizeye gönder',
           color: '#2563eb',
           bg: 'rgba(37, 99, 235, 0.12)'
         },
         {
           id: 'ads',
-          title: '📢 Reklam Rezervasyon',
+          title: 'Reklam Rezervasyon',
           desc: 'Bütün günü Reklam Rezervasyon birimine revizeye gönder',
           color: '#d97706',
           bg: 'rgba(217, 119, 6, 0.12)'
         },
         {
           id: 'all',
-          title: '🌐 Tüm Birimlere Gönder',
+          title: 'Tüm Birimlere Gönder',
           desc: 'Taslak, Yayın Planlama ve Reklam birimlerinin tamamına bildir',
           color: '#dc2626',
           bg: 'rgba(220, 38, 38, 0.12)'
@@ -133,21 +133,21 @@ export default function ListControlRevisionModal({
     : [
         {
           id: 'draft',
-          title: '📋 Taslak Planlama',
+          title: 'Taslak Planlama',
           desc: 'Program / kuşak planlaması taslak aşamasında düzeltilsin',
           color: '#0284c7',
           bg: 'rgba(2, 132, 199, 0.12)'
         },
         {
           id: 'broadcast',
-          title: '🎬 Yayın Planlama',
+          title: 'Yayın Planlama',
           desc: 'Bölüm, klip seçimi veya süre Yayın Planlamada düzeltilsin',
           color: '#2563eb',
           bg: 'rgba(37, 99, 235, 0.12)'
         },
         {
           id: 'both',
-          title: '🔄 Her İkisine Birden',
+          title: 'Her İkisine Birden',
           desc: 'Hem Taslak hem Yayın Planlama birimine bildirilsin',
           color: '#7c3aed',
           bg: 'rgba(124, 58, 237, 0.12)'
@@ -274,7 +274,7 @@ export default function ListControlRevisionModal({
                   : 'rgba(37, 99, 235, 0.16)',
                 color: isFullDay ? '#dc2626' : isAd ? '#d97706' : '#2563eb'
               }}>
-                {isFullDay ? '📅 TÜM GÜN YAYIN & REKLAM LİSTESİ' : isAd ? '📢 REKLAM / KUŞAK ÖĞESİ' : '🎬 PROGRAM / KLİP ÖĞESİ'}
+                {isFullDay ? 'TÜM GÜN YAYIN & REKLAM LİSTESİ' : isAd ? 'REKLAM / KUŞAK ÖĞESİ' : 'PROGRAM / KLİP ÖĞESİ'}
               </span>
               <span style={{ fontSize: '12px', fontWeight: 700, fontFamily: 'monospace', color: 'var(--text-secondary)' }}>
                 {isFullDay
@@ -408,7 +408,7 @@ export default function ListControlRevisionModal({
                 background: reason.trim() ? 'rgba(16, 185, 129, 0.14)' : 'rgba(239, 68, 68, 0.14)',
                 color: reason.trim() ? '#059669' : '#dc2626'
               }}>
-                {reason.trim() ? '✓ Açıklama Girildi' : '⚠️ Açıklama Zorunlu'}
+                {reason.trim() ? 'Açıklama Girildi' : 'Açıklama Zorunlu'}
               </span>
             </div>
             <textarea

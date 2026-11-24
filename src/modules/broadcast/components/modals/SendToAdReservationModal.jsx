@@ -354,7 +354,7 @@ export default function SendToAdReservationModal({
               <div style={{ flex: '1 1 150px', padding: '10px 12px', borderRadius: '12px', background: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
                 <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '700' }}>KAYIT & İLETİM SAATİ</div>
                 <div style={{ fontSize: '15px', fontWeight: '900', color: '#10b981', marginTop: '4px' }}>
-                  ✓ {sentSuccessInfo.sentAt}
+                  {sentSuccessInfo.sentAt}
                 </div>
               </div>
             </div>
@@ -708,7 +708,7 @@ export default function SendToAdReservationModal({
                     cursor: 'pointer'
                   }}
                 >
-                  📋 İletilecek Tüm Yayın Listesi ({programs.length})
+                  İletilecek Tüm Yayın Listesi ({programs.length})
                 </button>
 
                 <button
@@ -725,7 +725,7 @@ export default function SendToAdReservationModal({
                     cursor: 'pointer'
                   }}
                 >
-                  📢 Sadece Reklam Kuşakları ({timeStats.adBreaks.length})
+                  Sadece Reklam Kuşakları ({timeStats.adBreaks.length})
                 </button>
 
                 {warningRowsCount > 0 && (
@@ -743,7 +743,7 @@ export default function SendToAdReservationModal({
                       cursor: 'pointer'
                     }}
                   >
-                    ⚠️ Dikkat Edilecek Satırlar ({warningRowsCount})
+                    Dikkat Edilecek Satırlar ({warningRowsCount})
                   </button>
                 )}
               </div>
@@ -786,7 +786,7 @@ export default function SendToAdReservationModal({
                       fontSize: '11px'
                     }}
                   >
-                    ✕
+                    X
                   </button>
                 )}
               </div>

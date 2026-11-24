@@ -210,7 +210,7 @@ const ArchiveClipsTable = ({
   const handleDeleteClips = async (clipsToDelete = selectedClipsList) => {
     if (!clipsToDelete || clipsToDelete.length === 0) return;
     const count = clipsToDelete.length;
-    const confirmMsg = `⚠️ DİKKAT: ${count} adet klibi arşivden KALICI OLARAK silmek istediğinize emin misiniz?\n\nBu işlem geri alınamaz!`;
+    const confirmMsg = `DİKKAT: ${count} adet klibi arşivden KALICI OLARAK silmek istediğinize emin misiniz?\n\nBu işlem geri alınamaz!`;
     if (!window.confirm(confirmMsg)) return;
 
     try {
@@ -430,7 +430,7 @@ const ArchiveClipsTable = ({
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <span style={{ fontSize: '12px', fontWeight: '800', color: 'var(--text-primary)' }}>
-              ✓ <strong style={{ color: 'var(--accent-primary)' }}>{selectedClipsList.length}</strong> klip seçildi
+              <strong style={{ color: 'var(--accent-primary)' }}>{selectedClipsList.length}</strong> klip seçildi
               <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '400', marginLeft: '6px' }}>
                 (Shift+Click ile aralık seçebilirsiniz)
               </span>
@@ -684,7 +684,7 @@ const ArchiveClipsTable = ({
                                     fontSize: '10px',
                                     fontWeight: '600'
                                   }} title="Bölüm Adı (Metadata #23)">
-                                    📌 {meta.bolumAdi}
+                                    {meta.bolumAdi}
                                   </span>
                                 )}
                                 {meta.sunucu && (
@@ -696,7 +696,7 @@ const ArchiveClipsTable = ({
                                     fontSize: '10px',
                                     fontWeight: '600'
                                   }} title="Sunucu (Metadata #14)">
-                                    🎙️ Sunucu: {meta.sunucu}
+                                    Sunucu: {meta.sunucu}
                                   </span>
                                 )}
                                 {meta.konuk && (
@@ -708,7 +708,7 @@ const ArchiveClipsTable = ({
                                     fontSize: '10px',
                                     fontWeight: '600'
                                   }} title="Konuk (Metadata #15)">
-                                    👤 Konuk: {meta.konuk}
+                                    Konuk: {meta.konuk}
                                   </span>
                                 )}
                                 {meta.yonetmen && (
@@ -720,7 +720,7 @@ const ArchiveClipsTable = ({
                                     fontSize: '10px',
                                     fontWeight: '600'
                                   }} title="Yönetmen (Metadata #9)">
-                                    🎬 Yön: {meta.yonetmen}
+                                    Yön: {meta.yonetmen}
                                   </span>
                                 )}
                                 {meta.yapimci && (
@@ -732,7 +732,7 @@ const ArchiveClipsTable = ({
                                     fontSize: '10px',
                                     fontWeight: '600'
                                   }} title="Yapımcı (Metadata #25)">
-                                    🏢 Yapım: {meta.yapimci}
+                                    Yapım: {meta.yapimci}
                                   </span>
                                 )}
                                 {meta.kurgucu && (
@@ -744,7 +744,7 @@ const ArchiveClipsTable = ({
                                     fontSize: '10px',
                                     fontWeight: '600'
                                   }} title="Kurgucu (Metadata #8)">
-                                    ✂️ Kurgu: {meta.kurgucu}
+                                    Kurgu: {meta.kurgucu}
                                   </span>
                                 )}
                                 {meta.yayinTarihi && (
@@ -756,7 +756,7 @@ const ArchiveClipsTable = ({
                                     fontSize: '10px',
                                     fontWeight: '600'
                                   }} title="Yayın Tarihi (Metadata #24)">
-                                    📅 {meta.yayinTarihi}
+                                    {meta.yayinTarihi}
                                   </span>
                                 )}
                               </div>
@@ -826,7 +826,7 @@ const ArchiveClipsTable = ({
                                       }}
                                       title="TV MAM Veritabanından Çekilen Orijinal Kategori"
                                     >
-                                      🗄️ MAM DB: #{mamCatId} {mamCatName}
+                                      MAM DB: #{mamCatId} {mamCatName}
                                     </span>
                                   )}
                                   {ourCatId && (
@@ -842,7 +842,7 @@ const ArchiveClipsTable = ({
                                       }}
                                       title="Bizim Planlama Sisteminde Kullandığımız Kategori"
                                     >
-                                      🏷️ Bizim: #{ourCatId} {ourCatName}
+                                      Bizim: #{ourCatId} {ourCatName}
                                     </span>
                                   )}
                                 </>

@@ -394,9 +394,9 @@ export default function LogsTab() {
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-secondary)' }}>
-                  <span style={{ color: '#10b981', fontWeight: 700 }}>✓ {u.success}</span>
-                  <span style={{ color: '#f59e0b', fontWeight: 700 }}>⚠ {u.warning}</span>
-                  <span style={{ color: '#ef4444', fontWeight: 700 }}>✕ {u.error}</span>
+                  <span style={{ color: '#10b981', fontWeight: 700 }}>{u.success}</span>
+                  <span style={{ color: '#f59e0b', fontWeight: 700 }}>{u.warning}</span>
+                  <span style={{ color: '#ef4444', fontWeight: 700 }}>X {u.error}</span>
                   <span style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>
                     {u.lastTimestamp ? formatTimestamp(u.lastTimestamp).slice(0, 16) : 'Kayıt yok'}
                   </span>

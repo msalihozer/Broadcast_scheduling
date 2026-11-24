@@ -703,7 +703,7 @@ const AdsReservationForm = ({ onClose, existingData = null, defaultSponsorMode =
     // Eğer spot sayısı, gün süresi veya fiyat bilgisi aşılmışsa uyarı ver; "Devam Et" denildiğinde devam et ve - bilgisini kaydet!
     if (overageWarnings.length > 0) {
       const confirmed = await dialog.confirm(
-        '⚠️ Spot / Gün Süresi / Fiyat Aşımı Uyarısı',
+        'Spot / Gün Süresi / Fiyat Aşımı Uyarısı',
         `Bu rezervasyonda planlanan kota, gün süresi veya fiyat sınırları aşıldı:\n\n` +
           `${overageWarnings.join('\n')}\n\n` +
           `"Devam Et" butonuna tıklarsanız rezervasyon kaydedilecek ve aşım miktarı eksi (-) bakiye olarak (` +
@@ -775,7 +775,7 @@ const AdsReservationForm = ({ onClose, existingData = null, defaultSponsorMode =
       name:
         formData.name ||
         (hasAnyRamadan
-          ? `🌙 Ramazan Özel — ${companies.find(c => String(c.id) === String(formData.companyId))?.name || 'Firma'}`
+          ? `Ramazan Özel — ${companies.find(c => String(c.id) === String(formData.companyId))?.name || 'Firma'}`
           : hasAnySponsor
           ? `${uniqueSponsorPrograms.join(' & ')} Sponsorluğu`
           : `${companies.find(c => String(c.id) === String(formData.companyId))?.name || 'Firma'} Rezervasyon Planı`),

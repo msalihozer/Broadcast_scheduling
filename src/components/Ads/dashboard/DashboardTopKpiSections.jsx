@@ -164,7 +164,7 @@ const DashboardTopKpiSections = ({
                   <ArrowDownRight size={13} /> Telafi Planla
                 </>
               ) : (
-                '✓ Eksik Yok'
+                'Eksik Yok'
               )}
             </span>
           </div>

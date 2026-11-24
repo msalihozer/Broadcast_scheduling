@@ -97,7 +97,7 @@ const OurCategoriesManagerModal = ({
       }
       setNewName('');
       setNewBadge('');
-      showSuccess(`"✅ #${data.category.id} ${data.category.name}" kategorisi Bizim DB'ye eklendi.`);
+      showSuccess(`"#${data.category.id} ${data.category.name}" kategorisi Bizim DB'ye eklendi.`);
       await fetchOurCategories();
       if (onCategoriesUpdated) onCategoriesUpdated();
     } catch (err) {
@@ -133,7 +133,7 @@ const OurCategoriesManagerModal = ({
         throw new Error(data.error || 'Kategori güncellenemedi.');
       }
       setEditingId(null);
-      showSuccess(`"✅ #${id} ${data.category.name}" kategorisi güncellendi.`);
+      showSuccess(`"#${id} ${data.category.name}" kategorisi güncellendi.`);
       await fetchOurCategories();
       if (onCategoriesUpdated) onCategoriesUpdated();
     } catch (err) {
@@ -160,7 +160,7 @@ const OurCategoriesManagerModal = ({
         throw new Error(data.error || 'Kategori silinemedi.');
       }
       showSuccess(
-        `🗑️ "#${cat.id} ${cat.name}" kategorisi çıkarıldı${data.movedProgramsCount > 0 ? ` (${data.movedProgramsCount} program korundu)` : ''}.`
+        `"#${cat.id} ${cat.name}" kategorisi çıkarıldı${data.movedProgramsCount > 0 ? ` (${data.movedProgramsCount} program korundu)` : ''}.`
       );
       await fetchOurCategories();
       if (onCategoriesUpdated) onCategoriesUpdated();

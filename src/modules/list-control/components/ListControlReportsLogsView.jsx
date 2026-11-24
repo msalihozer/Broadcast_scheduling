@@ -217,9 +217,9 @@ export default function ListControlReportsLogsView({
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
           {[
-            { id: 'audit_report', label: `📊 Klip & Reklam Denetim Tablosu (${programs.length})` },
-            { id: 'draft_report', label: `📋 Taslak ↔ Yayın Planlama Raporu (${stageAnalysis?.totalDraftSlots || 0})` },
-            { id: 'logs', label: `📜 Denetim & İşlem Logları (${listControlLogs.length})` }
+            { id: 'audit_report', label: `Klip & Reklam Denetim Tablosu (${programs.length})` },
+            { id: 'draft_report', label: `Taslak ↔ Yayın Planlama Raporu (${stageAnalysis?.totalDraftSlots || 0})` },
+            { id: 'logs', label: `Denetim & İşlem Logları (${listControlLogs.length})` }
           ].map(tab => (
             <button
               key={tab.id}
@@ -407,7 +407,7 @@ export default function ListControlReportsLogsView({
                       background: stageInfo.badgeBg || 'var(--bg-tertiary)',
                       color: stageInfo.badgeColor || 'var(--text-primary)'
                     }}>
-                      {stageInfo.badgeLabel || (isAd ? '📢 Reklam Rezervasyon' : '🎬 Yayın Planlama')}
+                      {stageInfo.badgeLabel || (isAd ? 'Reklam Rezervasyon' : 'Yayın Planlama')}
                     </span>
                   </div>
                   <div style={{ width: '240px', display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
@@ -419,7 +419,7 @@ export default function ListControlReportsLogsView({
                       background: h.inDatabase ? 'rgba(16, 185, 129, 0.14)' : 'rgba(220, 38, 38, 0.15)',
                       color: h.inDatabase ? '#059669' : '#dc2626'
                     }}>
-                      {h.inDatabase ? 'DB ✓' : 'DB ✗'}
+                      {h.inDatabase ? 'DB' : 'DB (Yok)'}
                     </span>
                     <span style={{
                       fontSize: '10.5px',
@@ -429,7 +429,7 @@ export default function ListControlReportsLogsView({
                       background: h.fileExists ? 'rgba(16, 185, 129, 0.14)' : 'rgba(220, 38, 38, 0.15)',
                       color: h.fileExists ? '#059669' : '#dc2626'
                     }}>
-                      {h.fileExists ? 'Dosya ✓' : 'Dosya ✗'}
+                      {h.fileExists ? 'Dosya' : 'Dosya (Yok)'}
                     </span>
                     <span style={{
                       fontSize: '10.5px',
@@ -439,7 +439,7 @@ export default function ListControlReportsLogsView({
                       background: !h.isCorrupted ? 'rgba(16, 185, 129, 0.14)' : 'rgba(220, 38, 38, 0.15)',
                       color: !h.isCorrupted ? '#059669' : '#dc2626'
                     }}>
-                      {!h.isCorrupted ? 'Sağlam ✓' : 'Bozuk ⚠️'}
+                      {!h.isCorrupted ? 'Sağlam' : 'Bozuk '}
                     </span>
                   </div>
                   <div style={{ width: '120px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}>
@@ -536,7 +536,7 @@ export default function ListControlReportsLogsView({
                     background: 'rgba(37, 99, 235, 0.14)',
                     color: '#2563eb'
                   }}>
-                    🔄 {slot.modificationDetail}
+                    {slot.modificationDetail}
                   </span>
                 )}
               </div>
@@ -548,7 +548,7 @@ export default function ListControlReportsLogsView({
                 background: slot.isPresentInList ? '#10b981' : '#d97706',
                 color: '#ffffff'
               }}>
-                {slot.isPresentInList ? `✓ Yayında Mevcut (${slot.matchedItemsCount} Parça)` : '⚠️ Listede Eksik!'}
+                {slot.isPresentInList ? `Yayında Mevcut (${slot.matchedItemsCount} Parça)` : 'Listede Eksik!'}
               </span>
             </div>
           ))}
