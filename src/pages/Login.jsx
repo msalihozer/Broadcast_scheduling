@@ -57,74 +57,90 @@ const Login = () => {
       overflowX: 'hidden',
       boxSizing: 'border-box'
     }}>
-      {/* Sol Sütun: Derin Turkuaz (#0C617C) Kurumsal Marka Yüzü (01_Giris.png) */}
+      {/* Sol Sütun: Derin Turkuaz (#0C617C) Kurumsal Marka Yüzü (01_Giris.png - Tam Flex & Responsive) */}
       <div style={{
         position: 'relative',
         background: '#0C617C',
         color: '#FFFFFF',
-        padding: isMobile ? '44px 28px 36px' : '64px 72px',
+        padding: isMobile ? '36px 24px 32px' : 'clamp(36px, 5.5vh, 64px) clamp(40px, 5vw, 72px)',
         display: 'flex',
         flexDirection: 'column',
-        overflow: 'hidden'
+        justifyContent: 'space-between',
+        overflow: 'hidden',
+        boxSizing: 'border-box'
       }}>
-        {/* Büyük Ürün Çizgi İkonu (Başlıkla aynı sol hizada, başlığın üstünde) */}
+        {/* Üst Esnek Alan: Büyük Ürün Çizgi İkonu (Başlıkla aynı sol hizada, başlığın üstünde, asla üst üste binmez) */}
         <div style={{
-          position: isMobile ? 'relative' : 'absolute',
-          left: isMobile ? '-12px' : '2px',
-          top: isMobile ? '0px' : '110px',
-          width: isMobile ? '240px' : '560px',
-          height: isMobile ? '240px' : '560px',
-          color: 'rgba(255, 255, 255, 0.22)',
+          flex: '1 1 auto',
+          minHeight: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'flex-start',
+          marginLeft: isMobile ? '-12px' : 'calc(-1 * clamp(28px, 3.8vw, 56px))',
+          paddingTop: isMobile ? '0px' : 'clamp(8px, 2vh, 24px)',
+          paddingBottom: isMobile ? '8px' : 'clamp(12px, 2.5vh, 28px)',
           pointerEvents: 'none'
         }}>
           <Ikon
             ad="plan"
-            size={isMobile ? 240 : 560}
-            strokeWidth={0.32}
+            size="100%"
+            strokeWidth={0.28}
             color="rgba(255, 255, 255, 0.22)"
+            style={{
+              width: isMobile ? '220px' : 'min(480px, 38vw, 48vh)',
+              height: isMobile ? '220px' : 'min(480px, 38vw, 48vh)',
+              maxWidth: '100%',
+              maxHeight: '100%',
+              display: 'block'
+            }}
           />
         </div>
 
-        {/* Ana Başlık: Alt kısımda, biraz daha büyük ve aşağıda (Light 300 + Bold 700) */}
-        <h1 style={{
-          position: 'relative',
-          zIndex: 1,
-          margin: isMobile ? '16px 0 0 0' : 'auto 0 0 0',
-          fontSize: isMobile ? '52px' : '84px',
-          lineHeight: 1.02,
-          fontWeight: 300,
-          letterSpacing: '-0.015em',
-          color: '#FFFFFF'
-        }}>
-          Yayın
-          <b style={{ fontWeight: 700, display: 'block' }}>Planlama</b>
-        </h1>
-
-        {/* Alt 4 Akış Aşaması (Çizgisiz, Beyaz İkonlarla) */}
+        {/* Alt Blok: Ana Başlık + 4 Akış Aşaması */}
         <div style={{
-          position: 'relative',
-          zIndex: 1,
+          flexShrink: 0,
           display: 'flex',
-          flexWrap: 'wrap',
-          gap: isMobile ? '16px 22px' : '28px',
-          marginTop: isMobile ? '24px' : '36px',
-          fontSize: '14px',
-          fontWeight: 400,
-          color: 'rgba(255, 255, 255, 0.88)'
+          flexDirection: 'column',
+          position: 'relative',
+          zIndex: 1
         }}>
-          {WORKFLOW_STEPS.map(step => (
-            <span
-              key={step.id}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-            >
-              <Ikon ad={step.icon} size={20} color="rgba(255, 255, 255, 0.9)" />
-              <span>{step.label}</span>
-            </span>
-          ))}
+          {/* Ana Başlık: Light 300 + Bold 700 */}
+          <h1 style={{
+            margin: 0,
+            fontSize: isMobile ? '48px' : 'clamp(56px, 7.8vh, 80px)',
+            lineHeight: 1.02,
+            fontWeight: 300,
+            letterSpacing: '-0.015em',
+            color: '#FFFFFF'
+          }}>
+            Yayın
+            <b style={{ fontWeight: 700, display: 'block' }}>Planlama</b>
+          </h1>
+
+          {/* Alt 4 Akış Aşaması (Çizgisiz, Beyaz İkonlarla) */}
+          <div style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: isMobile ? '14px 20px' : 'clamp(16px, 2vw, 28px)',
+            marginTop: isMobile ? '20px' : 'clamp(22px, 3.5vh, 36px)',
+            fontSize: '14px',
+            fontWeight: 400,
+            color: 'rgba(255, 255, 255, 0.88)'
+          }}>
+            {WORKFLOW_STEPS.map(step => (
+              <span
+                key={step.id}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                <Ikon ad={step.icon} size={20} color="rgba(255, 255, 255, 0.9)" />
+                <span>{step.label}</span>
+              </span>
+            ))}
+          </div>
         </div>
       </div>
 
