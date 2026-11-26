@@ -33,8 +33,14 @@ const BroadcastPlanningLayout = () => {
     pullFromDraft,
     addAdBreak,
     setActiveSidebarTab,
-    notifyDraftUpdated
+    notifyDraftUpdated,
+    goToToday
   } = useBroadcastStore();
+
+  // Açılışta her zaman varsayılan olarak Bugün açılsın
+  useEffect(() => {
+    goToToday();
+  }, [goToToday]);
 
   // Taslak Planlama modülündeki güncellemeleri gerçek zamanlı senkronize et
   useEffect(() => {

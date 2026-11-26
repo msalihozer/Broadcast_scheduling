@@ -46,9 +46,9 @@ const RundownTableHeader = memo(function RundownTableHeader({
         />
         <span>#</span>
       </div>
-      <div style={{ ...RUNDOWN_FLEX_COLUMNS.time, display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--accent-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      <div style={{ ...RUNDOWN_FLEX_COLUMNS.time, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', color: 'var(--accent-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         <Clock size={13} style={{ flexShrink: 0 }} />
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>Yayın Saati</span>
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>Giriş Saati</span>
       </div>
       <div style={{ ...RUNDOWN_FLEX_COLUMNS.duration, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Süre</div>
       <div style={{ ...RUNDOWN_FLEX_COLUMNS.title, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Klip Adı</div>

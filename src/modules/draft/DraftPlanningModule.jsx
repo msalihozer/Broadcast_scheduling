@@ -416,61 +416,6 @@ const DraftPlanningModule = () => {
           onSelectDay={setSelectedDayKey}
           dateRangeLabel={dateRangeLabel}
         />
-
-        {/* Günlerin Altında Ortada Sabitlenmiş Arama Alanı */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: '100%'
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            background: 'var(--bg-primary)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '10px',
-            padding: '7px 14px',
-            width: '100%',
-            maxWidth: '520px',
-            boxShadow: 'var(--shadow-sm)'
-          }}>
-            <Search size={14} color="var(--accent-primary)" style={{ flexShrink: 0 }} />
-            <input
-              type="text"
-              placeholder="Program adı, sunucu, bölüm veya saat ara..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--text-primary)',
-                fontSize: '12.5px',
-                fontWeight: 600,
-                outline: 'none',
-                width: '100%'
-              }}
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  color: 'var(--text-muted)'
-                }}
-              >
-                <X size={14} />
-              </button>
-            )}
-          </div>
-        </div>
       </div>
 
       {/* 2. ANA İÇERİK ALANI (Sol Kütüphane Paneli + Sağ Yayın Akışı) */}

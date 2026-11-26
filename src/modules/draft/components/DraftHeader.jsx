@@ -1,8 +1,9 @@
 /**
  * @file DraftHeader.jsx
- * @description Semerkand TV Kurumsal Kimlik 2026 - Taslak Planlama modülü 68px beyaz araç çubuğu.
- * Sol: 34x34 Derin Turkuaz (#0C617C) ikon karesi + Taslak Planlama başlığı + Kanal seçici + Hafta seçici + Görünüm (Izgara/Tablo).
- * Sağ: Kütüphane, Taslaklar, Excel Akışı Yükle, Raporlar, ⋯ menüsü (Kısayollar, Haftayı/Günü Temizle) ve tek ana aksiyon butonu (Kaydet / Yayına Gönder).
+ * @description Semerkand TV Kurumsal Kimlik 2026 - Taslak Planlama modülü araç çubuğu.
+ * - Sol: 34x34 Derin Turkuaz (#0C617C) ikon karesi + Taslak Planlama başlığı + Program Kütüphanesi butonu
+ * - Orta: Üstte Takvim/Hafta seçici, hemen altında Kanal seçici (Semerkand HD / Semerkand WAY)
+ * - Sağ: Görünüm (Izgara / Tablo), Taslaklar, Excel Akışı Yükle, Ayarlar (içinde Raporlar, Klavye Kısayolları, Haftayı/Günü Temizle) ve en sağda Yayına Gönder / Kaydet.
  */
 import React, { useState, useRef, useEffect } from 'react';
 import usePlanningStore from '../../../store/planningStore';
@@ -35,12 +36,12 @@ const DraftHeader = ({
 }) => {
   const { isMobile, isCompact } = useResponsive();
   const [draftMenuOpen, setDraftMenuOpen] = useState(false);
-  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
   const [isPromptingDraft, setIsPromptingDraft] = useState(false);
   const [newDraftName, setNewDraftName] = useState('');
 
   const draftMenuRef = useRef(null);
-  const moreMenuRef = useRef(null);
+  const settingsMenuRef = useRef(null);
 
   const currentMode = usePlanningStore(state => state.currentMode) || 'draft';
   const drafts = usePlanningStore(state => (state.drafts || []).filter(d => (d.mode || 'draft') === currentMode));
@@ -53,8 +54,8 @@ const DraftHeader = ({
       if (draftMenuRef.current && !draftMenuRef.current.contains(e.target)) {
         setDraftMenuOpen(false);
       }
-      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target)) {
-        setMoreMenuOpen(false);
+      if (settingsMenuRef.current && !settingsMenuRef.current.contains(e.target)) {
+        setSettingsMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleOutside);
@@ -63,27 +64,26 @@ const DraftHeader = ({
 
   return (
     <div style={{
-      minHeight: isCompact ? 'auto' : '52px',
-      display: 'flex',
+      minHeight: isCompact ? 'auto' : '68px',
+      display: 'grid',
+      gridTemplateColumns: isCompact ? '1fr' : '1fr auto 1fr',
       alignItems: 'center',
-      justifyContent: 'space-between',
-      flexWrap: 'wrap',
-      gap: isMobile ? '8px' : '12px',
+      gap: isMobile ? '10px' : '16px',
       width: '100%',
       fontFamily: 'var(--font-sans)'
     }}>
-      {/* SOL GRUP: Modül İkon Karesi + Başlık + Kanal + Hafta + Görünüm */}
+      {/* 1. SOL GRUP: Modül İkon Karesi + Başlık + Kütüphane */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
         flexWrap: 'wrap',
-        gap: isMobile ? '8px' : '12px'
+        gap: isMobile ? '8px' : '12px',
+        justifySelf: 'start'
       }}>
-        {/* 34x34 Modül Başlığı */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginRight: '4px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{
-            width: '34px',
-            height: '34px',
+            width: '36px',
+            height: '36px',
             borderRadius: '4px',
             background: 'var(--m-taslak, #0C617C)',
             color: '#FFFFFF',
@@ -105,65 +105,44 @@ const DraftHeader = ({
           </h1>
         </div>
 
-        {/* Kanal Seçici (Segmented) */}
-        <div style={{
-          display: 'inline-flex',
-          border: '1px solid var(--border-color, #DCE5E9)',
-          borderRadius: '4px',
-          background: 'var(--bg-primary, #F5F7F6)',
-          padding: '2px',
-          gap: '2px'
-        }}>
-          {channels.map(ch => {
-            const isActive = selectedChannel === ch.id;
-            const hasChannelList = Boolean(channelHasListMap?.[ch.id]);
-            return (
-              <button
-                key={ch.id}
-                type="button"
-                onClick={() => onSelectChannel(ch.id)}
-                title={
-                  hasChannelList
-                    ? `${ch.name} — Bu hafta için yayın listesi yüklü`
-                    : `${ch.name} — Bu hafta için henüz yayın listesi yüklü değil`
-                }
-                style={{
-                  height: '32px',
-                  padding: '0 12px',
-                  border: 0,
-                  background: isActive ? 'var(--turkuaz, #0C617C)' : 'transparent',
-                  color: isActive ? '#FFFFFF' : 'var(--text-secondary, #4B6478)',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  borderRadius: '3px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  fontFamily: 'inherit'
-                }}
-              >
-                <Ikon ad="kanal" size={14} />
-                <span>{ch.name}</span>
-                {!hasChannelList && (
-                  <span style={{
-                    width: '6px',
-                    height: '6px',
-                    borderRadius: '50%',
-                    background: 'var(--hardal, #E8B44C)'
-                  }} />
-                )}
-              </button>
-            );
-          })}
-        </div>
+        <button
+          type="button"
+          onClick={onToggleLibrary}
+          title={isLibraryOpen ? 'Program Kütüphanesi panelini gizle' : 'Program Kütüphanesi panelini göster'}
+          style={{
+            height: '36px',
+            padding: '0 13px',
+            borderRadius: '4px',
+            border: isLibraryOpen ? '1.5px solid var(--turkuaz, #0C617C)' : '1px solid var(--border-color, #DCE5E9)',
+            background: isLibraryOpen ? 'var(--turkuaz, #0C617C)' : '#FFFFFF',
+            color: isLibraryOpen ? '#FFFFFF' : 'var(--text-primary, #0A101D)',
+            fontSize: '12.5px',
+            fontWeight: 700,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '7px',
+            cursor: 'pointer'
+          }}
+        >
+          <Ikon ad="panel" size={15} />
+          <span>{isLibraryOpen ? 'Kütüphane Açık' : 'Program Kütüphanesi'}</span>
+        </button>
+      </div>
 
-        {/* Hafta / Tarih Seçici */}
+      {/* 2. ORTA GRUP: Üstte Takvim / Hafta Seçici, Hemen Altında Kanal Seçici */}
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '6px',
+        justifySelf: 'center'
+      }}>
+        {/* Üst Satır: Hafta / Takvim Seçici */}
         <div style={{
           display: 'inline-flex',
           alignItems: 'center',
-          height: '36px',
+          height: '34px',
           border: '1px solid var(--border-color, #DCE5E9)',
           borderRadius: '4px',
           background: '#FFFFFF',
@@ -193,13 +172,13 @@ const DraftHeader = ({
             title="Takvim ve Hafta Gezginini Aç"
             style={{
               height: '100%',
-              padding: '0 12px',
+              padding: '0 14px',
               border: 0,
               borderLeft: '1px solid var(--border-light, #EBF0F2)',
               borderRight: '1px solid var(--border-light, #EBF0F2)',
               background: 'transparent',
               fontFamily: 'var(--font-mono)',
-              fontSize: '12px',
+              fontSize: '12.5px',
               fontWeight: 700,
               color: 'var(--text-primary, #0A101D)',
               display: 'inline-flex',
@@ -232,6 +211,70 @@ const DraftHeader = ({
           </button>
         </div>
 
+        {/* Alt Satır: Kanal Seçici (Semerkand HD / Semerkand WAY) */}
+        <div style={{
+          display: 'inline-flex',
+          border: '1px solid var(--border-color, #DCE5E9)',
+          borderRadius: '4px',
+          background: 'var(--bg-primary, #F5F7F6)',
+          padding: '2px',
+          gap: '2px'
+        }}>
+          {channels.map(ch => {
+            const isActive = selectedChannel === ch.id;
+            const hasChannelList = Boolean(channelHasListMap?.[ch.id]);
+            return (
+              <button
+                key={ch.id}
+                type="button"
+                onClick={() => onSelectChannel(ch.id)}
+                title={
+                  hasChannelList
+                    ? `${ch.name} — Bu hafta için yayın listesi yüklü`
+                    : `${ch.name} — Bu hafta için henüz yayın listesi yüklü değil`
+                }
+                style={{
+                  height: '28px',
+                  padding: '0 14px',
+                  border: 0,
+                  background: isActive ? 'var(--turkuaz, #0C617C)' : 'transparent',
+                  color: isActive ? '#FFFFFF' : 'var(--text-secondary, #4B6478)',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  borderRadius: '3px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  fontFamily: 'inherit'
+                }}
+              >
+                <Ikon ad="kanal" size={14} />
+                <span>{ch.name}</span>
+                {!hasChannelList && (
+                  <span style={{
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '50%',
+                    background: 'var(--hardal, #E8B44C)'
+                  }} />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 3. SAĞ GRUP: Görünüm (Izgara/Tablo) + Taslaklar + Excel Yükle + Ayarlar (Raporlar, Kısayollar, Temizle) + Yayına Gönder */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: isCompact ? 'flex-start' : 'flex-end',
+        flexWrap: 'wrap',
+        gap: '8px',
+        justifySelf: isCompact ? 'start' : 'end'
+      }}>
         {/* Görünüm Modu (Izgara / Tablo) */}
         <div style={{
           display: 'inline-flex',
@@ -247,7 +290,7 @@ const DraftHeader = ({
             title="Haftalık Sütun Izgarası Görünümü (G)"
             style={{
               height: '32px',
-              padding: '0 12px',
+              padding: '0 11px',
               border: 0,
               background: viewMode === 'grid' ? 'var(--turkuaz, #0C617C)' : 'transparent',
               color: viewMode === 'grid' ? '#FFFFFF' : 'var(--text-secondary, #4B6478)',
@@ -270,7 +313,7 @@ const DraftHeader = ({
             title="Sıralı Rundown Tablosu Görünümü (R)"
             style={{
               height: '32px',
-              padding: '0 12px',
+              padding: '0 11px',
               border: 0,
               background: viewMode === 'rundown' ? 'var(--turkuaz, #0C617C)' : 'transparent',
               color: viewMode === 'rundown' ? '#FFFFFF' : 'var(--text-secondary, #4B6478)',
@@ -287,39 +330,6 @@ const DraftHeader = ({
             <span>Tablo</span>
           </button>
         </div>
-      </div>
-
-      {/* SAĞ GRUP: İkincil Ghost Butonlar + Tek Ana Aksiyon Butonu */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '8px'
-      }}>
-        {/* Program Kütüphanesi Aç/Kapat */}
-        <button
-          type="button"
-          onClick={onToggleLibrary}
-          className="btn ghost"
-          title={isLibraryOpen ? 'Program Kütüphanesi panelini gizle' : 'Program Kütüphanesi panelini göster'}
-          style={{
-            height: '36px',
-            padding: '0 12px',
-            borderRadius: '4px',
-            border: isLibraryOpen ? '1px solid var(--turkuaz, #0C617C)' : '1px solid var(--border-color, #DCE5E9)',
-            background: isLibraryOpen ? 'var(--turkuaz-50, #E7F0F3)' : '#FFFFFF',
-            color: isLibraryOpen ? 'var(--turkuaz, #0C617C)' : 'var(--text-primary, #0A101D)',
-            fontSize: '12px',
-            fontWeight: 700,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '7px',
-            cursor: 'pointer'
-          }}
-        >
-          <Ikon ad="panel" size={15} />
-          <span>{isLibraryOpen ? 'Kütüphane Açık' : 'Kütüphane'}</span>
-        </button>
 
         {/* Taslaklar Açılır Menüsü */}
         <div ref={draftMenuRef} style={{ position: 'relative' }}>
@@ -340,7 +350,7 @@ const DraftHeader = ({
               fontWeight: 700,
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '7px',
+              gap: '6px',
               cursor: 'pointer'
             }}
           >
@@ -520,7 +530,7 @@ const DraftHeader = ({
             fontWeight: 700,
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '7px',
+            gap: '6px',
             cursor: isImporting ? 'wait' : 'pointer',
             opacity: isImporting ? 0.7 : 1
           }}
@@ -529,54 +539,32 @@ const DraftHeader = ({
           <span>{isImporting ? 'Excel Aktarılıyor...' : 'Excel Akışı Yükle'}</span>
         </button>
 
-        {/* Raporlar */}
-        {onOpenReports && (
+        {/* Belirgin Ayarlar Menüsü (3 nokta yerine Ayarlar, içinde Raporlar, Klavye Kısayolları, Haftayı/Günü Temizle) */}
+        <div ref={settingsMenuRef} style={{ position: 'relative' }}>
           <button
             type="button"
-            onClick={onOpenReports}
-            title="Detaylı Raporlar & Çıktı (PDF / Excel / CSV)"
+            onClick={() => setSettingsMenuOpen(prev => !prev)}
+            title="Ayarlar, Raporlar, Klavye Kısayolları ve Temizleme İşlemleri"
             style={{
               height: '36px',
               padding: '0 12px',
               borderRadius: '4px',
-              border: '1px solid var(--border-color, #DCE5E9)',
-              background: '#FFFFFF',
-              color: 'var(--text-primary, #0A101D)',
+              border: settingsMenuOpen ? '1.5px solid var(--turkuaz, #0C617C)' : '1px solid var(--border-color, #DCE5E9)',
+              background: settingsMenuOpen ? 'var(--turkuaz-50, #E7F0F3)' : '#FFFFFF',
+              color: settingsMenuOpen ? 'var(--turkuaz, #0C617C)' : 'var(--text-primary, #0A101D)',
               fontSize: '12px',
               fontWeight: 700,
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '7px',
+              gap: '6px',
               cursor: 'pointer'
             }}
           >
-            <Ikon ad="rapor" size={15} />
-            <span>Raporlar</span>
-          </button>
-        )}
-
-        {/* ⋯ Menüsü (Kısayollar, Haftayı/Günü Temizle) */}
-        <div ref={moreMenuRef} style={{ position: 'relative' }}>
-          <button
-            type="button"
-            onClick={() => setMoreMenuOpen(prev => !prev)}
-            title="Görünüm, Kısayollar, Haftayı Temizle"
-            style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '4px',
-              border: '1px solid var(--border-color, #DCE5E9)',
-              background: '#FFFFFF',
-              color: 'var(--text-primary, #0A101D)',
-              display: 'grid',
-              placeItems: 'center',
-              cursor: 'pointer'
-            }}
-          >
-            <Ikon ad="menu" size={16} />
+            <Ikon ad="admin" size={15} />
+            <span>Ayarlar</span>
           </button>
 
-          {moreMenuOpen && (
+          {settingsMenuOpen && (
             <div style={{
               position: 'absolute',
               top: '42px',
@@ -586,21 +574,49 @@ const DraftHeader = ({
               borderRadius: '6px',
               padding: '6px',
               zIndex: 1000,
-              minWidth: '210px',
+              minWidth: '235px',
               boxShadow: 'var(--modal-shadow)'
             }}>
+              {onOpenReports && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSettingsMenuOpen(false);
+                    onOpenReports();
+                  }}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '9px',
+                    padding: '9px 10px',
+                    border: 0,
+                    background: 'transparent',
+                    borderRadius: '4px',
+                    fontSize: '12.5px',
+                    fontWeight: 700,
+                    color: 'var(--turkuaz, #0C617C)',
+                    cursor: 'pointer',
+                    textAlign: 'left'
+                  }}
+                >
+                  <Ikon ad="rapor" size={15} />
+                  <span>Raporlar & Çıktı (PDF / Excel)</span>
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={() => {
-                  setMoreMenuOpen(false);
+                  setSettingsMenuOpen(false);
                   window.dispatchEvent(new CustomEvent('draft:open-shortcuts'));
                 }}
                 style={{
                   width: '100%',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px',
-                  padding: '8px 10px',
+                  gap: '9px',
+                  padding: '9px 10px',
                   border: 0,
                   background: 'transparent',
                   borderRadius: '4px',
@@ -621,15 +637,15 @@ const DraftHeader = ({
                   <button
                     type="button"
                     onClick={() => {
-                      setMoreMenuOpen(false);
+                      setSettingsMenuOpen(false);
                       onClearSchedule();
                     }}
                     style={{
                       width: '100%',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '8px',
-                      padding: '8px 10px',
+                      gap: '9px',
+                      padding: '9px 10px',
                       border: 0,
                       background: 'transparent',
                       borderRadius: '4px',
@@ -649,7 +665,7 @@ const DraftHeader = ({
           )}
         </div>
 
-        {/* Tek Ana Aksiyon Butonu (Kaydet veya Yayına Gönder) */}
+        {/* Tek Ana Aksiyon Butonu (En Sağda: Kaydet veya Yayına Gönder) */}
         {saveStatus === 'saving' ? (
           <button
             type="button"

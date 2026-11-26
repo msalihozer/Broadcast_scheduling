@@ -85,6 +85,7 @@ export default function BroadcastRundownTable({
     addFillerSlot,
     addAdBreak,
     updateProgram,
+    pinProgramAndReposition,
     openFillerInSidebar,
     undo,
     redo,
@@ -191,8 +192,23 @@ export default function BroadcastRundownTable({
       );
       return;
     }
+
+    // Listede boş Dolgu Kuşağı varsa Reklam Rezervasyona iletilmesini engelle ve hata pop-up'ı göster
+    const emptyFillerSlots = programs.filter(p => isFillerRundownItem(p));
+    if (emptyFillerSlots.length > 0) {
+      const fillerLines = emptyFillerSlots.map((f, i) => {
+        const startDisp = parseTimecodeDisplay(f.calculatedStartTime);
+        return `${i + 1}. Sıra #${f.order || '-'} (${startDisp.hhmmss}) — ${f.title || 'Dolgu Kuşağı'}`;
+      }).join('\n');
+      dialog.error(
+        'Boş Dolgu Kuşağı Hatası',
+        `Yayın listesinde doldurulmamış ${emptyFillerSlots.length} adet boş Dolgu Kuşağı bulunuyor:\n\n${fillerLines}\n\nBoş Dolgu Kuşağı bulunan liste Reklam Rezervasyona iletilemez. Lütfen ilgili dolgu kuşağına klip seçip doldurun veya kuşağı listeden kaldırın.`
+      );
+      return;
+    }
+
     setIsSendToAdsModalOpen(true);
-  }, [programs.length]);
+  }, [programs]);
 
   // Kısayol (Ctrl+Shift+S / Ctrl+Enter) ile Reklam Rezervasyona İlet modalını açma dinleyicisi
   useEffect(() => {
@@ -687,12 +703,33 @@ export default function BroadcastRundownTable({
 
   const handlePinProgram = useCallback((instanceId, pinnedTimeStr, pinnedStartFrames) => {
     if (!instanceId) return;
-    updateProgram(selectedChannel, selectedDate, activeList, instanceId, {
-      isPinnedTime: true,
-      pinnedStartTime: pinnedTimeStr,
-      pinnedStartFrames
-    });
-  }, [updateProgram, selectedChannel, selectedDate, activeList]);
+    if (typeof pinProgramAndReposition === 'function') {
+      const res = pinProgramAndReposition(selectedChannel, selectedDate, activeList, instanceId, pinnedTimeStr, pinnedStartFrames);
+      if (!res?.success) {
+        dialog.warning(
+          res?.errorTitle || 'Sabitleme Yapılamadı',
+          res?.errorMessage || 'Program belirtilen saate sabitlenemedi.'
+        );
+        return;
+      }
+      const gapNote = (res.gapBeforePinnedMin > 0 || res.gapBeforePinnedSec > 0)
+        ? `\n• Sabitlenen saat öncesinde ${res.gapBeforePinnedMin} dk ${res.gapBeforePinnedSec} sn boşluk oluştu.`
+        : '';
+      const shiftNote = res.shiftedCount > 0
+        ? `\n• Sabit saat öncesine sığmayan ${res.shiftedCount} öğe sabit programın altına kaydırıldı.`
+        : '';
+      dialog.success(
+        'Program Saati ve Konumu Sabitlendi',
+        `Program saat ${pinnedTimeStr} konumuna taşındı ve sabitlendi (Yeni Sıra: #${res.newOrder}).${gapNote}${shiftNote}`
+      );
+    } else {
+      updateProgram(selectedChannel, selectedDate, activeList, instanceId, {
+        isPinnedTime: true,
+        pinnedStartTime: pinnedTimeStr,
+        pinnedStartFrames
+      });
+    }
+  }, [pinProgramAndReposition, updateProgram, selectedChannel, selectedDate, activeList]);
 
   const handleUnpinProgram = useCallback((instanceId) => {
     if (!instanceId) return;

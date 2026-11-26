@@ -116,7 +116,12 @@ export const createTimelineCalculationSlice = (set, get) => ({
       );
 
       const pinnedFrames = resolvePinnedStartFrames(p);
-      const effectiveStartFrames = pinnedFrames !== null ? pinnedFrames : currentTimelineFrames;
+      // Sabitlenmiş program kendi sabit saatinden ÖNCE başlayamaz (önceki güne veya üstteki sabit bloğa taşamaz)
+      const effectiveStartFrames = pinnedFrames !== null ? Math.max(0, pinnedFrames) : currentTimelineFrames;
+      const precedingGapFrames = pinnedFrames !== null && effectiveStartFrames > currentTimelineFrames
+        ? (effectiveStartFrames - currentTimelineFrames)
+        : 0;
+      const precedingGapSec = Math.round(precedingGapFrames / BROADCAST_FPS);
       const startClock = framesToClockTime(effectiveStartFrames);
       const endTimelineFrames = effectiveStartFrames + itemFrames;
       const endClock = framesToClockTime(endTimelineFrames);
@@ -136,6 +141,8 @@ export const createTimelineCalculationSlice = (set, get) => ({
         durationTc: durTc,
         isPinnedTime: pinnedFrames !== null,
         pinnedStartFrames: pinnedFrames,
+        precedingGapFrames,
+        precedingGapSec,
         calculatedStartTime: startClock,
         calculatedEndTime: endClock,
         isOverflow,

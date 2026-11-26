@@ -180,24 +180,23 @@ const BroadcastHeader = ({ onOpenShortcuts, onOpenAdSettingsModal, onOpenIntroSe
   return (
     <div
       style={{
-        minHeight: isCompact ? 'auto' : '68px',
+        minHeight: isCompact ? 'auto' : '82px',
         background: '#FFFFFF',
         borderBottom: '1px solid var(--border-color, #DCE5E9)',
         padding: isMobile ? '8px 10px' : '10px 20px',
-        display: 'flex',
+        display: 'grid',
+        gridTemplateColumns: isCompact ? '1fr' : '1fr auto 1fr',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: isMobile ? '8px' : '12px',
+        gap: isMobile ? '10px' : '16px',
         flexShrink: 0
       }}
     >
-      {/* SOL GRUP: 34x34 Yeşil (#468625) İkon Karesi + Başlık + Taslak Paneli + Tarih Gezgini */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '6px' : '10px', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginRight: '4px' }}>
+      {/* 1. SOL GRUP: 36x36 Yeşil (#468625) İkon Karesi + Başlık */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', justifySelf: 'start' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{
-            width: '34px',
-            height: '34px',
+            width: '36px',
+            height: '36px',
             borderRadius: '4px',
             background: 'var(--m-ready, #468625)',
             color: '#FFFFFF',
@@ -218,140 +217,126 @@ const BroadcastHeader = ({ onOpenShortcuts, onOpenAdSettingsModal, onOpenIntroSe
             <b style={{ fontWeight: 700 }}>Yayın Planlama</b> (Ready)
           </h1>
         </div>
+      </div>
 
-        {viewMode === 'daily' && (
-          <button
-            onClick={toggleDraftSidebar}
-            style={{
-              height: '36px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              background: isDraftSidebarOpen ? 'var(--turkuaz-50, #E7F0F3)' : '#FFFFFF',
-              border: isDraftSidebarOpen
-                ? '1px solid var(--turkuaz, #0C617C)'
-                : '1px solid var(--border-color, #DCE5E9)',
-              color: isDraftSidebarOpen ? 'var(--turkuaz, #0C617C)' : 'var(--text-primary, #0A101D)',
-              padding: '0 12px',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '12px',
-              fontWeight: 700
-            }}
-            title="Sol Taslak & Klip panelini göster/gizle (Kısayol: T)"
-          >
-            <Ikon ad="panel" size={15} />
-            <span>Taslak Paneli</span>
-          </button>
-        )}
-
-        {/* Tarih Seçme Alanı */}
-        <div style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          height: '36px',
-          border: '1px solid var(--border-color, #DCE5E9)',
-          borderRadius: '4px',
-          background: '#FFFFFF',
-          overflow: 'hidden'
-        }}>
-          <button
-            onClick={() => navigateDay(-1)}
-            style={{
-              width: '32px',
-              height: '100%',
-              background: 'transparent',
-              border: 0,
-              color: 'var(--text-secondary, #4B6478)',
-              cursor: 'pointer',
-              display: 'grid',
-              placeItems: 'center'
-            }}
-            title="Önceki Gün"
-          >
-            <Ikon ad="sol" size={16} />
-          </button>
-
-          <div
-            style={{
-              height: '100%',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '7px',
-              borderLeft: '1px solid var(--border-light, #EBF0F2)',
-              borderRight: '1px solid var(--border-light, #EBF0F2)',
-              padding: '0 10px'
-            }}
-          >
-            <Ikon ad="hafta" size={15} color="var(--turkuaz, #0C617C)" />
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={e => e.target.value && setSelectedDate(e.target.value)}
+      {/* 2. ORTA GRUP: Üstte Takvim (Bugün), Altında Kanal Seçimi, Onun Altında Liste Seçimi */}
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '5px',
+        justifySelf: 'center'
+      }}>
+        {/* Satır 1: Tarih Seçme Alanı + Bugün */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            height: '32px',
+            border: '1px solid var(--border-color, #DCE5E9)',
+            borderRadius: '4px',
+            background: '#FFFFFF',
+            overflow: 'hidden'
+          }}>
+            <button
+              onClick={() => navigateDay(-1)}
               style={{
+                width: '30px',
+                height: '100%',
                 background: 'transparent',
-                border: 'none',
-                outline: 'none',
-                color: 'var(--text-primary, #0A101D)',
-                fontFamily: 'var(--font-mono)',
-                fontSize: '12px',
-                fontWeight: 700,
+                border: 0,
+                color: 'var(--text-secondary, #4B6478)',
                 cursor: 'pointer',
-                padding: 0,
-                height: '28px'
+                display: 'grid',
+                placeItems: 'center'
               }}
-            />
-            {dayName && (
-              <span
+              title="Önceki Gün"
+            >
+              <Ikon ad="sol" size={15} />
+            </button>
+
+            <div
+              style={{
+                height: '100%',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '7px',
+                borderLeft: '1px solid var(--border-light, #EBF0F2)',
+                borderRight: '1px solid var(--border-light, #EBF0F2)',
+                padding: '0 10px'
+              }}
+            >
+              <Ikon ad="hafta" size={14} color="var(--turkuaz, #0C617C)" />
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={e => e.target.value && setSelectedDate(e.target.value)}
                 style={{
+                  background: 'transparent',
+                  border: 'none',
+                  outline: 'none',
+                  color: 'var(--text-primary, #0A101D)',
+                  fontFamily: 'var(--font-mono)',
                   fontSize: '12px',
                   fontWeight: 700,
-                  color: 'var(--turkuaz, #0C617C)',
-                  borderLeft: '1px solid var(--border-color, #DCE5E9)',
-                  paddingLeft: '7px'
+                  cursor: 'pointer',
+                  padding: 0,
+                  height: '26px'
                 }}
-              >
-                {dayName}
-              </span>
-            )}
+              />
+              {dayName && (
+                <span
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    color: 'var(--turkuaz, #0C617C)',
+                    borderLeft: '1px solid var(--border-color, #DCE5E9)',
+                    paddingLeft: '7px'
+                  }}
+                >
+                  {dayName}
+                </span>
+              )}
+            </div>
+
+            <button
+              onClick={() => navigateDay(1)}
+              style={{
+                width: '30px',
+                height: '100%',
+                background: 'transparent',
+                border: 0,
+                color: 'var(--text-secondary, #4B6478)',
+                cursor: 'pointer',
+                display: 'grid',
+                placeItems: 'center'
+              }}
+              title="Sonraki Gün"
+            >
+              <Ikon ad="sag" size={15} />
+            </button>
           </div>
 
           <button
-            onClick={() => navigateDay(1)}
+            onClick={goToToday}
             style={{
-              width: '32px',
-              height: '100%',
-              background: 'transparent',
-              border: 0,
-              color: 'var(--text-secondary, #4B6478)',
+              height: '32px',
+              background: 'var(--turkuaz-50, #E7F0F3)',
+              border: '1px solid var(--turkuaz-100, #CFE1E7)',
+              color: 'var(--turkuaz, #0C617C)',
+              padding: '0 10px',
+              borderRadius: '4px',
               cursor: 'pointer',
-              display: 'grid',
-              placeItems: 'center'
+              fontSize: '11.5px',
+              fontWeight: 800
             }}
-            title="Sonraki Gün"
           >
-            <Ikon ad="sag" size={16} />
+            Bugün
           </button>
         </div>
 
-        <button
-          onClick={goToToday}
-          style={{
-            height: '36px',
-            background: '#FFFFFF',
-            border: '1px solid var(--border-color, #DCE5E9)',
-            color: 'var(--text-primary, #0A101D)',
-            padding: '0 12px',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontSize: '12px',
-            fontWeight: 700
-          }}
-        >
-          Bugün
-        </button>
-
-        {/* Kanal Seçimi (Segmented) */}
+        {/* Satır 2: Kanal Seçimi (Semerkand HD / Semerkand WAY) */}
         <div
           style={{
             display: 'inline-flex',
@@ -370,7 +355,7 @@ const BroadcastHeader = ({ onOpenShortcuts, onOpenAdSettingsModal, onOpenIntroSe
                 key={ch.id}
                 onClick={() => setSelectedChannel(ch.id)}
                 style={{
-                  height: '32px',
+                  height: '26px',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
@@ -380,18 +365,18 @@ const BroadcastHeader = ({ onOpenShortcuts, onOpenAdSettingsModal, onOpenIntroSe
                   background: isSelected ? 'var(--turkuaz, #0C617C)' : 'transparent',
                   color: isSelected ? '#FFFFFF' : 'var(--text-secondary, #4B6478)',
                   cursor: 'pointer',
-                  fontSize: '12px',
+                  fontSize: '11.5px',
                   fontWeight: 700
                 }}
               >
-                <Ikon ad="kanal" size={14} />
+                <Ikon ad="kanal" size={13} />
                 <span>{ch.name}</span>
               </button>
             );
           })}
         </div>
 
-        {/* Liste Seçimi (Liste A / Liste B) */}
+        {/* Satır 3: Liste Seçimi (Liste A / Liste B) */}
         <div
           style={{
             display: 'inline-flex',
@@ -406,14 +391,14 @@ const BroadcastHeader = ({ onOpenShortcuts, onOpenAdSettingsModal, onOpenIntroSe
           <button
             onClick={() => setActiveList('A')}
             style={{
-              height: '32px',
-              padding: '0 11px',
+              height: '24px',
+              padding: '0 14px',
               borderRadius: '3px',
               border: 0,
-              background: activeList === 'A' ? 'var(--turkuaz, #0C617C)' : 'transparent',
+              background: activeList === 'A' ? 'var(--m-ready, #468625)' : 'transparent',
               color: activeList === 'A' ? '#FFFFFF' : 'var(--text-secondary, #4B6478)',
               cursor: 'pointer',
-              fontSize: '12px',
+              fontSize: '11.5px',
               fontWeight: 700
             }}
           >
@@ -423,14 +408,14 @@ const BroadcastHeader = ({ onOpenShortcuts, onOpenAdSettingsModal, onOpenIntroSe
           <button
             onClick={() => setActiveList('B')}
             style={{
-              height: '32px',
-              padding: '0 11px',
+              height: '24px',
+              padding: '0 14px',
               borderRadius: '3px',
               border: 0,
-              background: activeList === 'B' ? 'var(--turkuaz, #0C617C)' : 'transparent',
+              background: activeList === 'B' ? 'var(--m-ready, #468625)' : 'transparent',
               color: activeList === 'B' ? '#FFFFFF' : 'var(--text-secondary, #4B6478)',
               cursor: 'pointer',
-              fontSize: '12px',
+              fontSize: '11.5px',
               fontWeight: 700
             }}
           >
@@ -439,13 +424,15 @@ const BroadcastHeader = ({ onOpenShortcuts, onOpenAdSettingsModal, onOpenIntroSe
         </div>
       </div>
 
-      {/* SAĞ GRUP: Görünüm Modları (Günlük / Haftalık / Aylık) + Raporlar + Pano + Ayarlar */}
+      {/* 3. SAĞ GRUP: Görünüm Modları (Günlük / Haftalık / Aylık) + Raporlar + Pano + Belirgin Ayarlar */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
+          justifyContent: isCompact ? 'flex-start' : 'flex-end',
           flexWrap: 'wrap',
-          gap: isMobile ? '6px' : '8px'
+          gap: isMobile ? '6px' : '8px',
+          justifySelf: isCompact ? 'start' : 'end'
         }}
       >
         <div
@@ -833,25 +820,30 @@ const BroadcastHeader = ({ onOpenShortcuts, onOpenAdSettingsModal, onOpenIntroSe
           </div>
         )}
 
-        {/* Sağ Üst Çark (Ayarlar, Kısayollar ve Liste İşlemleri) */}
+        {/* Sağ Üst Belirgin Ayarlar Butonu (Ayarlar, Kısayollar ve Liste İşlemleri) */}
         <div ref={gearMenuRef} style={{ position: 'relative' }}>
           <button
             type="button"
             onClick={() => setIsGearMenuOpen(prev => !prev)}
             style={{
+              height: '36px',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              background: isGearMenuOpen ? 'var(--accent-primary)' : 'var(--bg-primary)',
-              border: '1px solid var(--border-color)',
-              color: isGearMenuOpen ? '#ffffff' : 'var(--text-primary)',
-              padding: '9px 11px',
-              borderRadius: '10px',
+              gap: '7px',
+              background: isGearMenuOpen ? 'var(--turkuaz, #0C617C)' : 'var(--turkuaz-50, #E7F0F3)',
+              border: '1.5px solid var(--turkuaz, #0C617C)',
+              color: isGearMenuOpen ? '#FFFFFF' : 'var(--turkuaz, #0C617C)',
+              padding: '0 13px',
+              borderRadius: '4px',
+              fontSize: '12.5px',
+              fontWeight: 800,
               cursor: 'pointer'
             }}
             title="Ayarlar, Kısayollar ve Liste İşlemleri"
           >
-            <Settings size={18} />
+            <Ikon ad="admin" size={16} />
+            <span>Ayarlar</span>
           </button>
 
           {isGearMenuOpen && (

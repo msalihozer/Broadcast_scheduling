@@ -8,10 +8,12 @@ const programClipsMemoryCache = new Map();
 
 /**
  * Türkçe karakter ve noktalama duyarsız metin normalleştirici.
+ * Kesme işaretlerini (' ’ ` ´) boşluğa çevirmeden birleştirir (ör. "El-Yakutu’n-Nefis" -> "el yakutun nefis").
  */
 export function normalizeProgramText(str) {
   return String(str || '')
     .toLocaleLowerCase('tr-TR')
+    .replace(/['’‘`´]/g, '')
     .replace(/ı/g, 'i')
     .replace(/ğ/g, 'g')
     .replace(/ü/g, 'u')
@@ -246,6 +248,16 @@ export function isDraftSlotAddedToRundown(draftItem, currentRundownPrograms = []
     if (timeAndTitleMatch) return true;
   }
 
+  if (draftItem.startTime && normDraftTitle) {
+    const timeAndEquivalentMatch = nonIntroPrograms.some(rp => {
+      if (rp.draftStartTime && rp.draftStartTime === draftItem.startTime) {
+        return areProgramTitlesEquivalent(draftItem, rp);
+      }
+      return false;
+    });
+    if (timeAndEquivalentMatch) return true;
+  }
+
   // Dolgu Kuşağı özel kontrolü: Kullanıcı Dolgu Kuşağının içine klip doldurduysa (isFillerClip)
   // ve taslakta saatler/ID'ler kaydıysa, akıştaki mevcut dolgu grubu sayısını kontrol et
   const activeDraftIdSet = new Set(
@@ -318,11 +330,12 @@ export function isDraftSlotAddedToRundown(draftItem, currentRundownPrograms = []
       prevGroupMatched = false;
       return;
     }
-    const rpTitleNorm = normalizeProgramText(rp.title || rp.name || '');
+    const rpTitleNorm = normalizeProgramText(rp.title || rp.name || rp.clipName || '');
     const rpNoteNorm = normalizeProgramText(rp.note || '');
     const isSameProg =
       (rpTitleNorm.length >= 3 && (rpTitleNorm === normDraftTitle || rpTitleNorm.includes(normDraftTitle) || normDraftTitle.includes(rpTitleNorm))) ||
-      (rpNoteNorm.length >= 3 && rpNoteNorm.includes(normDraftTitle));
+      (rpNoteNorm.length >= 3 && rpNoteNorm.includes(normDraftTitle)) ||
+      areProgramTitlesEquivalent(draftItem, rp);
 
     if (isSameProg) {
       if (!prevGroupMatched) {
@@ -372,12 +385,14 @@ function areProgramTitlesEquivalent(draftItem, existingItem) {
     existingItem?.title,
     existingItem?.name,
     existingItem?.clipName,
+    existingItem?.fileName,
+    existingItem?.code,
     String(existingItem?.note || '').replace(/^Program:\s*/i, '').replace(/^Klip:\s*/i, '').split('•')[0],
     existingItem?.note
   ].filter(Boolean);
 
   const compactDraft = normDraft.replace(/\s+/g, '');
-  const draftTokens = normDraft.split(' ').filter(w => w.length >= 4 && !['bolum', 'part', 'canli', 'yayin', 'program'].includes(w));
+  const draftTokens = normDraft.split(' ').filter(w => w.length >= 4 && !['bolum', 'part', 'canli', 'yayin', 'program', 'ilim', 'dersleri', 'dersi'].includes(w));
 
   for (const cand of candidateStrings) {
     const normCand = normalizeProgramText(cand);
@@ -1233,7 +1248,8 @@ export function doesDraftSlotMatchRundownItem(draftItem, rundownItem) {
       return (
         rpTitleNorm.includes(normDraftTitle) ||
         normDraftTitle.includes(rpTitleNorm) ||
-        rpNoteNorm.includes(normDraftTitle)
+        rpNoteNorm.includes(normDraftTitle) ||
+        areProgramTitlesEquivalent(draftItem, rundownItem)
       );
     }
     return false;
@@ -1250,7 +1266,7 @@ export function doesDraftSlotMatchRundownItem(draftItem, rundownItem) {
 
   const noteMatch = rpNoteNorm.length >= 4 && rpNoteNorm.includes(normDraftTitle);
 
-  return titleMatch || noteMatch;
+  return titleMatch || noteMatch || areProgramTitlesEquivalent(draftItem, rundownItem);
 }
 
 

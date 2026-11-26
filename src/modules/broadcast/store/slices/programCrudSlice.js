@@ -97,12 +97,51 @@ export const createProgramCrudSlice = (set, get) => ({
       addedAt: Date.now()
     };
 
+    const title = finalTitle;
+
     const targetInsertIndex = resolveTargetInsertIndex(
       currentProgs,
       insertIndex,
       get().insertPosition,
       get().selectedInstanceId
     );
+
+    // Eğer ekleneceği konumun altında sabitlenmiş (isPinnedTime) bir program varsa veya iki sabit program arasına ekleniyorsa,
+    // aradaki boşluğun yeni eklenen öğe için yeterli olup olmadığını kontrol et (önceki güne veya sabit programa taşmasını önle)
+    const nextPinnedIdx = currentProgs.findIndex((p, i) => i >= targetInsertIndex && Boolean(p.isPinnedTime) && typeof p.pinnedStartFrames === 'number');
+    if (nextPinnedIdx !== -1) {
+      const nextPinnedProg = currentProgs[nextPinnedIdx];
+      const prevOverflow = typeof get().getPreviousDayOverflowFrames === 'function'
+        ? get().getPreviousDayOverflowFrames(channelId, dateStr, v)
+        : 0;
+      let cursorFrames = prevOverflow;
+      for (let i = 0; i < nextPinnedIdx; i++) {
+        const pr = currentProgs[i];
+        const prFrames = Math.max(BROADCAST_FPS, pr.durationFrames || timecodeToFrames(pr.durationTc || '00.30.00.00'));
+        if (pr.isPinnedTime && typeof pr.pinnedStartFrames === 'number') {
+          cursorFrames = pr.pinnedStartFrames + prFrames;
+        } else {
+          cursorFrames += prFrames;
+        }
+      }
+      const availableFramesBeforePin = Math.max(0, nextPinnedProg.pinnedStartFrames - cursorFrames);
+      if (durationFrames > availableFramesBeforePin) {
+        const availMin = Math.floor((availableFramesBeforePin / BROADCAST_FPS) / 60);
+        const availSec = Math.round((availableFramesBeforePin / BROADCAST_FPS) % 60);
+        const needMin = Math.floor((durationFrames / BROADCAST_FPS) / 60);
+        const needSec = Math.round((durationFrames / BROADCAST_FPS) % 60);
+        import('../../../../store/dialogStore').then(({ dialog }) => {
+          dialog.warning(
+            'Sabit Program Öncesinde Yeterli Boşluk Yok',
+            `"${nextPinnedProg.title}" programı saat ${nextPinnedProg.pinnedStartTime || ''} konumuna sabitlenmiş durumda.\n\n` +
+            `• Sabit program öncesindeki kalan boşluk: ${availMin} dk ${availSec} sn\n` +
+            `• Eklemek istediğiniz "${title}" süresi: ${needMin} dk ${needSec} sn\n\n` +
+            `Önceki güne veya sabitlenmiş saate taşma yapılamaz. Lütfen daha kısa bir içerik seçin veya sabit programın altına (Alt modunda) ekleyin.`
+          );
+        });
+        return null;
+      }
+    }
 
     if (targetInsertIndex >= 0 && targetInsertIndex <= currentProgs.length) {
       currentProgs.splice(targetInsertIndex, 0, newProgram);
@@ -199,6 +238,43 @@ export const createProgramCrudSlice = (set, get) => ({
       get().insertPosition,
       get().selectedInstanceId
     );
+
+    // Eğer ekleneceği konumun altında sabitlenmiş (isPinnedTime) bir program varsa veya iki sabit program arasına ekleniyorsa,
+    // aradaki boşluğun yeni eklenen öğe için yeterli olup olmadığını kontrol et (önceki güne veya sabit programa taşmasını önle)
+    const nextPinnedIdx = currentProgs.findIndex((p, i) => i >= targetInsertIndex && Boolean(p.isPinnedTime) && typeof p.pinnedStartFrames === 'number');
+    if (nextPinnedIdx !== -1) {
+      const nextPinnedProg = currentProgs[nextPinnedIdx];
+      const prevOverflow = typeof get().getPreviousDayOverflowFrames === 'function'
+        ? get().getPreviousDayOverflowFrames(channelId, dateStr, v)
+        : 0;
+      let cursorFrames = prevOverflow;
+      for (let i = 0; i < nextPinnedIdx; i++) {
+        const pr = currentProgs[i];
+        const prFrames = Math.max(BROADCAST_FPS, pr.durationFrames || timecodeToFrames(pr.durationTc || '00.30.00.00'));
+        if (pr.isPinnedTime && typeof pr.pinnedStartFrames === 'number') {
+          cursorFrames = pr.pinnedStartFrames + prFrames;
+        } else {
+          cursorFrames += prFrames;
+        }
+      }
+      const availableFramesBeforePin = Math.max(0, nextPinnedProg.pinnedStartFrames - cursorFrames);
+      if (durationFrames > availableFramesBeforePin) {
+        const availMin = Math.floor((availableFramesBeforePin / BROADCAST_FPS) / 60);
+        const availSec = Math.round((availableFramesBeforePin / BROADCAST_FPS) % 60);
+        const needMin = Math.floor((durationFrames / BROADCAST_FPS) / 60);
+        const needSec = Math.round((durationFrames / BROADCAST_FPS) % 60);
+        import('../../../../store/dialogStore').then(({ dialog }) => {
+          dialog.warning(
+            'Sabit Program Öncesinde Yeterli Boşluk Yok',
+            `"${nextPinnedProg.title}" programı saat ${nextPinnedProg.pinnedStartTime || ''} konumuna sabitlenmiş durumda.\n\n` +
+            `• Sabit program öncesindeki kalan boşluk: ${availMin} dk ${availSec} sn\n` +
+            `• Eklemek istediğiniz "${title}" süresi: ${needMin} dk ${needSec} sn\n\n` +
+            `Önceki güne veya sabitlenmiş saate taşma yapılamaz. Lütfen daha kısa bir içerik seçin veya sabit programın altına (Alt modunda) ekleyin.`
+          );
+        });
+        return null;
+      }
+    }
 
     if (targetInsertIndex >= 0 && targetInsertIndex <= currentProgs.length) {
       currentProgs.splice(targetInsertIndex, 0, newAd);
@@ -532,6 +608,159 @@ export const createProgramCrudSlice = (set, get) => ({
         }
       }
     }));
+  },
+
+  /**
+   * Bir programı/klibi belirli bir giriş saatine (`pinnedStartTime`, `pinnedStartFrames`) sabitler
+   * ve listedeki sırasını da otomatik olarak o saate (`06:00:00` vb.) karşılık gelen konuma taşır!
+   * - Gün başlangıcından (00:00:00 + dünden devir) önceye taşma yapılmasına izin vermez.
+   * - İki sabit program arasına veya başka bir sabit programın üstüne sabitlenirken aradaki boşluk yetersizse
+   *   kaç dakikalık boşluk olduğunu belirterek uyarır.
+   */
+  pinProgramAndReposition: (channelId, dateStr, listType, instanceId, pinnedTimeStr, pinnedStartFrames) => {
+    const key = `${channelId}-${dateStr}`;
+    const v = listType || get().activeList;
+    const rawProgs = [...get().getRawDayPrograms(channelId, dateStr, v)];
+    const currentIdx = rawProgs.findIndex(p => p.instanceId === instanceId);
+    if (currentIdx === -1) return { success: false };
+
+    const targetProg = rawProgs[currentIdx];
+    const targetDurFrames = Math.max(
+      BROADCAST_FPS,
+      targetProg.durationFrames || timecodeToFrames(targetProg.durationTc || '00.30.00.00')
+    );
+    const prevOverflow = typeof get().getPreviousDayOverflowFrames === 'function'
+      ? get().getPreviousDayOverflowFrames(channelId, dateStr, v)
+      : 0;
+
+    if (pinnedStartFrames < prevOverflow) {
+      const minStartSec = Math.round(prevOverflow / BROADCAST_FPS);
+      const minH = String(Math.floor(minStartSec / 3600)).padStart(2, '0');
+      const minM = String(Math.floor((minStartSec % 3600) / 60)).padStart(2, '0');
+      return {
+        success: false,
+        errorTitle: 'Önceki Güne Taşma Yapılamaz',
+        errorMessage: `Seçtiğiniz saat (${pinnedTimeStr}), gün başlangıcından (${minH}:${minM}:00) daha önce. Gün önceki güne doğru taşamaz; lütfen ${minH}:${minM}:00 veya sonrası bir saat girin.`
+      };
+    }
+
+    // Hedef öğeyi listeden çıkarıp kalan öğelerin zaman akışını hesapla
+    const others = rawProgs.filter(p => p.instanceId !== instanceId);
+
+    // Başka sabitlenmiş programlarla çakışma / iki sabit program arası boşluk kontrolü
+    for (const op of others) {
+      if (op.isPinnedTime && typeof op.pinnedStartFrames === 'number') {
+        const opDur = Math.max(BROADCAST_FPS, op.durationFrames || timecodeToFrames(op.durationTc || '00.30.00.00'));
+        const opStart = op.pinnedStartFrames;
+        const opEnd = opStart + opDur;
+        const myStart = pinnedStartFrames;
+        const myEnd = pinnedStartFrames + targetDurFrames;
+
+        if (myStart < opEnd && myEnd > opStart) {
+          const gapFrames = Math.max(0, opStart > prevOverflow ? opStart - prevOverflow : 0);
+          const gapMin = Math.floor((gapFrames / BROADCAST_FPS) / 60);
+          return {
+            success: false,
+            errorTitle: 'Sabit Program Çakışması / Yetersiz Boşluk',
+            errorMessage: `"${op.title}" programı ${op.pinnedStartTime || ''} saatine sabitlenmiş durumda.\nSeçtiğiniz ${pinnedTimeStr} saati ile bu sabit program arasında yeterli boşluk yok (Mevcut boşluk: ${gapMin} dk, Gereken: ${Math.ceil((targetDurFrames / BROADCAST_FPS) / 60)} dk).`
+          };
+        }
+      }
+    }
+
+    // Kalan öğeler arasında pinnedStartFrames saatine karşılık gelen doğru sıra indeksini bul
+    let runningFrames = prevOverflow;
+    let insertAt = others.length;
+    for (let i = 0; i < others.length; i++) {
+      const item = others[i];
+      const dur = Math.max(BROADCAST_FPS, item.durationFrames || timecodeToFrames(item.durationTc || '00.30.00.00'));
+      const itemStart = (item.isPinnedTime && typeof item.pinnedStartFrames === 'number')
+        ? item.pinnedStartFrames
+        : runningFrames;
+
+      if (pinnedStartFrames <= itemStart) {
+        insertAt = i;
+        break;
+      }
+      runningFrames = itemStart + dur;
+    }
+
+    // Eğer sabitlediğimiz saatten önceki öğelerin toplam süresi pinnedStartFrames'i aşıyorsa:
+    // Öncesindeki sabit olmayan öğelerden kaç tanesinin bu saatten önceye sığacağını hesapla,
+    // sığmayanları sabitlenen programın ALTINA kaydır ki program gerçekten o saatte (örn. 06:00:00) sabit dursun!
+    let checkCursor = prevOverflow;
+    const beforeItems = [];
+    const shiftedAfterItems = [];
+    for (let i = 0; i < others.length; i++) {
+      const item = others[i];
+      const dur = Math.max(BROADCAST_FPS, item.durationFrames || timecodeToFrames(item.durationTc || '00.30.00.00'));
+      const itemStart = (item.isPinnedTime && typeof item.pinnedStartFrames === 'number')
+        ? item.pinnedStartFrames
+        : checkCursor;
+      const itemEnd = itemStart + dur;
+
+      if (item.isPinnedTime && typeof item.pinnedStartFrames === 'number') {
+        if (item.pinnedStartFrames < pinnedStartFrames) {
+          beforeItems.push(item);
+          checkCursor = itemEnd;
+        } else {
+          shiftedAfterItems.push(item);
+        }
+      } else {
+        if (itemEnd <= pinnedStartFrames) {
+          beforeItems.push(item);
+          checkCursor = itemEnd;
+        } else {
+          shiftedAfterItems.push(item);
+        }
+      }
+    }
+
+    const gapBeforePinnedFrames = Math.max(0, pinnedStartFrames - checkCursor);
+    const gapBeforePinnedMin = Math.floor((gapBeforePinnedFrames / BROADCAST_FPS) / 60);
+    const gapBeforePinnedSec = Math.round((gapBeforePinnedFrames / BROADCAST_FPS) % 60);
+
+    get().pushHistorySnapshot();
+    const updatedTarget = {
+      ...targetProg,
+      isPinnedTime: true,
+      pinnedStartTime: pinnedTimeStr,
+      pinnedStartFrames
+    };
+
+    const finalOrdered = renumberAdBreaksInList([
+      ...beforeItems,
+      updatedTarget,
+      ...shiftedAfterItems
+    ]);
+
+    const newIndex = beforeItems.length;
+
+    set(state => ({
+      selectedInstanceId: instanceId,
+      days: {
+        ...state.days,
+        [key]: {
+          ...state.days[key],
+          date: dateStr,
+          variants: {
+            ...(state.days[key]?.variants || { A: { programs: [] }, B: { programs: [] } }),
+            [v]: {
+              ...(state.days[key]?.variants?.[v] || {}),
+              programs: finalOrdered
+            }
+          }
+        }
+      }
+    }));
+
+    return {
+      success: true,
+      newOrder: newIndex + 1,
+      gapBeforePinnedMin,
+      gapBeforePinnedSec,
+      shiftedCount: shiftedAfterItems.length
+    };
   },
 
   /**

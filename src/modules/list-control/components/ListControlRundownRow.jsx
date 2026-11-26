@@ -1,20 +1,19 @@
 /**
  * @file src/modules/list-control/components/ListControlRundownRow.jsx
- * @description Yayın Liste Kontrol Modülü — Ekrana Tam Sığan (Responsive Flexbox) Tablo Satırı.
+ * @description Yayın Liste Kontrol Modülü — Sadeleştirilmiş, Kurumsal Flexbox Tablo Satırı.
  *
- * 7 Hizalı Flexbox Sütunu:
- * 1. Sıra & Sürükle Tutamacı (⋮⋮ #1) -> 50px
- * 2. Yayın Saati (Giriş / Çıkış) -> 76px (2 satırlı kompakt saat)
- * 3. Tür (KLİP / REKLAM), Başlık, Klip ID (#21673) & Fiziksel Dosya Kodu (4SDR4VPM.mxf) -> flex: 2.2 1 170px, minWidth: 0
- * 4. Logo Bilgisi (Yayın Logosu / Reklam Logosu) -> flex: 1.1 1 125px, minWidth: 0
- * 5. Aşama & Teknik Kontrol (Bizim DB • MAM DB • HighRes .MXF • Detaylı Açıklama) -> flex: 2 1 185px, minWidth: 0
- * 6. Düzenlenebilir Süre -> 78px
- * 7. İşlemler (ⓘ İzle, Revize, ↑, ↓, Sil) -> 144px
+ * 6 Hizalı Flexbox Sütunu:
+ * 1. Sıra & Sürükle Tutamacı (#1) -> 54px
+ * 2. Yayın Saati (Giriş Saati büyük ortada, Çıkış Saati altında küçük) -> 88px
+ * 3. Program / Reklam Adı (Sadece isim; program ve reklam satırları arka plan/kenarlık renk tonuyla ayrışır) -> flex: 2.5 1 220px
+ * 4. Süre (İsim sütunundan hemen sonra; düzenlenebilir süre) -> 118px
+ * 5. Logo Girişi (Sadeleştirilmiş: Sadece Reklam Giriş veya Yayın Giriş) -> 145px
+ * 6. İşlemler & Teknik Kontrol (Renkli Teknik Kontrol Durum Butonu [Kırmızı: Hata, Turuncu: Uyarı, Yeşil: Sağlam -> Tıklanınca Detay Pop-up] + ⓘ İzle + Revize + ↑ + ↓ + Sil) -> 195px
  */
 import React, { useState, useEffect } from 'react';
 import {
   Info, Clock, Trash2, ArrowUp, ArrowDown,
-  Send, Check, X, GripVertical, Tv, Megaphone, Film
+  Send, Check, GripVertical, ShieldCheck, AlertTriangle, ShieldAlert
 } from 'lucide-react';
 import {
   formatMinuteToClock,
@@ -22,6 +21,7 @@ import {
 } from '../utils/listControlVerificationEngine';
 import useThemeStore, { hexToRgba, BOX_SHADOW_OPTIONS } from '../../../store/themeStore';
 import { getCategoryColor, getCategoryTitleTextColor } from '../../draft/components/library/constants';
+import { dialog } from '../../../store/dialogStore';
 
 export default function ListControlRundownRow({
   item,
@@ -83,6 +83,12 @@ export default function ListControlRundownRow({
     integrityStatusText: 'Sağlam (.MXF • Oynatılabilir)'
   };
   const hasHealthError = !h.inDatabase || !h.fileExists || h.isCorrupted || Boolean(item.isEmptyAdBreak);
+  const hasWarning = !hasHealthError && Boolean(
+    item.revisionRequested ||
+    item.modifiedInListControl ||
+    stageInfo?.isAddedByBroadcast ||
+    stageInfo?.isModifiedByBroadcast
+  );
 
   const themeConfig = useThemeStore(state => state.config);
   const lcMod = themeConfig?.modules?.['list-control'] || {};
@@ -93,8 +99,8 @@ export default function ListControlRundownRow({
   const catTitleColor = lcMod.useCategoryTitleColor !== false
     ? getCategoryTitleTextColor(item)
     : null;
-  const lcLeftAccent = Number(lcMod.leftAccentWidth) || 5;
-  const lcTintAlpha = Math.max(0.02, Math.min(0.25, (Number(lcMod.cardTintOpacity) || 8) / 100));
+  const lcLeftAccent = Number(lcMod.leftAccentWidth) || 6;
+  const lcTintAlpha = Math.max(0.05, Math.min(0.28, (Number(lcMod.cardTintOpacity) || 10) / 100));
   const lcShadowObj = BOX_SHADOW_OPTIONS.find(s => s.id === lcMod.boxShadow) || BOX_SHADOW_OPTIONS[0];
 
   const leftBorderColor = hasHealthError
@@ -117,9 +123,7 @@ export default function ListControlRundownRow({
     : (h.fileName || item.code || '-');
   const displayFileCode = archiveNameFileLabel !== '-' ? archiveNameFileLabel : highResIdFileLabel;
 
-  // Logo YALNIZCA Giriş noktalarında gösterilir:
-  // 1) Reklam Girişinde -> Reklam Logosu Girer (reklam_giris)
-  // 2) Reklam Çıkıştan Sonra / Programa Girerken -> Yayın Logosu Girer (yayin_giris)
+  // Logo Girişi: Sadece Reklam Giriş veya Yayın Giriş olarak sadeleştirilmiş gösterim
   const logoEvent = item.logoEvent || 'none';
   const hasLogoTrigger = logoEvent === 'reklam_giris' || logoEvent === 'yayin_giris';
   const isAdLogoEvent = logoEvent === 'reklam_giris';
@@ -127,11 +131,72 @@ export default function ListControlRundownRow({
     ? (item.logo || (isAdLogoEvent ? defaultAdLogo : defaultBroadcastLogo))
     : '';
 
+  // Başlıktan gereksiz "RTÜK GİRİŞ" vb. ön ekleri temizle, sadece program/reklam adını göster
+  const rawDisplayTitle = String(item.title || item.clipName || item.name || 'İsimsiz Öğe').trim();
+  const cleanDisplayTitle = rawDisplayTitle
+    .replace(/^RTÜK\s*(GİRİŞ|ÇIKIŞ)\s*[-•:]?\s*/i, '')
+    .trim() || rawDisplayTitle;
+
   const fs = (px) => `${(px * (Number(fontScale) || 1)).toFixed(1)}px`;
   const sColWidth = Math.round(54 * (Number(fontScale) || 1));
-  const timeColWidth = Math.round(84 * (Number(fontScale) || 1));
-  const durColWidth = Math.round(126 * (Number(fontScale) || 1));
-  const actColWidth = Math.round(156 * (Number(fontScale) || 1));
+  const timeColWidth = Math.round(88 * (Number(fontScale) || 1));
+  const durColWidth = Math.round(118 * (Number(fontScale) || 1));
+  const logoColWidth = Math.round(145 * (Number(fontScale) || 1));
+  const actColWidth = Math.round(195 * (Number(fontScale) || 1));
+
+  // Teknik Kontrol Durum Butonu Rengi (Kırmızı: Hata, Turuncu: Uyarı/Revize, Yeşil: Sağlam)
+  const techBtnStatus = hasHealthError ? 'error' : hasWarning ? 'warning' : 'healthy';
+  const techBtnColor = techBtnStatus === 'error'
+    ? '#dc2626'
+    : techBtnStatus === 'warning'
+    ? '#d97706'
+    : '#16a34a';
+  const techBtnBg = techBtnStatus === 'error'
+    ? 'rgba(220, 38, 38, 0.14)'
+    : techBtnStatus === 'warning'
+    ? 'rgba(217, 119, 6, 0.14)'
+    : 'rgba(22, 163, 74, 0.14)';
+  const techBtnBorder = techBtnStatus === 'error'
+    ? '1.5px solid rgba(220, 38, 38, 0.45)'
+    : techBtnStatus === 'warning'
+    ? '1.5px solid rgba(217, 119, 6, 0.45)'
+    : '1.5px solid rgba(22, 163, 74, 0.42)';
+
+  const handleOpenTechDetailsModal = (e) => {
+    e.stopPropagation();
+    const issueLines = Array.isArray(h.issues) && h.issues.length > 0
+      ? `\n\nTespit Edilen Sorunlar:\n• ${h.issues.join('\n• ')}`
+      : '';
+    const revLine = item.revisionRequested
+      ? `\n\nRevize Talebi (${item.revisionTargetLabel || 'İlgili Birim'}): ${item.revisionReason || '-'}`
+      : '';
+    const stageLine = stageInfo?.detailText
+      ? `\n• Aşama Durumu: ${stageInfo.badgeLabel || ''} (${stageInfo.detailText})`
+      : '';
+
+    const detailMsg =
+      `Sıra & Saat: #${index + 1} (${startClock} → ${endClock})\n` +
+      `İçerik Adı: ${cleanDisplayTitle}\n` +
+      `Tür: ${isAd ? 'Reklam Kuşağı / Spotu' : isIntro ? 'Jenerik / İntro' : (item.categoryName || item.category || 'Program Klibi')}\n` +
+      `Süre: ${formatSecondsReadable(durSec)}\n\n` +
+      `--- TEKNİK & VERİTABANI KONTROLÜ ---\n` +
+      `• Veritabanı Durumu: ${h.inDatabase ? 'Kayıtlı (DB OK)' : 'Veritabanında Bulunamadı!'}\n` +
+      `• Fiziksel Dosya (.MXF): ${h.fileExists ? `Mevcut (.${(h.detectedFormat || 'mxf').toUpperCase()})` : 'Fiziksel Dosya Bulunamadı!'}\n` +
+      `• HighRes ID Dosyası: ${resolvedClipId ? `#${resolvedClipId} (${highResIdFileLabel})` : '-'}\n` +
+      `• Arşiv Dosya Adı: ${archiveNameFileLabel}\n` +
+      `• Bütünlük & Oynatma: ${h.integrityStatusText || '-'}` +
+      stageLine +
+      issueLines +
+      revLine;
+
+    if (techBtnStatus === 'error') {
+      dialog.error('Teknik Kontrol — Hata Detayı', detailMsg);
+    } else if (techBtnStatus === 'warning') {
+      dialog.warning('Teknik Kontrol — Uyarı / Değişim Detayı', detailMsg);
+    } else {
+      dialog.success('Teknik Kontrol — Sağlam', detailMsg);
+    }
+  };
 
   return (
     <div
@@ -149,17 +214,17 @@ export default function ListControlRundownRow({
           ? 'rgba(37, 99, 235, 0.18)'
           : isSelected
           ? isAd
-            ? hexToRgba(adBlockColor, 0.16)
-            : 'rgba(37, 99, 235, 0.12)'
+            ? hexToRgba(adBlockColor, 0.22)
+            : 'rgba(12, 97, 124, 0.14)'
           : hasHealthError
-          ? 'rgba(220, 38, 38, 0.05)'
+          ? 'rgba(220, 38, 38, 0.06)'
           : isAd
-          ? hexToRgba(adBlockColor, lcTintAlpha)
-          : `linear-gradient(90deg, ${hexToRgba(leftBorderColor, lcTintAlpha * 0.75)} 0%, var(--bg-secondary) 70%)`,
+          ? hexToRgba(adBlockColor, Math.max(0.12, lcTintAlpha * 1.4))
+          : `linear-gradient(90deg, ${hexToRgba(leftBorderColor, lcTintAlpha * 0.85)} 0%, var(--bg-secondary) 75%)`,
         outline: isDragOver
           ? '2px dashed #2563eb'
           : isSelected
-          ? `2px solid ${isAd ? adBlockColor : '#2563eb'}`
+          ? `2px solid ${isAd ? adBlockColor : 'var(--turkuaz, #0C617C)'}`
           : isSameClipHighlighted
           ? '2px dashed #f59e0b'
           : 'none',
@@ -192,367 +257,90 @@ export default function ListControlRundownRow({
         <span style={{
           fontSize: fs(12),
           fontWeight: 900,
-          fontFamily: 'monospace',
-          color: isAd ? '#d97706' : 'var(--text-primary)'
+          fontFamily: 'var(--font-mono)',
+          color: isAd ? '#b45309' : 'var(--text-primary)'
         }}>
           #{index + 1}
         </span>
       </div>
 
-      {/* SÜTUN 2: YAYIN SAATİ (GİRİŞ / ÇIKIŞ) */}
+      {/* SÜTUN 2: SAAT (Giriş Saati Büyük Ortada, Çıkış Saati Altında Küçük) */}
       <div style={{
         width: `${timeColWidth}px`,
         flexShrink: 0,
         display: 'flex',
         flexDirection: 'column',
-        fontFamily: 'monospace',
-        lineHeight: 1.25
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '3px 6px',
+        borderRadius: '6px',
+        background: isAd ? 'rgba(232, 180, 76, 0.18)' : 'var(--bg-primary)',
+        border: isAd ? '1px solid rgba(217, 119, 6, 0.32)' : '1px solid var(--border-color)',
+        fontFamily: 'var(--font-mono)',
+        lineHeight: 1.15
       }}>
-        <span style={{ fontSize: fs(12), fontWeight: 900, color: 'var(--text-primary)' }}>
+        <span style={{ fontSize: fs(13), fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '0.2px' }}>
           {startClock}
         </span>
-        <span style={{ fontSize: fs(10.5), fontWeight: 700, color: 'var(--text-muted)' }}>
-          → {endClock}
+        <span style={{ fontSize: fs(9.5), fontWeight: 700, color: 'var(--text-muted)', marginTop: '1px' }}>
+          {endClock}
         </span>
       </div>
 
-      {/* SÜTUN 3: TÜR (KLİP / REKLAM) • BAŞLIK • KLİP ID & DOSYA KODU (.MXF) */}
+      {/* SÜTUN 3: PROGRAM / REKLAM ADI (Sadece İsim — Ekstra Rozet veya Dosya Kodu Karmaşası Yok) */}
       <div style={{
-        flex: '2.2 1 170px',
+        flex: '2.5 1 220px',
         minWidth: 0,
         display: 'flex',
-        flexDirection: 'column',
-        gap: '3px',
+        alignItems: 'center',
+        gap: '8px',
         overflow: 'hidden'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
-          {/* Açık Tür Rozeti: Klip mi Reklam mı */}
-          <span style={{
-            fontSize: fs(10),
-            fontWeight: 700,
-            padding: '2px 7px',
-            borderRadius: '2px',
-            background: isAd
-              ? item.isBumperAd
-                ? '#468625'
-                : item.isSponsor
-                ? '#ED891E'
-                : '#E8B44C'
-              : isIntro
-              ? '#0A101D'
-              : '#0C617C',
-            color: isAd && !item.isBumperAd && !item.isSponsor ? '#0A101D' : '#ffffff',
-            flexShrink: 0,
-            letterSpacing: '0.03em'
-          }}>
-            {isAd
-              ? item.isBumperAd
-                ? `RTÜK ${item.bumperType === 'intro' ? 'GİRİŞ' : 'ÇIKIŞ'}`
-                : item.isSponsor
-                ? 'SPONSOR REKLAM'
-                : 'REKLAM'
-              : isIntro
-              ? 'İNTRO KLİP'
-              : 'PROGRAM KLİBİ'}
-          </span>
-
-          <span style={{
-            fontSize: fs(13),
+        <span
+          style={{
+            fontSize: fs(13.5),
             fontWeight: 800,
-            color: !isAd && catTitleColor ? catTitleColor : 'var(--text-primary)',
+            color: isAd
+              ? '#92400e'
+              : (!isAd && catTitleColor ? catTitleColor : 'var(--text-primary)'),
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis'
-          }} title={item.title}>
-            {item.title}
-          </span>
+          }}
+          title={cleanDisplayTitle}
+        >
+          {cleanDisplayTitle}
+        </span>
 
-          {item.episodeNo != null && (
-            <span style={{
-              fontSize: fs(10),
-              fontWeight: 800,
-              padding: '1px 5px',
-              borderRadius: '4px',
-              background: 'rgba(37, 99, 235, 0.14)',
-              color: '#2563eb',
-              flexShrink: 0
-            }}>
-              Bl.{item.episodeNo}
-            </span>
-          )}
-          {item.partNo != null && (
-            <span style={{
-              fontSize: fs(10),
-              fontWeight: 800,
-              padding: '1px 5px',
-              borderRadius: '4px',
-              background: 'rgba(124, 58, 237, 0.14)',
-              color: '#7c3aed',
-              flexShrink: 0
-            }}>
-              P.{item.partNo}
-            </span>
-          )}
-        </div>
-
-        {/* Alt Bilgi Satırı: HighRes ID (<id>.mxf) + Yayın Arşiv Klip İsmi (<isim>.mxf) + Firma / Kategori */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          flexWrap: 'wrap',
-          fontSize: fs(11),
-          color: 'var(--text-secondary)'
-        }}>
-          {resolvedClipId && (
-            <span
-              style={{
-                fontFamily: 'monospace',
-                fontWeight: 800,
-                color: isAd ? '#b45309' : '#1d4ed8',
-                background: isAd ? 'rgba(217, 119, 6, 0.12)' : 'rgba(37, 99, 235, 0.12)',
-                padding: '0 5px',
-                borderRadius: '4px'
-              }}
-              title={`HighRes Dizini ID Dosyası: ${highResIdFileLabel}`}
-            >
-              HighRes ID: #{resolvedClipId} ({highResIdFileLabel})
-            </span>
-          )}
-          <span
-            style={{
-              fontFamily: 'monospace',
-              fontWeight: 700,
-              color: 'var(--text-secondary)',
-              background: 'var(--bg-primary)',
-              border: '1px solid var(--border-color)',
-              padding: '0 5px',
-              borderRadius: '4px'
-            }}
-            title={`Yayın Arşiv Dizini Klip İsmi: ${archiveNameFileLabel}`}
-          >
-            Arşiv İsmi: {archiveNameFileLabel}
-          </span>
-          {isAd && item.companyName && (
-            <strong style={{ color: '#d97706' }}>• {item.companyName}</strong>
-          )}
-          {!isAd && (item.categoryName || item.category) && (
-            <span style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>
-              • {item.categoryName || item.category}
-            </span>
-          )}
-          {item.modifiedInListControl && item.previousItemSnapshot?.title && (
-            <span style={{ color: '#0284c7', fontWeight: 700 }}>
-              (Eski: {item.previousItemSnapshot.title})
-            </span>
-          )}
-        </div>
-
-        {item.revisionRequested && (
-          <div style={{
-            fontSize: '10px',
+        {!isAd && item.episodeNo != null && (
+          <span style={{
+            fontSize: fs(10.5),
             fontWeight: 800,
-            color: '#b45309',
-            background: 'rgba(245, 158, 11, 0.14)',
-            padding: '1.5px 6px',
+            padding: '1px 6px',
             borderRadius: '4px',
-            alignSelf: 'flex-start'
+            background: 'rgba(12, 97, 124, 0.12)',
+            color: 'var(--turkuaz, #0C617C)',
+            flexShrink: 0
           }}>
-            Revize ({item.revisionTargetLabel}): {item.revisionReason}
-          </div>
+            Bölüm {item.episodeNo}
+          </span>
+        )}
+        {!isAd && item.partNo != null && (
+          <span style={{
+            fontSize: fs(10.5),
+            fontWeight: 800,
+            padding: '1px 6px',
+            borderRadius: '4px',
+            background: 'rgba(20, 42, 68, 0.1)',
+            color: 'var(--lacivert, #142A44)',
+            flexShrink: 0
+          }}>
+            Part {item.partNo}
+          </span>
         )}
       </div>
 
-      {/* SÜTUN 4: LOGO GİRİŞİ (Reklam Girişte Reklam Logosu Girer • Reklam Çıkıştan Sonra Programa Girerken Yayın Logosu Girer) */}
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          flex: '1.15 1 130px',
-          minWidth: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '2px',
-          overflow: 'hidden'
-        }}
-        title={
-          hasLogoTrigger
-            ? `${item.logoEventLabel || 'Logo Girişi'} → ${activeLogoName}`
-            : 'Bu satırda yeni logo girişi yok (mevcut logo devam ediyor).'
-        }
-      >
-        {hasLogoTrigger ? (
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
-              <span style={{
-                fontSize: '9.5px',
-                fontWeight: 900,
-                padding: '1px 5px',
-                borderRadius: '4px',
-                background: isAdLogoEvent
-                  ? 'rgba(217, 119, 6, 0.16)'
-                  : 'rgba(16, 185, 129, 0.16)',
-                color: isAdLogoEvent
-                  ? '#d97706'
-                  : '#059669',
-                textTransform: 'uppercase',
-                whiteSpace: 'nowrap'
-              }}>
-                {isAdLogoEvent ? 'REKLAM LOGOSU GİRİŞ' : 'YAYIN LOGOSU GİRİŞ'}
-              </span>
-
-              {onUpdateLogoEvent && (
-                <select
-                  value={item.manualLogoEvent || 'auto'}
-                  onChange={(e) => onUpdateLogoEvent(item.instanceId, e.target.value)}
-                  style={{
-                    fontSize: '9.5px',
-                    padding: '0 2px',
-                    borderRadius: '4px',
-                    border: '1px solid var(--border-color)',
-                    background: 'var(--bg-primary)',
-                    color: 'var(--text-secondary)',
-                    cursor: 'pointer',
-                    maxWidth: '52px'
-                  }}
-                  title="Logo Girişini Değiştir"
-                >
-                  <option value="auto">Oto</option>
-                  <option value="yayin_giris">Yayın Logosu Giriş</option>
-                  <option value="reklam_giris">Reklam Logosu Giriş</option>
-                  <option value="none">— Kaldır</option>
-                </select>
-              )}
-            </div>
-            <span style={{
-              fontSize: '10.5px',
-              fontWeight: 800,
-              fontFamily: 'monospace',
-              color: 'var(--text-primary)',
-              background: isAdLogoEvent
-                ? 'rgba(217, 119, 6, 0.1)'
-                : 'rgba(16, 185, 129, 0.1)',
-              border: isAdLogoEvent
-                ? '1px solid rgba(217, 119, 6, 0.3)'
-                : '1px solid rgba(16, 185, 129, 0.3)',
-              padding: '2px 6px',
-              borderRadius: '5px',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis'
-            }}>
-              {activeLogoName}
-            </span>
-          </>
-        ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span style={{
-              fontSize: '11px',
-              fontWeight: 700,
-              color: 'var(--text-muted)',
-              fontFamily: 'monospace'
-            }}>
-              —
-            </span>
-            {onUpdateLogoEvent && (
-              <select
-                value={item.manualLogoEvent || 'auto'}
-                onChange={(e) => onUpdateLogoEvent(item.instanceId, e.target.value)}
-                style={{
-                  fontSize: '9.5px',
-                  padding: '1px 4px',
-                  borderRadius: '4px',
-                  border: '1px dashed var(--border-color)',
-                  background: 'transparent',
-                  color: 'var(--text-muted)',
-                  cursor: 'pointer',
-                  maxWidth: '92px'
-                }}
-                title="Bu satıra manuel Logo Girişi ekle"
-              >
-                <option value="auto">+ Logo Giriş</option>
-                <option value="yayin_giris">Yayın Logosu Giriş</option>
-                <option value="reklam_giris">Reklam Logosu Giriş</option>
-                <option value="none">— Yok</option>
-              </select>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* SÜTUN 5: AŞAMA & TEKNİK KONTROL (BİZİM DB • MAM DB • HIGHRES .MXF — Hata yazısı kesilmeden tam okunur!) */}
-      <div
-        style={{
-          flex: '2.1 1 195px',
-          minWidth: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '3px'
-        }}
-        title={h.resolvedPath ? `Tam Dosya Yolu: ${h.resolvedPath} (${h.dbSource || 'MAM DB'})` : h.integrityStatusText}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
-          {stageInfo && (
-            <span
-              style={{
-                fontSize: '9.5px',
-                fontWeight: 800,
-                padding: '1px 5px',
-                borderRadius: '4px',
-                background: stageInfo.badgeBg,
-                color: stageInfo.badgeColor
-              }}
-              title={stageInfo.detailText}
-            >
-              {stageInfo.badgeLabel}
-            </span>
-          )}
-          <span style={{
-            fontSize: '9.5px',
-            fontWeight: 800,
-            padding: '1px 5px',
-            borderRadius: '4px',
-            background: h.inDatabase ? 'rgba(16, 185, 129, 0.14)' : 'rgba(220, 38, 38, 0.15)',
-            color: h.inDatabase ? '#059669' : '#dc2626'
-          }}>
-            {h.inDatabase ? 'DB' : 'DB (Yok)'}
-          </span>
-          <span style={{
-            fontSize: '9.5px',
-            fontWeight: 800,
-            padding: '1px 5px',
-            borderRadius: '4px',
-            background: h.fileExists ? 'rgba(16, 185, 129, 0.14)' : 'rgba(220, 38, 38, 0.15)',
-            color: h.fileExists ? '#059669' : '#dc2626'
-          }}>
-            {h.fileExists
-              ? (h.matchedInHighRes && h.matchedInArsiv
-                  ? `HighRes(ID) & Arşiv(İsim) .${(h.detectedFormat || 'mxf').toUpperCase()}`
-                  : h.matchedInHighRes
-                  ? `HighRes (ID) .${(h.detectedFormat || 'mxf').toUpperCase()}`
-                  : h.matchedInArsiv
-                  ? `Yayın Arşiv (İsim) .${(h.detectedFormat || 'mxf').toUpperCase()}`
-                  : `HighRes/Arşiv .${(h.detectedFormat || 'mxf').toUpperCase()}`)
-              : 'Dosya Yolu (Yok)'}
-          </span>
-        </div>
-
-        <div style={{
-          fontSize: fs(11),
-          fontWeight: 700,
-          color: hasHealthError ? '#dc2626' : '#059669',
-          whiteSpace: 'normal',
-          wordBreak: 'break-word',
-          lineHeight: 1.35
-        }}>
-          {hasHealthError
-            ? (Array.isArray(h.issues) && h.issues.length > 0
-                ? h.issues.join(' • ')
-                : h.integrityStatusText || 'Dosya yolu veya veritabanı kaydı eksik')
-            : (h.integrityStatusText || `Sağlam (.${(h.detectedFormat || 'mxf').toUpperCase()} • Oynatılabilir)`)}
-        </div>
-      </div>
-
-      {/* SÜTUN 6: DÜZENLENEBİLİR SÜRE (Taşma ve üst üste binme önlendi!) */}
+      {/* SÜTUN 4: SÜRE (İsim Sütunundan Hemen Sonra) */}
       <div style={{
         width: `${durColWidth}px`,
         flexShrink: 0,
@@ -632,7 +420,7 @@ export default function ListControlRundownRow({
               setIsEditingDuration(true);
             }}
             style={{
-              padding: '4px 8px',
+              padding: '4px 9px',
               borderRadius: '6px',
               border: item.durationModifiedInListControl
                 ? '1.5px solid #0284c7'
@@ -641,9 +429,9 @@ export default function ListControlRundownRow({
                 ? 'rgba(2, 132, 199, 0.12)'
                 : 'var(--bg-primary)',
               color: 'var(--text-primary)',
-              fontSize: fs(11),
+              fontSize: fs(11.5),
               fontWeight: 800,
-              fontFamily: 'monospace',
+              fontFamily: 'var(--font-mono)',
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
@@ -660,7 +448,83 @@ export default function ListControlRundownRow({
         )}
       </div>
 
-      {/* SÜTUN 7: İŞLEMLER (ⓘ Bilgi Popup + Revize + Sıralama + Sil) */}
+      {/* SÜTUN 5: SADELEŞTİRİLMİŞ LOGO GİRİŞİ (Sadece Reklam Giriş veya Yayın Giriş) */}
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: `${logoColWidth}px`,
+          flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '4px',
+          overflow: 'hidden'
+        }}
+        title={
+          hasLogoTrigger
+            ? `${isAdLogoEvent ? 'Reklam Giriş' : 'Yayın Giriş'} (${activeLogoName})`
+            : 'Bu satırda yeni logo girişi yok (mevcut logo devam ediyor).'
+        }
+      >
+        {hasLogoTrigger ? (
+          <span style={{
+            fontSize: fs(10.5),
+            fontWeight: 800,
+            padding: '3px 8px',
+            borderRadius: '5px',
+            background: isAdLogoEvent
+              ? 'rgba(217, 119, 6, 0.16)'
+              : 'rgba(16, 185, 129, 0.16)',
+            color: isAdLogoEvent
+              ? '#b45309'
+              : '#047857',
+            border: isAdLogoEvent
+              ? '1px solid rgba(217, 119, 6, 0.35)'
+              : '1px solid rgba(16, 185, 129, 0.35)',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
+          }}>
+            {isAdLogoEvent ? 'Reklam Giriş' : 'Yayın Giriş'}
+          </span>
+        ) : (
+          <span style={{
+            fontSize: fs(11),
+            fontWeight: 700,
+            color: 'var(--text-muted)',
+            fontFamily: 'var(--font-mono)',
+            paddingLeft: '4px'
+          }}>
+            —
+          </span>
+        )}
+
+        {onUpdateLogoEvent && (
+          <select
+            value={item.manualLogoEvent || 'auto'}
+            onChange={(e) => onUpdateLogoEvent(item.instanceId, e.target.value)}
+            style={{
+              fontSize: '10px',
+              padding: '2px 3px',
+              borderRadius: '4px',
+              border: '1px solid var(--border-color)',
+              background: 'var(--bg-primary)',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              maxWidth: '54px',
+              flexShrink: 0
+            }}
+            title="Logo Girişini Değiştir"
+          >
+            <option value="auto">Oto</option>
+            <option value="yayin_giris">Yayın Giriş</option>
+            <option value="reklam_giris">Reklam Giriş</option>
+            <option value="none">Yok</option>
+          </select>
+        )}
+      </div>
+
+      {/* SÜTUN 6: İŞLEMLER & TEKNİK KONTROL BUTONU */}
       <div style={{
         width: `${actColWidth}px`,
         flexShrink: 0,
@@ -669,6 +533,45 @@ export default function ListControlRundownRow({
         justifyContent: 'flex-end',
         gap: '4px'
       }}>
+        {/* Renkli Teknik Kontrol Durum Butonu (Hata: Kırmızı, Uyarı: Turuncu, Sağlam: Yeşil -> Tıklanınca Detay Pop-up) */}
+        <button
+          type="button"
+          onClick={handleOpenTechDetailsModal}
+          style={{
+            height: '25px',
+            padding: '0 7px',
+            borderRadius: '6px',
+            border: techBtnBorder,
+            background: techBtnBg,
+            color: techBtnColor,
+            fontSize: '10.5px',
+            fontWeight: 800,
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+            flexShrink: 0
+          }}
+          title={
+            techBtnStatus === 'error'
+              ? 'Teknik Hata Mevcut! Detayları görmek için tıklayın'
+              : techBtnStatus === 'warning'
+              ? 'Uyarı / Değişim Mevcut! Detayları görmek için tıklayın'
+              : 'DB & HighRes .MXF Sağlam — Detaylı teknik bilgi için tıklayın'
+          }
+        >
+          {techBtnStatus === 'error' ? (
+            <ShieldAlert size={13} color={techBtnColor} />
+          ) : techBtnStatus === 'warning' ? (
+            <AlertTriangle size={13} color={techBtnColor} />
+          ) : (
+            <ShieldCheck size={13} color={techBtnColor} />
+          )}
+          <span>
+            {techBtnStatus === 'error' ? 'Hata' : techBtnStatus === 'warning' ? 'Uyarı' : 'Sağlam'}
+          </span>
+        </button>
+
         <button
           type="button"
           onClick={(e) => {
@@ -697,7 +600,7 @@ export default function ListControlRundownRow({
             justifyContent: 'center',
             flexShrink: 0
           }}
-          title="Klip / Reklam Detayları, Veritabanı Künyesi ve Video Önizleme (Information ⓘ)"
+          title="Klip / Reklam Detayları, Veritabanı Künyesi ve Video Önizleme (Information)"
         >
           <Info size={14} color="#2563eb" />
         </button>
@@ -719,7 +622,8 @@ export default function ListControlRundownRow({
             cursor: 'pointer',
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '3px'
+            gap: '3px',
+            flexShrink: 0
           }}
           title={isAd ? 'Reklam Rezervasyona Revize Gönder' : 'Taslak veya Yayın Planlamaya Revize Gönder'}
         >
@@ -745,7 +649,8 @@ export default function ListControlRundownRow({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            cursor: index === 0 ? 'default' : 'pointer'
+            cursor: index === 0 ? 'default' : 'pointer',
+            flexShrink: 0
           }}
           title="Yukarı Taşı"
         >
@@ -770,7 +675,8 @@ export default function ListControlRundownRow({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            cursor: index >= totalCount - 1 ? 'default' : 'pointer'
+            cursor: index >= totalCount - 1 ? 'default' : 'pointer',
+            flexShrink: 0
           }}
           title="Aşağı Taşı"
         >
@@ -793,7 +699,8 @@ export default function ListControlRundownRow({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            flexShrink: 0
           }}
           title="Satırı Sil"
         >

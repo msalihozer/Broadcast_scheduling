@@ -17,6 +17,8 @@ import {
   ArrowDownToLine
 } from 'lucide-react';
 import { secondsToTimecode } from '../../../utils/timecodeUtils';
+import useBroadcastStore from '../../../store/broadcastStore';
+import Ikon from '../../../../../components/Ikon';
 
 const SummaryActionToolbar = memo(function SummaryActionToolbar({
   adBreakDefaultSettings,
@@ -27,6 +29,8 @@ const SummaryActionToolbar = memo(function SummaryActionToolbar({
   onQuickAddFillerSlot,
   onOpenAddModal
 }) {
+  const isDraftSidebarOpen = useBroadcastStore(state => state.isDraftSidebarOpen);
+  const toggleDraftSidebar = useBroadcastStore(state => state.toggleDraftSidebar);
   const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
   const [showAdSettingsInline, setShowAdSettingsInline] = useState(false);
   const [adDurMinInput, setAdDurMinInput] = useState(() =>
@@ -66,8 +70,34 @@ const SummaryActionToolbar = memo(function SummaryActionToolbar({
   };
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'nowrap', flexShrink: 0 }}>
-      {/* 1. SOL: ÜST / SEÇİLİ ALTI / ALT KONUM SEÇİCİSİ */}
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap', flexShrink: 0 }}>
+      {/* 0. EN SOL: BELİRGİN TASLAK PANELİ AÇ / KAPAT BUTONU */}
+      <button
+        type="button"
+        onClick={toggleDraftSidebar}
+        title="Sol Taslak & Klip panelini göster/gizle (Kısayol: T)"
+        style={{
+          height: '34px',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '7px',
+          background: isDraftSidebarOpen ? 'var(--turkuaz, #0C617C)' : '#FFFFFF',
+          border: '1.5px solid var(--turkuaz, #0C617C)',
+          color: isDraftSidebarOpen ? '#FFFFFF' : 'var(--turkuaz, #0C617C)',
+          padding: '0 13px',
+          borderRadius: '6px',
+          cursor: 'pointer',
+          fontSize: '12.5px',
+          fontWeight: 800,
+          whiteSpace: 'nowrap',
+          boxShadow: isDraftSidebarOpen ? '0 2px 6px rgba(12, 97, 124, 0.22)' : 'none'
+        }}
+      >
+        <Ikon ad="panel" size={15} />
+        <span>{isDraftSidebarOpen ? 'Taslak Paneli Açık' : 'Taslak Paneli'}</span>
+      </button>
+
+      {/* 1. SOL: EKLEME YERİ (ÜST / SEÇİLİ ALTI / ALT KONUM SEÇİCİSİ) */}
       {setInsertPosition && (
         <div
           style={{
@@ -76,15 +106,24 @@ const SummaryActionToolbar = memo(function SummaryActionToolbar({
             background: 'var(--bg-primary)',
             border: '1px solid var(--border-color)',
             borderRadius: '8px',
-            padding: '3px',
-            gap: '2px'
+            padding: '3px 3px 3px 8px',
+            gap: '4px'
           }}
-          title="Eklenen, çoğaltılan ve yapıştırılan öğelerin yerleşeceği konum"
+          title="Yeni eklenecek, çoğaltılacak veya yapıştırılacak program/kliplerin listeye yerleşeceği konum"
         >
+          <span style={{
+            fontSize: '11px',
+            fontWeight: 800,
+            color: 'var(--text-secondary)',
+            whiteSpace: 'nowrap',
+            marginRight: '2px'
+          }}>
+            Ekleme Yeri:
+          </span>
           {[
-            { id: 'top', label: 'Üst', icon: ArrowUpToLine, tip: 'En Üste Ekle' },
-            { id: 'after_selected', label: 'Seçili Altı', icon: CornerDownRight, tip: 'Seçilenin Altına Ekle' },
-            { id: 'bottom', label: 'Alt', icon: ArrowDownToLine, tip: 'En Alta Ekle' }
+            { id: 'top', label: 'Üst', icon: ArrowUpToLine, tip: 'Yeni öğeyi listenin EN ÜSTÜNE (1. sıraya) ekler' },
+            { id: 'after_selected', label: 'Seçili Altı', icon: CornerDownRight, tip: 'Yeni öğeyi tabloda SEÇİLİ OLAN SATIRIN HEMEN ALTINA ekler' },
+            { id: 'bottom', label: 'Alt', icon: ArrowDownToLine, tip: 'Yeni öğeyi listenin EN ALTINA (son sıraya) ekler' }
           ].map(opt => {
             const Icon = opt.icon;
             const active = insertPosition === opt.id;

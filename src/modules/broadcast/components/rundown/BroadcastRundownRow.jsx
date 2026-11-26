@@ -275,49 +275,52 @@ const BroadcastRundownRow = memo(function BroadcastRundownRow({
           </span>
         </div>
 
-        {/* 2. YAYIN SAATİ (Başlangıç → Bitiş, tek satır şık kapsül) */}
-        <div style={{ ...RUNDOWN_FLEX_COLUMNS.time }}>
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '5px',
-            background: isPinned ? 'rgba(245, 158, 11, 0.14)' : 'var(--bg-secondary)',
-            border: `1.5px solid ${isPinned ? '#f59e0b' : isSelected ? 'var(--accent-primary)' : (isFiller || isFillerClip) ? 'rgba(139, 92, 246, 0.35)' : 'var(--border-color)'}`,
-            borderLeft: `3px solid ${isPinned ? '#d97706' : rowAccentColor}`,
-            padding: '4px 7px',
-            borderRadius: '7px',
-            boxSizing: 'border-box',
-            whiteSpace: 'nowrap'
-          }}>
+        {/* 2. GİRİŞ SAATİ (Saat alanında ortada büyük gösterim, öncesinde boşluk varsa üstte uyarı etiketi) */}
+        <div style={{ ...RUNDOWN_FLEX_COLUMNS.time, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
+          {item.precedingGapSec > 5 && (
+            <span
+              title={`Bu sabit saatten önce ${Math.round(item.precedingGapSec / 60)} dk ${item.precedingGapSec % 60} sn boşluk bulunuyor`}
+              style={{
+                fontSize: '9.5px',
+                fontWeight: 800,
+                padding: '1px 5px',
+                borderRadius: '3px',
+                background: 'rgba(232, 180, 76, 0.25)',
+                color: '#92400e',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              +{Math.floor(item.precedingGapSec / 60)}dk Boşluk
+            </span>
+          )}
+          <div
+            title={`Giriş Saati: ${startInfo.hhmm}:${startInfo.ss} • Çıkış Saati: ${endInfo.hhmm}:${endInfo.ss}`}
+            style={{
+              width: '100%',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '5px',
+              background: isPinned ? 'rgba(245, 158, 11, 0.14)' : 'var(--bg-secondary)',
+              border: `1.5px solid ${isPinned ? '#f59e0b' : isSelected ? 'var(--accent-primary)' : (isFiller || isFillerClip) ? 'rgba(16, 154, 173, 0.35)' : 'var(--border-color)'}`,
+              borderLeft: `3.5px solid ${isPinned ? '#d97706' : rowAccentColor}`,
+              padding: '5px 8px',
+              borderRadius: '6px',
+              boxSizing: 'border-box',
+              whiteSpace: 'nowrap'
+            }}
+          >
             {isPinned && (
-              <Pin size={11} color="#d97706" style={{ flexShrink: 0 }} title="Bu saat sabitlenmiştir" />
+              <Pin size={12} color="#d97706" style={{ flexShrink: 0 }} title="Bu saat sabitlenmiştir" />
             )}
             <span style={{
-              fontFamily: 'monospace',
-              fontSize: '12.5px',
-              fontWeight: '900',
-              color: isPinned ? '#d97706' : 'var(--text-primary)',
-              letterSpacing: '0.1px'
+              fontFamily: 'var(--font-mono)',
+              fontSize: '14.5px',
+              fontWeight: 800,
+              color: item.isOverflow ? '#ef4444' : isPinned ? '#d97706' : 'var(--text-primary)',
+              letterSpacing: '0.02em'
             }}>
               {startInfo.hhmm}:{startInfo.ss}
-            </span>
-
-            <span style={{
-              color: isPinned ? '#d97706' : rowAccentColor,
-              fontWeight: '900',
-              fontSize: '11.5px'
-            }}>
-              →
-            </span>
-
-            <span style={{
-              fontFamily: 'monospace',
-              fontSize: '12.5px',
-              fontWeight: '900',
-              color: item.isOverflow ? '#ef4444' : isPinned ? '#b45309' : 'var(--text-secondary)',
-              letterSpacing: '0.1px'
-            }}>
-              {endInfo.hhmm}:{endInfo.ss}
             </span>
           </div>
         </div>

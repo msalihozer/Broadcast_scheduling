@@ -6,13 +6,13 @@
 
 import useThemeStore from '../../../store/themeStore';
 
-// Sütun Sırası: 1.# | 2.Yayın Saati (Başlangıç-Bitiş) | 3.Süre | 4.Klip/Program Adı | 5.Bölüm/Part | 6.Tür | 7.İşlemler
+// Sütun Sırası: 1.# | 2.Giriş Saati | 3.Süre | 4.Klip/Program Adı | 5.Bölüm/Part | 6.Tür | 7.İşlemler
 export const RUNDOWN_GRID_TEMPLATE =
-  '44px minmax(144px, 1.15fr) minmax(136px, 0.98fr) minmax(150px, 2.2fr) minmax(78px, 1fr) minmax(68px, 0.75fr) 124px';
+  '44px minmax(112px, 0.9fr) minmax(136px, 0.98fr) minmax(150px, 2.35fr) minmax(78px, 1fr) minmax(68px, 0.75fr) 124px';
 
 export const RUNDOWN_FLEX_COLUMNS = {
   order: { flex: '0 0 48px', minWidth: '48px' },
-  time: { flex: '0 0 162px', minWidth: '150px' },
+  time: { flex: '0 0 116px', minWidth: '108px' },
   duration: { flex: '0 0 138px', minWidth: '126px' },
   title: { flex: '1 1 220px', minWidth: '140px' },
   unit: { flex: '0 0 135px', minWidth: '100px' },
