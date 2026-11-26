@@ -169,6 +169,19 @@ const AdPlanningTab = () => {
   };
 
   const selectedDayKey = `ready-${selectedChannel}-${selectedDate}`;
+  const listControlDays = usePlanningStore(state => state.listControlDays || {});
+  const isPastApprovedLocked = useMemo(() => {
+    if (!selectedDate || selectedDate >= todayStr) return false;
+    const lcDay = listControlDays?.[`list-control-${selectedChannel}-${selectedDate}`];
+    const rDay = days?.[selectedDayKey];
+    return Boolean(
+      lcDay?.isApprovedInListControl ||
+      lcDay?.isFinalApproved ||
+      rDay?.isApprovedInListControl ||
+      rDay?.isFinalApproved ||
+      rDay?.adsStatus === 'sent_to_master'
+    );
+  }, [selectedDate, todayStr, listControlDays, selectedChannel, days, selectedDayKey]);
 
   // MAM Arşiv program listesini çek (Canlı yayınların önceki bölümlerini ve kategorilerini tespit etmek için)
   useEffect(() => {
@@ -1227,6 +1240,21 @@ const AdPlanningTab = () => {
             </div>
           ) : (
             <>
+              {isPastApprovedLocked && (
+                <div
+                  style={{
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    background: '#FEF2F2',
+                    border: '1.5px solid #DC2626',
+                    color: '#991B1B',
+                    fontSize: '12.5px',
+                    fontWeight: 700
+                  }}
+                >
+                  KİLİTLİ GÜN (SALT-OKUNUR): {selectedDate} tarihli yayın listesi Yayın Liste Kontrol aşamasında onaylanmış ve yayın tarihi geçmiş olduğu için değişikliğe kapalıdır. Yalnızca görüntüleme yapılabilir.
+                </div>
+              )}
               <AdPlanningDaySummaryCard
                 selectedDayInfo={selectedDayInfo}
                 todayStr={todayStr}

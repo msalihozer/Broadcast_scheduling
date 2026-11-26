@@ -10,6 +10,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import useBroadcastStore from './store/broadcastStore';
+import usePlanningStore from '../../store/planningStore';
 import { fetchAndSyncDraftSchedule, updateLiveDraftSchedule } from './utils/draftDataLoader';
 import BroadcastHeader from './components/BroadcastHeader';
 import BroadcastDayView from './components/BroadcastDayView';
@@ -48,6 +49,11 @@ const BroadcastPlanningLayout = () => {
 
     const syncFromBackend = async () => {
       await fetchAndSyncDraftSchedule(selectedChannel);
+      // Başka bir bilgisayardan kaydedilmiş ileri tarihli geçici/kalıcı yayın listelerini sunucudan eşitle
+      const syncFn = usePlanningStore.getState().syncAdsStoreWithServer;
+      if (typeof syncFn === 'function') {
+        await syncFn();
+      }
       if (isMounted) {
         notifyDraftUpdated(selectedChannel);
       }

@@ -224,6 +224,12 @@ const AdsReservationForm = ({ onClose, existingData = null, defaultSponsorMode =
                   Array.isArray(it.timeBlockIds) && it.timeBlockIds.length > 0
                     ? it.timeBlockIds
                     : fallbackBlocks,
+                timeBlockSpotCounts:
+                  it.timeBlockSpotCounts && typeof it.timeBlockSpotCounts === 'object'
+                    ? { ...it.timeBlockSpotCounts }
+                    : existingData.timeBlockSpotCounts && typeof existingData.timeBlockSpotCounts === 'object'
+                    ? { ...existingData.timeBlockSpotCounts }
+                    : {},
                 isSponsor: itemIsSponsor,
                 sponsorProgramId: it.sponsorProgramId || existingData.sponsorProgramId || '',
                 sponsorProgramTitle: it.sponsorProgramTitle || existingData.sponsorProgramTitle || '',
@@ -250,6 +256,10 @@ const AdsReservationForm = ({ onClose, existingData = null, defaultSponsorMode =
                 spotPrice: existingData.spotPrice || '',
                 channelIds: fallbackChannels,
                 timeBlockIds: fallbackBlocks,
+                timeBlockSpotCounts:
+                  existingData.timeBlockSpotCounts && typeof existingData.timeBlockSpotCounts === 'object'
+                    ? { ...existingData.timeBlockSpotCounts }
+                    : {},
                 isSponsor: Boolean(existingData.isSponsor || defaultSponsorMode),
                 sponsorProgramId: existingData.sponsorProgramId || '',
                 sponsorProgramTitle: existingData.sponsorProgramTitle || '',
@@ -387,10 +397,48 @@ const AdsReservationForm = ({ onClose, existingData = null, defaultSponsorMode =
     setFormData(prev => {
       const nextItems = [...prev.items];
       const currentBlocks = nextItems[index].timeBlockIds || [];
-      const nextBlocks = currentBlocks.includes(tbId)
+      const currentCounts = { ...(nextItems[index].timeBlockSpotCounts || {}) };
+      const isRemoving = currentBlocks.includes(tbId);
+      const nextBlocks = isRemoving
         ? currentBlocks.filter(id => id !== tbId)
         : [...currentBlocks, tbId];
-      nextItems[index] = { ...nextItems[index], timeBlockIds: nextBlocks };
+      if (isRemoving) {
+        delete currentCounts[tbId];
+      }
+      nextItems[index] = {
+        ...nextItems[index],
+        timeBlockIds: nextBlocks,
+        timeBlockSpotCounts: currentCounts
+      };
+      return { ...prev, items: nextItems };
+    });
+  };
+
+  const handleItemTimeBlockCountChange = (index, tbId, countVal) => {
+    setFormData(prev => {
+      const nextItems = [...prev.items];
+      const itemObj = nextItems[index];
+      const currentCounts = { ...(itemObj.timeBlockSpotCounts || {}) };
+      const currentBlocks = itemObj.timeBlockIds || [];
+      const parsed = countVal === '' || countVal === null || countVal === undefined
+        ? 0
+        : Math.max(0, Math.min(30, parseInt(countVal, 10) || 0));
+
+      if (parsed > 0) {
+        currentCounts[tbId] = parsed;
+      } else {
+        delete currentCounts[tbId];
+      }
+
+      const nextBlocks = parsed > 0 && !currentBlocks.includes(tbId)
+        ? [...currentBlocks, tbId]
+        : currentBlocks;
+
+      nextItems[index] = {
+        ...itemObj,
+        timeBlockIds: nextBlocks,
+        timeBlockSpotCounts: currentCounts
+      };
       return { ...prev, items: nextItems };
     });
   };
@@ -722,6 +770,17 @@ const AdsReservationForm = ({ onClose, existingData = null, defaultSponsorMode =
     const normalizedItems = formData.items.map(it => {
       const calc = calculateRowPricing(it);
       const itemMetrics = calculateItemOverageMetrics(it, existingData?.realizedSpots || 0, ramadanConfig);
+      const cleanedTbCounts = {};
+      if (it.timeBlockSpotCounts && typeof it.timeBlockSpotCounts === 'object') {
+        Object.entries(it.timeBlockSpotCounts).forEach(([tbId, cVal]) => {
+          const num = parseInt(cVal, 10) || 0;
+          if (num > 0 && (it.timeBlockIds || []).includes(tbId)) {
+            cleanedTbCounts[tbId] = num;
+          }
+        });
+      }
+      const fixedSum = Object.values(cleanedTbCounts).reduce((a, b) => a + b, 0);
+
       return {
         id: it.id,
         companyId: formData.companyId,
@@ -732,12 +791,13 @@ const AdsReservationForm = ({ onClose, existingData = null, defaultSponsorMode =
         endDate: it.endDate,
         pricingMode: it.pricingMode || 'spots_only',
         plannedSpots: Math.max(1, calc.effectiveSpots || 1),
-        dailyMinSpots: Number(it.dailyMinSpots) || 1,
-        dailyMaxSpots: Number(it.dailyMaxSpots) || 4,
+        dailyMinSpots: fixedSum > 0 ? fixedSum : (Number(it.dailyMinSpots) || 1),
+        dailyMaxSpots: fixedSum > 0 ? fixedSum : (Number(it.dailyMaxSpots) || 4),
         spotPrice: calc.effectiveSpotPrice,
         totalBudget: calc.effectiveTotalBudget,
         channelIds: Array.isArray(it.channelIds) && it.channelIds.length > 0 ? it.channelIds : ['ch_hd'],
         timeBlockIds: Array.isArray(it.timeBlockIds) && it.timeBlockIds.length > 0 ? it.timeBlockIds : ['tb-2', 'tb-3'],
+        timeBlockSpotCounts: cleanedTbCounts,
         isSponsor: Boolean(it.isSponsor),
         sponsorProgramId: it.isSponsor ? it.sponsorProgramId || it.sponsorProgramTitle : null,
         sponsorProgramTitle: it.isSponsor ? it.sponsorProgramTitle : null,
@@ -790,6 +850,7 @@ const AdsReservationForm = ({ onClose, existingData = null, defaultSponsorMode =
       dailyMinSpots: Number(firstItem.dailyMinSpots) || 1,
       dailyMaxSpots: Number(firstItem.dailyMaxSpots) || 4,
       timeBlockIds: summaryStats.allTimeBlocks.length > 0 ? summaryStats.allTimeBlocks : ['tb-2', 'tb-3'],
+      timeBlockSpotCounts: firstItem.timeBlockSpotCounts || {},
       channelIds: summaryStats.allChannels.length > 0 ? summaryStats.allChannels : ['ch_hd'],
       priority: highestPriority,
       isSponsor: hasAnySponsor,
@@ -988,6 +1049,7 @@ const AdsReservationForm = ({ onClose, existingData = null, defaultSponsorMode =
                     onItemChange={handleItemChange}
                     onToggleChannel={handleToggleItemChannel}
                     onToggleTimeBlock={handleToggleItemTimeBlock}
+                    onTimeBlockCountChange={handleItemTimeBlockCountChange}
                     onSelectAllTimeBlocks={handleSelectAllItemTimeBlocks}
                     onToggleSponsorPosition={handleItemSponsorPositionToggle}
                     onToggleRamadanPosition={handleItemRamadanPositionToggle}

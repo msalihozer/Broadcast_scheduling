@@ -17,6 +17,7 @@ const MODULE_TABS = [
   { id: 'draft', label: 'Taslak Planla', shortLabel: 'Taslak', icon: 'taslak', path: '/draft' },
   { id: 'ready', label: 'Yayın Planlama (Ready)', shortLabel: 'Ready', icon: 'hazir', path: '/ready' },
   { id: 'ads', label: 'Reklam Rezervasyon', shortLabel: 'Reklam', icon: 'reklam', path: '/ads' },
+  { id: 'crm', label: 'Firma Görüşmeleri (CRM)', shortLabel: 'CRM', icon: 'firma', path: '/crm' },
   { id: 'list-control', label: 'Yayın Liste Kontrol', shortLabel: 'Kontrol', icon: 'kontrol', path: '/list-control' }
 ];
 
@@ -44,7 +45,12 @@ const TopNavbar = () => {
   const allowedModules = permissions?.allowedModules || ['draft', 'ready', 'ads', 'list-control'];
 
   const visibleTabs = useMemo(() => {
-    return MODULE_TABS.filter(tab => allowedModules.includes(tab.id));
+    return MODULE_TABS.filter(tab => {
+      if (tab.id === 'crm') {
+        return allowedModules.includes('crm') || allowedModules.includes('ads') || allowedModules.includes('admin');
+      }
+      return allowedModules.includes(tab.id);
+    });
   }, [allowedModules]);
 
   const isTabActive = (tabPath) => {

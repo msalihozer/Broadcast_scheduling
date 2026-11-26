@@ -55,6 +55,7 @@ const ClipReservationCard = ({
   onItemChange,
   onToggleChannel,
   onToggleTimeBlock,
+  onTimeBlockCountChange,
   onSelectAllTimeBlocks,
   onToggleSponsorPosition,
   onToggleRamadanPosition,
@@ -92,6 +93,15 @@ const ClipReservationCard = ({
   const selectedMatObj = materials.find(m => String(m.id) === String(item.materialId));
   const rowCalc = calculateRowPricing(item);
   const overageMetrics = calculateItemOverageMetrics(item, null, ramadanConfig);
+  const fixedTimeBlockSum = useMemo(() => {
+    const counts = item.timeBlockSpotCounts || {};
+    const blocks = item.timeBlockIds || [];
+    return Object.entries(counts).reduce((acc, [tbId, val]) => {
+      const n = parseInt(val, 10) || 0;
+      return blocks.includes(tbId) && n > 0 ? acc + n : acc;
+    }, 0);
+  }, [item.timeBlockSpotCounts, item.timeBlockIds]);
+  const hasFixedTimeBlockCounts = fixedTimeBlockSum > 0;
   const mode = item.pricingMode || 'spots_only';
   const rowProgramSearch = String(item.programSearch || '').trim();
   const rowFilteredPrograms = useMemo(() => {
@@ -457,30 +467,46 @@ const ClipReservationCard = ({
 
         <div>
           <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: 'var(--ads-text-sub)', marginBottom: '4px' }}>
-            Günlük Min Spot
+            Günlük Min Spot {hasFixedTimeBlockCounts ? '(Kuşak Sabit)' : ''}
           </label>
           <input
             type="number"
             min="0"
             max={item.dailyMaxSpots || 50}
-            value={item.dailyMinSpots}
+            disabled={hasFixedTimeBlockCounts}
+            value={hasFixedTimeBlockCounts ? fixedTimeBlockSum : item.dailyMinSpots}
             onChange={e => onItemChange(index, 'dailyMinSpots', e.target.value)}
             className="ads-saas-input"
-            style={{ width: '100%', fontWeight: '700' }}
+            title={hasFixedTimeBlockCounts ? 'Kuşak bazlı sabit spot adedi girildiği için Min/Max otomatik olarak kuşak toplamına sabitlenmiştir.' : ''}
+            style={{
+              width: '100%',
+              fontWeight: '700',
+              opacity: hasFixedTimeBlockCounts ? 0.65 : 1,
+              cursor: hasFixedTimeBlockCounts ? 'not-allowed' : 'text',
+              background: hasFixedTimeBlockCounts ? 'var(--ads-pill-bar-bg)' : undefined
+            }}
           />
         </div>
 
         <div>
           <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: 'var(--ads-text-sub)', marginBottom: '4px' }}>
-            Günlük Max Spot
+            Günlük Max Spot {hasFixedTimeBlockCounts ? '(Kuşak Sabit)' : ''}
           </label>
           <input
             type="number"
             min={item.dailyMinSpots || 1}
-            value={item.dailyMaxSpots}
+            disabled={hasFixedTimeBlockCounts}
+            value={hasFixedTimeBlockCounts ? fixedTimeBlockSum : item.dailyMaxSpots}
             onChange={e => onItemChange(index, 'dailyMaxSpots', e.target.value)}
             className="ads-saas-input"
-            style={{ width: '100%', fontWeight: '700' }}
+            title={hasFixedTimeBlockCounts ? 'Kuşak bazlı sabit spot adedi girildiği için Min/Max otomatik olarak kuşak toplamına sabitlenmiştir.' : ''}
+            style={{
+              width: '100%',
+              fontWeight: '700',
+              opacity: hasFixedTimeBlockCounts ? 0.65 : 1,
+              cursor: hasFixedTimeBlockCounts ? 'not-allowed' : 'text',
+              background: hasFixedTimeBlockCounts ? 'var(--ads-pill-bar-bg)' : undefined
+            }}
           />
         </div>
       </div>
@@ -809,25 +835,47 @@ const ClipReservationCard = ({
             gap: '8px'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
             <span style={{ fontSize: '11.5px', fontWeight: '800', color: 'var(--ads-text-main)', display: 'flex', alignItems: 'center', gap: '5px' }}>
               <Clock size={13} color="var(--ads-orange)" />
-              Yayınlanacağı Kuşaklar * ({(item.timeBlockIds || []).length} Seçili)
+              Yayınlanacağı Kuşaklar &amp; Kuşak Başına Sabit Adet * ({(item.timeBlockIds || []).length} Seçili)
             </span>
-            <button
-              type="button"
-              onClick={() => onSelectAllTimeBlocks(index)}
-              style={{ background: 'none', border: 'none', color: 'var(--ads-brand)', fontSize: '10.5px', fontWeight: '700', cursor: 'pointer' }}
-            >
-              {activeTimeBlocks.every(tb => (item.timeBlockIds || []).includes(tb.id))
-                ? 'Seçimi Temizle'
-                : 'Tüm Kuşakları Seç'}
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {hasFixedTimeBlockCounts && (
+                <span
+                  style={{
+                    fontSize: '10.5px',
+                    fontWeight: 800,
+                    padding: '2px 8px',
+                    borderRadius: '999px',
+                    background: 'rgba(217, 119, 6, 0.16)',
+                    color: '#d97706',
+                    border: '1px solid rgba(217, 119, 6, 0.35)'
+                  }}
+                >
+                  Kuşak Sabit: Günlük {fixedTimeBlockSum} Spot (Min/Max Devre Dışı)
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => onSelectAllTimeBlocks(index)}
+                style={{ background: 'none', border: 'none', color: 'var(--ads-brand)', fontSize: '10.5px', fontWeight: '700', cursor: 'pointer' }}
+              >
+                {activeTimeBlocks.every(tb => (item.timeBlockIds || []).includes(tb.id))
+                  ? 'Seçimi Temizle'
+                  : 'Tüm Kuşakları Seç'}
+              </button>
+            </div>
+          </div>
+
+          <div style={{ fontSize: '10.5px', color: 'var(--ads-text-muted)' }}>
+            Kuşak yanındaki kutuya <strong>kaç defa</strong> gireceğini yazarsanız o kuşakta tam o sayıda sabit girer ve Günlük Min/Max devre dışı kalır. Boş bırakırsanız Min/Max algoritmasına göre dağılır.
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
             {activeTimeBlocks.map(tb => {
               const isChecked = (item.timeBlockIds || []).includes(tb.id);
+              const fixedVal = item.timeBlockSpotCounts?.[tb.id] || '';
               const theme = getBlockTheme(tb.name);
               return (
                 <div
@@ -846,7 +894,7 @@ const ClipReservationCard = ({
                     transition: 'all 0.15s ease'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '9px', minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '9px', minWidth: 0, flex: 1 }}>
                     <div
                       style={{
                         width: '30px',
@@ -890,21 +938,51 @@ const ClipReservationCard = ({
                     </div>
                   </div>
 
+                  {/* Kuşakta Kaç Defa (Sabit Spot Adedi) Girişi */}
                   <div
-                    style={{
-                      width: '18px',
-                      height: '18px',
-                      borderRadius: '5px',
-                      border: `1.5px solid ${isChecked ? theme.accent : 'var(--ads-border-strong)'}`,
-                      background: isChecked ? theme.accent : 'transparent',
-                      color: '#fff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0
-                    }}
+                    onClick={e => e.stopPropagation()}
+                    style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}
                   >
-                    {isChecked && <Check size={12} />}
+                    <input
+                      type="number"
+                      min="0"
+                      max="25"
+                      placeholder="Oto"
+                      value={fixedVal}
+                      onChange={e => onTimeBlockCountChange && onTimeBlockCountChange(index, tb.id, e.target.value)}
+                      title={`${tb.name} kuşağında kaç defa yayınlanacağını girin (girilirse sabitlenir ve Min/Max devre dışı kalır)`}
+                      style={{
+                        width: '54px',
+                        height: '26px',
+                        padding: '0 6px',
+                        borderRadius: '6px',
+                        border: fixedVal ? `1.5px solid ${theme.accent}` : '1px solid var(--ads-border-strong)',
+                        background: fixedVal ? '#ffffff' : 'var(--ads-card-bg)',
+                        color: 'var(--ads-text-main)',
+                        fontSize: '11.5px',
+                        fontWeight: '800',
+                        textAlign: 'center'
+                      }}
+                    />
+                    <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--ads-text-muted)' }}>kez</span>
+
+                    <div
+                      onClick={() => onToggleTimeBlock(index, tb.id)}
+                      style={{
+                        width: '18px',
+                        height: '18px',
+                        borderRadius: '5px',
+                        border: `1.5px solid ${isChecked ? theme.accent : 'var(--ads-border-strong)'}`,
+                        background: isChecked ? theme.accent : 'transparent',
+                        color: '#fff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0
+                      }}
+                    >
+                      {isChecked && <Check size={12} />}
+                    </div>
                   </div>
                 </div>
               );

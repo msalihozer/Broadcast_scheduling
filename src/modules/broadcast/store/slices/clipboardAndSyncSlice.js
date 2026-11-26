@@ -474,6 +474,12 @@ export const createClipboardAndSyncSlice = (set, get) => ({
       const fallbackOtherKey = targetVariantKey === 'v1' ? 'v2' : 'v1';
       const existingOtherVariant = existingVariants[fallbackOtherKey] || { programs: [] };
 
+      const isAlreadyFinalApproved = Boolean(
+        existingReadyDay.isFinalApproved ||
+        existingReadyDay.isApprovedInListControl ||
+        existingReadyDay.adsStatus === 'sent_to_master'
+      );
+
       const updatedReadyDayObj = {
         ...existingReadyDay,
         date: dateStr,
@@ -484,6 +490,8 @@ export const createClipboardAndSyncSlice = (set, get) => ({
         nextOverflowFrames,
         activeVariant: targetVariantKey,
         isReadyForBroadcast: true,
+        storageStage: isAlreadyFinalApproved ? 'permanent' : 'temporary_staging',
+        isTemporaryStaging: !isAlreadyFinalApproved,
         savedAt: now,
         updatedAt: now,
         variants: {
@@ -505,10 +513,22 @@ export const createClipboardAndSyncSlice = (set, get) => ({
         }
       });
 
+      const currentBroadcastDayForServer = get().days[key] || {};
       pushAdsStoreToServer({
         restoredDayKeys: [`${channelId}-${dateStr}`],
         planningDays: {
           [readyKey]: updatedReadyDayObj
+        },
+        broadcastDays: {
+          [key]: {
+            ...currentBroadcastDayForServer,
+            date: dateStr,
+            channelId,
+            storageStage: isAlreadyFinalApproved ? 'permanent' : 'temporary_staging',
+            isTemporaryStaging: !isAlreadyFinalApproved,
+            savedAt: now,
+            updatedAt: now
+          }
         }
       });
     } catch (err) {
@@ -594,6 +614,8 @@ export const createClipboardAndSyncSlice = (set, get) => ({
         lastRevisedAt: wasAlreadySent ? now : (existingReadyDay.lastRevisedAt || null),
         isLockedForStage1: true,
         isReadyForBroadcast: true,
+        storageStage: 'temporary_staging',
+        isTemporaryStaging: true,
         savedAt: now,
         sentToAdsAt: now,
         updatedAt: now
@@ -606,10 +628,23 @@ export const createClipboardAndSyncSlice = (set, get) => ({
         }
       });
 
+      const currentBroadcastDayForServer = get().days[key] || {};
       pushAdsStoreToServer({
         restoredDayKeys: [`${channelId}-${dateStr}`],
         planningDays: {
           [readyKey]: updatedSentReadyDay
+        },
+        broadcastDays: {
+          [key]: {
+            ...currentBroadcastDayForServer,
+            date: dateStr,
+            channelId,
+            storageStage: 'temporary_staging',
+            isTemporaryStaging: true,
+            savedAt: now,
+            sentToAdsAt: now,
+            updatedAt: now
+          }
         }
       });
     } catch (err) {

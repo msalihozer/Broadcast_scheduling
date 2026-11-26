@@ -15,6 +15,7 @@ export const SYSTEM_MODULES = [
   { id: 'draft', label: 'Taslak Planla', color: '#2563eb', description: 'Haftalık ve aylık şablon yayın akışı planlama' },
   { id: 'ready', label: 'Yayın Planlama', color: '#0ea5e9', description: 'Günlük yayın akış listesi hazırlama ve MAM klip atama' },
   { id: 'ads', label: 'Reklam Rezervasyon', color: '#d97706', description: 'Firma, marka, materyal ve reklam kuşağı rezervasyonu' },
+  { id: 'crm', label: 'Firma Görüşmeleri (CRM)', color: '#6d28d9', description: 'Reklam rezervasyonu için saha firma ziyaretleri, görüşme notları ve teklif takibi' },
   { id: 'list-control', label: 'Yayın Liste Kontrol', color: '#10b981', description: 'Salt-okunur günlük/haftalık yayın akış izleme ve PDF çıktı' },
   { id: 'admin', label: 'Admin Paneli', color: '#8b5cf6', description: 'Sistem yönetimi (erişilecek alt sekmeler ayrıca seçilir)' },
 ];

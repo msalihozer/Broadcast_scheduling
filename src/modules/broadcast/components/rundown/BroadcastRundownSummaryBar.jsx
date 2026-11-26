@@ -8,7 +8,7 @@
  * - Sağ: Taslak Uygula + Kaydet (Kaydedildiğinde "Reklam Rezervasyona İlet" butonuna dönüşür)
  */
 import React, { useState, useEffect, useMemo, memo } from 'react';
-import { Zap, Save, Send, Loader2, RefreshCw, Trash2, CheckCircle2 } from 'lucide-react';
+import { Zap, Save, Send, Loader2, RefreshCw, Trash2, CheckCircle2, Cpu, Lock } from 'lucide-react';
 import { dialog } from '../../../../store/dialogStore';
 import { FRAMES_PER_DAY } from '../../utils/timecodeUtils';
 import { isDraftSlotAddedToRundown } from '../DraftProgramSlotItem';
@@ -38,6 +38,9 @@ const BroadcastRundownSummaryBar = memo(function BroadcastRundownSummaryBar({
   onApplySmartDraft,
   onSyncAndFillMissingDrafts,
   onSaveSchedule,
+  onPlaceAdsInBroadcast,
+  isAdsPlacedForCurrentState = false,
+  isDayLockedReadOnly = false,
   onSendToAdReservation,
   onGoToNextDay,
   onUpdateAdBreakDefaultSettings,
@@ -59,6 +62,7 @@ const BroadcastRundownSummaryBar = memo(function BroadcastRundownSummaryBar({
 }) {
   const [checkedSignature, setCheckedSignature] = useState(null);
   const [savedSignature, setSavedSignature] = useState(null);
+  const [adsPlacedSignature, setAdsPlacedSignature] = useState(null);
 
   // Mevcut listenin parmak izi: Liste değiştiğinde (ekleme/silme/süre değişimi) tekrar Kontrol Et ve Kaydet moduna döner
   const currentSignature = useMemo(() => {
@@ -75,6 +79,12 @@ const BroadcastRundownSummaryBar = memo(function BroadcastRundownSummaryBar({
     }
   }, [lastSavedAt]);
 
+  useEffect(() => {
+    if (isAdsPlacedForCurrentState && currentSignature) {
+      setAdsPlacedSignature(currentSignature);
+    }
+  }, [isAdsPlacedForCurrentState, currentSignature]);
+
   const isCurrentStateChecked = Boolean(
     programs.length > 0 && checkedSignature && checkedSignature === currentSignature
   );
@@ -83,9 +93,18 @@ const BroadcastRundownSummaryBar = memo(function BroadcastRundownSummaryBar({
     programs.length > 0 && savedSignature && savedSignature === currentSignature
   );
 
-  const canSendToAds = Boolean(isCurrentStateChecked && isCurrentStateSaved);
+  const isCurrentStateAdsPlaced = Boolean(
+    programs.length > 0 && (isAdsPlacedForCurrentState || (adsPlacedSignature && adsPlacedSignature === currentSignature))
+  );
+
+  const canPlaceAds = Boolean(isCurrentStateChecked && isCurrentStateSaved && !isDayLockedReadOnly);
+  const canSendToAds = Boolean(isCurrentStateChecked && isCurrentStateSaved && isCurrentStateAdsPlaced && !isDayLockedReadOnly);
 
   const handleCheckClick = () => {
+    if (isDayLockedReadOnly) {
+      dialog.info('Onaylanmış Geçmiş Gün (Salt Okunur)', 'Bu günün yayın listesi Yayın Liste Kontrol aşamasında onaylanmış ve yayın tarihi geçmiş olduğu için değişikliğe kapalıdır.');
+      return;
+    }
     if (onSyncAndFillMissingDrafts) {
       onSyncAndFillMissingDrafts();
     }
@@ -93,10 +112,14 @@ const BroadcastRundownSummaryBar = memo(function BroadcastRundownSummaryBar({
   };
 
   const handleSaveClick = () => {
+    if (isDayLockedReadOnly) {
+      dialog.info('Onaylanmış Geçmiş Gün (Salt Okunur)', 'Bu günün yayın listesi Yayın Liste Kontrol aşamasında onaylanmış ve yayın tarihi geçmiş olduğu için değişikliğe kapalıdır.');
+      return;
+    }
     if (!isCurrentStateChecked) {
       dialog.warning(
         'Önce Listeyi Kontrol Edin',
-        'Yayın listesini kaydetmeden ve Reklam Rezervasyona iletmeden önce "Kontrol Et" butonuna tıklayarak taslak ve arşiv kontrolünü tamamlamalısınız.'
+        'Yayın listesini kaydetmeden önce "Kontrol Et" butonuna tıklayarak taslak ve arşiv kontrolünü tamamlamalısınız.'
       );
       return;
     }
@@ -106,11 +129,33 @@ const BroadcastRundownSummaryBar = memo(function BroadcastRundownSummaryBar({
     setSavedSignature(currentSignature);
   };
 
-  const handleSendToAdsClick = () => {
+  const handlePlaceAdsClick = () => {
+    if (isDayLockedReadOnly) {
+      dialog.info('Onaylanmış Geçmiş Gün (Salt Okunur)', 'Bu günün yayın listesi Yayın Liste Kontrol aşamasında onaylanmış ve yayın tarihi geçmiş olduğu için değişikliğe kapalıdır.');
+      return;
+    }
     if (!isCurrentStateChecked || !isCurrentStateSaved) {
       dialog.warning(
-        'Kontrol Et ve Kaydet Gerekli',
-        'Yayın akışını Reklam Rezervasyona iletebilmek için önce sırasıyla:\n1. "Kontrol Et" butonuna tıklayarak listeyi doğrulayın,\n2. "Kaydet" butonuna tıklayarak listeyi kaydedin.'
+        'Önce Kontrol Et ve Kaydet Gerekli',
+        'Reklamları yerleştirmeden önce sırasıyla:\n1. "Kontrol Et" butonuna tıklayın,\n2. "Kaydet" butonuna tıklayarak listeyi kaydedin.'
+      );
+      return;
+    }
+    if (onPlaceAdsInBroadcast) {
+      onPlaceAdsInBroadcast();
+    }
+    setAdsPlacedSignature(currentSignature);
+  };
+
+  const handleSendToAdsClick = () => {
+    if (isDayLockedReadOnly) {
+      dialog.info('Onaylanmış Geçmiş Gün (Salt Okunur)', 'Bu günün yayın listesi Yayın Liste Kontrol aşamasında onaylanmış ve yayın tarihi geçmiş olduğu için değişikliğe kapalıdır.');
+      return;
+    }
+    if (!isCurrentStateChecked || !isCurrentStateSaved || !isCurrentStateAdsPlaced) {
+      dialog.warning(
+        'Reklamları Yerleştir Adımı Gerekli',
+        'Yayın akışını Reklam Rezervasyona iletebilmek için önce sırasıyla:\n1. "Kontrol Et" butonuna tıklayarak listeyi doğrulayın,\n2. "Kaydet" butonuna tıklayarak listeyi kaydedin,\n3. "Reklamları Yerleştir" butonuna tıklayarak rezervasyon ve algoritma kurallarına göre reklamları yerleştirin.'
       );
       return;
     }
@@ -336,9 +381,11 @@ const BroadcastRundownSummaryBar = memo(function BroadcastRundownSummaryBar({
           <button
             type="button"
             onClick={handleSaveClick}
-            disabled={programs.length === 0}
+            disabled={programs.length === 0 || isDayLockedReadOnly}
             title={
-              !isCurrentStateChecked
+              isDayLockedReadOnly
+                ? 'Onaylanmış geçmiş gün listesi değişikliğe kapalıdır'
+                : !isCurrentStateChecked
                 ? 'Kaydetmeden önce "Kontrol Et" butonuna tıklayın'
                 : '2. Adım: Mevcut yayın listesini kaydet (Kısayol: Ctrl+S)'
             }
@@ -365,8 +412,8 @@ const BroadcastRundownSummaryBar = memo(function BroadcastRundownSummaryBar({
                 : 'var(--text-secondary)',
               fontSize: '12px',
               fontWeight: '800',
-              cursor: programs.length === 0 ? 'not-allowed' : 'pointer',
-              opacity: programs.length === 0 ? 0.5 : 1,
+              cursor: (programs.length === 0 || isDayLockedReadOnly) ? 'not-allowed' : 'pointer',
+              opacity: (programs.length === 0 || isDayLockedReadOnly) ? 0.5 : 1,
               whiteSpace: 'nowrap',
               boxShadow: isCurrentStateChecked && !isCurrentStateSaved ? '0 2px 8px rgba(16, 185, 129, 0.25)' : 'none'
             }}
@@ -375,15 +422,62 @@ const BroadcastRundownSummaryBar = memo(function BroadcastRundownSummaryBar({
             <span>{isCurrentStateSaved ? 'Kaydedildi' : 'Kaydet'}</span>
           </button>
 
-          {/* 3. ADIM: REKLAMA İLET (Sadece Kontrol Et + Kaydet yapıldıktan sonra aktifleşir) */}
+          {/* 3. ADIM: REKLAMLARI YERLEŞTİR (Kontrol Et + Kaydet sonrası aktifleşir, Reklama İlet'ten önce zorunlu adım) */}
+          <button
+            type="button"
+            onClick={handlePlaceAdsClick}
+            disabled={programs.length === 0 || isDayLockedReadOnly}
+            title={
+              canPlaceAds
+                ? '3. Adım: Reklam Rezervasyon algoritması ve kurallarına göre kuşaklara reklamları yerleştir'
+                : 'Reklamları yerleştirmek için önce "Kontrol Et" ve "Kaydet" adımlarını tamamlayın'
+            }
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px',
+              padding: '6px 11px',
+              borderRadius: '8px',
+              border: isCurrentStateAdsPlaced
+                ? '1.5px solid rgba(12, 97, 124, 0.55)'
+                : canPlaceAds
+                ? 'none'
+                : '1.5px solid var(--border-color)',
+              background: isCurrentStateAdsPlaced
+                ? 'rgba(12, 97, 124, 0.14)'
+                : canPlaceAds
+                ? 'linear-gradient(135deg, #0C617C 0%, #142A44 100%)'
+                : 'var(--bg-primary)',
+              color: isCurrentStateAdsPlaced
+                ? 'var(--turkuaz, #0C617C)'
+                : canPlaceAds
+                ? '#ffffff'
+                : 'var(--text-muted)',
+              fontSize: '12px',
+              fontWeight: '800',
+              cursor: canPlaceAds ? 'pointer' : 'not-allowed',
+              opacity: canPlaceAds || isCurrentStateAdsPlaced ? 1 : 0.65,
+              whiteSpace: 'nowrap',
+              boxShadow: canPlaceAds && !isCurrentStateAdsPlaced ? '0 2px 8px rgba(12, 97, 124, 0.28)' : 'none'
+            }}
+          >
+            {isCurrentStateAdsPlaced ? <CheckCircle2 size={13} /> : <Cpu size={13} />}
+            <span>
+              {isCurrentStateAdsPlaced
+                ? `Reklamlar Yerleşti (${adBreaksCount})`
+                : `Reklamları Yerleştir ${adBreaksCount > 0 ? `(${adBreaksCount})` : ''}`}
+            </span>
+          </button>
+
+          {/* 4. ADIM: REKLAMA İLET (Sadece Kontrol Et + Kaydet + Reklamları Yerleştir yapıldıktan sonra aktifleşir) */}
           <button
             type="button"
             onClick={handleSendToAdsClick}
-            disabled={programs.length === 0}
+            disabled={programs.length === 0 || isDayLockedReadOnly}
             title={
               canSendToAds
-                ? '3. Adım: Kontrol edilen ve kaydedilen yayın akışını Reklam Rezervasyon modülüne ilet'
-                : 'Reklama iletmek için önce "Kontrol Et" ve ardından "Kaydet" butonuna tıklamalısınız'
+                ? '4. Adım: Reklamları yerleştirilen yayın akışını Reklam Rezervasyon modülüne ilet'
+                : 'Reklama iletmek için önce "Kontrol Et", "Kaydet" ve "Reklamları Yerleştir" adımlarını tamamlamalısınız'
             }
             style={{
               display: 'inline-flex',

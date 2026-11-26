@@ -41,6 +41,7 @@ import BroadcastRundownRow, { isFillerRundownItem, isFillerClipRundownItem } fro
 import BroadcastBulkActionBar from './rundown/BroadcastBulkActionBar';
 import FillerSlotModal from './FillerSlotModal';
 import SendToAdReservationModal from './modals/SendToAdReservationModal';
+import PlaceAdsInBroadcastModal from './modals/PlaceAdsInBroadcastModal';
 import ClipDetailMetadataModal from '../../../pages/admin/archive/ClipDetailMetadataModal';
 
 export default function BroadcastRundownTable({
@@ -95,10 +96,38 @@ export default function BroadcastRundownTable({
   } = useBroadcastStore();
 
   const ramadanConfig = usePlanningStore(state => state.ramadanConfig);
+  const planningDays = usePlanningStore(state => state.days || {});
+  const listControlDays = usePlanningStore(state => state.listControlDays || {});
+  const adPlacements = usePlanningStore(state => state.adPlacements || {});
   const showRamadanControls = useMemo(
     () => isRamadanFeatureWindowOpen(ramadanConfig, selectedDate),
     [ramadanConfig, selectedDate]
   );
+
+  const todayStr = useMemo(() => format(new Date(), 'yyyy-MM-dd'), []);
+  const readyDayKey = `ready-${selectedChannel}-${selectedDate}`;
+  const lcDayKey = `list-control-${selectedChannel}-${selectedDate}`;
+
+  // Geçmiş ve Yayın Liste Kontrol aşamasında onaylanmış günler değişikliğe kapalıdır (Salt-Okunur)
+  const isDayLockedReadOnly = useMemo(() => {
+    const isPastDate = Boolean(selectedDate && selectedDate < todayStr);
+    if (!isPastDate) return false;
+    const lcDay = listControlDays?.[lcDayKey];
+    const readyDay = planningDays?.[readyDayKey];
+    return Boolean(
+      lcDay?.isApprovedInListControl ||
+      lcDay?.isFinalApproved ||
+      readyDay?.isApprovedInListControl ||
+      readyDay?.isFinalApproved ||
+      readyDay?.adsStatus === 'sent_to_master'
+    );
+  }, [selectedDate, todayStr, listControlDays, lcDayKey, planningDays, readyDayKey]);
+
+  // Seçili gün için reklamların yerleştirilip yerleştirilmediği
+  const isAdsPlacedForCurrentState = useMemo(() => {
+    const placements = adPlacements?.[readyDayKey] || [];
+    return Array.isArray(placements) && placements.some(b => Array.isArray(b.ads) && b.ads.length > 0);
+  }, [adPlacements, readyDayKey]);
 
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
@@ -108,8 +137,9 @@ export default function BroadcastRundownTable({
   const [inlineDurationVal, setInlineDurationVal] = useState('');
   const [isScrolledDown, setIsScrolledDown] = useState(false);
 
-  // Klip Detay Modalı, Reklam Rezervasyon Ön Kontrol Modalı ve Senkronizasyon Bildirim Şeridi Durumları
+  // Klip Detay Modalı, Reklam Yerleştirme Modalı, Reklam Rezervasyon Ön Kontrol Modalı ve Senkronizasyon Bildirim Şeridi Durumları
   const [inspectingClipItem, setInspectingClipItem] = useState(null);
+  const [isPlaceAdsModalOpen, setIsPlaceAdsModalOpen] = useState(false);
   const [isSendToAdsModalOpen, setIsSendToAdsModalOpen] = useState(false);
   const [statusBanner, setStatusBanner] = useState(null);
 
@@ -840,6 +870,9 @@ export default function BroadcastRundownTable({
           onApplySmartDraft={handleApplySmartDraft}
           onSyncAndFillMissingDrafts={() => handleSyncAndFillMissingDrafts({ silentIfNoChanges: false, autoTriggered: false })}
           onSaveSchedule={handleSaveSchedule}
+          onPlaceAdsInBroadcast={() => setIsPlaceAdsModalOpen(true)}
+          isAdsPlacedForCurrentState={isAdsPlacedForCurrentState}
+          isDayLockedReadOnly={isDayLockedReadOnly}
           onSendToAdReservation={handleSendToAdReservation}
           onGoToNextDay={handleGoToNextDay}
           onUpdateAdBreakDefaultSettings={updateAdBreakDefaultSettings}
@@ -862,6 +895,26 @@ export default function BroadcastRundownTable({
         />
 
         <div style={{ padding: '12px 14px 28px 14px', boxSizing: 'border-box' }}>
+          {isDayLockedReadOnly && (
+            <div style={{
+              marginBottom: '12px',
+              padding: '10px 14px',
+              borderRadius: '8px',
+              background: '#FEF2F2',
+              border: '1.5px solid #DC2626',
+              color: '#991B1B',
+              fontSize: '12.5px',
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '10px'
+            }}>
+              <span>
+                KİLİTLİ GÜN (SALT-OKUNUR): {selectedDate} tarihli yayın listesi Yayın Liste Kontrol aşamasında onaylanmış ve yayın tarihi geçmiş olduğu için değişikliğe kapalıdır. Yalnızca görüntüleme yapılabilir.
+              </span>
+            </div>
+          )}
           {programs.length === 0 ? (
             <RundownEmptyState
               selectedDate={selectedDate}
@@ -968,6 +1021,18 @@ export default function BroadcastRundownTable({
           />
         </div>
       </div>
+
+      {/* YAYIN PLANLAMA AŞAMASINDA REKLAMLARI YERLEŞTİR POP-UP MODALI */}
+      <PlaceAdsInBroadcastModal
+        isOpen={isPlaceAdsModalOpen}
+        onClose={() => setIsPlaceAdsModalOpen(false)}
+        selectedChannel={selectedChannel}
+        selectedDate={selectedDate}
+        activeList={activeList}
+        programs={programs}
+        onSaveScheduleForAds={() => saveDaySchedule(selectedChannel, selectedDate, activeList)}
+        onOpenSendToAdsModal={handleSendToAdReservation}
+      />
 
       {/* REKLAM REZERVASYONA İLET ÖN KONTROL VE LİSTE ONAY POP-UP MODALI */}
       <SendToAdReservationModal

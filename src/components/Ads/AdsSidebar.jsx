@@ -38,6 +38,8 @@ const AdsSidebar = ({ activeTab, setActiveTab }) => {
         { id: 'dashboard', label: 'Genel Bakış', icon: 'rapor' },
         { id: 'reservations', label: 'Rezervasyonlar', icon: 'rezervasyon', count: reservations.length },
         { id: 'sponsorships', label: 'Sponsorluklar', icon: 'sponsor', count: reservations.filter(r => r.isSponsor).length },
+        { id: 'banner-ads', label: 'Bant Reklamlar', icon: 'materyal' },
+        { id: 'algorithm', label: 'Algoritma', icon: 'admin' },
         { id: 'planning', label: 'Yayın Planlama', icon: 'plan' },
         { id: 'ad-bumpers', label: 'Reklam Giriş & Çıkışları', icon: 'logo', count: adBreakBumperRules.length }
       ]

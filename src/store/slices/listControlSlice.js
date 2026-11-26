@@ -1401,6 +1401,9 @@ export const createListControlSlice = (set, get) => ({
       const updatedLcDay = {
         ...lcDay,
         isApprovedInListControl: true,
+        isFinalApproved: true,
+        isTemporaryStaging: false,
+        storageStage: 'permanent',
         approvedAt: nowIso,
         isRevised: false,
         adsStatus: 'sent_to_master',
@@ -1414,6 +1417,9 @@ export const createListControlSlice = (set, get) => ({
           ...nextDays[readyKey],
           adsStatus: 'sent_to_master',
           isApprovedInListControl: true,
+          isFinalApproved: true,
+          isTemporaryStaging: false,
+          storageStage: 'permanent',
           approvedAt: nowIso
         };
       }
@@ -1422,6 +1428,9 @@ export const createListControlSlice = (set, get) => ({
           ...nextDays[finalKey],
           adsStatus: 'sent_to_master',
           isApprovedInListControl: true,
+          isFinalApproved: true,
+          isTemporaryStaging: false,
+          storageStage: 'permanent',
           approvedAt: nowIso
         };
       }

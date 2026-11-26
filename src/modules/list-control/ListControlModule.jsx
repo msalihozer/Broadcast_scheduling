@@ -105,6 +105,16 @@ export default function ListControlModule() {
   const readyDay = days[readyKey];
   const activeVariant = day?.activeVariant || 'v1';
   const programs = day?.variants?.[activeVariant]?.programs || [];
+  const isPastApprovedLocked = useMemo(() => {
+    if (!safeDate || safeDate >= todayStr) return false;
+    return Boolean(
+      day?.isApprovedInListControl ||
+      day?.isFinalApproved ||
+      readyDay?.isApprovedInListControl ||
+      readyDay?.isFinalApproved ||
+      readyDay?.adsStatus === 'sent_to_master'
+    );
+  }, [safeDate, todayStr, day, readyDay]);
 
   // Seçili satır, sürükle-bırak, filtre, arama ve modal durumları
   const [selectedInstanceId, setSelectedInstanceId] = useState(null);
@@ -1153,6 +1163,20 @@ export default function ListControlModule() {
             }}
           >
             {/* Üst Uyarılar, Sorunlar (Aynı Klipler Tek Satırda Gruplanmış) ve Format Ayarları (.mxf) */}
+            {isPastApprovedLocked && (
+              <div style={{
+                margin: '10px 16px 0 16px',
+                padding: '10px 14px',
+                borderRadius: '6px',
+                background: '#FEF2F2',
+                border: '1.5px solid #DC2626',
+                color: '#991B1B',
+                fontSize: '12px',
+                fontWeight: 700
+              }}>
+                KİLİTLİ GÜN (SALT-OKUNUR): {safeDate} tarihli nihai yayın listesi onaylanmış ve yayın tarihi geçmiş olduğu için kalıcı arşive alınmıştır; değişiklik yapılamaz, yalnızca görüntülenebilir.
+              </div>
+            )}
             <ListControlWarningsPanel
               stageAnalysis={stageAnalysis}
               healthMap={healthMap}

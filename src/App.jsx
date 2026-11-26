@@ -17,6 +17,7 @@ import Login from './pages/Login';
 import LibraryPopout from './pages/LibraryPopout';
 import ModuleSelection from './pages/ModuleSelection';
 import AdsReservation from './pages/AdsReservation';
+import CrmFieldVisitsModule from './pages/CrmFieldVisitsModule';
 import AdminPanel from './pages/AdminPanel';
 import DraftPreviewPopout from './pages/DraftPreviewPopout';
 import DraftReportsPopout from './pages/DraftReportsPopout';
@@ -220,6 +221,7 @@ function App() {
           <Route path="/draft" element={session ? <ModeWrapper mode="draft"><DraftLayout /></ModeWrapper> : <Navigate to="/login" />} />
           <Route path="/ready" element={session ? <BroadcastPlanningLayout /> : <Navigate to="/login" />} />
           <Route path="/ads" element={session ? <AdsReservation /> : <Navigate to="/login" />} />
+          <Route path="/crm" element={session ? <CrmFieldVisitsModule /> : <Navigate to="/login" />} />
           <Route path="/list-control" element={session ? <ModeWrapper mode="list-control"><ListControlLayout /></ModeWrapper> : <Navigate to="/login" />} />
           <Route path="/admin" element={session ? <AdminPanel /> : <Navigate to="/login" />} />
           <Route path="*" element={<Navigate to="/" />} />

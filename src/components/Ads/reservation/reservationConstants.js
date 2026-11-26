@@ -308,6 +308,10 @@ export const createEmptyProductPlan = (companyId = '', defaults = {}) => ({
   totalBudget: defaults.totalBudget !== undefined ? defaults.totalBudget : '',
   channelIds: Array.isArray(defaults.channelIds) && defaults.channelIds.length > 0 ? [...defaults.channelIds] : ['ch_hd'],
   timeBlockIds: Array.isArray(defaults.timeBlockIds) && defaults.timeBlockIds.length > 0 ? [...defaults.timeBlockIds] : ['tb-2', 'tb-3'],
+  timeBlockSpotCounts:
+    defaults.timeBlockSpotCounts && typeof defaults.timeBlockSpotCounts === 'object'
+      ? { ...defaults.timeBlockSpotCounts }
+      : {},
   isSponsor: Boolean(defaults.isSponsor),
   sponsorProgramId: defaults.sponsorProgramId || '',
   sponsorProgramTitle: defaults.sponsorProgramTitle || '',

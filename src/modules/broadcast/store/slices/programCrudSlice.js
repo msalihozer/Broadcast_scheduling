@@ -16,6 +16,7 @@ import {
 import { getProgramGroupKey } from '../../utils/rundownHelpers';
 import { useAdminLogStore } from '../../../../store/adminLogStore';
 import { dialog } from '../../../../store/dialogStore';
+import usePlanningStore from '../../../../store/planningStore';
 
 /**
  * Yayın öğesi CRUD ve sıralama aksiyonlarını oluşturur.
@@ -1221,7 +1222,7 @@ export const createProgramCrudSlice = (set, get) => ({
       }).catch(() => {});
     } catch (_) {}
 
-    import('../../../../store/planningStore').then(({ default: usePlanningStore }) => {
+    try {
       usePlanningStore.setState(state => {
         const matchesDay = (k) => String(k || '').includes(channelId) && String(k || '').endsWith(dateStr);
         const nextDays = { ...(state.days || {}) };
@@ -1232,7 +1233,7 @@ export const createProgramCrudSlice = (set, get) => ({
         Object.keys(nextPl).forEach(k => { if (matchesDay(k)) delete nextPl[k]; });
         return { days: nextDays, listControlDays: nextLc, adPlacements: nextPl };
       });
-    }).catch(() => {});
+    } catch (_) {}
 
     useAdminLogStore.getState().addLog({
       category: 'lists',

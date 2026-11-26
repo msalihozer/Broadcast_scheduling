@@ -1262,6 +1262,24 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
             ? it.timeBlockIds
             : res.timeBlockIds || ['tb-1', 'tb-2', 'tb-3'];
 
+        // Kuşak Bazlı Sabit Spot Adedi (`timeBlockSpotCounts`) kontrolü:
+        // Eğer kullanıcı belirli kuşaklar için (ör. Sabah Kuşağı: 2 kez, Akşam Kuşağı: 1 kez) sabit sayı girdiyse,
+        // bu reklam o kuşaklarda tam o sayıda sabit kalır ve Günlük Min/Max devre dışı kalır!
+        const rawTbSpotCounts =
+          (it.timeBlockSpotCounts && typeof it.timeBlockSpotCounts === 'object' && Object.keys(it.timeBlockSpotCounts).length > 0)
+            ? it.timeBlockSpotCounts
+            : (res.timeBlockSpotCounts && typeof res.timeBlockSpotCounts === 'object' ? res.timeBlockSpotCounts : {});
+        const fixedTimeBlockCounts = {};
+        let fixedDailyTotal = 0;
+        Object.entries(rawTbSpotCounts || {}).forEach(([tbId, val]) => {
+          const cnt = parseInt(val, 10) || 0;
+          if (cnt > 0 && itemBlocks.includes(tbId)) {
+            fixedTimeBlockCounts[tbId] = cnt;
+            fixedDailyTotal += cnt;
+          }
+        });
+        const hasFixedTimeBlockCounts = fixedDailyTotal > 0;
+
         // Bu reklamın seçili Yayın Kuşaklarına (Sabah, Öğle, Akşam Prime, Gece) bugün kaç reklam kuşağı düşüyor?
         const eligibleBreaksCount =
           itemBlocks.length > 0
@@ -1290,23 +1308,32 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
         const itemPriority = Number(it.priority || res.priority) || 700;
 
         // Spot sayısı + gün sayısı + min spot + max spot + öncelik + sponsorluk + uygun kuşak sayısına göre
-        // Akıllı Ortalama Yayınlanma Hedefi (smartDailyTarget) hesapla
-        const smartMetrics = computeSmartDailyTarget({
-          plannedSpots: itemPlannedTotal,
-          itemRemainingTotal,
-          startDate: startStr,
-          endDate: endStr,
-          targetDate: date,
-          dailyMinSpots: it.dailyMinSpots ?? res.dailyMinSpots ?? 1,
-          dailyMaxSpots: it.dailyMaxSpots ?? res.dailyMaxSpots ?? 4,
-          priority: itemPriority,
-          isSponsor: itemIsSponsor,
-          isRamadanSpecial: itemIsRamadanSpecial,
-          eligibleBreaksCount: Math.max(1, eligibleBreaksCount),
-          totalBreaksToday: totalBucketsCount,
-          minBreakGap,
-          dayVariationNoise: varyOrderAcrossBreaks ? pseudoNoise(candHash, 7) : 0.5
-        });
+        // Akıllı Ortalama Yayınlanma Hedefi (smartDailyTarget) hesapla (Kuşak sabit sayısı varsa Min=Max=Hedef=fixedDailyTotal olur)
+        const smartMetrics = hasFixedTimeBlockCounts
+          ? {
+              dailyMinSpots: Math.min(fixedDailyTotal, itemRemainingTotal),
+              dailyMaxSpots: Math.min(fixedDailyTotal, itemRemainingTotal),
+              smartDailyTarget: Math.min(fixedDailyTotal, itemRemainingTotal),
+              smartRatioPct: 100,
+              remainingCampaignDays: 7,
+              totalCampaignDays: 7
+            }
+          : computeSmartDailyTarget({
+              plannedSpots: itemPlannedTotal,
+              itemRemainingTotal,
+              startDate: startStr,
+              endDate: endStr,
+              targetDate: date,
+              dailyMinSpots: it.dailyMinSpots ?? res.dailyMinSpots ?? 1,
+              dailyMaxSpots: it.dailyMaxSpots ?? res.dailyMaxSpots ?? 4,
+              priority: itemPriority,
+              isSponsor: itemIsSponsor,
+              isRamadanSpecial: itemIsRamadanSpecial,
+              eligibleBreaksCount: Math.max(1, eligibleBreaksCount),
+              totalBreaksToday: totalBucketsCount,
+              minBreakGap,
+              dayVariationNoise: varyOrderAcrossBreaks ? pseudoNoise(candHash, 7) : 0.5
+            });
 
         const itemSponsorProgram = String(
           it.sponsorProgramTitle !== undefined ? it.sponsorProgramTitle : res.sponsorProgramTitle || ''
@@ -1353,6 +1380,8 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
           eligibleBreaksCount: Math.max(1, eligibleBreaksCount),
           plannedSpots: itemPlannedTotal,
           timeBlockIds: itemBlocks,
+          hasFixedTimeBlockCounts,
+          fixedTimeBlockCounts,
           candHash
         });
       });
@@ -1460,8 +1489,14 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
       }
     }
 
-    // 4. HANGİ KUŞAKLARDA GİRECEK (YAYIN KUŞAĞI / TIME BLOCK EŞLEŞMESİ)
-    if (!ignoreTimeBlock && cand.timeBlockIds.length > 0 && !cand.timeBlockIds.includes(bucket.timeBlockId)) {
+    // 4. HANGİ KUŞAKLARDA GİRECEK (YAYIN KUŞAĞI / TIME BLOCK EŞLEŞMESİ VE KUŞAK BAZLI SABİT SAYI KİLİDİ)
+    if (cand.hasFixedTimeBlockCounts) {
+      const targetTbQuota = Number(cand.fixedTimeBlockCounts?.[bucket.timeBlockId]) || 0;
+      if (targetTbQuota <= 0) return false;
+      const tbCounts = placedTimeBlockCountsByItemKey.get(cand.itemKey) || {};
+      const placedInThisTb = tbCounts[bucket.timeBlockId] || 0;
+      if (placedInThisTb >= targetTbQuota) return false;
+    } else if (!ignoreTimeBlock && cand.timeBlockIds.length > 0 && !cand.timeBlockIds.includes(bucket.timeBlockId)) {
       return false;
     }
 
@@ -1864,6 +1899,59 @@ export function runAutoPlanAdsForDay(state, channelId, date) {
   });
 
   const standardCandidates = candidates.filter(c => !c.isRamadanSpecial);
+
+  // ============================================================================
+  // ADIM 3D: KUŞAK BAZLI SABİT SPOT ADEDİ GİRİLEN REZERVASYONLAR (`hasFixedTimeBlockCounts`)
+  // Kuşak bazında "hangi kuşakta kaç defa" girildiyse (ör. Sabah Kuşağı: 2 kez),
+  // o kuşak içinde tam olarak girilen sayıda yerleşmesini öncelikli olarak garanti altına alır ve Min/Max'ı devre dışı bırakır.
+  // ============================================================================
+  const fixedBlockCandidates = standardCandidates.filter(c => c.hasFixedTimeBlockCounts);
+  fixedBlockCandidates.forEach(fc => {
+    Object.entries(fc.fixedTimeBlockCounts || {}).forEach(([tbId, targetCount]) => {
+      const wantCount = Math.max(0, Number(targetCount) || 0);
+      if (wantCount <= 0) return;
+
+      for (let step = 0; step < wantCount; step++) {
+        const tbCounts = placedTimeBlockCountsByItemKey.get(fc.itemKey) || {};
+        if ((tbCounts[tbId] || 0) >= wantCount) break;
+
+        const matchingBuckets = adBreakBuckets.filter(b => b.timeBlockId === tbId);
+        let bestBucket = null;
+        let bestScore = -Infinity;
+
+        for (const b of matchingBuckets) {
+          if (canPlaceCandidateInBucket(fc, b, { ignoreTimeBlock: false, maxAllowedForStage: fc.dailyMaxSpots })) {
+            const sc = evaluateCandidateBucketOption(fc, b, fc.dailyMaxSpots, step + 50);
+            if (sc > bestScore) {
+              bestScore = sc;
+              bestBucket = b;
+            }
+          }
+        }
+
+        // Eğer ardışık kuşak aralığı (minBreakGap) nedeniyle sığmadıysa, sabit kuşak sayısını tutturmak için gap=0 ile dene
+        if (!bestBucket) {
+          for (const b of matchingBuckets) {
+            if (canPlaceCandidateInBucket(fc, b, { ignoreTimeBlock: false, maxAllowedForStage: fc.dailyMaxSpots, customBreakGap: 0 })) {
+              const sc = evaluateCandidateBucketOption(fc, b, fc.dailyMaxSpots, step + 50);
+              if (sc > bestScore) {
+                bestScore = sc;
+                bestBucket = b;
+              }
+            }
+          }
+          if (bestBucket) {
+            tryPlaceCandidateInBucket(fc, bestBucket, { ignoreTimeBlock: false, maxAllowedForStage: fc.dailyMaxSpots, customBreakGap: 0 });
+            continue;
+          }
+        }
+
+        if (bestBucket) {
+          tryPlaceCandidateInBucket(fc, bestBucket, { ignoreTimeBlock: false, maxAllowedForStage: fc.dailyMaxSpots });
+        }
+      }
+    });
+  });
 
   /**
    * ÇOKLU OPSİYON DEĞERLENDİRİCİ (`evaluateCandidateBucketOption`):

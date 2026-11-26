@@ -21,6 +21,8 @@ import TimeBlocksTab from '../../components/Ads/TimeBlocksTab';
 import CompletedFlowsTab from '../../components/Ads/CompletedFlowsTab';
 import AdsReportsTab from '../../components/Ads/AdsReportsTab';
 import AdBreakBumpersTab from '../../components/Ads/AdBreakBumpersTab';
+import AdsAlgorithmTab from '../../components/Ads/AdsAlgorithmTab';
+import AdsBannerAdsTab from '../../components/Ads/AdsBannerAdsTab';
 import usePlanningStore from '../../store/planningStore';
 
 const AdsReservationModule = () => {
@@ -94,6 +96,8 @@ const AdsReservationModule = () => {
             {activeTab === 'dashboard' && <DashboardTab setActiveTab={handleSelectTab} />}
             {activeTab === 'reservations' && <ReservationsTab setActiveTab={handleSelectTab} />}
             {activeTab === 'sponsorships' && <SponsorshipsTab setActiveTab={handleSelectTab} />}
+            {activeTab === 'banner-ads' && <AdsBannerAdsTab />}
+            {activeTab === 'algorithm' && <AdsAlgorithmTab />}
             {activeTab === 'planning' && <AdPlanningTab onScrollToTop={handleScrollToTop} />}
             {activeTab === 'ad-bumpers' && <AdBreakBumpersTab />}
             {activeTab === 'companies' && <CompaniesTab setActiveTab={handleSelectTab} />}

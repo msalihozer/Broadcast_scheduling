@@ -49,6 +49,16 @@ const ALL_MODULE_CARDS = [
     headerTextColor: '#FFFFFF',
     arrowColor: 'var(--m-kontrol, #142A44)',
     path: '/list-control'
+  },
+  {
+    id: 'crm',
+    title: 'Firma Görüşmeleri & Saha Satış (CRM)',
+    description: 'Reklam rezervasyonu için firmalarla yapılacak saha ziyaretlerini, müşteri görüşme notlarını ve teklif süreçlerini takip edin. (Yapım Aşamasında)',
+    iconName: 'firma',
+    color: '#6D28D9',
+    headerTextColor: '#FFFFFF',
+    arrowColor: '#6D28D9',
+    path: '/crm'
   }
 ];
 
@@ -168,7 +178,12 @@ const ModuleSelection = () => {
   const allowedAdminTabs = permissions?.allowedAdminTabs || [];
 
   const visibleModuleCards = useMemo(() => {
-    return ALL_MODULE_CARDS.filter(card => allowedModules.includes(card.id));
+    return ALL_MODULE_CARDS.filter(card => {
+      if (card.id === 'crm') {
+        return allowedModules.includes('crm') || allowedModules.includes('ads') || allowedModules.includes('admin');
+      }
+      return allowedModules.includes(card.id);
+    });
   }, [allowedModules]);
 
   const canAccessAdminPanel =
