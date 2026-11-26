@@ -1136,11 +1136,6 @@ export default function BroadcastRundownTable({
         activeList={activeList}
         programs={programs}
         onSaveScheduleForAds={() => saveDaySchedule(selectedChannel, selectedDate, activeList)}
-        onAdsPlacementComplete={() => {
-          // Reklamlar yerleştiğinde tüm reklam kuşaklarını otomatik açılır (expanded) yap ki kullanıcı klipleri hemen listede görsün
-          const adBreakIds = programs.filter(p => p.type === 'ad_break').map(p => p.instanceId);
-          setExpandedAdBreakIds(adBreakIds);
-        }}
         onOpenSendToAdsModal={handleSendToAdReservation}
       />
 
