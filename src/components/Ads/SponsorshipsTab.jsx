@@ -85,48 +85,79 @@ const SponsorshipsTab = ({ setActiveTab }) => {
     };
   }, [hiddenCategoryIds]);
 
+  // Her bir sponsorluk reklam klibini (item) kendi bağımsız satırı olarak ayır
   const sponsorReservations = useMemo(() => {
-    return reservations
-      .filter(r => r.isSponsor || r.isRamadanSpecial || (Array.isArray(r.items) && r.items.some(it => it.isSponsor || it.isRamadanSpecial)))
-      .map(res => {
-        const items =
-          Array.isArray(res.items) && res.items.length > 0
-            ? res.items
-            : [
-                {
-                  companyId: res.companyId,
-                  productId: res.productId,
-                  materialId: res.materialId,
-                  startDate: res.startDate,
-                  endDate: res.endDate,
-                  plannedSpots: res.totalPlannedSpots
-                }
-              ];
-        const firstItem = items[0] || {};
-        const company = companies.find(c => String(c.id) === String(res.companyId || firstItem.companyId));
-        const isRamadan = Boolean(res.isRamadanSpecial || items.some(it => it.isRamadanSpecial));
-        const ramadanTarget = res.ramadanTarget || firstItem.ramadanTarget || 'iftar';
+    const rows = [];
+    reservations.forEach(res => {
+      const items =
+        Array.isArray(res.items) && res.items.length > 0
+          ? res.items
+          : [
+              {
+                companyId: res.companyId,
+                productId: res.productId,
+                materialId: res.materialId,
+                startDate: res.startDate,
+                endDate: res.endDate,
+                plannedSpots: res.totalPlannedSpots,
+                isSponsor: res.isSponsor,
+                sponsorProgramTitle: res.sponsorProgramTitle,
+                sponsorPositions: res.sponsorPositions,
+                isRamadanSpecial: res.isRamadanSpecial,
+                ramadanTarget: res.ramadanTarget,
+                ramadanPositions: res.ramadanPositions,
+                channelIds: res.channelIds
+              }
+            ];
+
+      items.forEach((it, idx) => {
+        const itemIsSponsor = Boolean(it.isSponsor !== undefined ? it.isSponsor : res.isSponsor);
+        const itemIsRamadan = Boolean(it.isRamadanSpecial !== undefined ? it.isRamadanSpecial : res.isRamadanSpecial);
+        if (!itemIsSponsor && !itemIsRamadan) return;
+
+        const company = companies.find(c => String(c.id) === String(it.companyId || res.companyId));
+        const ramadanTarget = it.ramadanTarget || res.ramadanTarget || 'iftar';
         const ramadanProgLabel = ramadanTarget === 'sahur'
           ? 'Ramazan Sahur Programı'
           : ramadanTarget === 'both'
           ? 'Ramazan Sahur & İftar Programları'
           : 'Ramazan İftar Programı';
 
-        return {
+        const itemPositions =
+          Array.isArray(it.sponsorPositions) && it.sponsorPositions.length > 0
+            ? it.sponsorPositions
+            : Array.isArray(res.sponsorPositions) && res.sponsorPositions.length > 0
+            ? res.sponsorPositions
+            : Array.isArray(it.ramadanPositions) && it.ramadanPositions.length > 0
+            ? it.ramadanPositions
+            : Array.isArray(res.ramadanPositions) && res.ramadanPositions.length > 0
+            ? res.ramadanPositions
+            : ['before', 'after'];
+
+        rows.push({
           ...res,
-          items,
+          rowKey: `${res.id}__${it.id || idx}__${idx}`,
+          reservationId: res.id,
+          parentReservation: res,
+          itemIndex: idx,
+          siblingCount: items.length,
+          items: [it],
+          singleItem: it,
           company,
           companyName: company?.name || '-',
-          isRamadanSpecial: isRamadan,
-          programTitle: res.sponsorProgramTitle || (isRamadan ? ramadanProgLabel : 'İlim Dersleri- Tecvid'),
-          positions:
-            Array.isArray(res.sponsorPositions) && res.sponsorPositions.length > 0
-              ? res.sponsorPositions
-              : Array.isArray(res.ramadanPositions) && res.ramadanPositions.length > 0
-              ? res.ramadanPositions
-              : ['before', 'after']
-        };
+          isRamadanSpecial: itemIsRamadan,
+          startDate: it.startDate || res.startDate,
+          endDate: it.endDate || res.endDate,
+          channelIds:
+            Array.isArray(it.channelIds) && it.channelIds.length > 0
+              ? it.channelIds
+              : res.channelIds || ['ch_hd'],
+          programTitle: it.sponsorProgramTitle || res.sponsorProgramTitle || (itemIsRamadan ? ramadanProgLabel : 'İlim Dersleri- Tecvid'),
+          positions: itemPositions
+        });
       });
+    });
+    return rows;
   }, [reservations, companies]);
 
   // Filtrelenmiş sponsorluklar
@@ -144,7 +175,7 @@ const SponsorshipsTab = ({ setActiveTab }) => {
     });
   }, [sponsorReservations, selectedProgramFilter, searchTerm]);
 
-  // Tablo üzerinden tek tıkla "Program Öncesi / Part Arası / Program Sonrası" konum değiştirme
+  // Tablo üzerinden tek tıkla ilgili reklam klibinin "Program Öncesi / Part Arası / Program Sonrası / Sunar / Sundu" konumunu değiştirme
   const handleQuickTogglePosition = (sp, posId) => {
     const current = sp.positions || [];
     const exists = current.includes(posId);
@@ -152,16 +183,42 @@ const SponsorshipsTab = ({ setActiveTab }) => {
       return; // En az 1 konum seçili kalsın
     }
     const nextPositions = exists ? current.filter(p => p !== posId) : [...current, posId];
-    updateReservation(sp.id, { sponsorPositions: nextPositions });
+    const parentRes = sp.parentReservation || sp;
+    if (Array.isArray(parentRes.items) && parentRes.items.length > 0) {
+      const nextItems = parentRes.items.map((it, idx) =>
+        idx === sp.itemIndex ? { ...it, sponsorPositions: nextPositions } : it
+      );
+      updateReservation(parentRes.id, {
+        items: nextItems,
+        ...(parentRes.items.length === 1 ? { sponsorPositions: nextPositions } : {})
+      });
+    } else {
+      updateReservation(parentRes.id, { sponsorPositions: nextPositions });
+    }
   };
 
-  // Tablo üzerinden hızlı program değiştirme
+  // Tablo üzerinden hızlı program değiştirme (yalnızca o reklam klibinin sponsor olduğu programı değiştirir)
   const handleQuickProgramChange = (sp, newProgramTitle) => {
     const progObj = usedPrograms.find(p => p.title === newProgramTitle);
-    updateReservation(sp.id, {
-      sponsorProgramTitle: newProgramTitle,
-      sponsorProgramId: progObj?.id || newProgramTitle
-    });
+    const parentRes = sp.parentReservation || sp;
+    if (Array.isArray(parentRes.items) && parentRes.items.length > 0) {
+      const nextItems = parentRes.items.map((it, idx) =>
+        idx === sp.itemIndex
+          ? { ...it, sponsorProgramTitle: newProgramTitle, sponsorProgramId: progObj?.id || newProgramTitle }
+          : it
+      );
+      updateReservation(parentRes.id, {
+        items: nextItems,
+        ...(parentRes.items.length === 1
+          ? { sponsorProgramTitle: newProgramTitle, sponsorProgramId: progObj?.id || newProgramTitle }
+          : {})
+      });
+    } else {
+      updateReservation(parentRes.id, {
+        sponsorProgramTitle: newProgramTitle,
+        sponsorProgramId: progObj?.id || newProgramTitle
+      });
+    }
   };
 
   const handleDelete = (id) => {
@@ -278,7 +335,7 @@ const SponsorshipsTab = ({ setActiveTab }) => {
             </thead>
             <tbody>
               {filteredSponsorships.map(sp => (
-                <tr key={sp.id}>
+                <tr key={sp.rowKey || sp.id}>
                   {/* Program Seçici (Doğrudan tablo üzerinden de değiştirilebilir) */}
                   <td>
                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>

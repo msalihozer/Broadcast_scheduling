@@ -60,6 +60,7 @@ const ReservationsTab = ({ setActiveTab }) => {
     channels = [],
     adPlacements = {},
     ramadanConfig = { enabled: true, startDate: '2026-02-18', endDate: '2026-03-19' },
+    updateReservation,
     removeReservation,
     clearAllReservations,
     syncAdsStoreWithServer
@@ -224,118 +225,246 @@ const ReservationsTab = ({ setActiveTab }) => {
       );
   };
 
+  const handleDeleteRowItem = (row) => {
+    if (!row) return;
+    // Eğer bu rezervasyonun içinde birden fazla reklam (item) varsa sadece bu reklam satırını sil, tek reklam varsa rezervasyonu sil
+    const parentRes = reservations.find(r => String(r.id) === String(row.reservationId));
+    const parentItems = Array.isArray(parentRes?.items) ? parentRes.items : [];
+
+    if (parentRes && parentItems.length > 1) {
+      useDialogStore
+        .getState()
+        .showConfirm(
+          'Reklam Satırını Sil',
+          `"${row.companyName}" firmasına ait "${row.materialName || row.productName}" reklamını bu rezervasyon planından kaldırmak istediğinize emin misiniz? (Aynı firmaya ait diğer ${parentItems.length - 1} reklam korunacaktır)`,
+          () => {
+            const nextItems = parentItems.filter((_, idx) => idx !== row.itemIndex);
+            const nextTotalPlanned = nextItems.reduce((s, it) => s + (Number(it.plannedSpots) || 0), 0);
+            updateReservation(parentRes.id, {
+              ...parentRes,
+              items: nextItems,
+              totalPlannedSpots: nextTotalPlanned
+            });
+          }
+        );
+    } else {
+      handleDelete(row.reservationId);
+    }
+  };
+
   const getPriorityInfo = (val) => PRIORITIES[String(val)] || PRIORITIES['700'];
 
-  // Her rezervasyonun zenginleştirilmiş görünüm verisi
-  const enrichedReservations = useMemo(() => {
-    return reservations.map(res => {
+  // Her bir reklam klibini (item) kendi bağımsız satırı olarak zenginleştir (aynı firmaya ait olsa bile her reklam ayrı satırda net görünür)
+  const enrichedReservationRows = useMemo(() => {
+    const rows = [];
+
+    reservations.forEach(res => {
       const items =
         Array.isArray(res.items) && res.items.length > 0
           ? res.items
-          : res.companyId
+          : res.companyId || res.materialId
           ? [
               {
+                id: `${res.id}-0`,
                 companyId: res.companyId,
                 productId: res.productId,
                 materialId: res.materialId,
                 startDate: res.startDate,
                 endDate: res.endDate,
-                plannedSpots: res.totalPlannedSpots
+                plannedSpots: res.totalPlannedSpots,
+                dailyMinSpots: res.dailyMinSpots,
+                dailyMaxSpots: res.dailyMaxSpots,
+                channelIds: res.channelIds,
+                timeBlockIds: res.timeBlockIds,
+                timeBlockSpotCounts: res.timeBlockSpotCounts,
+                priority: res.priority,
+                isSponsor: res.isSponsor,
+                sponsorProgramId: res.sponsorProgramId,
+                sponsorProgramTitle: res.sponsorProgramTitle,
+                sponsorPositions: res.sponsorPositions,
+                isRamadanSpecial: res.isRamadanSpecial,
+                ramadanTarget: res.ramadanTarget,
+                ramadanPositions: res.ramadanPositions,
+                spotPrice: res.spotPrice,
+                totalBudget: res.toplamTutar || res.totalBudget
               }
             ]
           : [];
 
-      const firstItem = items[0] || {};
-      const company = companies.find(c => String(c.id) === String(res.companyId || firstItem.companyId));
+      items.forEach((it, idx) => {
+        const company = companies.find(c => String(c.id) === String(it.companyId || res.companyId));
+        const product = products.find(p => String(p.id) === String(it.productId || res.productId));
+        const material = materials.find(m => String(m.id) === String(it.materialId || res.materialId));
 
-      let realizedCount = Number(res.realizedSpots) || 0;
-      let placedCount = 0;
-      Object.values(adPlacements).forEach(blocks => {
-        (blocks || []).forEach(block => {
-          (block.ads || []).forEach(ad => {
-            if (String(ad.reservationId) === String(res.id)) {
-              placedCount++;
-            }
+        // Bu reklam klibine (materialId + reservationId) ait gerçekleşen spot sayısını ayrı hesapla
+        let itemPlacedCount = 0;
+        let resTotalPlacedCount = 0;
+        Object.values(adPlacements).forEach(blocks => {
+          (blocks || []).forEach(block => {
+            (block.ads || []).forEach(ad => {
+              if (String(ad.reservationId) === String(res.id)) {
+                resTotalPlacedCount++;
+                if (material && String(ad.materialId) === String(material.id)) {
+                  itemPlacedCount++;
+                }
+              }
+            });
           });
         });
+
+        const effectiveRealized =
+          items.length === 1
+            ? Math.max(Number(res.realizedSpots) || 0, itemPlacedCount || resTotalPlacedCount)
+            : itemPlacedCount;
+
+        const itemPlanned =
+          Number(it.plannedSpots) ||
+          (items.length === 1 ? Number(res.totalPlannedSpots) : Math.round((Number(res.totalPlannedSpots) || 20) / items.length)) ||
+          20;
+
+        const itemPriority = it.priority || res.priority || '700';
+        const itemIsSponsor = Boolean(it.isSponsor !== undefined ? it.isSponsor : res.isSponsor);
+        const itemSponsorProgramTitle = it.sponsorProgramTitle || res.sponsorProgramTitle || '';
+        const itemSponsorPositions =
+          Array.isArray(it.sponsorPositions) && it.sponsorPositions.length > 0
+            ? it.sponsorPositions
+            : Array.isArray(res.sponsorPositions) && res.sponsorPositions.length > 0
+            ? res.sponsorPositions
+            : ['before', 'after'];
+
+        const itemIsRamadanSpecial = Boolean(
+          it.isRamadanSpecial !== undefined ? it.isRamadanSpecial : res.isRamadanSpecial
+        );
+        const itemRamadanTarget = it.ramadanTarget || res.ramadanTarget || 'iftar';
+        const itemRamadanPositions =
+          Array.isArray(it.ramadanPositions) && it.ramadanPositions.length > 0
+            ? it.ramadanPositions
+            : Array.isArray(res.ramadanPositions) && res.ramadanPositions.length > 0
+            ? res.ramadanPositions
+            : ['before', 'middle', 'after'];
+
+        const itemChannelIds =
+          Array.isArray(it.channelIds) && it.channelIds.length > 0
+            ? it.channelIds
+            : Array.isArray(res.channelIds) && res.channelIds.length > 0
+            ? res.channelIds
+            : ['ch_hd'];
+
+        const itemTimeBlockIds =
+          Array.isArray(it.timeBlockIds) && it.timeBlockIds.length > 0
+            ? it.timeBlockIds
+            : Array.isArray(res.timeBlockIds) && res.timeBlockIds.length > 0
+            ? res.timeBlockIds
+            : [];
+
+        const itemTimeBlockSpotCounts =
+          it.timeBlockSpotCounts && typeof it.timeBlockSpotCounts === 'object'
+            ? it.timeBlockSpotCounts
+            : res.timeBlockSpotCounts && typeof res.timeBlockSpotCounts === 'object'
+            ? res.timeBlockSpotCounts
+            : {};
+
+        const itemStartDate = it.startDate || res.startDate;
+        const itemEndDate = it.endDate || res.endDate;
+        const itemDailyMin = Number(it.dailyMinSpots ?? res.dailyMinSpots ?? 1);
+        const itemDailyMax = Number(it.dailyMaxSpots ?? res.dailyMaxSpots ?? 4);
+        const itemSpotPrice = Number(it.spotPrice || res.spotPrice || 0);
+        const itemTotalBudget =
+          Number(it.totalBudget) > 0
+            ? Number(it.totalBudget)
+            : itemSpotPrice > 0
+            ? itemSpotPrice * itemPlanned
+            : 0;
+
+        const overageInfo = calculateItemOverageMetrics(
+          {
+            ...res,
+            ...it,
+            startDate: itemStartDate,
+            endDate: itemEndDate,
+            plannedSpots: itemPlanned,
+            dailyMinSpots: itemDailyMin,
+            dailyMaxSpots: itemDailyMax,
+            spotPrice: itemSpotPrice,
+            totalBudget: itemTotalBudget,
+            isRamadanSpecial: itemIsRamadanSpecial
+          },
+          effectiveRealized,
+          ramadanConfig
+        );
+
+        rows.push({
+          rowKey: `${res.id}__${it.id || idx}__${idx}`,
+          reservationId: res.id,
+          parentReservation: res,
+          itemIndex: idx,
+          siblingCount: items.length,
+          item: it,
+          company,
+          companyName: company?.name || '-',
+          product,
+          productName: product?.name || 'Ürün',
+          material,
+          materialName: material ? (material.clipName || material.name) : '',
+          materialDuration: material?.duration || 0,
+          priority: itemPriority,
+          isSponsor: itemIsSponsor,
+          sponsorProgramTitle: itemSponsorProgramTitle,
+          sponsorPositions: itemSponsorPositions,
+          isRamadanSpecial: itemIsRamadanSpecial,
+          ramadanTarget: itemRamadanTarget,
+          ramadanPositions: itemRamadanPositions,
+          channelIds: itemChannelIds,
+          timeBlockIds: itemTimeBlockIds,
+          timeBlockSpotCounts: itemTimeBlockSpotCounts,
+          startDate: itemStartDate,
+          endDate: itemEndDate,
+          dailyMinSpots: itemDailyMin,
+          dailyMaxSpots: itemDailyMax,
+          spotPrice: itemSpotPrice,
+          totalBudget: itemTotalBudget,
+          effectiveRealized,
+          totalPlanned: itemPlanned,
+          overageInfo
+        });
       });
-
-      const effectiveRealized = Math.max(realizedCount, placedCount);
-      const totalPlanned =
-        Number(res.totalPlannedSpots) ||
-        items.reduce((sum, it) => sum + (Number(it.plannedSpots) || 0), 0) ||
-        20;
-
-      const isRamadanSpecial = Boolean(res.isRamadanSpecial || items.some(it => it.isRamadanSpecial));
-      const overageInfo = calculateItemOverageMetrics(
-        {
-          ...res,
-          plannedSpots: totalPlanned,
-          dailyMinSpots: res.dailyMinSpots || firstItem.dailyMinSpots || 1,
-          dailyMaxSpots: res.dailyMaxSpots || firstItem.dailyMaxSpots || 4,
-          spotPrice: res.spotPrice || firstItem.spotPrice || 0,
-          totalBudget: res.toplamTutar || firstItem.totalBudget || 0,
-          isRamadanSpecial
-        },
-        effectiveRealized,
-        ramadanConfig
-      );
-
-      return {
-        ...res,
-        items,
-        company,
-        companyName: company?.name || '-',
-        effectiveRealized,
-        totalPlanned,
-        isRamadanSpecial,
-        overageInfo
-      };
     });
-  }, [reservations, companies, adPlacements, ramadanConfig]);
 
-  // Filtrelenmiş rezervasyonlar
+    return rows;
+  }, [reservations, companies, products, materials, adPlacements, ramadanConfig]);
+
+  // Filtrelenmiş reklam rezervasyon satırları (her reklam ayrı satır)
   const filteredReservations = useMemo(() => {
-    return enrichedReservations.filter(res => {
-      if (typeFilter === 'sponsor' && !res.isSponsor) return false;
-      if (typeFilter === 'standard' && (res.isSponsor || res.isRamadanSpecial)) return false;
-      if (typeFilter === 'ramadan' && !res.isRamadanSpecial) return false;
-      if (typeFilter === 'overage' && !res.overageInfo?.hasAnyOverage) return false;
-      if (typeFilter === 'multi' && (res.items?.length || 0) < 2) return false;
+    return enrichedReservationRows.filter(row => {
+      if (typeFilter === 'sponsor' && !row.isSponsor) return false;
+      if (typeFilter === 'standard' && (row.isSponsor || row.isRamadanSpecial)) return false;
+      if (typeFilter === 'ramadan' && !row.isRamadanSpecial) return false;
+      if (typeFilter === 'overage' && !row.overageInfo?.hasAnyOverage) return false;
+      if (typeFilter === 'multi' && row.siblingCount < 2) return false;
 
-      if (
-        channelFilter !== 'all' &&
-        !(res.channelIds || []).includes(channelFilter) &&
-        !(res.items || []).some(it => (it.channelIds || []).includes(channelFilter))
-      ) {
+      if (channelFilter !== 'all' && !(row.channelIds || []).includes(channelFilter)) {
         return false;
       }
 
       if (searchTerm.trim()) {
         const q = searchTerm.toLocaleLowerCase('tr-TR');
-        const productNames = (res.items || [])
-          .map(it => products.find(p => String(p.id) === String(it.productId))?.name || '')
-          .join(' ');
-        const materialNames = (res.items || [])
-          .map(it => materials.find(m => String(m.id) === String(it.materialId))?.name || '')
-          .join(' ');
-        const hay = `${res.companyName} ${res.name || ''} ${res.sponsorProgramTitle || ''} ${productNames} ${materialNames}`.toLocaleLowerCase('tr-TR');
+        const hay = `${row.companyName} ${row.parentReservation?.name || ''} ${row.sponsorProgramTitle || ''} ${row.productName} ${row.materialName}`.toLocaleLowerCase('tr-TR');
         if (!hay.includes(q)) return false;
       }
 
       return true;
     });
-  }, [enrichedReservations, typeFilter, channelFilter, searchTerm, products, materials]);
+  }, [enrichedReservationRows, typeFilter, channelFilter, searchTerm]);
 
   // KPI özet istatistikleri
   const kpiStats = useMemo(() => {
-    const totalRes = enrichedReservations.length;
-    const sponsorCount = enrichedReservations.filter(r => r.isSponsor).length;
-    const ramadanCount = enrichedReservations.filter(r => r.isRamadanSpecial).length;
-    const overageCount = enrichedReservations.filter(r => r.overageInfo?.hasAnyOverage).length;
-    const totalProductPlans = enrichedReservations.reduce((acc, r) => acc + (r.items?.length || 1), 0);
-    const totalPlannedSpots = enrichedReservations.reduce((acc, r) => acc + r.totalPlanned, 0);
-    const totalRealizedSpots = enrichedReservations.reduce((acc, r) => acc + r.effectiveRealized, 0);
+    const totalRes = enrichedReservationRows.length;
+    const sponsorCount = enrichedReservationRows.filter(r => r.isSponsor).length;
+    const ramadanCount = enrichedReservationRows.filter(r => r.isRamadanSpecial).length;
+    const overageCount = enrichedReservationRows.filter(r => r.overageInfo?.hasAnyOverage).length;
+    const totalProductPlans = enrichedReservationRows.length;
+    const totalPlannedSpots = enrichedReservationRows.reduce((acc, r) => acc + r.totalPlanned, 0);
+    const totalRealizedSpots = enrichedReservationRows.reduce((acc, r) => acc + r.effectiveRealized, 0);
 
     return {
       totalRes,
@@ -346,7 +475,7 @@ const ReservationsTab = ({ setActiveTab }) => {
       totalPlannedSpots,
       totalRealizedSpots
     };
-  }, [enrichedReservations]);
+  }, [enrichedReservationRows]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -410,7 +539,7 @@ const ReservationsTab = ({ setActiveTab }) => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <div className="ads-saas-pill-group">
             {[
-              { id: 'all', label: `Tümü (${enrichedReservations.length})` },
+              { id: 'all', label: `Tümü (${enrichedReservationRows.length})` },
               { id: 'standard', label: 'Standart Kuşak' },
               { id: 'sponsor', label: `Sponsorluklar (${kpiStats.sponsorCount})` },
               { id: 'ramadan', label: `Ramazan Özel (${kpiStats.ramadanCount})` },
@@ -572,16 +701,23 @@ const ReservationsTab = ({ setActiveTab }) => {
               </tr>
             </thead>
             <tbody>
-              {filteredReservations.map(res => {
-                const priorityInfo = getPriorityInfo(res.priority);
-                const resTimeBlocks = (res.timeBlockIds || [])
+              {filteredReservations.map(row => {
+                const priorityInfo = getPriorityInfo(row.priority);
+                const rowTimeBlocks = (row.timeBlockIds || [])
                   .map(tbId => timeBlocks.find(tb => tb.id === tbId))
                   .filter(Boolean);
 
-                const pct = Math.min(100, Math.round((res.effectiveRealized / Math.max(1, res.totalPlanned)) * 100));
+                const fixedBlockEntries = Object.entries(row.timeBlockSpotCounts || {}).filter(
+                  ([, cnt]) => Number(cnt) > 0
+                );
+                const hasFixedBlockCounts = fixedBlockEntries.length > 0;
+                const fixedDailyTotal = fixedBlockEntries.reduce((s, [, cnt]) => s + (Number(cnt) || 0), 0);
+
+                const pct = Math.min(100, Math.round((row.effectiveRealized / Math.max(1, row.totalPlanned)) * 100));
 
                 return (
-                  <tr key={res.id}>
+                  <tr key={row.rowKey}>
+                    {/* 1. Öncelik & Tür (Yalnızca bu reklam klibinin önceliği ve sponsorluk türü) */}
                     <td>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
                         <span
@@ -596,7 +732,7 @@ const ReservationsTab = ({ setActiveTab }) => {
                         >
                           {priorityInfo.label}
                         </span>
-                        {res.isSponsor && (
+                        {row.isSponsor && (
                           <span
                             style={{
                               background: 'rgba(147, 51, 234, 0.14)',
@@ -613,7 +749,7 @@ const ReservationsTab = ({ setActiveTab }) => {
                             <Award size={10} /> Sponsor
                           </span>
                         )}
-                        {res.isRamadanSpecial && (
+                        {row.isRamadanSpecial && (
                           <span
                             style={{
                               background: 'linear-gradient(135deg, #d97706, #b45309)',
@@ -633,11 +769,12 @@ const ReservationsTab = ({ setActiveTab }) => {
                       </div>
                     </td>
 
+                    {/* 2. Firma Adı */}
                     <td>
                       <div
                         onClick={() => {
-                          if (res.company && setActiveTab) {
-                            usePlanningStore.getState().setSelectedCompanyDetailId(res.company.id);
+                          if (row.company && setActiveTab) {
+                            usePlanningStore.getState().setSelectedCompanyDetailId(row.company.id);
                             setActiveTab('company-details');
                           }
                         }}
@@ -649,181 +786,137 @@ const ReservationsTab = ({ setActiveTab }) => {
                           lineHeight: 1.3
                         }}
                       >
-                        {res.companyName}
+                        {row.companyName}
                       </div>
                       <div style={{ fontSize: '10.5px', color: 'var(--ads-text-muted)', fontFamily: 'monospace', marginTop: '2px' }}>
-                        #{String(res.id).slice(0, 10)}
+                        #{String(row.reservationId).slice(0, 10)}
+                        {row.siblingCount > 1 ? ` • Reklam ${row.itemIndex + 1}/${row.siblingCount}` : ''}
                       </div>
                     </td>
 
-                    {/* Aynı Firmaya Ait Birden Fazla Ürün, Kanal, Kuşak, Tarih ve Ücret Planı */}
+                    {/* 3. Tekil Reklam Klibi, Ürün ve Tarih Aralığı (Her reklam ayrı satırda) */}
                     <td style={{ textAlign: 'left', paddingLeft: '16px' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        {res.items.map((it, idx) => {
-                          const p = products.find(x => String(x.id) === String(it.productId));
-                          const m = materials.find(x => String(x.id) === String(it.materialId));
-                          const itemStart = it.startDate || res.startDate;
-                          const itemEnd = it.endDate || res.endDate;
-                          const itemSpots = it.plannedSpots || res.totalPlanned;
-                          const itemChannels =
-                            Array.isArray(it.channelIds) && it.channelIds.length > 0
-                              ? it.channelIds
-                              : res.channelIds || ['ch_hd'];
-                          const itemBudget =
-                            Number(it.totalBudget) > 0
-                              ? Number(it.totalBudget)
-                              : Number(it.spotPrice) > 0
-                              ? Number(it.spotPrice) * Number(itemSpots)
-                              : 0;
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '6px',
+                          padding: '9px 12px',
+                          borderRadius: '10px',
+                          background: 'var(--ads-card-subtle)',
+                          border: '1px solid var(--ads-border)'
+                        }}
+                      >
+                        {/* Üst: Ürün Adı, Reklam Klibi Adı ve İzle Butonu */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                              <Package size={13} color="var(--ads-orange)" style={{ flexShrink: 0 }} />
+                              <span style={{ fontSize: '12.5px', fontWeight: '800', color: 'var(--ads-text-main)' }}>
+                                {row.productName}
+                              </span>
+                            </div>
+                            {row.material && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11.5px', color: 'var(--ads-text-sub)', wordBreak: 'break-all' }}>
+                                <Film size={12} color="var(--ads-teal)" style={{ flexShrink: 0 }} />
+                                <span style={{ fontWeight: '700' }}>
+                                  {row.materialName}
+                                </span>
+                                <span style={{ color: 'var(--ads-text-muted)', fontWeight: '600' }}>
+                                  ({row.materialDuration} sn)
+                                </span>
+                              </div>
+                            )}
+                          </div>
 
-                          return (
-                            <div
-                              key={it.id || idx}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
+                            {row.material && (
+                              <button
+                                type="button"
+                                onClick={() => setPreviewMaterial(row.material)}
+                                className="ads-saas-btn ads-saas-btn-primary ads-saas-btn-sm"
+                                style={{ padding: '3px 9px', fontSize: '11px' }}
+                                title="Klibi İzle"
+                              >
+                                <Play size={11} fill="#ffffff" /> İzle
+                              </button>
+                            )}
+                            {row.channelIds.map(cid => (
+                              <span
+                                key={cid}
+                                style={{
+                                  fontSize: '10px',
+                                  fontWeight: '800',
+                                  padding: '2px 7px',
+                                  borderRadius: '5px',
+                                  background: cid === 'ch_hd' ? 'rgba(0, 102, 255, 0.12)' : 'rgba(139, 92, 246, 0.14)',
+                                  color: cid === 'ch_hd' ? '#0066ff' : '#8b5cf6'
+                                }}
+                              >
+                                {cid === 'ch_hd' ? 'HD' : 'WAY'}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Alt: Tarih Aralığı + Planlanan Spot / Günlük Min-Max veya Kuşak Sabit + Bütçe */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              fontSize: '11px',
+                              fontWeight: '800',
+                              padding: '3px 9px',
+                              borderRadius: '6px',
+                              background: 'var(--ads-pill-bar-bg)',
+                              border: '1px solid var(--ads-border-strong)',
+                              color: 'var(--ads-text-main)',
+                              fontFamily: 'monospace'
+                            }}
+                          >
+                            <Calendar size={11} color="var(--ads-brand)" />
+                            {formatTrDate(row.startDate)} &ndash; {formatTrDate(row.endDate)}
+                          </span>
+
+                          <span
+                            style={{
+                              fontSize: '10.5px',
+                              fontWeight: '800',
+                              padding: '3px 9px',
+                              borderRadius: '999px',
+                              background: hasFixedBlockCounts ? 'rgba(217, 119, 6, 0.14)' : 'var(--ads-brand-soft)',
+                              color: hasFixedBlockCounts ? '#b45309' : 'var(--ads-brand)'
+                            }}
+                          >
+                            {hasFixedBlockCounts
+                              ? `${row.totalPlanned} Spot (Kuşak Sabit: Günlük ${fixedDailyTotal})`
+                              : `${row.totalPlanned} Spot (Günlük ${row.dailyMinSpots}–${row.dailyMaxSpots})`}
+                          </span>
+
+                          {row.totalBudget > 0 && (
+                            <span
                               style={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '6px',
-                                padding: '9px 12px',
-                                borderRadius: '10px',
-                                background: 'var(--ads-card-subtle)',
-                                border: '1px solid var(--ads-border)'
+                                fontSize: '10.5px',
+                                fontWeight: '800',
+                                padding: '3px 9px',
+                                borderRadius: '999px',
+                                background: 'rgba(13, 148, 136, 0.14)',
+                                color: '#0d9488'
                               }}
                             >
-                              {/* 1. Satır: Ürün Adı, Klip Tam Adı ve İzle Butonu */}
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                                    <Package size={13} color="var(--ads-orange)" style={{ flexShrink: 0 }} />
-                                    <span style={{ fontSize: '12.5px', fontWeight: '800', color: 'var(--ads-text-main)' }}>
-                                      {p ? p.name : 'Ürün'}
-                                    </span>
-                                  </div>
-                                  {m && (
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11.5px', color: 'var(--ads-text-sub)', wordBreak: 'break-all' }}>
-                                      <Film size={12} color="var(--ads-teal)" style={{ flexShrink: 0 }} />
-                                      <span style={{ fontWeight: '700' }}>
-                                        {m.clipName || m.name}
-                                      </span>
-                                      <span style={{ color: 'var(--ads-text-muted)', fontWeight: '600' }}>
-                                        ({m.duration} sn)
-                                      </span>
-                                    </div>
-                                  )}
-                                </div>
-
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
-                                  {m && (
-                                    <button
-                                      type="button"
-                                      onClick={() => setPreviewMaterial(m)}
-                                      className="ads-saas-btn ads-saas-btn-primary ads-saas-btn-sm"
-                                      style={{ padding: '3px 9px', fontSize: '11px' }}
-                                      title="Klibi İzle"
-                                    >
-                                      <Play size={11} fill="#ffffff" /> İzle
-                                    </button>
-                                  )}
-                                  {itemChannels.map(cid => (
-                                    <span
-                                      key={cid}
-                                      style={{
-                                        fontSize: '10px',
-                                        fontWeight: '800',
-                                        padding: '2px 7px',
-                                        borderRadius: '5px',
-                                        background: cid === 'ch_hd' ? 'rgba(0, 102, 255, 0.12)' : 'rgba(139, 92, 246, 0.14)',
-                                        color: cid === 'ch_hd' ? '#0066ff' : '#8b5cf6'
-                                      }}
-                                    >
-                                      {cid === 'ch_hd' ? 'HD' : 'WAY'}
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-
-                              {/* 2. Satır: Belirgin Tarih Aralığı Rozeti + Planlanan Spot & Günlük Min/Max + Bütçe */}
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                                <span
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '5px',
-                                    fontSize: '11px',
-                                    fontWeight: '800',
-                                    padding: '3px 9px',
-                                    borderRadius: '6px',
-                                    background: 'var(--ads-pill-bar-bg)',
-                                    border: '1px solid var(--ads-border-strong)',
-                                    color: 'var(--ads-text-main)',
-                                    fontFamily: 'monospace'
-                                  }}
-                                >
-                                  <Calendar size={11} color="var(--ads-brand)" />
-                                  {formatTrDate(itemStart)} &ndash; {formatTrDate(itemEnd)}
-                                </span>
-
-                                <span
-                                  style={{
-                                    fontSize: '10.5px',
-                                    fontWeight: '800',
-                                    padding: '3px 9px',
-                                    borderRadius: '999px',
-                                    background: 'var(--ads-brand-soft)',
-                                    color: 'var(--ads-brand)'
-                                  }}
-                                >
-                                  {itemSpots} Spot (Günlük {it.dailyMinSpots || res.dailyMinSpots || 1}–{it.dailyMaxSpots || res.dailyMaxSpots || 4})
-                                </span>
-
-                                {itemBudget > 0 && (
-                                  <span
-                                    style={{
-                                      fontSize: '10.5px',
-                                      fontWeight: '800',
-                                      padding: '3px 9px',
-                                      borderRadius: '999px',
-                                      background: 'rgba(13, 148, 136, 0.14)',
-                                      color: '#0d9488'
-                                    }}
-                                  >
-                                    {itemBudget.toLocaleString('tr-TR')} ₺
-                                  </span>
-                                )}
-
-                                {it.isSponsor && it.sponsorProgramTitle && (
-                                  <span
-                                    style={{
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: '4px',
-                                      fontSize: '10.5px',
-                                      fontWeight: '800',
-                                      padding: '3px 9px',
-                                      borderRadius: '999px',
-                                      background: 'rgba(147, 51, 234, 0.14)',
-                                      color: '#9333ea'
-                                    }}
-                                  >
-                                    <Award size={11} />
-                                    {it.sponsorProgramTitle} (
-                                    {(it.sponsorPositions || [])
-                                      .map(posId => SPONSOR_POSITIONS.find(sp => sp.id === posId)?.shortLabel)
-                                      .filter(Boolean)
-                                      .join(', ')}
-                                    )
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
+                              {row.totalBudget.toLocaleString('tr-TR')} ₺
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </td>
 
-                    {/* Program Sponsorluğu & Konumu */}
+                    {/* 4. Yalnızca Bu Reklam Klibine Ait Program Sponsorluğu & Konumu */}
                     <td>
-                      {res.isRamadanSpecial && (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', marginBottom: res.isSponsor ? '6px' : 0 }}>
+                      {row.isRamadanSpecial && (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', marginBottom: row.isSponsor ? '6px' : 0 }}>
                           <span
                             style={{
                               fontSize: '11px',
@@ -834,21 +927,18 @@ const ReservationsTab = ({ setActiveTab }) => {
                               color: '#d97706'
                             }}
                           >
-                            {res.ramadanTarget === 'sahur' ? 'Ramazan Sahur' : res.ramadanTarget === 'both' ? 'Sahur & İftar' : 'Ramazan İftar'}
+                            {row.ramadanTarget === 'sahur' ? 'Ramazan Sahur' : row.ramadanTarget === 'both' ? 'Sahur & İftar' : 'Ramazan İftar'}
                           </span>
                         </div>
                       )}
-                      {res.isSponsor ? (
+                      {row.isSponsor ? (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
                           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: '800', fontSize: '12px', color: 'var(--ads-text-main)' }}>
                             <Tv size={13} color="#9333ea" />
-                            <span>{res.sponsorProgramTitle || 'Genel Program Sponsorluğu'}</span>
+                            <span>{row.sponsorProgramTitle || 'Genel Program Sponsorluğu'}</span>
                           </div>
                           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '4px' }}>
-                            {(res.sponsorPositions && res.sponsorPositions.length > 0
-                              ? res.sponsorPositions
-                              : ['before', 'after']
-                            ).map(posId => {
+                            {row.sponsorPositions.map(posId => {
                               const pos = SPONSOR_POSITIONS.find(p => p.id === posId);
                               return pos ? (
                                 <span
@@ -868,16 +958,16 @@ const ReservationsTab = ({ setActiveTab }) => {
                             })}
                           </div>
                         </div>
-                      ) : !res.isRamadanSpecial ? (
+                      ) : !row.isRamadanSpecial ? (
                         <span style={{ fontSize: '11px', color: 'var(--ads-text-muted)' }}>Standart Kuşak</span>
                       ) : null}
                     </td>
 
-                    {/* Kanallar ve Kuşaklar */}
+                    {/* 5. Yalnızca Bu Reklam Klibinin Kanalları ve Kuşakları */}
                     <td>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
                         <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                          {(res.channelIds || ['ch_hd']).map(cid => (
+                          {row.channelIds.map(cid => (
                             <span
                               key={cid}
                               style={{
@@ -894,24 +984,37 @@ const ReservationsTab = ({ setActiveTab }) => {
                           ))}
                         </div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '3px' }}>
-                          {resTimeBlocks.map(tb => (
-                            <span key={tb.id} className="ads-saas-chip" style={{ padding: '1px 6px', fontSize: '10px' }}>
-                              <Clock size={9} /> {tb.name.split(' ')[0]}
-                            </span>
-                          ))}
+                          {rowTimeBlocks.map(tb => {
+                            const fixedCnt = Number(row.timeBlockSpotCounts?.[tb.id] || 0);
+                            return (
+                              <span
+                                key={tb.id}
+                                className="ads-saas-chip"
+                                style={{
+                                  padding: '1px 6px',
+                                  fontSize: '10px',
+                                  borderColor: fixedCnt > 0 ? '#d97706' : undefined,
+                                  color: fixedCnt > 0 ? '#b45309' : undefined,
+                                  fontWeight: fixedCnt > 0 ? '900' : undefined
+                                }}
+                              >
+                                <Clock size={9} /> {tb.name.split(' ')[0]}{fixedCnt > 0 ? ` (${fixedCnt}x)` : ''}
+                              </span>
+                            );
+                          })}
                         </div>
                       </div>
                     </td>
 
-                    {/* Spot İlerlemesi & Eksi (-) Aşım Gösterimi */}
+                    {/* 6. Yalnızca Bu Reklam Klibinin Kendi Spot İlerlemesi */}
                     <td>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '125px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px', fontWeight: '800' }}>
-                          <span style={{ color: res.effectiveRealized > res.totalPlanned ? '#dc2626' : 'var(--ads-brand)' }}>
-                            {res.effectiveRealized} / {res.totalPlanned}
+                          <span style={{ color: row.effectiveRealized > row.totalPlanned ? '#dc2626' : 'var(--ads-brand)' }}>
+                            {row.effectiveRealized} / {row.totalPlanned}
                           </span>
-                          <span style={{ color: res.effectiveRealized > res.totalPlanned ? '#dc2626' : 'var(--ads-text-muted)', fontSize: '10.5px' }}>
-                            %{Math.round((res.effectiveRealized / Math.max(1, res.totalPlanned)) * 100)}
+                          <span style={{ color: row.effectiveRealized > row.totalPlanned ? '#dc2626' : 'var(--ads-text-muted)', fontSize: '10.5px' }}>
+                            %{Math.round((row.effectiveRealized / Math.max(1, row.totalPlanned)) * 100)}
                           </span>
                         </div>
                         <div style={{ height: '6px', background: 'var(--ads-pill-bar-bg)', borderRadius: '999px', overflow: 'hidden' }}>
@@ -919,18 +1022,18 @@ const ReservationsTab = ({ setActiveTab }) => {
                             style={{
                               width: `${pct}%`,
                               height: '100%',
-                              background: res.effectiveRealized > res.totalPlanned
+                              background: row.effectiveRealized > row.totalPlanned
                                 ? '#dc2626'
-                                : res.isSponsor
+                                : row.isSponsor
                                 ? '#9333ea'
                                 : 'var(--ads-brand)',
                               borderRadius: '999px'
                             }}
                           />
                         </div>
-                        {res.overageInfo?.hasAnyOverage && (
+                        {row.overageInfo?.hasAnyOverage && (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '2px' }}>
-                            {res.overageInfo.spotNegativeBalance < 0 && (
+                            {row.overageInfo.spotNegativeBalance < 0 && (
                               <span
                                 style={{
                                   fontSize: '10px',
@@ -942,10 +1045,10 @@ const ReservationsTab = ({ setActiveTab }) => {
                                   textAlign: 'center'
                                 }}
                               >
-                                {res.overageInfo.spotNegativeBalance} Spot Aşım
+                                {row.overageInfo.spotNegativeBalance} Spot Aşım
                               </span>
                             )}
-                            {res.overageInfo.dayNegativeBalance < 0 && (
+                            {row.overageInfo.dayNegativeBalance < 0 && (
                               <span
                                 style={{
                                   fontSize: '10px',
@@ -957,10 +1060,10 @@ const ReservationsTab = ({ setActiveTab }) => {
                                   textAlign: 'center'
                                 }}
                               >
-                                {res.overageInfo.dayNegativeBalance} Gün Aşım
+                                {row.overageInfo.dayNegativeBalance} Gün Aşım
                               </span>
                             )}
-                            {res.overageInfo.budgetNegativeBalance < 0 && (
+                            {row.overageInfo.budgetNegativeBalance < 0 && (
                               <span
                                 style={{
                                   fontSize: '10px',
@@ -972,7 +1075,7 @@ const ReservationsTab = ({ setActiveTab }) => {
                                   textAlign: 'center'
                                 }}
                               >
-                                {res.overageInfo.budgetNegativeBalance.toLocaleString('tr-TR')} ₺
+                                {row.overageInfo.budgetNegativeBalance.toLocaleString('tr-TR')} ₺
                               </span>
                             )}
                           </div>
@@ -980,14 +1083,14 @@ const ReservationsTab = ({ setActiveTab }) => {
                       </div>
                     </td>
 
-                    {/* İşlemler */}
+                    {/* 7. İşlemler */}
                     <td>
                       <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                         <button
                           type="button"
                           onClick={() => {
-                            if (res.company && setActiveTab) {
-                              usePlanningStore.getState().setSelectedCompanyDetailId(res.company.id);
+                            if (row.company && setActiveTab) {
+                              usePlanningStore.getState().setSelectedCompanyDetailId(row.company.id);
                               setActiveTab('company-details');
                             }
                           }}
@@ -999,8 +1102,8 @@ const ReservationsTab = ({ setActiveTab }) => {
                         <button
                           type="button"
                           onClick={() => {
-                            setEditingRes(res);
-                            setDefaultSponsorMode(Boolean(res.isSponsor));
+                            setEditingRes(row.parentReservation);
+                            setDefaultSponsorMode(Boolean(row.isSponsor));
                             setIsFormOpen(true);
                           }}
                           className="ads-saas-btn ads-saas-btn-sm"
@@ -1010,10 +1113,10 @@ const ReservationsTab = ({ setActiveTab }) => {
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleDelete(res.id)}
+                          onClick={() => handleDeleteRowItem(row)}
                           className="ads-saas-btn ads-saas-btn-sm"
                           style={{ color: '#ef4444' }}
-                          title="Sil"
+                          title={row.siblingCount > 1 ? 'Bu Reklam Satırını Sil' : 'Rezervasyonu Sil'}
                         >
                           <Trash2 size={13} />
                         </button>

@@ -811,69 +811,74 @@ const AdsReservationForm = ({ onClose, existingData = null, defaultSponsorMode =
       };
     });
 
-    const firstItem = normalizedItems[0];
-    const sponsorItems = normalizedItems.filter(it => it.isSponsor && it.sponsorProgramTitle);
-    const ramadanItems = normalizedItems.filter(it => it.isRamadanSpecial);
-    const hasAnySponsor = sponsorItems.length > 0;
-    const hasAnyRamadan = ramadanItems.length > 0;
-    const uniqueSponsorPrograms = Array.from(new Set(sponsorItems.map(it => it.sponsorProgramTitle)));
-    const allSponsorPositions = Array.from(new Set(sponsorItems.flatMap(it => it.sponsorPositions || [])));
-    const allRamadanPositions = Array.from(new Set(ramadanItems.flatMap(it => it.ramadanPositions || [])));
+    // Aynı firma da olsa her bir reklam klibini (item) kendi bağımsız rezervasyon kaydı olarak ayrı ayrı oluştur / güncelle!
+    const companyNameStr = companies.find(c => String(c.id) === String(formData.companyId))?.name || 'Firma';
 
-    const finalSponsorBumperMap = {};
-    sponsorItems.forEach(it => {
-      (it.sponsorPositions || []).forEach(posId => {
-        if (SINGULAR_BUMPER_ROLE_IDS.includes(posId)) {
-          finalSponsorBumperMap[posId] = it.materialId;
-        }
-      });
-    });
+    const buildSingleItemPayload = (itemObj) => {
+      const itemBumperMap = {};
+      if (itemObj.isSponsor) {
+        (itemObj.sponsorPositions || []).forEach(posId => {
+          if (SINGULAR_BUMPER_ROLE_IDS.includes(posId)) {
+            itemBumperMap[posId] = itemObj.materialId;
+          }
+        });
+      }
+      const matObj = materials.find(m => String(m.id) === String(itemObj.materialId));
+      const prodObj = products.find(p => String(p.id) === String(itemObj.productId));
+      const itemLabel = matObj?.name || prodObj?.name || companyNameStr;
 
-    const highestPriority = Math.max(...normalizedItems.map(it => Number(it.priority) || 700));
-
-    const payload = {
-      name:
-        formData.name ||
-        (hasAnyRamadan
-          ? `Ramazan Özel — ${companies.find(c => String(c.id) === String(formData.companyId))?.name || 'Firma'}`
-          : hasAnySponsor
-          ? `${uniqueSponsorPrograms.join(' & ')} Sponsorluğu`
-          : `${companies.find(c => String(c.id) === String(formData.companyId))?.name || 'Firma'} Rezervasyon Planı`),
-      description: formData.description || '',
-      companyId: formData.companyId,
-      productId: firstItem.productId,
-      materialId: firstItem.materialId,
-      items: normalizedItems,
-      startDate: summaryStats.minStartDate,
-      endDate: summaryStats.maxEndDate,
-      totalPlannedSpots: summaryStats.totalSpots,
-      dailyMinSpots: Number(firstItem.dailyMinSpots) || 1,
-      dailyMaxSpots: Number(firstItem.dailyMaxSpots) || 4,
-      timeBlockIds: summaryStats.allTimeBlocks.length > 0 ? summaryStats.allTimeBlocks : ['tb-2', 'tb-3'],
-      timeBlockSpotCounts: firstItem.timeBlockSpotCounts || {},
-      channelIds: summaryStats.allChannels.length > 0 ? summaryStats.allChannels : ['ch_hd'],
-      priority: highestPriority,
-      isSponsor: hasAnySponsor,
-      sponsorProgramId: hasAnySponsor ? sponsorItems[0].sponsorProgramId : null,
-      sponsorProgramTitle: hasAnySponsor ? uniqueSponsorPrograms.join(' • ') : null,
-      sponsorPositions: hasAnySponsor ? allSponsorPositions : [],
-      sponsorBumperMap: hasAnySponsor ? finalSponsorBumperMap : {},
-      isRamadanSpecial: hasAnyRamadan,
-      ramadanTarget: hasAnyRamadan ? (ramadanItems[0].ramadanTarget || 'iftar') : null,
-      ramadanPositions: hasAnyRamadan ? allRamadanPositions : [],
-      spotPrice: firstItem.spotPrice || 0,
-      toplamTutar: summaryStats.hasAnyPricing ? summaryStats.totalBudget : 0,
-      overageSpots: totalOverageSpots,
-      overageDays: totalOverageDays,
-      overageBudget: totalOverageBudget,
-      durum: 'Onaylandı',
-      realizedSpots: existingData?.realizedSpots || 0
+      return {
+        name:
+          formData.name ||
+          (itemObj.isRamadanSpecial
+            ? `Ramazan Özel — ${itemLabel}`
+            : itemObj.isSponsor && itemObj.sponsorProgramTitle
+            ? `${itemObj.sponsorProgramTitle} Sponsorluğu — ${itemLabel}`
+            : `${companyNameStr} — ${itemLabel}`),
+        description: formData.description || '',
+        companyId: formData.companyId,
+        productId: itemObj.productId,
+        materialId: itemObj.materialId,
+        items: [itemObj],
+        startDate: itemObj.startDate,
+        endDate: itemObj.endDate,
+        totalPlannedSpots: itemObj.plannedSpots,
+        dailyMinSpots: Number(itemObj.dailyMinSpots) || 1,
+        dailyMaxSpots: Number(itemObj.dailyMaxSpots) || 4,
+        timeBlockIds: itemObj.timeBlockIds,
+        timeBlockSpotCounts: itemObj.timeBlockSpotCounts || {},
+        channelIds: itemObj.channelIds,
+        priority: Number(itemObj.priority) || 700,
+        isSponsor: Boolean(itemObj.isSponsor),
+        sponsorProgramId: itemObj.isSponsor ? itemObj.sponsorProgramId : null,
+        sponsorProgramTitle: itemObj.isSponsor ? itemObj.sponsorProgramTitle : null,
+        sponsorPositions: itemObj.isSponsor ? itemObj.sponsorPositions : [],
+        sponsorBumperMap: itemObj.isSponsor ? itemBumperMap : {},
+        isRamadanSpecial: Boolean(itemObj.isRamadanSpecial),
+        ramadanTarget: itemObj.isRamadanSpecial ? (itemObj.ramadanTarget || 'iftar') : null,
+        ramadanPositions: itemObj.isRamadanSpecial ? itemObj.ramadanPositions : [],
+        spotPrice: itemObj.spotPrice || 0,
+        toplamTutar: itemObj.totalBudget || 0,
+        overageSpots: itemObj.overageSpots || 0,
+        overageDays: itemObj.overageDays || 0,
+        overageBudget: itemObj.overageBudget || 0,
+        durum: 'Onaylandı',
+        realizedSpots: existingData?.realizedSpots || 0
+      };
     };
 
     if (existingData?.id) {
-      updateReservation(existingData.id, payload);
+      // İlk reklam satırını mevcut rezervasyon ID'si üzerinde güncelle, eklenen diğer reklam satırlarını ayrı yeni rezervasyon olarak ekle
+      const firstPayload = buildSingleItemPayload(normalizedItems[0]);
+      updateReservation(existingData.id, firstPayload);
+      for (let k = 1; k < normalizedItems.length; k++) {
+        addReservation(buildSingleItemPayload(normalizedItems[k]));
+      }
     } else {
-      addReservation(payload);
+      // Yeni kayıtta her reklam klibini ayrı bir rezervasyon satırı olarak ekle
+      normalizedItems.forEach(itemObj => {
+        addReservation(buildSingleItemPayload(itemObj));
+      });
     }
 
     onClose();
