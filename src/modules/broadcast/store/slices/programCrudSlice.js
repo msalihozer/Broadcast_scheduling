@@ -800,14 +800,36 @@ export const createProgramCrudSlice = (set, get) => ({
       idxCursor = nextCursor;
     }
 
+    // Bir Reklam Kuşağı (ad_break), kendinden hemen önceki program bloğunun ayrılmaz kuyruğudur!
+    // Eğer kendinden önceki program sabit saatin altına kayarsa reklam kuşağı da onunla birlikte kaymalı;
+    // kendinden önceki program yukarıda kalırsa reklam kuşağı da onun hemen altında kalmalıdır (asla başka reklam kuşaklarıyla üst üste binmemelidir).
+    const mergedBlocks = [];
+    for (const blk of blocks) {
+      const isSingleAdBreak = blk.length === 1 && blk[0].type === 'ad_break';
+      if (isSingleAdBreak && mergedBlocks.length > 0) {
+        const prevBlk = mergedBlocks[mergedBlocks.length - 1];
+        const prevEndsWithAd = prevBlk[prevBlk.length - 1]?.type === 'ad_break';
+        if (!prevEndsWithAd) {
+          // Reklam kuşağını hemen üstündeki program bloğunun sonuna bağla
+          prevBlk.push(blk[0]);
+          continue;
+        } else {
+          // Üst üste iki reklam kuşağı gelmişse mükerrer reklam kuşağını atla
+          continue;
+        }
+      }
+      mergedBlocks.push(blk);
+    }
+
     // Hedef bloğun en başının (varsa introsunun) ihtiyaç duyduğu efektif başlangıç karesi
     const effectiveTargetBlockStartFrames = Math.max(prevOverflow, pinnedStartFrames - framesBeforeTargetInBlock);
 
     let checkCursor = prevOverflow;
     const beforeItems = [];
     const shiftedAfterItems = [];
+    let hasStartedShiftingUnpinned = false;
 
-    for (const blk of blocks) {
+    for (const blk of mergedBlocks) {
       // Blok içinde sabitlenmiş bir öğe var mı?
       const pinnedInBlk = blk.find(x => x.isPinnedTime && typeof x.pinnedStartFrames === 'number');
       const blkFrames = blk.reduce(
@@ -821,14 +843,16 @@ export const createProgramCrudSlice = (set, get) => ({
           checkCursor = Math.max(checkCursor, pinnedInBlk.pinnedStartFrames) + blkFrames;
         } else {
           shiftedAfterItems.push(...blk);
+          hasStartedShiftingUnpinned = true;
         }
       } else {
-        // Blok tamamıyla (İntrosu + tüm partlarıyla) sabitlenen saatten önceye sığıyorsa önceye koy,
-        // sığmıyorsa İntrosunu programından KOPARMADAN blok halinde sabit programın altına kaydır!
-        if (checkCursor + blkFrames <= effectiveTargetBlockStartFrames) {
+        // Sıra koruma kuralı: Bir program sabit saate sığmadığı için aşağı (shiftedAfterItems) kaydırıldıysa,
+        // ondan sonra gelen daha kısa öğeler (dolgu klibi veya reklam kuşağı) onun üstünden atlayıp yukarıdaki boşluğa sıkışamaz!
+        if (!hasStartedShiftingUnpinned && checkCursor + blkFrames <= effectiveTargetBlockStartFrames) {
           beforeItems.push(...blk);
           checkCursor += blkFrames;
         } else {
+          hasStartedShiftingUnpinned = true;
           shiftedAfterItems.push(...blk);
         }
       }
@@ -860,11 +884,22 @@ export const createProgramCrudSlice = (set, get) => ({
       return bp;
     });
 
-    const finalOrdered = renumberAdBreaksInList([
+    // Birleştirme sonrasında ardışık iki Reklam Kuşağı üst üste gelmişse tek reklam kuşağına indirge
+    const combinedRaw = [
       ...beforeItems,
       ...updatedTargetBlock,
       ...shiftedAfterItems
-    ]);
+    ];
+    const dedupedAdBreaksList = [];
+    for (const item of combinedRaw) {
+      const prev = dedupedAdBreaksList[dedupedAdBreaksList.length - 1];
+      if (item.type === 'ad_break' && prev && prev.type === 'ad_break') {
+        continue;
+      }
+      dedupedAdBreaksList.push(item);
+    }
+
+    const finalOrdered = renumberAdBreaksInList(dedupedAdBreaksList);
 
     const newIndex = finalOrdered.findIndex(p => p.instanceId === instanceId);
 

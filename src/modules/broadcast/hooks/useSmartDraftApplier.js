@@ -873,6 +873,12 @@ export default function useSmartDraftApplier({
             continue;
           }
         } else if (curr && curr.type === 'ad_break') {
+          // Eğer hemen bir önceki satır da Reklam Kuşağı ise (üst üste binmiş ardışık reklam kuşakları), mükerrer olanı temizle
+          const prevInCleaned = cleanedInitial[cleanedInitial.length - 1];
+          if (prevInCleaned && prevInCleaned.type === 'ad_break') {
+            updatedAdBreaksCount++;
+            continue;
+          }
           // Mevcut Reklam Kuşağı satırının süresi veya notu varsayılan Reklam Kuşağı ayarından farklıysa güncelle
           const nextAdNote = adDefaultSettings.note ?? curr.note;
           if (curr.durationFrames !== defaultAdFrames || (adDefaultSettings.note && curr.note !== nextAdNote)) {
