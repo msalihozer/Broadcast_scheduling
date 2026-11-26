@@ -818,14 +818,72 @@ export default function useSmartDraftApplier({
       const addedTitles = [];
 
       // 0. Önceki işlemlerden kalmış ardışık mükerrer veya sahipsiz İntro satırlarını temizle (her programın önünde en fazla 1 İntro olabilir)
+      // Aynı zamanda "Otomatik İntro" kapatıldıysa mevcut listedeki introları kaldır; açıksa listedeki tüm İntroları ve Reklam Kuşaklarını güncel varsayılan ayarlara göre güncelle!
+      const adDefaultSettings = useBroadcastStore.getState().adBreakDefaultSettings || {
+        durationMinutes: 5,
+        durationSeconds: 0,
+        durationTc: '00.05.00.00',
+        note: 'Ticari Reklam Bloğu'
+      };
+      const defaultAdTc = adDefaultSettings.durationTc || secondsToTimecode(((Number(adDefaultSettings.durationMinutes) || 5) * 60) + (Number(adDefaultSettings.durationSeconds) || 0));
+      const defaultAdFrames = timecodeToFrames(defaultAdTc);
+      const defaultAdSec = Math.floor(defaultAdFrames / BROADCAST_FPS);
+
+      const defaultIntroName = introClip?.name || introSettings.name || 'SEMERKAND_intro_v3_2014';
+      const defaultIntroFileId = introClip?.fileId || introSettings.fileId || 725;
+      const defaultIntroSec = introClip?.durationSec || introSettings.durationSec || 26;
+      const defaultIntroTc = introClip?.durationFormatted || introSettings.durationTc || secondsToTimecode(defaultIntroSec);
+      const defaultIntroFrames = timecodeToFrames(defaultIntroTc);
+
+      let updatedIntrosCount = 0;
+      let updatedAdBreaksCount = 0;
+
       const cleanedInitial = [];
       for (let k = 0; k < workingPrograms.length; k++) {
         const curr = workingPrograms[k];
         const isCurrIntro = Boolean(curr && (curr.isIntroClip || curr.unitType === 'intro' || /^SEMERKAND_intro/i.test(curr.title || '')));
         if (isCurrIntro) {
+          // Otomatik intro kapatıldıysa listedeki introları kaldır
+          if (!shouldInsertIntros) {
+            updatedIntrosCount++;
+            continue;
+          }
           const next = workingPrograms[k + 1];
           const isNextIntro = Boolean(next && (next.isIntroClip || next.unitType === 'intro' || /^SEMERKAND_intro/i.test(next.title || '')));
           if (!next || isNextIntro || next.type === 'ad_break') {
+            continue;
+          }
+          // Mevcut İntro satırının klibi veya süresi varsayılan İntro ayarından farklıysa güncelle
+          if (
+            curr.title !== defaultIntroName ||
+            curr.fileId !== defaultIntroFileId ||
+            curr.durationFrames !== defaultIntroFrames
+          ) {
+            updatedIntrosCount++;
+            cleanedInitial.push({
+              ...curr,
+              title: defaultIntroName,
+              name: defaultIntroName,
+              clipName: defaultIntroName,
+              fileId: defaultIntroFileId,
+              durationTc: defaultIntroTc,
+              durationFrames: defaultIntroFrames,
+              durationSec: Math.floor(defaultIntroFrames / BROADCAST_FPS)
+            });
+            continue;
+          }
+        } else if (curr && curr.type === 'ad_break') {
+          // Mevcut Reklam Kuşağı satırının süresi veya notu varsayılan Reklam Kuşağı ayarından farklıysa güncelle
+          const nextAdNote = adDefaultSettings.note ?? curr.note;
+          if (curr.durationFrames !== defaultAdFrames || (adDefaultSettings.note && curr.note !== nextAdNote)) {
+            updatedAdBreaksCount++;
+            cleanedInitial.push({
+              ...curr,
+              durationTc: defaultAdTc,
+              durationFrames: defaultAdFrames,
+              durationSec: defaultAdSec,
+              note: nextAdNote
+            });
             continue;
           }
         }
@@ -833,6 +891,43 @@ export default function useSmartDraftApplier({
       }
       const orphanIntrosRemovedCount = workingPrograms.length - cleanedInitial.length;
       workingPrograms = cleanedInitial;
+
+      // Eğer Otomatik İntro sonradan açıldıysa ve listedeki programların önünde intro yoksa eksik introları da ekle
+      if (shouldInsertIntros && introClip) {
+        const withMissingIntros = [];
+        for (let k = 0; k < workingPrograms.length; k++) {
+          const curr = workingPrograms[k];
+          const prev = withMissingIntros[withMissingIntros.length - 1];
+          const isCurrIntro = Boolean(curr && (curr.isIntroClip || curr.unitType === 'intro' || /^SEMERKAND_intro/i.test(curr.title || '')));
+          const isPrevIntro = Boolean(prev && (prev.isIntroClip || prev.unitType === 'intro' || /^SEMERKAND_intro/i.test(prev.title || '')));
+          const isCurrFillerOrAd = Boolean(
+            !curr ||
+            curr.type === 'ad_break' ||
+            curr.type === 'filler_slot' ||
+            curr.isFillerClip ||
+            curr.isKisaSlot ||
+            curr.category === 'Dolgu Kuşağı'
+          );
+          const isContinuationPart = Boolean(
+            prev &&
+            !isPrevIntro &&
+            prev.type !== 'ad_break' &&
+            ((curr.draftId && prev.draftId && String(curr.draftId) === String(prev.draftId)) ||
+              (curr.partNo && curr.partNo > 1))
+          );
+
+          if (!isCurrIntro && !isCurrFillerOrAd && !isPrevIntro && !isContinuationPart) {
+            withMissingIntros.push(createIntroForSlot({
+              id: curr.draftId || null,
+              startTime: curr.draftStartTime || null,
+              title: curr.appliedDraftTitle || curr.title || curr.name || ''
+            }, k));
+            updatedIntrosCount++;
+          }
+          withMissingIntros.push(curr);
+        }
+        workingPrograms = withMissingIntros;
+      }
 
       // A. Listede "Bulunamadı" (isNotFound) olan satırları tekrar kontrol et; arşivde artık varsa İntro + kliplerini yerleştir
       for (let i = 0; i < workingPrograms.length; i++) {
@@ -948,7 +1043,13 @@ export default function useSmartDraftApplier({
         addedTitles.push(slot.title || slot.name);
       }
 
-      const totalChanges = resolvedNotFoundCount + updatedSlotsCount + addedMissingSlotsCount + orphanIntrosRemovedCount;
+      const totalChanges =
+        resolvedNotFoundCount +
+        updatedSlotsCount +
+        addedMissingSlotsCount +
+        orphanIntrosRemovedCount +
+        updatedIntrosCount +
+        updatedAdBreaksCount;
 
       if (totalChanges > 0) {
         const remainingUnadded = workingPrograms
@@ -977,6 +1078,15 @@ export default function useSmartDraftApplier({
         }
         if (updatedSlotsCount > 0) {
           summaryParts.push(`${updatedSlotsCount} güncellenen taslak kuşağı yenilendi (${updatedTitles.slice(0, 3).join(', ')})`);
+        }
+        if (updatedIntrosCount > 0) {
+          summaryParts.push(`${updatedIntrosCount} İntro satırı yeni varsayılan İntro ayarına göre güncellendi`);
+        }
+        if (updatedAdBreaksCount > 0) {
+          summaryParts.push(`${updatedAdBreaksCount} Reklam Kuşağı yeni varsayılan süre/ayara göre güncellendi`);
+        }
+        if (orphanIntrosRemovedCount > 0 && updatedIntrosCount === 0) {
+          summaryParts.push(`${orphanIntrosRemovedCount} mükerrer İntro satırı temizlendi`);
         }
 
         const bannerMsg = `Senkronizasyon Tamamlandı: ${summaryParts.join(' • ')}`;
