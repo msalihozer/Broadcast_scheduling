@@ -1205,13 +1205,34 @@ export const createProgramCrudSlice = (set, get) => ({
         ...state.days,
         [key]: {
           ...state.days[key],
+          updatedAt: Date.now(),
           variants: {
             ...(state.days[key]?.variants || { A: { programs: [] }, B: { programs: [] } }),
-            [v]: { programs: [] }
+            [v]: { programs: [], updatedAt: Date.now() }
           }
         }
       }
     }));
+
+    // Ayrıca Reklam Rezervasyon ve Yayın Liste Kontrol modüllerindeki karşılığını ve sunucu deposunu da temizle
+    try {
+      fetch(`/api/draftSchedule?channel=${encodeURIComponent(channelId)}&dateKey=${encodeURIComponent(dateStr)}`, {
+        method: 'DELETE'
+      }).catch(() => {});
+    } catch (_) {}
+
+    import('../../../../store/planningStore').then(({ default: usePlanningStore }) => {
+      usePlanningStore.setState(state => {
+        const matchesDay = (k) => String(k || '').includes(channelId) && String(k || '').endsWith(dateStr);
+        const nextDays = { ...(state.days || {}) };
+        Object.keys(nextDays).forEach(k => { if (matchesDay(k)) delete nextDays[k]; });
+        const nextLc = { ...(state.listControlDays || {}) };
+        Object.keys(nextLc).forEach(k => { if (matchesDay(k)) delete nextLc[k]; });
+        const nextPl = { ...(state.adPlacements || {}) };
+        Object.keys(nextPl).forEach(k => { if (matchesDay(k)) delete nextPl[k]; });
+        return { days: nextDays, listControlDays: nextLc, adPlacements: nextPl };
+      });
+    }).catch(() => {});
 
     useAdminLogStore.getState().addLog({
       category: 'lists',

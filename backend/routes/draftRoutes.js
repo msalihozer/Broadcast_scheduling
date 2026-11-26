@@ -472,7 +472,7 @@ export function createDraftRouter() {
         }
     });
 
-    // 4. TASLAK / GÜNLÜK LİSTE SİLME (Hem PostgreSQL schedules tablosundan hem JSON dosyalarından siler)
+    // 4. TASLAK / GÜNLÜK LİSTE SİLME (Hem PostgreSQL schedules tablosundan, hem JSON dosyalarından, hem de ads_persistent_store içindeki planningDays, broadcastDays, listControlDays ve adPlacements alanlarından siler)
     router.delete('/draftSchedule', express.json(), async (req, res) => {
         const channel = req.query.channel || req.body?.channel || 'ch_hd';
         const dateKey = req.query.dateKey || req.body?.dateKey;
@@ -499,6 +499,58 @@ export function createDraftRouter() {
                     } catch (_) {}
                 }
             });
+
+            // Ayrıca ortak sunucu deposundan (ads_persistent_store) bu güne ait Yayın Planlama, Reklam Rezervasyon ve Yayın Liste Kontrol kayıtlarını da temizle
+            try {
+                const currentStore = await readAdsStoreFromServer();
+                if (currentStore && typeof currentStore === 'object') {
+                    const nextStore = { ...currentStore };
+                    const deletedKeys = Array.from(new Set([
+                        ...(Array.isArray(currentStore.deletedDayKeys) ? currentStore.deletedDayKeys : []),
+                        `${channel}-${dateKey}`
+                    ]));
+                    nextStore.deletedDayKeys = deletedKeys.slice(-500);
+
+                    const matchesChannelAndDate = (k) => {
+                        const str = String(k || '');
+                        return str.includes(channel) && str.endsWith(dateKey);
+                    };
+
+                    if (nextStore.planningDays && typeof nextStore.planningDays === 'object') {
+                        const nextPlan = { ...nextStore.planningDays };
+                        Object.keys(nextPlan).forEach(k => {
+                            if (matchesChannelAndDate(k)) delete nextPlan[k];
+                        });
+                        nextStore.planningDays = nextPlan;
+                    }
+                    if (nextStore.broadcastDays && typeof nextStore.broadcastDays === 'object') {
+                        const nextBcast = { ...nextStore.broadcastDays };
+                        Object.keys(nextBcast).forEach(k => {
+                            if (matchesChannelAndDate(k)) delete nextBcast[k];
+                        });
+                        nextStore.broadcastDays = nextBcast;
+                    }
+                    if (nextStore.listControlDays && typeof nextStore.listControlDays === 'object') {
+                        const nextLc = { ...nextStore.listControlDays };
+                        Object.keys(nextLc).forEach(k => {
+                            if (matchesChannelAndDate(k)) delete nextLc[k];
+                        });
+                        nextStore.listControlDays = nextLc;
+                    }
+                    if (nextStore.adPlacements && typeof nextStore.adPlacements === 'object') {
+                        const nextPl = { ...nextStore.adPlacements };
+                        Object.keys(nextPl).forEach(k => {
+                            if (matchesChannelAndDate(k)) delete nextPl[k];
+                        });
+                        nextStore.adPlacements = nextPl;
+                    }
+                    nextStore.updatedAt = new Date().toISOString();
+                    await writeAdsStoreToServer(nextStore);
+                }
+            } catch (storeErr) {
+                console.warn('[DELETE SCHEDULE] Ads store temizleme uyarısı:', storeErr.message);
+            }
+
             return res.json({ success: true, channel, dateKey });
         } catch (err) {
             console.error('[DELETE SCHEDULE] Hata:', err.message);
@@ -833,12 +885,29 @@ export function createDraftRouter() {
             });
         }
 
-        // 2. Reklam kuşağı yerleşimlerini (adPlacements) gün bazlı birleştir ve silinen rezervasyonların spotlarını temizle
+        const deletedDayKeysSet = new Set([
+            ...(Array.isArray(base.deletedDayKeys) ? base.deletedDayKeys.map(String) : []),
+            ...(Array.isArray(inc.deletedDayKeys) ? inc.deletedDayKeys.map(String) : [])
+        ]);
+        // Eğer gelen veride yeni kaydedilmiş bir gün varsa (updatedAt son 60 saniye içindeyse veya açıkça restore edildiyse), deletedDayKeys'ten çıkar
+        if (Array.isArray(inc.restoredDayKeys)) {
+            inc.restoredDayKeys.forEach(rk => deletedDayKeysSet.delete(String(rk)));
+        }
+        const isDayKeyDeleted = (keyStr) => {
+            const s = String(keyStr || '');
+            for (const dk of deletedDayKeysSet) {
+                if (s === dk || s.endsWith(`-${dk}`)) return true;
+            }
+            return false;
+        };
+
+        // 2. Reklam kuşağı yerleşimlerini (adPlacements) gün bazlı birleştir ve silinen rezervasyonların/günlerin spotlarını temizle
         const rawMergedPlacements = {
             ...(replaceReservations ? {} : base.adPlacements || {})
         };
         if (inc.adPlacements && typeof inc.adPlacements === 'object') {
             Object.entries(inc.adPlacements).forEach(([dayKey, blocks]) => {
+                if (isDayKeyDeleted(dayKey)) return;
                 if (!Array.isArray(blocks)) return;
                 const existingBlocks = rawMergedPlacements[dayKey];
                 const incTotalAds = blocks.reduce((s, b) => s + ((b?.ads || []).length), 0);
@@ -855,6 +924,7 @@ export function createDraftRouter() {
 
         const mergedPlacements = {};
         Object.entries(rawMergedPlacements).forEach(([dayKey, blocks]) => {
+            if (isDayKeyDeleted(dayKey)) return;
             if (!Array.isArray(blocks)) return;
             mergedPlacements[dayKey] = blocks.map(b => ({
                 ...b,
@@ -878,9 +948,15 @@ export function createDraftRouter() {
 
         // 4. Yayın akışı ve Liste Kontrol günlerini (ready-*, final-*, listControlDays) gün bazlı birleştir
         const mergeDayObjectsMap = (baseDays = {}, incDays = {}) => {
-            const out = { ...(baseDays && typeof baseDays === 'object' ? baseDays : {}) };
+            const out = {};
+            Object.entries(baseDays && typeof baseDays === 'object' ? baseDays : {}).forEach(([dayKey, dayObj]) => {
+                if (!isDayKeyDeleted(dayKey)) {
+                    out[dayKey] = dayObj;
+                }
+            });
             if (incDays && typeof incDays === 'object') {
                 Object.entries(incDays).forEach(([dayKey, dayObj]) => {
+                    if (isDayKeyDeleted(dayKey)) return;
                     if (!dayObj || typeof dayObj !== 'object') return;
                     const existing = out[dayKey];
                     if (!existing) {
@@ -900,6 +976,7 @@ export function createDraftRouter() {
         return {
             reservations: Array.from(resMap.values()),
             deletedReservationIds: Array.from(deletedSet).slice(-500),
+            deletedDayKeys: Array.from(deletedDayKeysSet).slice(-500),
             adPlacements: mergedPlacements,
             adBreakBumperRules:
                 Array.isArray(inc.adBreakBumperRules) && inc.adBreakBumperRules.length > 0

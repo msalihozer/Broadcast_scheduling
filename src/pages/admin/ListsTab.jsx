@@ -13,7 +13,9 @@
  */
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import usePlanningStore from '../../store/planningStore';
+import useBroadcastStore from '../../modules/broadcast/store/broadcastStore';
 import useAdminLogStore from '../../store/adminLogStore';
+import { writeAdsReservationsLocalCacheOnly } from '../../store/slices/ads/adsCatalogHelpers';
 import { dialog } from '../../store/dialogStore';
 import {
   Search,
@@ -174,7 +176,12 @@ const ListsTab = () => {
       if (!entry || !dayData) return;
 
       const activeVar = dayData.activeVariant || 'v1';
-      const variantProgs = dayData.variants?.[activeVar]?.programs || dayData.variants?.v1?.programs || [];
+      const isValidProgramItem = (p) => {
+        if (!p || typeof p !== 'object') return false;
+        const title = String(p.title || p.name || p.clipName || '').trim();
+        return Boolean(title && !/^undefined$/i.test(title));
+      };
+      const variantProgs = (dayData.variants?.[activeVar]?.programs || dayData.variants?.v1?.programs || []).filter(isValidProgramItem);
 
       if (mode === 'draft' && variantProgs.length > 0) {
         entry.hasDraft = true;
@@ -211,14 +218,39 @@ const ListsTab = () => {
       }
     });
 
-    // 4. Yayın Kontrol (`listControlDays`)
+    // 4. Yayın Kontrol (`listControlDays`) — yalnızca içinde geçerli program/klip satırı varsa listeye dahil et
     Object.entries(listControlDays).forEach(([lcKey, lcObj]) => {
       const match = lcKey.match(/(ch_hd|ch_way).*?(\d{4}-\d{2}-\d{2})/);
       if (!match || !lcObj) return;
+      const activeVar = lcObj.activeVariant || 'v1';
+      const lcProgs = (lcObj.variants?.[activeVar]?.programs || lcObj.variants?.v1?.programs || []).filter(
+        p => p && typeof p === 'object' && String(p.title || p.name || p.clipName || '').trim()
+      );
+      if (lcProgs.length === 0) return;
       const entry = ensureEntry(match[1], match[2]);
       if (!entry) return;
       entry.hasListControl = true;
+      if (entry.readyPrograms.length === 0) {
+        entry.readyPrograms = lcProgs;
+      }
       if (lcObj.isLockedForStage2) entry.isStage2Locked = true;
+    });
+
+    // 5. Yayın Planlama Store (`useBroadcastStore.getState().days`)
+    const bcastDays = useBroadcastStore.getState().days || {};
+    Object.entries(bcastDays).forEach(([bKey, bDay]) => {
+      const match = bKey.match(/^(ch_hd|ch_way)-(\d{4}-\d{2}-\d{2})$/);
+      if (!match || !bDay) return;
+      const bProgs = (bDay.variants?.A?.programs || bDay.variants?.B?.programs || []).filter(
+        p => p && typeof p === 'object' && String(p.title || p.name || p.clipName || '').trim()
+      );
+      if (bProgs.length === 0) return;
+      const entry = ensureEntry(match[1], match[2]);
+      if (!entry) return;
+      entry.hasReady = true;
+      if (entry.readyPrograms.length === 0) {
+        entry.readyPrograms = bProgs;
+      }
     });
 
     // Her listenin aktif program listesini, toplam süresini ve bulunduğu en üst aşamayı hesapla
@@ -241,7 +273,7 @@ const ListsTab = () => {
           highestStage
         };
       })
-      .filter(item => item.totalPrograms > 0)
+      .filter(item => item.totalPrograms > 0 || item.hasAds || item.hasListControl)
       .sort((a, b) => b.dateStr.localeCompare(a.dateStr));
   }, [serverSchedules, days, adPlacements, listControlDays]);
 
@@ -271,6 +303,57 @@ const ListsTab = () => {
       return true;
     });
   }, [unifiedLists, filterChannel, filterStage, startDate, endDate, searchTerm]);
+
+  // TÜM KALINTI LİSTELERİ TEMİZLE (Admin Panelden silindiği halde Reklam Rezervasyon veya Yayın Liste Kontrolde kalan tüm günleri de sıfırlar)
+  const handlePurgeAllLists = async () => {
+    const ok = await dialog.confirm(
+      'Tüm Listeleri ve Modül Kalıntılarını Temizle',
+      'Taslak Planlama, Yayın Planlama, Reklam Rezervasyon ve Yayın Liste Kontrol modüllerindeki tüm günlük yayın listelerini sıfırlamak istediğinize emin misiniz?\n(Firma, ürün, materyal ve reklam rezervasyon tanımlarınız silinmez; sadece günlük yayın akış listeleri temizlenir.)',
+      { confirmText: 'Evet, Tüm Listeleri Temizle', isDestructive: true }
+    );
+    if (!ok) return;
+
+    const allDatePairs = new Set();
+    unifiedLists.forEach(l => allDatePairs.add(`${l.channelId}__${l.dateStr}`));
+    Object.keys(days || {}).forEach(k => {
+      const m = k.match(/(ch_hd|ch_way).*?(\d{4}-\d{2}-\d{2})/);
+      if (m) allDatePairs.add(`${m[1]}__${m[2]}`);
+    });
+    Object.keys(listControlDays || {}).forEach(k => {
+      const m = k.match(/(ch_hd|ch_way).*?(\d{4}-\d{2}-\d{2})/);
+      if (m) allDatePairs.add(`${m[1]}__${m[2]}`);
+    });
+    Object.keys(adPlacements || {}).forEach(k => {
+      const m = k.match(/(ch_hd|ch_way).*?(\d{4}-\d{2}-\d{2})/);
+      if (m) allDatePairs.add(`${m[1]}__${m[2]}`);
+    });
+
+    for (const pair of allDatePairs) {
+      const [chId, dStr] = pair.split('__');
+      try {
+        await fetch(`/api/draftSchedule?channel=${encodeURIComponent(chId)}&dateKey=${encodeURIComponent(dStr)}`, {
+          method: 'DELETE'
+        });
+      } catch (_) {}
+    }
+
+    usePlanningStore.setState(state => {
+      writeAdsReservationsLocalCacheOnly(state.reservations, {});
+      try {
+        window.localStorage.removeItem('yayin_ads_placements_backup_v4');
+        window.localStorage.removeItem('yayin_ads_placements_v1');
+      } catch (_) {}
+      return {
+        days: {},
+        listControlDays: {},
+        adPlacements: {}
+      };
+    });
+
+    useBroadcastStore.setState({ days: {} });
+    setServerSchedules({ ch_hd: {}, ch_way: {} });
+    dialog.success('Tüm Listeler Temizlendi', 'Tüm modüllerdeki (Taslak, Yayın Planlama, Reklam Rezervasyon ve Yayın Liste Kontrol) yayın listeleri temizlendi.');
+  };
 
   const totalPages = Math.max(1, Math.ceil(filteredLists.length / itemsPerPage));
   const currentData = filteredLists.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -304,16 +387,45 @@ const ListsTab = () => {
       console.warn('Sunucudan silme hatası:', e);
     }
 
-    // Zustand store'dan da kaldır
+    // 1. Zustand planningStore'dan (Taslak, Yayına Hazır, Reklam Yerleşimleri ve Yayın Liste Kontrol) tamamen kaldır
     usePlanningStore.setState(state => {
+      const matchesTargetDay = (k) => {
+        const s = String(k || '');
+        return s.includes(list.channelId) && s.endsWith(list.dateStr);
+      };
+
       const nextDays = { ...(state.days || {}) };
-      delete nextDays[`draft-${list.channelId}-${list.dateStr}`];
-      delete nextDays[`ready-${list.channelId}-${list.dateStr}`];
+      Object.keys(nextDays).forEach(k => {
+        if (matchesTargetDay(k)) delete nextDays[k];
+      });
 
       const nextLc = { ...(state.listControlDays || {}) };
-      delete nextLc[`list-control-${list.channelId}-${list.dateStr}`];
+      Object.keys(nextLc).forEach(k => {
+        if (matchesTargetDay(k)) delete nextLc[k];
+      });
 
-      return { days: nextDays, listControlDays: nextLc };
+      const nextPlacements = { ...(state.adPlacements || {}) };
+      Object.keys(nextPlacements).forEach(k => {
+        if (matchesTargetDay(k)) delete nextPlacements[k];
+      });
+
+      writeAdsReservationsLocalCacheOnly(state.reservations, nextPlacements);
+      try {
+        window.localStorage.removeItem('yayin_ads_placements_backup_v4');
+      } catch (_) {}
+
+      return {
+        days: nextDays,
+        listControlDays: nextLc,
+        adPlacements: nextPlacements
+      };
+    });
+
+    // 2. Yayın Planlama Store'dan (useBroadcastStore) da kaldır
+    useBroadcastStore.setState(state => {
+      const nextBcastDays = { ...(state.days || {}) };
+      delete nextBcastDays[`${list.channelId}-${list.dateStr}`];
+      return { days: nextBcastDays };
     });
 
     setServerSchedules(prev => {
@@ -370,26 +482,49 @@ const ListsTab = () => {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={fetchServerSchedules}
-          disabled={isLoadingServer}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '9px 14px',
-            borderRadius: '10px',
-            border: '1px solid var(--border-color)',
-            background: 'var(--bg-primary)',
-            color: 'var(--text-primary)',
-            fontSize: '12.5px',
-            fontWeight: 700,
-            cursor: 'pointer'
-          }}
-        >
-          <RefreshCw size={14} /> {isLoadingServer ? 'Yükleniyor...' : 'PostgreSQL Listelerini Yenile'}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={handlePurgeAllLists}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '9px 14px',
+              borderRadius: '10px',
+              border: '1px solid rgba(239, 68, 68, 0.4)',
+              background: 'rgba(239, 68, 68, 0.1)',
+              color: '#ef4444',
+              fontSize: '12.5px',
+              fontWeight: 800,
+              cursor: 'pointer'
+            }}
+            title="Reklam Rezervasyon ve Yayın Liste Kontrol dahil tüm modüllerdeki yayın listelerini sıfırla"
+          >
+            <Trash2 size={14} /> Tüm Modül Listelerini Sıfırla
+          </button>
+
+          <button
+            type="button"
+            onClick={fetchServerSchedules}
+            disabled={isLoadingServer}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '9px 14px',
+              borderRadius: '10px',
+              border: '1px solid var(--border-color)',
+              background: 'var(--bg-primary)',
+              color: 'var(--text-primary)',
+              fontSize: '12.5px',
+              fontWeight: 700,
+              cursor: 'pointer'
+            }}
+          >
+            <RefreshCw size={14} /> {isLoadingServer ? 'Yükleniyor...' : 'PostgreSQL Listelerini Yenile'}
+          </button>
+        </div>
       </div>
 
       {/* 4 AŞAMA PIPELINE ÖZET KARTLARI */}

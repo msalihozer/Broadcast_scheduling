@@ -506,6 +506,7 @@ export const createClipboardAndSyncSlice = (set, get) => ({
       });
 
       pushAdsStoreToServer({
+        restoredDayKeys: [`${channelId}-${dateStr}`],
         planningDays: {
           [readyKey]: updatedReadyDayObj
         }
@@ -606,6 +607,7 @@ export const createClipboardAndSyncSlice = (set, get) => ({
       });
 
       pushAdsStoreToServer({
+        restoredDayKeys: [`${channelId}-${dateStr}`],
         planningDays: {
           [readyKey]: updatedSentReadyDay
         }

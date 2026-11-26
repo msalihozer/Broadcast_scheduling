@@ -26,13 +26,25 @@ export { BROADCAST_CHANNELS, formatFramesHuman, renumberAdBreaksInList };
 let isApplyingRemoteBroadcastDays = false;
 let broadcastSyncTimer = null;
 
-export function applyServerBroadcastDaysToStore(serverBroadcastDays = {}) {
+export function applyServerBroadcastDaysToStore(serverBroadcastDays = {}, deletedDayKeys = []) {
   if (!serverBroadcastDays || typeof serverBroadcastDays !== 'object') return;
   const currentDays = useBroadcastStore.getState().days || {};
+  const deletedSet = new Set(Array.isArray(deletedDayKeys) ? deletedDayKeys.map(String) : []);
   let hasChanges = false;
   const nextDays = { ...currentDays };
 
+  // Silinmiş günleri yerel broadcastStore'dan da kaldır
+  if (deletedSet.size > 0) {
+    Object.keys(nextDays).forEach(k => {
+      if (deletedSet.has(String(k))) {
+        delete nextDays[k];
+        hasChanges = true;
+      }
+    });
+  }
+
   Object.entries(serverBroadcastDays).forEach(([dayKey, serverDay]) => {
+    if (deletedSet.has(String(dayKey))) return;
     if (!serverDay || typeof serverDay !== 'object') return;
     const localDay = currentDays[dayKey];
     const localTime = Number(localDay?.updatedAt || localDay?.savedAt || 0) || (localDay?.updatedAt ? new Date(localDay.updatedAt).getTime() : 0);

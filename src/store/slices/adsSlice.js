@@ -279,8 +279,16 @@ export const createAdsSlice = (set, get) => ({
 
       if (!mergedStore) return null;
 
+      const serverDeletedDayKeys = Array.isArray(mergedStore.deletedDayKeys)
+        ? mergedStore.deletedDayKeys.map(String)
+        : [];
+      const isKeyDeletedOnServer = (k) => {
+        const s = String(k || '');
+        return serverDeletedDayKeys.some(dk => s === dk || s.endsWith(`-${dk}`));
+      };
+
       if (mergedStore.broadcastDays && typeof mergedStore.broadcastDays === 'object') {
-        applyServerBroadcastDaysToStore(mergedStore.broadcastDays);
+        applyServerBroadcastDaysToStore(mergedStore.broadcastDays, serverDeletedDayKeys);
       }
 
       const serverReservations = Array.isArray(mergedStore.reservations)
@@ -294,31 +302,43 @@ export const createAdsSlice = (set, get) => ({
       // Yerel önbelleği (yayin_ads_reservations_v1 & yayin_ads_placements_v1) doğrudan güncelle
       writeAdsReservationsLocalCacheOnly(serverReservations, serverPlacements);
 
-      set(cur => ({
-        reservations: serverReservations,
-        adPlacements: serverPlacements,
-        adBreakBumperRules:
-          Array.isArray(mergedStore.adBreakBumperRules) && mergedStore.adBreakBumperRules.length > 0
-            ? mergedStore.adBreakBumperRules
-            : cur.adBreakBumperRules,
-        adSettings: mergedStore.adSettings || cur.adSettings,
-        adsPricingConfig: mergedStore.adsPricingConfig || cur.adsPricingConfig,
-        adsAutoFillSettings: mergedStore.adsAutoFillSettings
-          ? { ...DEFAULT_ADS_AUTO_FILL_SETTINGS, ...mergedStore.adsAutoFillSettings, strictMaxSpot: true }
-          : cur.adsAutoFillSettings,
-        days:
-          mergedStore.planningDays && typeof mergedStore.planningDays === 'object'
-            ? { ...(cur.days || {}), ...mergedStore.planningDays }
-            : cur.days,
-        listControlDays:
-          mergedStore.listControlDays && typeof mergedStore.listControlDays === 'object'
-            ? { ...(cur.listControlDays || {}), ...mergedStore.listControlDays }
-            : cur.listControlDays,
-        listControlLogs:
-          Array.isArray(mergedStore.listControlLogs) && mergedStore.listControlLogs.length > 0
-            ? [...mergedStore.listControlLogs].sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0))
-            : cur.listControlLogs
-      }));
+      set(cur => {
+        const cleanedCurDays = { ...(cur.days || {}) };
+        Object.keys(cleanedCurDays).forEach(k => {
+          if (isKeyDeletedOnServer(k)) delete cleanedCurDays[k];
+        });
+
+        const cleanedCurLcDays = { ...(cur.listControlDays || {}) };
+        Object.keys(cleanedCurLcDays).forEach(k => {
+          if (isKeyDeletedOnServer(k)) delete cleanedCurLcDays[k];
+        });
+
+        return {
+          reservations: serverReservations,
+          adPlacements: serverPlacements,
+          adBreakBumperRules:
+            Array.isArray(mergedStore.adBreakBumperRules) && mergedStore.adBreakBumperRules.length > 0
+              ? mergedStore.adBreakBumperRules
+              : cur.adBreakBumperRules,
+          adSettings: mergedStore.adSettings || cur.adSettings,
+          adsPricingConfig: mergedStore.adsPricingConfig || cur.adsPricingConfig,
+          adsAutoFillSettings: mergedStore.adsAutoFillSettings
+            ? { ...DEFAULT_ADS_AUTO_FILL_SETTINGS, ...mergedStore.adsAutoFillSettings, strictMaxSpot: true }
+            : cur.adsAutoFillSettings,
+          days:
+            mergedStore.planningDays && typeof mergedStore.planningDays === 'object'
+              ? { ...cleanedCurDays, ...mergedStore.planningDays }
+              : cleanedCurDays,
+          listControlDays:
+            mergedStore.listControlDays && typeof mergedStore.listControlDays === 'object'
+              ? { ...cleanedCurLcDays, ...mergedStore.listControlDays }
+              : cleanedCurLcDays,
+          listControlLogs:
+            Array.isArray(mergedStore.listControlLogs) && mergedStore.listControlLogs.length > 0
+              ? [...mergedStore.listControlLogs].sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0))
+              : cur.listControlLogs
+        };
+      });
 
       return mergedStore;
     } catch (_) {
