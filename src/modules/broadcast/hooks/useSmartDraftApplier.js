@@ -817,6 +817,23 @@ export default function useSmartDraftApplier({
       const updatedTitles = [];
       const addedTitles = [];
 
+      // 0. Önceki işlemlerden kalmış ardışık mükerrer veya sahipsiz İntro satırlarını temizle (her programın önünde en fazla 1 İntro olabilir)
+      const cleanedInitial = [];
+      for (let k = 0; k < workingPrograms.length; k++) {
+        const curr = workingPrograms[k];
+        const isCurrIntro = Boolean(curr && (curr.isIntroClip || curr.unitType === 'intro' || /^SEMERKAND_intro/i.test(curr.title || '')));
+        if (isCurrIntro) {
+          const next = workingPrograms[k + 1];
+          const isNextIntro = Boolean(next && (next.isIntroClip || next.unitType === 'intro' || /^SEMERKAND_intro/i.test(next.title || '')));
+          if (!next || isNextIntro || next.type === 'ad_break') {
+            continue;
+          }
+        }
+        cleanedInitial.push(curr);
+      }
+      const orphanIntrosRemovedCount = workingPrograms.length - cleanedInitial.length;
+      workingPrograms = cleanedInitial;
+
       // A. Listede "Bulunamadı" (isNotFound) olan satırları tekrar kontrol et; arşivde artık varsa İntro + kliplerini yerleştir
       for (let i = 0; i < workingPrograms.length; i++) {
         const item = workingPrograms[i];
@@ -931,7 +948,7 @@ export default function useSmartDraftApplier({
         addedTitles.push(slot.title || slot.name);
       }
 
-      const totalChanges = resolvedNotFoundCount + updatedSlotsCount + addedMissingSlotsCount;
+      const totalChanges = resolvedNotFoundCount + updatedSlotsCount + addedMissingSlotsCount + orphanIntrosRemovedCount;
 
       if (totalChanges > 0) {
         const remainingUnadded = workingPrograms

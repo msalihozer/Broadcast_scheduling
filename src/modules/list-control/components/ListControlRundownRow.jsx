@@ -141,8 +141,8 @@ export default function ListControlRundownRow({
   const sColWidth = Math.round(54 * (Number(fontScale) || 1));
   const timeColWidth = Math.round(88 * (Number(fontScale) || 1));
   const durColWidth = Math.round(118 * (Number(fontScale) || 1));
-  const logoColWidth = Math.round(145 * (Number(fontScale) || 1));
-  const actColWidth = Math.round(195 * (Number(fontScale) || 1));
+  const logoColWidth = Math.round(182 * (Number(fontScale) || 1));
+  const actColWidth = Math.round(236 * (Number(fontScale) || 1));
 
   // Teknik Kontrol Durum Butonu Rengi (Kırmızı: Hata, Turuncu: Uyarı/Revize, Yeşil: Sağlam)
   const techBtnStatus = hasHealthError ? 'error' : hasWarning ? 'warning' : 'healthy';
@@ -456,8 +456,8 @@ export default function ListControlRundownRow({
           flexShrink: 0,
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '4px',
+          justifyContent: 'flex-start',
+          gap: '6px',
           overflow: 'hidden'
         }}
         title={
@@ -466,38 +466,40 @@ export default function ListControlRundownRow({
             : 'Bu satırda yeni logo girişi yok (mevcut logo devam ediyor).'
         }
       >
-        {hasLogoTrigger ? (
-          <span style={{
-            fontSize: fs(10.5),
-            fontWeight: 800,
-            padding: '3px 8px',
-            borderRadius: '5px',
-            background: isAdLogoEvent
-              ? 'rgba(217, 119, 6, 0.16)'
-              : 'rgba(16, 185, 129, 0.16)',
-            color: isAdLogoEvent
-              ? '#b45309'
-              : '#047857',
-            border: isAdLogoEvent
-              ? '1px solid rgba(217, 119, 6, 0.35)'
-              : '1px solid rgba(16, 185, 129, 0.35)',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis'
-          }}>
-            {isAdLogoEvent ? 'Reklam Giriş' : 'Yayın Giriş'}
-          </span>
-        ) : (
-          <span style={{
-            fontSize: fs(11),
-            fontWeight: 700,
-            color: 'var(--text-muted)',
-            fontFamily: 'var(--font-mono)',
-            paddingLeft: '4px'
-          }}>
-            —
-          </span>
-        )}
+        <div style={{ flex: '1 1 auto', minWidth: 0, display: 'flex', alignItems: 'center' }}>
+          {hasLogoTrigger ? (
+            <span style={{
+              fontSize: fs(10.5),
+              fontWeight: 800,
+              padding: '3px 8px',
+              borderRadius: '5px',
+              background: isAdLogoEvent
+                ? 'rgba(217, 119, 6, 0.16)'
+                : 'rgba(16, 185, 129, 0.16)',
+              color: isAdLogoEvent
+                ? '#b45309'
+                : '#047857',
+              border: isAdLogoEvent
+                ? '1px solid rgba(217, 119, 6, 0.35)'
+                : '1px solid rgba(16, 185, 129, 0.35)',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
+            }}>
+              {isAdLogoEvent ? 'Reklam Giriş' : 'Yayın Giriş'}
+            </span>
+          ) : (
+            <span style={{
+              fontSize: fs(11),
+              fontWeight: 700,
+              color: 'var(--text-muted)',
+              fontFamily: 'var(--font-mono)',
+              paddingLeft: '4px'
+            }}>
+              —
+            </span>
+          )}
+        </div>
 
         {onUpdateLogoEvent && (
           <select
@@ -505,13 +507,14 @@ export default function ListControlRundownRow({
             onChange={(e) => onUpdateLogoEvent(item.instanceId, e.target.value)}
             style={{
               fontSize: '10px',
-              padding: '2px 3px',
-              borderRadius: '4px',
+              height: '24px',
+              padding: '0 4px',
+              borderRadius: '5px',
               border: '1px solid var(--border-color)',
               background: 'var(--bg-primary)',
               color: 'var(--text-secondary)',
               cursor: 'pointer',
-              maxWidth: '54px',
+              width: '56px',
               flexShrink: 0
             }}
             title="Logo Girişini Değiştir"
@@ -531,7 +534,8 @@ export default function ListControlRundownRow({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'flex-end',
-        gap: '4px'
+        gap: '5px',
+        overflow: 'hidden'
       }}>
         {/* Renkli Teknik Kontrol Durum Butonu (Hata: Kırmızı, Uyarı: Turuncu, Sağlam: Yeşil -> Tıklanınca Detay Pop-up) */}
         <button

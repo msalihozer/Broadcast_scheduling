@@ -13,6 +13,7 @@ import {
   renumberAdBreaksInList,
   resolveTargetInsertIndex
 } from '../broadcastStoreHelpers';
+import { getProgramGroupKey } from '../../utils/rundownHelpers';
 import { useAdminLogStore } from '../../../../store/adminLogStore';
 
 /**
@@ -644,17 +645,96 @@ export const createProgramCrudSlice = (set, get) => ({
       };
     }
 
-    // Hedef öğeyi listeden çıkarıp kalan öğelerin zaman akışını hesapla
-    const others = rawProgs.filter(p => p.instanceId !== instanceId);
+    // Bir programın İntrosu ve çoklu part'ları (Part 1, Part 2...) birbirinden AYRILAMAZ bir bloktur!
+    // Ayrıca sabitleme her zaman hedef programın (veya kendisine bağlı intronun/ilk partın) başını baz alır.
+    const isIntroItem = (p) => Boolean(
+      p && (p.isIntroClip || p.unitType === 'intro' || String(p.category || '').toLowerCase().includes('jenerik') || /^SEMERKAND_intro/i.test(p.title || ''))
+    );
 
-    // Başka sabitlenmiş programlarla çakışma / iki sabit program arası boşluk kontrolü
-    for (const op of others) {
+    const getLogicalBlockGroupKey = (p, idx) => {
+      if (!p) return `single_${idx}`;
+      if (p.type === 'ad_break') return `ad_${p.instanceId}`;
+      if (p.fillerGroupId) return `filler_${p.fillerGroupId}`;
+      if (p.draftId) return `draft_${p.draftId}`;
+      return `prog_${getProgramGroupKey(p)}`;
+    };
+
+    // Hedef satırın ait olduğu program bloğunun (İntro + Part 1 + Part 2...) başlangıç ve bitiş indekslerini bul
+    let targetBlockStart = currentIdx;
+    let targetBlockEnd = currentIdx;
+
+    if (isIntroItem(targetProg)) {
+      // Kullanıcı doğrudan İntro satırını seçtiyse, hemen altındaki bağlı program/partları da aynı bloğa dahil et
+      const introDraftId = targetProg.draftId;
+      while (targetBlockEnd + 1 < rawProgs.length) {
+        const nextP = rawProgs[targetBlockEnd + 1];
+        if (nextP.type === 'ad_break' || isIntroItem(nextP)) break;
+        if (introDraftId && nextP.draftId && String(nextP.draftId) === String(introDraftId)) {
+          targetBlockEnd++;
+        } else if (!introDraftId && targetBlockEnd === currentIdx) {
+          targetBlockEnd++;
+        } else {
+          break;
+        }
+      }
+    } else if (targetProg.type !== 'ad_break') {
+      const myKey = getLogicalBlockGroupKey(targetProg, currentIdx);
+      while (targetBlockStart - 1 >= 0) {
+        const prevP = rawProgs[targetBlockStart - 1];
+        if (prevP.type === 'ad_break') break;
+        if (isIntroItem(prevP)) {
+          // Programın hemen üstündeki intro bu programa aitse bloğun başına dahil et
+          if (!prevP.draftId || !targetProg.draftId || String(prevP.draftId) === String(targetProg.draftId)) {
+            targetBlockStart--;
+          }
+          break;
+        }
+        if (getLogicalBlockGroupKey(prevP, targetBlockStart - 1) === myKey) {
+          targetBlockStart--;
+        } else {
+          break;
+        }
+      }
+      while (targetBlockEnd + 1 < rawProgs.length) {
+        const nextP = rawProgs[targetBlockEnd + 1];
+        if (nextP.type === 'ad_break' || isIntroItem(nextP)) break;
+        if (getLogicalBlockGroupKey(nextP, targetBlockEnd + 1) === myKey) {
+          targetBlockEnd++;
+        } else {
+          break;
+        }
+      }
+    }
+
+    const targetBlockItems = rawProgs.slice(targetBlockStart, targetBlockEnd + 1);
+    const targetBlockInstanceIds = new Set(targetBlockItems.map(p => p.instanceId));
+
+    // Eğer kullanıcı program satırını (ör. Hatm-i Şerif) 06:00:00'a sabitlediyse,
+    // seçilen satırın tam 06:00:00'da başlamasını sağla (veya üstünde introsu varsa intro onun hemen önünde yer alır)
+    const offsetInsideBlock = currentIdx - targetBlockStart;
+    let framesBeforeTargetInBlock = 0;
+    for (let k = 0; k < offsetInsideBlock; k++) {
+      const bp = targetBlockItems[k];
+      framesBeforeTargetInBlock += Math.max(BROADCAST_FPS, bp.durationFrames || timecodeToFrames(bp.durationTc || '00.00.26.00'));
+    }
+
+    const totalTargetBlockFrames = targetBlockItems.reduce(
+      (sum, bp) => sum + Math.max(BROADCAST_FPS, bp.durationFrames || timecodeToFrames(bp.durationTc || '00.30.00.00')),
+      0
+    );
+
+    // Kalan öğeleri de kendi içlerinde (İntro + Program + Part 1/2) bölünmez bloklar halinde grupla!
+    // Böylece hiçbir İntro kendi programından kopup yukarıda tek başına kalmaz!
+    const remainingProgs = rawProgs.filter(p => !targetBlockInstanceIds.has(p.instanceId));
+
+    // Başka sabitlenmiş programlarla çakışma kontrolü
+    for (const op of remainingProgs) {
       if (op.isPinnedTime && typeof op.pinnedStartFrames === 'number') {
         const opDur = Math.max(BROADCAST_FPS, op.durationFrames || timecodeToFrames(op.durationTc || '00.30.00.00'));
         const opStart = op.pinnedStartFrames;
         const opEnd = opStart + opDur;
         const myStart = pinnedStartFrames;
-        const myEnd = pinnedStartFrames + targetDurFrames;
+        const myEnd = pinnedStartFrames + (totalTargetBlockFrames - framesBeforeTargetInBlock);
 
         if (myStart < opEnd && myEnd > opStart) {
           const gapFrames = Math.max(0, opStart > prevOverflow ? opStart - prevOverflow : 0);
@@ -668,73 +748,127 @@ export const createProgramCrudSlice = (set, get) => ({
       }
     }
 
-    // Kalan öğeler arasında pinnedStartFrames saatine karşılık gelen doğru sıra indeksini bul
-    let runningFrames = prevOverflow;
-    let insertAt = others.length;
-    for (let i = 0; i < others.length; i++) {
-      const item = others[i];
-      const dur = Math.max(BROADCAST_FPS, item.durationFrames || timecodeToFrames(item.durationTc || '00.30.00.00'));
-      const itemStart = (item.isPinnedTime && typeof item.pinnedStartFrames === 'number')
-        ? item.pinnedStartFrames
-        : runningFrames;
-
-      if (pinnedStartFrames <= itemStart) {
-        insertAt = i;
-        break;
+    // Kalan öğeleri mantıksal bloklara (İntro + Program Partları bir arada) ayır
+    const blocks = [];
+    let idxCursor = 0;
+    while (idxCursor < remainingProgs.length) {
+      const first = remainingProgs[idxCursor];
+      if (first.type === 'ad_break') {
+        blocks.push([first]);
+        idxCursor++;
+        continue;
       }
-      runningFrames = itemStart + dur;
+
+      const currentBlock = [first];
+      let nextCursor = idxCursor + 1;
+
+      if (isIntroItem(first)) {
+        // Ardışık birikmiş sahipsiz introlar varsa temizlemek için aynı bloğa topla
+        while (nextCursor < remainingProgs.length && isIntroItem(remainingProgs[nextCursor])) {
+          nextCursor++;
+        }
+        // İntrodan sonra gelen programı ve tüm partlarını aynı bloğa bağla
+        if (nextCursor < remainingProgs.length && remainingProgs[nextCursor].type !== 'ad_break' && !isIntroItem(remainingProgs[nextCursor])) {
+          const progItem = remainingProgs[nextCursor];
+          const progKey = getLogicalBlockGroupKey(progItem, nextCursor);
+          currentBlock.push(progItem);
+          nextCursor++;
+          while (nextCursor < remainingProgs.length) {
+            const cand = remainingProgs[nextCursor];
+            if (cand.type === 'ad_break' || isIntroItem(cand)) break;
+            if (getLogicalBlockGroupKey(cand, nextCursor) === progKey) {
+              currentBlock.push(cand);
+              nextCursor++;
+            } else {
+              break;
+            }
+          }
+        }
+      } else {
+        const progKey = getLogicalBlockGroupKey(first, idxCursor);
+        while (nextCursor < remainingProgs.length) {
+          const cand = remainingProgs[nextCursor];
+          if (cand.type === 'ad_break' || isIntroItem(cand)) break;
+          if (getLogicalBlockGroupKey(cand, nextCursor) === progKey) {
+            currentBlock.push(cand);
+            nextCursor++;
+          } else {
+            break;
+          }
+        }
+      }
+
+      blocks.push(currentBlock);
+      idxCursor = nextCursor;
     }
 
-    // Eğer sabitlediğimiz saatten önceki öğelerin toplam süresi pinnedStartFrames'i aşıyorsa:
-    // Öncesindeki sabit olmayan öğelerden kaç tanesinin bu saatten önceye sığacağını hesapla,
-    // sığmayanları sabitlenen programın ALTINA kaydır ki program gerçekten o saatte (örn. 06:00:00) sabit dursun!
+    // Hedef bloğun en başının (varsa introsunun) ihtiyaç duyduğu efektif başlangıç karesi
+    const effectiveTargetBlockStartFrames = Math.max(prevOverflow, pinnedStartFrames - framesBeforeTargetInBlock);
+
     let checkCursor = prevOverflow;
     const beforeItems = [];
     const shiftedAfterItems = [];
-    for (let i = 0; i < others.length; i++) {
-      const item = others[i];
-      const dur = Math.max(BROADCAST_FPS, item.durationFrames || timecodeToFrames(item.durationTc || '00.30.00.00'));
-      const itemStart = (item.isPinnedTime && typeof item.pinnedStartFrames === 'number')
-        ? item.pinnedStartFrames
-        : checkCursor;
-      const itemEnd = itemStart + dur;
 
-      if (item.isPinnedTime && typeof item.pinnedStartFrames === 'number') {
-        if (item.pinnedStartFrames < pinnedStartFrames) {
-          beforeItems.push(item);
-          checkCursor = itemEnd;
+    for (const blk of blocks) {
+      // Blok içinde sabitlenmiş bir öğe var mı?
+      const pinnedInBlk = blk.find(x => x.isPinnedTime && typeof x.pinnedStartFrames === 'number');
+      const blkFrames = blk.reduce(
+        (sum, x) => sum + Math.max(BROADCAST_FPS, x.durationFrames || timecodeToFrames(x.durationTc || '00.30.00.00')),
+        0
+      );
+
+      if (pinnedInBlk) {
+        if (pinnedInBlk.pinnedStartFrames < effectiveTargetBlockStartFrames) {
+          beforeItems.push(...blk);
+          checkCursor = Math.max(checkCursor, pinnedInBlk.pinnedStartFrames) + blkFrames;
         } else {
-          shiftedAfterItems.push(item);
+          shiftedAfterItems.push(...blk);
         }
       } else {
-        if (itemEnd <= pinnedStartFrames) {
-          beforeItems.push(item);
-          checkCursor = itemEnd;
+        // Blok tamamıyla (İntrosu + tüm partlarıyla) sabitlenen saatten önceye sığıyorsa önceye koy,
+        // sığmıyorsa İntrosunu programından KOPARMADAN blok halinde sabit programın altına kaydır!
+        if (checkCursor + blkFrames <= effectiveTargetBlockStartFrames) {
+          beforeItems.push(...blk);
+          checkCursor += blkFrames;
         } else {
-          shiftedAfterItems.push(item);
+          shiftedAfterItems.push(...blk);
         }
       }
     }
 
-    const gapBeforePinnedFrames = Math.max(0, pinnedStartFrames - checkCursor);
+    const gapBeforePinnedFrames = Math.max(0, effectiveTargetBlockStartFrames - checkCursor);
     const gapBeforePinnedMin = Math.floor((gapBeforePinnedFrames / BROADCAST_FPS) / 60);
     const gapBeforePinnedSec = Math.round((gapBeforePinnedFrames / BROADCAST_FPS) % 60);
 
     get().pushHistorySnapshot();
-    const updatedTarget = {
-      ...targetProg,
-      isPinnedTime: true,
-      pinnedStartTime: pinnedTimeStr,
-      pinnedStartFrames
-    };
+    const updatedTargetBlock = targetBlockItems.map((bp, bIdx) => {
+      if (bp.instanceId === instanceId) {
+        return {
+          ...bp,
+          isPinnedTime: true,
+          pinnedStartTime: pinnedTimeStr,
+          pinnedStartFrames
+        };
+      }
+      // Eğer hedef programın önünde introsu varsa ve aralarında boşluk oluşmaması için introyu da sabitleme bloğunun başına hizala
+      if (bIdx === 0 && offsetInsideBlock > 0 && effectiveTargetBlockStartFrames > checkCursor) {
+        return {
+          ...bp,
+          isPinnedTime: false,
+          pinnedStartTime: null,
+          pinnedStartFrames: null
+        };
+      }
+      return bp;
+    });
 
     const finalOrdered = renumberAdBreaksInList([
       ...beforeItems,
-      updatedTarget,
+      ...updatedTargetBlock,
       ...shiftedAfterItems
     ]);
 
-    const newIndex = beforeItems.length;
+    const newIndex = finalOrdered.findIndex(p => p.instanceId === instanceId);
 
     set(state => ({
       selectedInstanceId: instanceId,

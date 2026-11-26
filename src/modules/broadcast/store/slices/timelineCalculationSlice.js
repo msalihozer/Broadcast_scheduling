@@ -115,7 +115,21 @@ export const createTimelineCalculationSlice = (set, get) => ({
         p.durationFrames || timecodeToFrames(p.durationTc || (p.durationSec ? secondsToTimecode(p.durationSec) : '00.30.00.00'))
       );
 
-      const pinnedFrames = resolvePinnedStartFrames(p);
+      let pinnedFrames = resolvePinnedStartFrames(p);
+
+      // Eğer hemen bir sonraki satır sabitlenmiş bir programsa ve bu satır onun İntrosu ise,
+      // İntronun yukarıda kalmayıp sabitlenen programın hemen önünde (pinnedFrames - introFrames) başlamasını sağla
+      const isThisIntro = Boolean(
+        p.isIntroClip || p.unitType === 'intro' || String(p.category || '').toLowerCase().includes('jenerik') || /^SEMERKAND_intro/i.test(p.title || '')
+      );
+      if (pinnedFrames === null && isThisIntro && index + 1 < rawProgs.length) {
+        const nextItem = rawProgs[index + 1];
+        const nextPinnedFrames = resolvePinnedStartFrames(nextItem);
+        if (nextPinnedFrames !== null && nextPinnedFrames - itemFrames >= currentTimelineFrames) {
+          pinnedFrames = nextPinnedFrames - itemFrames;
+        }
+      }
+
       // Sabitlenmiş program kendi sabit saatinden ÖNCE başlayamaz (önceki güne veya üstteki sabit bloğa taşamaz)
       const effectiveStartFrames = pinnedFrames !== null ? Math.max(0, pinnedFrames) : currentTimelineFrames;
       const precedingGapFrames = pinnedFrames !== null && effectiveStartFrames > currentTimelineFrames

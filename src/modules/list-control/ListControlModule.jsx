@@ -1508,10 +1508,10 @@ export default function ListControlModule() {
                   }}>
                     <div style={{ width: `${Math.round(54 * fontScale)}px`, flexShrink: 0 }}>SIRA</div>
                     <div style={{ width: `${Math.round(88 * fontScale)}px`, flexShrink: 0, textAlign: 'center' }}>SAAT (GİRİŞ / ÇIKIŞ)</div>
-                    <div style={{ flex: '2.5 1 220px', minWidth: 0 }}>PROGRAM / REKLAM ADI</div>
+                    <div style={{ flex: '2.5 1 200px', minWidth: 0 }}>PROGRAM / REKLAM ADI</div>
                     <div style={{ width: `${Math.round(118 * fontScale)}px`, flexShrink: 0, textAlign: 'center' }}>SÜRE</div>
-                    <div style={{ width: `${Math.round(145 * fontScale)}px`, flexShrink: 0 }}>LOGO GİRİŞİ</div>
-                    <div style={{ width: `${Math.round(195 * fontScale)}px`, flexShrink: 0, textAlign: 'right' }}>İŞLEMLER & KONTROL</div>
+                    <div style={{ width: `${Math.round(182 * fontScale)}px`, flexShrink: 0 }}>LOGO GİRİŞİ</div>
+                    <div style={{ width: `${Math.round(236 * fontScale)}px`, flexShrink: 0, textAlign: 'right' }}>İŞLEMLER & KONTROL</div>
                   </div>
 
                   {/* FLEXBOX TABLO SATIRLARI */}
