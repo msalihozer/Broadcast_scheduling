@@ -20,6 +20,7 @@ const BroadcastRundownSummaryBar = memo(function BroadcastRundownSummaryBar({
   programs = [],
   draftSlotsForToday = [],
   unaddedDraftSlots = [],
+  manuallyMarkedDraftSlotIds = [],
   prevOverflowFrames = 0,
   nextOverflowFrames = 0,
   activeList = 'A',
@@ -184,7 +185,7 @@ const BroadcastRundownSummaryBar = memo(function BroadcastRundownSummaryBar({
     let addedCount = 0;
 
     draftSlotsForToday.forEach(slot => {
-      const isAdded = isDraftSlotAddedToRundown(slot, programs, draftSlotsForToday);
+      const isAdded = isDraftSlotAddedToRundown(slot, programs, draftSlotsForToday, manuallyMarkedDraftSlotIds);
       if (isAdded) {
         addedCount++;
       } else {
@@ -197,7 +198,7 @@ const BroadcastRundownSummaryBar = memo(function BroadcastRundownSummaryBar({
       addedCount,
       missingSlots
     };
-  }, [draftSlotsForToday, programs]);
+  }, [draftSlotsForToday, programs, manuallyMarkedDraftSlotIds]);
 
   const unaddedReasonsMap = useMemo(() => {
     const map = new Map();

@@ -37,6 +37,7 @@ export default function SendToAdReservationModal({
   activeList = 'A',
   programs = [],
   draftSlotsForToday = [],
+  manuallyMarkedDraftSlotIds = [],
   prevOverflowFrames = 0,
   nextOverflowFrames = 0,
   adBreakDefaultSettings,
@@ -83,7 +84,7 @@ export default function SendToAdReservationModal({
     const overflowItems = programs.filter(p => p.isOverflow);
 
     const missingDraftSlots = (draftSlotsForToday || []).filter(
-      slot => !isDraftSlotAddedToRundown(slot, programs, draftSlotsForToday)
+      slot => !isDraftSlotAddedToRundown(slot, programs, draftSlotsForToday, manuallyMarkedDraftSlotIds)
     );
 
     return {
@@ -102,7 +103,7 @@ export default function SendToAdReservationModal({
       overflowItems,
       missingDraftSlots
     };
-  }, [programs, prevOverflowFrames, draftSlotsForToday]);
+  }, [programs, prevOverflowFrames, draftSlotsForToday, manuallyMarkedDraftSlotIds]);
 
   // Sekme ve Arama Filtresi
   const filteredRows = useMemo(() => {

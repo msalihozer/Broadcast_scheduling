@@ -206,12 +206,45 @@ export function formatClipDurationReadable(sec) {
 }
 
 /**
- * Belirli bir taslak kuşağının mevcut yayın akışına (rundown) eklenip eklenmediğini kontrol eder.
- * Doldurulmuş Dolgu Kuşağı kliplerini (`isFillerClip`) ve Reklam Kuşakları (`ad_break`) arasına
- * girmiş programları da doğru şekilde tanır.
+ * Bir taslak kuşağının benzersiz anahtarını (`id` veya `startTime__title`) döndürür.
  */
-export function isDraftSlotAddedToRundown(draftItem, currentRundownPrograms = [], allDraftSlotsForDay = []) {
-  if (!draftItem || !Array.isArray(currentRundownPrograms) || currentRundownPrograms.length === 0) {
+export function getDraftSlotUniqueKey(draftItem) {
+  if (!draftItem) return '';
+  if (draftItem.id !== undefined && draftItem.id !== null && String(draftItem.id).trim() !== '') {
+    return String(draftItem.id);
+  }
+  const st = String(draftItem.startTime || '00:00').trim();
+  const tt = normalizeProgramText(draftItem.title || draftItem.name || '');
+  return `${st}__${tt}`;
+}
+
+/**
+ * Belirli bir taslak kuşağının mevcut yayın akışına (rundown) eklenip eklenmediğini kontrol eder.
+ * Doldurulmuş Dolgu Kuşağı kliplerini (`isFillerClip`), kopyalanıp yapıştırılmış ardışık dolgu bloklarını,
+ * Reklam Kuşakları (`ad_break`) arasına girmiş programları ve kullanıcının "Ekledim" butonuyla
+ * manuel işaretlediği kuşakları (`manuallyMarkedIds`) doğru şekilde tanır.
+ */
+export function isDraftSlotAddedToRundown(
+  draftItem,
+  currentRundownPrograms = [],
+  allDraftSlotsForDay = [],
+  manuallyMarkedIds = []
+) {
+  if (!draftItem) return false;
+
+  // Kullanıcı sol taslak panelinde "Ekledim" butonuna basarak bu kuşağı manuel onayladıysa eklenmiş say
+  if (Array.isArray(manuallyMarkedIds) && manuallyMarkedIds.length > 0) {
+    const slotKey = getDraftSlotUniqueKey(draftItem);
+    const rawId = draftItem.id ? String(draftItem.id) : null;
+    if (
+      (slotKey && manuallyMarkedIds.includes(slotKey)) ||
+      (rawId && manuallyMarkedIds.includes(rawId))
+    ) {
+      return true;
+    }
+  }
+
+  if (!Array.isArray(currentRundownPrograms) || currentRundownPrograms.length === 0) {
     return false;
   }
 
@@ -265,10 +298,17 @@ export function isDraftSlotAddedToRundown(draftItem, currentRundownPrograms = []
   );
 
   if (isDraftFiller) {
-    const unmatchedFillerGroups = [];
-    const seenFillerGroupKeys = new Set();
+    // Yayın akışındaki tüm ardışık (araya başka bir program veya reklam kuşağı girmiş) dolgu bloklarını say.
+    // Böylece bir Dolgu Kuşağı kopyalanıp başka bir saate/programın altına yapıştırıldığında aynı fillerGroupId veya draftId taşısa bile ayrı bir Dolgu Kuşağı olarak sayılır!
+    const contiguousFillerBlocks = [];
+    let currentBlock = null;
 
-    nonIntroPrograms.forEach((rp, idx) => {
+    currentRundownPrograms.forEach((rp) => {
+      if (rp.isIntroClip) return;
+      if (rp.type === 'ad_break') {
+        currentBlock = null;
+        return;
+      }
       const isRpFiller = Boolean(
         rp.type === 'filler_slot' ||
         rp.isKisaSlot ||
@@ -276,43 +316,37 @@ export function isDraftSlotAddedToRundown(draftItem, currentRundownPrograms = []
         rp.category === 'Dolgu Kuşağı' ||
         (rp.note && String(rp.note).startsWith('Dolgu Kuşağı'))
       );
-      if (!isRpFiller) return;
-
-      // Eğer bu dolgu grubu taslaktaki BAŞKA bir aktif dolgu kuşağına doğrudan ID ile bağlıysa atla
-      if (
-        rp.draftId &&
-        draftItem.id &&
-        String(rp.draftId) !== String(draftItem.id) &&
-        activeDraftIdSet.has(String(rp.draftId))
-      ) {
+      if (!isRpFiller) {
+        currentBlock = null;
         return;
       }
-
-      const gKey = rp.fillerGroupId || (rp.draftId ? `draft_${rp.draftId}` : `f_${idx}`);
-      if (!seenFillerGroupKeys.has(gKey)) {
-        seenFillerGroupKeys.add(gKey);
-        unmatchedFillerGroups.push(rp);
+      if (!currentBlock) {
+        currentBlock = {
+          draftId: rp.draftId ? String(rp.draftId) : null,
+          items: [rp]
+        };
+        contiguousFillerBlocks.push(currentBlock);
+      } else {
+        currentBlock.items.push(rp);
       }
     });
 
-    if (unmatchedFillerGroups.length === 0) return false;
+    if (contiguousFillerBlocks.length === 0) return false;
 
-    const unmatchedDraftFillers = (allDraftSlotsForDay || []).filter(d => {
+    const allDraftFillers = (allDraftSlotsForDay || []).filter(d => {
       const nt = normalizeProgramText(d.title || d.name || '');
-      const isDF = Boolean(d.isKisaSlot || nt.includes('dolgu kusagi') || nt === 'dolgu');
-      if (!isDF) return false;
-      return !nonIntroPrograms.some(rp => rp.draftId && d.id && String(rp.draftId) === String(d.id));
+      return Boolean(d.isKisaSlot || nt.includes('dolgu kusagi') || nt === 'dolgu');
     });
 
-    if (unmatchedDraftFillers.length <= 1) {
-      return unmatchedFillerGroups.length >= 1;
+    if (allDraftFillers.length <= 1) {
+      return contiguousFillerBlocks.length >= 1;
     }
 
-    const fillerOccurrenceIndex = unmatchedDraftFillers.findIndex(
-      d => (d.id && d.id === draftItem.id) || (d.startTime === draftItem.startTime)
+    const thisFillerIndex = allDraftFillers.findIndex(
+      d => (d.id && draftItem.id && String(d.id) === String(draftItem.id)) || (d.startTime === draftItem.startTime)
     );
-    if (fillerOccurrenceIndex === -1) return unmatchedFillerGroups.length >= 1;
-    return unmatchedFillerGroups.length > fillerOccurrenceIndex;
+    if (thisFillerIndex === -1) return contiguousFillerBlocks.length >= 1;
+    return contiguousFillerBlocks.length > thisFillerIndex;
   }
 
   if (!normDraftTitle) return false;

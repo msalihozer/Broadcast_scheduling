@@ -1007,6 +1007,46 @@ export const createProgramCrudSlice = (set, get) => ({
   },
 
   /**
+   * Sol taslak panelinde bir taslak kuşağını ("Ekledim" butonuyla) manuel olarak eklenmiş/eklenmemiş işaretler.
+   */
+  toggleManualDraftSlotAdded: (channelId, dateStr, listType, slotKey) => {
+    if (!slotKey) return;
+    const key = `${channelId}-${dateStr}`;
+    const v = listType || get().activeList;
+    const keyStr = String(slotKey);
+
+    set(state => {
+      const currentDay = state.days[key] || { variants: { A: { programs: [] }, B: { programs: [] } } };
+      const currentVariant = currentDay.variants?.[v] || { programs: [] };
+      const existingList = Array.isArray(currentVariant.manuallyMarkedDraftSlotIds)
+        ? currentVariant.manuallyMarkedDraftSlotIds
+        : [];
+      const exists = existingList.includes(keyStr);
+      const nextList = exists
+        ? existingList.filter(id => id !== keyStr)
+        : [...existingList, keyStr];
+
+      return {
+        days: {
+          ...state.days,
+          [key]: {
+            ...currentDay,
+            date: dateStr,
+            updatedAt: Date.now(),
+            variants: {
+              ...(currentDay.variants || { A: { programs: [] }, B: { programs: [] } }),
+              [v]: {
+                ...currentVariant,
+                manuallyMarkedDraftSlotIds: nextList
+              }
+            }
+          }
+        }
+      };
+    });
+  },
+
+  /**
    * Akıştaki seçili "Dolgu Kuşağı"na bir veya birden fazla klibi yerleştirir.
    * Aynı Dolgu Kuşağına (`fillerGroupId` / `fillerInstanceId`) birden fazla kez ekleme yapılabilir:
    * - İlk eklemede yer tutucu `filler_slot` satırının yerine yerleşir.

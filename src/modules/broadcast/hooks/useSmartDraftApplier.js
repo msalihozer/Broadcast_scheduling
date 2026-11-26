@@ -549,6 +549,12 @@ export default function useSmartDraftApplier({
       const currentPrograms = [
         ...(useBroadcastStore.getState().getRawDayPrograms(selectedChannel, selectedDate, activeList) || [])
       ];
+      const currentVariantMeta = useBroadcastStore.getState().getDayVariantMeta
+        ? useBroadcastStore.getState().getDayVariantMeta(selectedChannel, selectedDate, activeList)
+        : {};
+      const manuallyMarkedDraftSlotIds = Array.isArray(currentVariantMeta?.manuallyMarkedDraftSlotIds)
+        ? currentVariantMeta.manuallyMarkedDraftSlotIds
+        : [];
 
       // Eğer yayın listesi tamamen boşsa ve kullanıcı manuel tıkladıysa doğrudan Taslak Uygula çalıştır
       if (currentPrograms.length === 0) {
@@ -1019,7 +1025,7 @@ export default function useSmartDraftApplier({
       // C. Taslakta olup yayın listesinde henüz olmayan (eklenmeyen / yeni eklenen) kuşakları bul ve sırasına İntro + Klipleriyle ekle
       for (let sIdx = 0; sIdx < liveDraftSlots.length; sIdx++) {
         const slot = liveDraftSlots[sIdx];
-        const isAdded = isDraftSlotAddedToRundown(slot, workingPrograms, liveDraftSlots);
+        const isAdded = isDraftSlotAddedToRundown(slot, workingPrograms, liveDraftSlots, manuallyMarkedDraftSlotIds);
         if (isAdded) continue;
 
         const builtRes = await buildItemsForDraftSlot(slot, sIdx, true);
@@ -1156,11 +1162,18 @@ export default function useSmartDraftApplier({
       const liveDraftSlots = getDraftProgramsForDay(selectedChannel, selectedDate) || [];
       if (liveDraftSlots.length === 0) return;
 
+      const meta = useBroadcastStore.getState().getDayVariantMeta
+        ? useBroadcastStore.getState().getDayVariantMeta(selectedChannel, selectedDate, activeList)
+        : {};
+      const manualIds = Array.isArray(meta?.manuallyMarkedDraftSlotIds)
+        ? meta.manuallyMarkedDraftSlotIds
+        : [];
+
       const missingTitles = [];
       const updatedTitles = [];
 
       liveDraftSlots.forEach(slot => {
-        const isAdded = isDraftSlotAddedToRundown(slot, currentProgs, liveDraftSlots);
+        const isAdded = isDraftSlotAddedToRundown(slot, currentProgs, liveDraftSlots, manualIds);
         if (!isAdded) {
           missingTitles.push(slot.title || slot.name || 'Kuşak');
         } else {

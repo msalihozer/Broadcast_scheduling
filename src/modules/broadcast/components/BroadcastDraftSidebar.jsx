@@ -30,6 +30,7 @@ import {
 import {
   doesDraftSlotMatchRundownItem,
   getDraftSlotUpdateStatus,
+  getDraftSlotUniqueKey,
   clearBroadcastArchiveCaches
 } from '../utils/draftSlotMatcher';
 import { filterAndSortBySearchPriority } from '../../../utils/searchRanker';
@@ -83,6 +84,8 @@ export default function BroadcastDraftSidebar() {
     toggleDraftSidebar,
     getRawDayPrograms,
     getComputedDayPrograms,
+    getDayVariantMeta,
+    toggleManualDraftSlotAdded,
     setDayPrograms,
     replaceFillerSlotWithClips,
     removeClipFromFillerGroup,
@@ -224,6 +227,20 @@ export default function BroadcastDraftSidebar() {
   const currentRundownPrograms = useMemo(() => {
     return getRawDayPrograms(selectedChannel, selectedDate, activeList) || [];
   }, [selectedChannel, selectedDate, activeList, days, getRawDayPrograms]);
+
+  // Kullanıcının "Ekledim" butonuyla manuel olarak eklenmiş işaretlediği taslak kuşakları
+  const manuallyMarkedDraftSlotIds = useMemo(() => {
+    if (typeof getDayVariantMeta === 'function') {
+      return getDayVariantMeta(selectedChannel, selectedDate, activeList)?.manuallyMarkedDraftSlotIds || [];
+    }
+    return [];
+  }, [selectedChannel, selectedDate, activeList, days, getDayVariantMeta]);
+
+  const handleToggleManualAdded = (draftItem) => {
+    if (!draftItem || typeof toggleManualDraftSlotAdded !== 'function') return;
+    const slotKey = getDraftSlotUniqueKey(draftItem);
+    toggleManualDraftSlotAdded(selectedChannel, selectedDate, activeList, slotKey);
+  };
 
   // Hesaplanmış zaman kodlarıyla günün yayın akışı ve Dolgu Kuşakları listesi
   const computedRundownPrograms = useMemo(() => {
@@ -387,12 +404,15 @@ export default function BroadcastDraftSidebar() {
     let addedCount = 0;
     let updatedCount = 0;
     draftPrograms.forEach(item => {
-      if (isDraftSlotAddedToRundown(item, currentRundownPrograms, draftPrograms)) {
-        addedIds.add(item.id);
+      const slotKey = getDraftSlotUniqueKey(item);
+      if (isDraftSlotAddedToRundown(item, currentRundownPrograms, draftPrograms, manuallyMarkedDraftSlotIds)) {
+        if (item.id) addedIds.add(item.id);
+        if (slotKey) addedIds.add(slotKey);
         addedCount++;
         const upd = getDraftSlotUpdateStatus(item, currentRundownPrograms, selectedDate);
         if (upd.isUpdatedInDraft) {
-          updatedIds.add(item.id);
+          if (item.id) updatedIds.add(item.id);
+          if (slotKey) updatedIds.add(slotKey);
           updatedCount++;
         }
       }
@@ -405,7 +425,7 @@ export default function BroadcastDraftSidebar() {
       addedIds,
       updatedIds
     };
-  }, [draftPrograms, currentRundownPrograms, selectedDate]);
+  }, [draftPrograms, currentRundownPrograms, selectedDate, manuallyMarkedDraftSlotIds]);
 
   // Günün Taslağı içinde canlı arama, kategori gizleme filtresi ve durum filtresi
   const filteredDraftPrograms = useMemo(() => {
@@ -419,9 +439,17 @@ export default function BroadcastDraftSidebar() {
     });
 
     if (draftStatusFilter === 'missing') {
-      list = list.filter(item => !draftCheckStats.addedIds.has(item.id) || draftCheckStats.updatedIds.has(item.id));
+      list = list.filter(item => {
+        const slotKey = getDraftSlotUniqueKey(item);
+        const isAdded = (item.id && draftCheckStats.addedIds.has(item.id)) || (slotKey && draftCheckStats.addedIds.has(slotKey));
+        const isUpdated = (item.id && draftCheckStats.updatedIds.has(item.id)) || (slotKey && draftCheckStats.updatedIds.has(slotKey));
+        return !isAdded || isUpdated;
+      });
     } else if (draftStatusFilter === 'added') {
-      list = list.filter(item => draftCheckStats.addedIds.has(item.id));
+      list = list.filter(item => {
+        const slotKey = getDraftSlotUniqueKey(item);
+        return (item.id && draftCheckStats.addedIds.has(item.id)) || (slotKey && draftCheckStats.addedIds.has(slotKey));
+      });
     }
 
     if (!draftSearchQuery.trim()) return list;
@@ -898,6 +926,8 @@ export default function BroadcastDraftSidebar() {
                       draftItem={item}
                       usedPrograms={visibleUsedPrograms}
                       allDraftPrograms={draftPrograms}
+                      manuallyMarkedDraftSlotIds={manuallyMarkedDraftSlotIds}
+                      onToggleManualAdded={handleToggleManualAdded}
                       onAddProgram={handleAddSingleDraftItem}
                       onAddClip={handleAddClip}
                       onAddAllClips={handleAddAllClips}

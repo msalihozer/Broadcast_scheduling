@@ -849,6 +849,7 @@ export default function BroadcastRundownTable({
           programs={programs}
           draftSlotsForToday={draftSlotsForToday}
           unaddedDraftSlots={variantMeta.unaddedDraftSlots}
+          manuallyMarkedDraftSlotIds={variantMeta.manuallyMarkedDraftSlotIds}
           prevOverflowFrames={prevOverflowFrames}
           nextOverflowFrames={nextOverflowFrames}
           activeList={activeList}
@@ -1043,6 +1044,7 @@ export default function BroadcastRundownTable({
         activeList={activeList}
         programs={programs}
         draftSlotsForToday={draftSlotsForToday}
+        manuallyMarkedDraftSlotIds={variantMeta.manuallyMarkedDraftSlotIds}
         prevOverflowFrames={prevOverflowFrames}
         nextOverflowFrames={nextOverflowFrames}
         adBreakDefaultSettings={adBreakDefaultSettings}

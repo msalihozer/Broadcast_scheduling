@@ -181,7 +181,10 @@ export const createTimelineCalculationSlice = (set, get) => ({
       savedAt: variantObj.savedAt || null,
       sentToAdsAt: variantObj.sentToAdsAt || null,
       lastDraftAppliedAt: variantObj.lastDraftAppliedAt || null,
-      unaddedDraftSlots: Array.isArray(variantObj.unaddedDraftSlots) ? variantObj.unaddedDraftSlots : []
+      unaddedDraftSlots: Array.isArray(variantObj.unaddedDraftSlots) ? variantObj.unaddedDraftSlots : [],
+      manuallyMarkedDraftSlotIds: Array.isArray(variantObj.manuallyMarkedDraftSlotIds)
+        ? variantObj.manuallyMarkedDraftSlotIds
+        : []
     };
   }
 });

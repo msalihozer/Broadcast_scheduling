@@ -16,6 +16,7 @@ import {
   computeDraftEndTime,
   isDraftSlotAddedToRundown,
   getDraftSlotUpdateStatus,
+  getDraftSlotUniqueKey,
   sortSlotClips,
   fetchProgramClipsCached,
   resolveDraftSlotTarget,
@@ -38,6 +39,8 @@ const DraftProgramSlotItem = memo(function DraftProgramSlotItem({
   index = 0,
   usedPrograms = [],
   allDraftPrograms = [],
+  manuallyMarkedDraftSlotIds = [],
+  onToggleManualAdded = null,
   onAddProgram,
   onAddClip,
   onAddAllClips,
@@ -228,7 +231,21 @@ const DraftProgramSlotItem = memo(function DraftProgramSlotItem({
     e.dataTransfer.effectAllowed = 'copyMove';
   }, [draftItem]);
 
-  const programAdded = isDraftSlotAddedToRundown(draftItem, currentRundownPrograms, allDraftPrograms);
+  const slotUniqueKey = useMemo(() => getDraftSlotUniqueKey(draftItem), [draftItem]);
+  const isManuallyMarkedAdded = useMemo(() => {
+    if (!Array.isArray(manuallyMarkedDraftSlotIds) || manuallyMarkedDraftSlotIds.length === 0) return false;
+    return (
+      (slotUniqueKey && manuallyMarkedDraftSlotIds.includes(slotUniqueKey)) ||
+      (draftItem?.id && manuallyMarkedDraftSlotIds.includes(String(draftItem.id)))
+    );
+  }, [manuallyMarkedDraftSlotIds, slotUniqueKey, draftItem]);
+
+  const programAdded = isDraftSlotAddedToRundown(
+    draftItem,
+    currentRundownPrograms,
+    allDraftPrograms,
+    manuallyMarkedDraftSlotIds
+  );
   const updateStatus = useMemo(() => {
     return getDraftSlotUpdateStatus(draftItem, currentRundownPrograms, selectedDate || draftItem.dateStr || '');
   }, [draftItem, currentRundownPrograms, selectedDate]);
@@ -554,39 +571,92 @@ const DraftProgramSlotItem = memo(function DraftProgramSlotItem({
                   <span>Bulunamadı</span>
                 </span>
               ) : programAdded ? (
-                <span style={{
-                  background: '#10b981',
-                  color: '#ffffff',
-                  padding: '4px 8px',
-                  borderRadius: '6px',
-                  fontSize: '11px',
-                  fontWeight: '900',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  whiteSpace: 'nowrap',
-                  boxShadow: '0 2px 6px rgba(16, 185, 129, 0.3)'
-                }}>
-                  <CheckCircle2 size={12} />
-                  <span>Eklendi</span>
-                </span>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{
+                    background: '#10b981',
+                    color: '#ffffff',
+                    padding: '4px 8px',
+                    borderRadius: '6px',
+                    fontSize: '11px',
+                    fontWeight: '900',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    whiteSpace: 'nowrap',
+                    boxShadow: '0 2px 6px rgba(16, 185, 129, 0.3)'
+                  }}>
+                    <CheckCircle2 size={12} />
+                    <span>Eklendi</span>
+                  </span>
+                  {isManuallyMarkedAdded && onToggleManualAdded && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleManualAdded(draftItem);
+                      }}
+                      title="Manuel 'Ekledim' işaretini geri al"
+                      style={{
+                        padding: '3px 6px',
+                        borderRadius: '6px',
+                        border: '1px solid rgba(16, 185, 129, 0.45)',
+                        background: 'rgba(16, 185, 129, 0.12)',
+                        color: '#047857',
+                        fontSize: '10.5px',
+                        fontWeight: '800',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Geri Al
+                    </button>
+                  )}
+                </div>
               ) : (
-                <span style={{
-                  background: 'rgba(239, 68, 68, 0.16)',
-                  color: '#ef4444',
-                  border: '1px solid rgba(239, 68, 68, 0.45)',
-                  padding: '4px 8px',
-                  borderRadius: '6px',
-                  fontSize: '11px',
-                  fontWeight: '900',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  whiteSpace: 'nowrap'
-                }}>
-                  <AlertCircle size={12} />
-                  <span>Eklenmedi</span>
-                </span>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                  <span style={{
+                    background: 'rgba(239, 68, 68, 0.16)',
+                    color: '#ef4444',
+                    border: '1px solid rgba(239, 68, 68, 0.45)',
+                    padding: '4px 8px',
+                    borderRadius: '6px',
+                    fontSize: '11px',
+                    fontWeight: '900',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    <AlertCircle size={12} />
+                    <span>Eklenmedi</span>
+                  </span>
+                  {onToggleManualAdded && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleManualAdded(draftItem);
+                      }}
+                      title="Bu kuşağı kopyalayarak veya manuel olarak zaten eklediyseniz 'Ekledim' olarak işaretleyin"
+                      style={{
+                        padding: '4px 9px',
+                        borderRadius: '6px',
+                        border: '1.5px solid #10b981',
+                        background: 'rgba(16, 185, 129, 0.14)',
+                        color: '#047857',
+                        fontSize: '11px',
+                        fontWeight: '900',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      <CheckCircle2 size={12} />
+                      <span>Ekledim</span>
+                    </button>
+                  )}
+                </div>
               )}
 
               {isUpdatedInDraft && onUpdateProgramInRundown ? (
