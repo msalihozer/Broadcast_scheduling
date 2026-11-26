@@ -15,6 +15,7 @@ import {
 } from '../broadcastStoreHelpers';
 import { getProgramGroupKey } from '../../utils/rundownHelpers';
 import { useAdminLogStore } from '../../../../store/adminLogStore';
+import { dialog } from '../../../../store/dialogStore';
 
 /**
  * Yayın öğesi CRUD ve sıralama aksiyonlarını oluşturur.
@@ -131,15 +132,13 @@ export const createProgramCrudSlice = (set, get) => ({
         const availSec = Math.round((availableFramesBeforePin / BROADCAST_FPS) % 60);
         const needMin = Math.floor((durationFrames / BROADCAST_FPS) / 60);
         const needSec = Math.round((durationFrames / BROADCAST_FPS) % 60);
-        import('../../../../store/dialogStore').then(({ dialog }) => {
-          dialog.warning(
-            'Sabit Program Öncesinde Yeterli Boşluk Yok',
-            `"${nextPinnedProg.title}" programı saat ${nextPinnedProg.pinnedStartTime || ''} konumuna sabitlenmiş durumda.\n\n` +
-            `• Sabit program öncesindeki kalan boşluk: ${availMin} dk ${availSec} sn\n` +
-            `• Eklemek istediğiniz "${title}" süresi: ${needMin} dk ${needSec} sn\n\n` +
-            `Önceki güne veya sabitlenmiş saate taşma yapılamaz. Lütfen daha kısa bir içerik seçin veya sabit programın altına (Alt modunda) ekleyin.`
-          );
-        });
+        dialog.warning(
+          'Sabit Program Öncesinde Yeterli Boşluk Yok',
+          `"${nextPinnedProg.title}" programı saat ${nextPinnedProg.pinnedStartTime || ''} konumuna sabitlenmiş durumda.\n\n` +
+          `• Sabit program öncesindeki kalan boşluk: ${availMin} dk ${availSec} sn\n` +
+          `• Eklemek istediğiniz "${title}" süresi: ${needMin} dk ${needSec} sn\n\n` +
+          `Önceki güne veya sabitlenmiş saate taşma yapılamaz. Lütfen daha kısa bir içerik seçin veya sabit programın altına (Alt modunda) ekleyin.`
+        );
         return null;
       }
     }
@@ -264,15 +263,13 @@ export const createProgramCrudSlice = (set, get) => ({
         const availSec = Math.round((availableFramesBeforePin / BROADCAST_FPS) % 60);
         const needMin = Math.floor((durationFrames / BROADCAST_FPS) / 60);
         const needSec = Math.round((durationFrames / BROADCAST_FPS) % 60);
-        import('../../../../store/dialogStore').then(({ dialog }) => {
-          dialog.warning(
-            'Sabit Program Öncesinde Yeterli Boşluk Yok',
-            `"${nextPinnedProg.title}" programı saat ${nextPinnedProg.pinnedStartTime || ''} konumuna sabitlenmiş durumda.\n\n` +
-            `• Sabit program öncesindeki kalan boşluk: ${availMin} dk ${availSec} sn\n` +
-            `• Eklemek istediğiniz "${title}" süresi: ${needMin} dk ${needSec} sn\n\n` +
-            `Önceki güne veya sabitlenmiş saate taşma yapılamaz. Lütfen daha kısa bir içerik seçin veya sabit programın altına (Alt modunda) ekleyin.`
-          );
-        });
+        dialog.warning(
+          'Sabit Program Öncesinde Yeterli Boşluk Yok',
+          `"${nextPinnedProg.title}" programı saat ${nextPinnedProg.pinnedStartTime || ''} konumuna sabitlenmiş durumda.\n\n` +
+          `• Sabit program öncesindeki kalan boşluk: ${availMin} dk ${availSec} sn\n` +
+          `• Eklemek istediğiniz "${title}" süresi: ${needMin} dk ${needSec} sn\n\n` +
+          `Önceki güne veya sabitlenmiş saate taşma yapılamaz. Lütfen daha kısa bir içerik seçin veya sabit programın altına (Alt modunda) ekleyin.`
+        );
         return null;
       }
     }
