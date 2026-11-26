@@ -1007,6 +1007,112 @@ export const createProgramCrudSlice = (set, get) => ({
   },
 
   /**
+   * Günün varyant meta bilgilerini (ör. lastCheckedSignature, lastSavedSignature, lastAdsPlacedSignature) günceller.
+   */
+  updateDayVariantMeta: (channelId, dateStr, listType, metaUpdates = {}) => {
+    const key = `${channelId}-${dateStr}`;
+    const v = listType || get().activeList;
+    set(state => {
+      const currentDay = state.days[key] || { variants: { A: { programs: [] }, B: { programs: [] } } };
+      const currentVariant = currentDay.variants?.[v] || { programs: [] };
+      return {
+        days: {
+          ...state.days,
+          [key]: {
+            ...currentDay,
+            date: dateStr,
+            updatedAt: Date.now(),
+            variants: {
+              ...(currentDay.variants || { A: { programs: [] }, B: { programs: [] } }),
+              [v]: {
+                ...currentVariant,
+                ...metaUpdates
+              }
+            }
+          }
+        }
+      };
+    });
+  },
+
+  /**
+   * Reklam yerleştirme veya kuşak içi reklam düzenleme sonrasında `adPlacements` içindeki reklam kliplerini
+   * ve toplam reklam kuşağı sürelerini Yayın Planlama (`broadcastStore`) listesindeki Reklam Kuşaklarına uygular.
+   * Böylece her reklam kuşağının süresi yerleşen reklam kliplerinin gerçek toplam süresine eşitlenir ve tüm yayın saatleri güncellenir.
+   */
+  syncAdPlacementsToBroadcastBreaks: (channelId, dateStr, listType, placementsForDay = []) => {
+    const key = `${channelId}-${dateStr}`;
+    const v = listType || get().activeList;
+    const currentProgs = [...get().getRawDayPrograms(channelId, dateStr, v)];
+    if (currentProgs.length === 0) return { success: false, updatedBreaks: 0 };
+
+    const adBreakIndices = [];
+    currentProgs.forEach((p, idx) => {
+      if (p.type === 'ad_break') adBreakIndices.push(idx);
+    });
+
+    let updatedBreaks = 0;
+    adBreakIndices.forEach((progIdx, brkOrderIdx) => {
+      const brkItem = currentProgs[progIdx];
+      const matchedPlacement =
+        placementsForDay.find(pl => pl.blockId && String(pl.blockId) === String(brkItem.instanceId)) ||
+        placementsForDay[brkOrderIdx] ||
+        null;
+
+      if (!matchedPlacement) return;
+      const placedAds = Array.isArray(matchedPlacement.ads) ? matchedPlacement.ads : [];
+      const totalAdsSec = placedAds.reduce((sum, ad) => sum + Math.max(0, Number(ad.duration) || 0), 0);
+
+      // Eğer kuşağa reklam yerleştiyse kuşağın süresini yerleşen reklamların gerçek toplam süresine güncelle
+      if (placedAds.length > 0 && totalAdsSec > 0) {
+        const nextTc = secondsToTimecode(totalAdsSec);
+        const nextFrames = timecodeToFrames(nextTc);
+        currentProgs[progIdx] = {
+          ...brkItem,
+          durationTc: nextTc,
+          durationFrames: nextFrames,
+          durationSec: totalAdsSec,
+          placedAdsCount: placedAds.length,
+          placedCommercialCount: placedAds.filter(a => !a.isBumperAd).length,
+          placedBlockId: matchedPlacement.blockId || brkItem.instanceId
+        };
+        updatedBreaks++;
+      } else {
+        currentProgs[progIdx] = {
+          ...brkItem,
+          placedAdsCount: 0,
+          placedCommercialCount: 0,
+          placedBlockId: matchedPlacement.blockId || brkItem.instanceId
+        };
+      }
+    });
+
+    set(state => {
+      const currentDay = state.days[key] || { variants: { A: { programs: [] }, B: { programs: [] } } };
+      const currentVariant = currentDay.variants?.[v] || { programs: [] };
+      return {
+        days: {
+          ...state.days,
+          [key]: {
+            ...currentDay,
+            date: dateStr,
+            updatedAt: Date.now(),
+            variants: {
+              ...(currentDay.variants || { A: { programs: [] }, B: { programs: [] } }),
+              [v]: {
+                ...currentVariant,
+                programs: currentProgs
+              }
+            }
+          }
+        }
+      };
+    });
+
+    return { success: true, updatedBreaks };
+  },
+
+  /**
    * Sol taslak panelinde bir taslak kuşağını ("Ekledim" butonuyla) manuel olarak eklenmiş/eklenmemiş işaretler.
    */
   toggleManualDraftSlotAdded: (channelId, dateStr, listType, slotKey) => {

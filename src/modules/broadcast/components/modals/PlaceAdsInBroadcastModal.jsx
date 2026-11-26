@@ -20,7 +20,7 @@ import {
   Calendar
 } from 'lucide-react';
 import usePlanningStore from '../../../../store/planningStore';
-import { BROADCAST_CHANNELS } from '../../store/broadcastStore';
+import useBroadcastStore, { BROADCAST_CHANNELS } from '../../store/broadcastStore';
 
 export default function PlaceAdsInBroadcastModal({
   isOpen,
@@ -69,13 +69,22 @@ export default function PlaceAdsInBroadcastModal({
         onSaveScheduleForAds();
       }
       // 3. Kısa animasyon geçişiyle Reklam Rezervasyon algoritmasını çalıştır
-      await new Promise(r => setTimeout(r, 450));
+      await new Promise(r => setTimeout(r, 350));
       if (typeof autoPlanAdsForDay === 'function') {
         autoPlanAdsForDay(selectedChannel, selectedDate);
       }
+      // 4. Yerleşen reklamların gerçek toplam sürelerini Yayın Planlama listesindeki Reklam Kuşaklarına uygula ve yayın saatlerini yeniden hesapla!
+      const freshPlacements = usePlanningStore.getState().adPlacements?.[readyKey] || [];
+      const syncFn = useBroadcastStore.getState().syncAdPlacementsToBroadcastBreaks;
+      if (typeof syncFn === 'function') {
+        syncFn(selectedChannel, selectedDate, activeList, freshPlacements);
+      }
+      if (typeof onSaveScheduleForAds === 'function') {
+        onSaveScheduleForAds();
+      }
       setPlacementDone(true);
       if (typeof onAdsPlacementComplete === 'function') {
-        onAdsPlacementComplete();
+        onAdsPlacementComplete(freshPlacements);
       }
     } finally {
       setIsPlacing(false);

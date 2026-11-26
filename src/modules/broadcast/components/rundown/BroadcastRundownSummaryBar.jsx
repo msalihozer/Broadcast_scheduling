@@ -30,6 +30,10 @@ const BroadcastRundownSummaryBar = memo(function BroadcastRundownSummaryBar({
   isSyncingDraftAndArchive = false,
   lastDraftAppliedAt = null,
   lastSavedAt = null,
+  lastCheckedSignature = null,
+  lastSavedSignature = null,
+  lastAdsPlacedSignature = null,
+  onPersistVariantMeta = null,
   statusBanner = null,
   historyPastCount = 0,
   historyFutureCount = 0,
@@ -61,22 +65,48 @@ const BroadcastRundownSummaryBar = memo(function BroadcastRundownSummaryBar({
   onQuickAddMissingDraftSlot,
   onQuickAddAllMissingDraftSlots
 }) {
-  const [checkedSignature, setCheckedSignature] = useState(null);
-  const [savedSignature, setSavedSignature] = useState(null);
-  const [adsPlacedSignature, setAdsPlacedSignature] = useState(null);
+  const [checkedSignature, setCheckedSignature] = useState(lastCheckedSignature || null);
+  const [savedSignature, setSavedSignature] = useState(lastSavedSignature || null);
+  const [adsPlacedSignature, setAdsPlacedSignature] = useState(lastAdsPlacedSignature || null);
 
-  // Mevcut listenin parmak izi: Liste değiştiğinde (ekleme/silme/süre değişimi) tekrar Kontrol Et ve Kaydet moduna döner
+  // Mevcut listenin parmak izi (Reklam kuşaklarının süresi reklam yerleşimiyle değiştiğinde Kontrol Et'i sıfırlamaması için reklam sürelerini imza dışında tutar)
   const currentSignature = useMemo(() => {
     if (!programs.length) return '';
     return `${selectedDate}_${activeList}_${programs
-      .map(p => `${p.instanceId}:${p.durationFrames}:${p.title}:${p.isPinnedTime ? p.pinnedStartTime : ''}`)
+      .map(p => `${p.instanceId}:${p.type === 'ad_break' ? 'AD_BREAK' : p.durationFrames}:${p.title}:${p.isPinnedTime ? p.pinnedStartTime : ''}`)
       .join('|')}`;
   }, [programs, selectedDate, activeList]);
+
+  // Sayfa yenilendiğinde veya gün/liste değiştiğinde daha önce kaydedilmiş/kontrol edilmiş bir liste varsa ve güncelleme olmadıysa Kontrol Et tekrar zorunlu olmasın
+  useEffect(() => {
+    if (!currentSignature) return;
+    if (lastCheckedSignature === currentSignature) {
+      setCheckedSignature(currentSignature);
+    } else if (lastSavedAt && (!lastCheckedSignature || lastSavedSignature === currentSignature)) {
+      // Daha önce kaydedilmiş bir listeyse ve o zamandan beri öğe ekleme/silme yapılmadıysa Kontrol Et ve Kaydet onaylı başlasın
+      setCheckedSignature(currentSignature);
+      setSavedSignature(currentSignature);
+    }
+    if (lastSavedSignature === currentSignature) {
+      setSavedSignature(currentSignature);
+    }
+    if (lastAdsPlacedSignature === currentSignature || isAdsPlacedForCurrentState) {
+      setAdsPlacedSignature(currentSignature);
+    }
+  }, [
+    currentSignature,
+    lastCheckedSignature,
+    lastSavedSignature,
+    lastAdsPlacedSignature,
+    lastSavedAt,
+    isAdsPlacedForCurrentState
+  ]);
 
   // Ctrl+S veya Kaydet butonu ile kaydedildiğinde imzayı senkronize et
   useEffect(() => {
     if (lastSavedAt && currentSignature) {
       setSavedSignature(currentSignature);
+      setCheckedSignature(currentSignature);
     }
   }, [lastSavedAt]);
 
@@ -87,15 +117,23 @@ const BroadcastRundownSummaryBar = memo(function BroadcastRundownSummaryBar({
   }, [isAdsPlacedForCurrentState, currentSignature]);
 
   const isCurrentStateChecked = Boolean(
-    programs.length > 0 && checkedSignature && checkedSignature === currentSignature
+    programs.length > 0 &&
+      ((checkedSignature && checkedSignature === currentSignature) ||
+        (lastCheckedSignature && lastCheckedSignature === currentSignature) ||
+        (lastSavedSignature && lastSavedSignature === currentSignature))
   );
 
   const isCurrentStateSaved = Boolean(
-    programs.length > 0 && savedSignature && savedSignature === currentSignature
+    programs.length > 0 &&
+      ((savedSignature && savedSignature === currentSignature) ||
+        (lastSavedSignature && lastSavedSignature === currentSignature))
   );
 
   const isCurrentStateAdsPlaced = Boolean(
-    programs.length > 0 && (isAdsPlacedForCurrentState || (adsPlacedSignature && adsPlacedSignature === currentSignature))
+    programs.length > 0 &&
+      (isAdsPlacedForCurrentState ||
+        (adsPlacedSignature && adsPlacedSignature === currentSignature) ||
+        (lastAdsPlacedSignature && lastAdsPlacedSignature === currentSignature))
   );
 
   const canPlaceAds = Boolean(isCurrentStateChecked && isCurrentStateSaved && !isDayLockedReadOnly);
@@ -110,6 +148,9 @@ const BroadcastRundownSummaryBar = memo(function BroadcastRundownSummaryBar({
       onSyncAndFillMissingDrafts();
     }
     setCheckedSignature(currentSignature);
+    if (typeof onPersistVariantMeta === 'function') {
+      onPersistVariantMeta({ lastCheckedSignature: currentSignature });
+    }
   };
 
   const handleSaveClick = () => {
@@ -127,7 +168,14 @@ const BroadcastRundownSummaryBar = memo(function BroadcastRundownSummaryBar({
     if (onSaveSchedule) {
       onSaveSchedule();
     }
+    setCheckedSignature(currentSignature);
     setSavedSignature(currentSignature);
+    if (typeof onPersistVariantMeta === 'function') {
+      onPersistVariantMeta({
+        lastCheckedSignature: currentSignature,
+        lastSavedSignature: currentSignature
+      });
+    }
   };
 
   const handlePlaceAdsClick = () => {
@@ -146,6 +194,13 @@ const BroadcastRundownSummaryBar = memo(function BroadcastRundownSummaryBar({
       onPlaceAdsInBroadcast();
     }
     setAdsPlacedSignature(currentSignature);
+    if (typeof onPersistVariantMeta === 'function') {
+      onPersistVariantMeta({
+        lastCheckedSignature: currentSignature,
+        lastSavedSignature: currentSignature,
+        lastAdsPlacedSignature: currentSignature
+      });
+    }
   };
 
   const handleSendToAdsClick = () => {

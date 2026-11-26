@@ -68,6 +68,8 @@ export default function BroadcastRundownTable({
     getPreviousDayOverflowFrames,
     getDayOverflowFrames,
     getDayVariantMeta,
+    updateDayVariantMeta,
+    syncAdPlacementsToBroadcastBreaks,
     setDayPrograms,
     replaceFillerSlotWithClips,
     saveDaySchedule,
@@ -99,6 +101,12 @@ export default function BroadcastRundownTable({
   const planningDays = usePlanningStore(state => state.days || {});
   const listControlDays = usePlanningStore(state => state.listControlDays || {});
   const adPlacements = usePlanningStore(state => state.adPlacements || {});
+  const adsCatalogMaterials = usePlanningStore(state => state.materials || []);
+  const adsCatalogCompanies = usePlanningStore(state => state.companies || []);
+  const adsReservations = usePlanningStore(state => state.reservations || []);
+  const moveAdInBreak = usePlanningStore(state => state.moveAdInBreak);
+  const removeAdFromBreak = usePlanningStore(state => state.removeAdFromBreak);
+  const addManualAdToBreak = usePlanningStore(state => state.addManualAdToBreak);
   const showRamadanControls = useMemo(
     () => isRamadanFeatureWindowOpen(ramadanConfig, selectedDate),
     [ramadanConfig, selectedDate]
@@ -137,11 +145,73 @@ export default function BroadcastRundownTable({
   const [inlineDurationVal, setInlineDurationVal] = useState('');
   const [isScrolledDown, setIsScrolledDown] = useState(false);
 
-  // Klip Detay Modalı, Reklam Yerleştirme Modalı, Reklam Rezervasyon Ön Kontrol Modalı ve Senkronizasyon Bildirim Şeridi Durumları
+  // Klip Detay Modalı, Reklam Yerleştirme Modalı, Reklam Rezervasyon Ön Kontrol Modalı, Açılır Reklam Kuşakları ve Senkronizasyon Bildirim Şeridi Durumları
   const [inspectingClipItem, setInspectingClipItem] = useState(null);
   const [isPlaceAdsModalOpen, setIsPlaceAdsModalOpen] = useState(false);
   const [isSendToAdsModalOpen, setIsSendToAdsModalOpen] = useState(false);
+  const [expandedAdBreakIds, setExpandedAdBreakIds] = useState([]);
   const [statusBanner, setStatusBanner] = useState(null);
+
+  const dayAdPlacementsList = useMemo(
+    () => (Array.isArray(adPlacements?.[readyDayKey]) ? adPlacements[readyDayKey] : []),
+    [adPlacements, readyDayKey]
+  );
+
+  const handleToggleAdBreakExpand = useCallback((instanceId) => {
+    if (!instanceId) return;
+    setExpandedAdBreakIds(prev =>
+      prev.includes(instanceId)
+        ? prev.filter(id => id !== instanceId)
+        : [...prev, instanceId]
+    );
+  }, []);
+
+  const syncBroadcastBreaksFromLatestPlacements = useCallback(() => {
+    const latestPlacements = usePlanningStore.getState().adPlacements?.[readyDayKey] || [];
+    if (typeof syncAdPlacementsToBroadcastBreaks === 'function') {
+      syncAdPlacementsToBroadcastBreaks(selectedChannel, selectedDate, activeList, latestPlacements);
+    }
+    if (typeof saveDaySchedule === 'function') {
+      saveDaySchedule(selectedChannel, selectedDate, activeList);
+    }
+  }, [readyDayKey, syncAdPlacementsToBroadcastBreaks, selectedChannel, selectedDate, activeList, saveDaySchedule]);
+
+  const handleMoveAdInBroadcastBreak = useCallback((blockKey, adIdx, direction) => {
+    if (typeof moveAdInBreak !== 'function') return;
+    moveAdInBreak(selectedChannel, selectedDate, blockKey, adIdx, direction);
+    syncBroadcastBreaksFromLatestPlacements();
+  }, [moveAdInBreak, selectedChannel, selectedDate, syncBroadcastBreaksFromLatestPlacements]);
+
+  const handleRemoveAdFromBroadcastBreak = useCallback((blockKey, adIdx) => {
+    if (typeof removeAdFromBreak !== 'function') return;
+    removeAdFromBreak(selectedChannel, selectedDate, blockKey, adIdx);
+    syncBroadcastBreaksFromLatestPlacements();
+  }, [removeAdFromBreak, selectedChannel, selectedDate, syncBroadcastBreaksFromLatestPlacements]);
+
+  const handleAddAdToBroadcastBreak = useCallback((breakItem, placementBlock, adChoice) => {
+    if (typeof addManualAdToBreak !== 'function' || !breakItem || !adChoice) return;
+    const startDisp = parseTimecodeDisplay(breakItem.calculatedStartTime);
+    const shortTime = `${startDisp.hh}:${startDisp.mm}`;
+    const durMin = Math.max(1, Math.round((breakItem.durationSec || 300) / 60));
+    addManualAdToBreak(
+      selectedChannel,
+      selectedDate,
+      {
+        blockId: placementBlock?.blockId || breakItem.instanceId,
+        time: placementBlock?.time || shortTime,
+        duration: durMin,
+        timeBlockId: placementBlock?.timeBlockId || 'tb-1',
+        timeBlockName: placementBlock?.timeBlockName || breakItem.title || 'Reklam Kuşağı'
+      },
+      {
+        materialId: adChoice.materialId,
+        companyId: adChoice.companyId,
+        reservationId: adChoice.reservationId || null,
+        duration: adChoice.duration || 20
+      }
+    );
+    syncBroadcastBreaksFromLatestPlacements();
+  }, [addManualAdToBreak, selectedChannel, selectedDate, syncBroadcastBreaksFromLatestPlacements]);
 
   const programs = getComputedDayPrograms(selectedChannel, selectedDate, activeList);
   const prevOverflowFrames = getPreviousDayOverflowFrames(selectedChannel, selectedDate, activeList);
@@ -571,12 +641,14 @@ export default function BroadcastRundownTable({
     } else {
       setSelectedIds([item.instanceId]);
       setLastClickedIndex(index);
-      if (isFillerRundownItem(item) || isFillerClipRundownItem(item)) {
+      if (item.type === 'ad_break') {
+        handleToggleAdBreakExpand(item.instanceId);
+      } else if (isFillerRundownItem(item) || isFillerClipRundownItem(item)) {
         openFillerInSidebar(item);
       }
     }
     setSelectedInstanceId(item.instanceId);
-  }, [lastClickedIndex, programs, setSelectedInstanceId, openFillerInSidebar]);
+  }, [lastClickedIndex, programs, setSelectedInstanceId, openFillerInSidebar, handleToggleAdBreakExpand]);
 
   const handleToggleRowCheckbox = useCallback((e, instanceId, index) => {
     e.stopPropagation();
@@ -860,6 +932,14 @@ export default function BroadcastRundownTable({
           lastDraftAppliedAt={variantMeta.lastDraftAppliedAt}
           lastSavedAt={variantMeta.savedAt}
           lastSentToAdsAt={variantMeta.sentToAdsAt}
+          lastCheckedSignature={variantMeta.lastCheckedSignature}
+          lastSavedSignature={variantMeta.lastSavedSignature}
+          lastAdsPlacedSignature={variantMeta.lastAdsPlacedSignature}
+          onPersistVariantMeta={(metaUpdates) => {
+            if (typeof updateDayVariantMeta === 'function') {
+              updateDayVariantMeta(selectedChannel, selectedDate, activeList, metaUpdates);
+            }
+          }}
           statusBanner={statusBanner}
           onClearStatusBanner={() => setStatusBanner(null)}
           listFilterQuery={listFilterQuery}
@@ -964,6 +1044,18 @@ export default function BroadcastRundownTable({
                   const prevGroupKey = prevItem ? getProgramGroupKey(prevItem) : null;
                   const isNewProgramBoundary = idx > 0 && currGroupKey !== prevGroupKey;
 
+                  // Eğer satır bir Reklam Kuşağı ise kendi adPlacement bloğunu eşleştir
+                  let matchedAdPlacementBlock = null;
+                  if (item.type === 'ad_break') {
+                    const adBreakOrderIndex = programs
+                      .filter(p => p.type === 'ad_break')
+                      .findIndex(p => p.instanceId === item.instanceId);
+                    matchedAdPlacementBlock =
+                      dayAdPlacementsList.find(pl => pl.blockId && String(pl.blockId) === String(item.instanceId)) ||
+                      (adBreakOrderIndex >= 0 ? dayAdPlacementsList[adBreakOrderIndex] : null) ||
+                      null;
+                  }
+
                   return (
                     <BroadcastRundownRow
                       key={item.instanceId}
@@ -999,6 +1091,18 @@ export default function BroadcastRundownTable({
                       onUpdateRamadanMeta={(instanceId, metaUpdates) => {
                         updateProgram(selectedChannel, selectedDate, activeList, instanceId, metaUpdates);
                       }}
+                      isAdBreakExpanded={expandedAdBreakIds.includes(item.instanceId)}
+                      onToggleAdBreakExpand={handleToggleAdBreakExpand}
+                      adPlacementBlock={matchedAdPlacementBlock}
+                      adsCatalogMaterials={adsCatalogMaterials}
+                      adsCatalogCompanies={adsCatalogCompanies}
+                      adsReservations={adsReservations}
+                      selectedChannel={selectedChannel}
+                      selectedDate={selectedDate}
+                      onMoveAdInBreak={handleMoveAdInBroadcastBreak}
+                      onRemoveAdFromBreak={handleRemoveAdFromBroadcastBreak}
+                      onAddAdToBreak={handleAddAdToBroadcastBreak}
+                      isDayLockedReadOnly={isDayLockedReadOnly}
                     />
                   );
                 })}
@@ -1032,6 +1136,11 @@ export default function BroadcastRundownTable({
         activeList={activeList}
         programs={programs}
         onSaveScheduleForAds={() => saveDaySchedule(selectedChannel, selectedDate, activeList)}
+        onAdsPlacementComplete={() => {
+          // Reklamlar yerleştiğinde tüm reklam kuşaklarını otomatik açılır (expanded) yap ki kullanıcı klipleri hemen listede görsün
+          const adBreakIds = programs.filter(p => p.type === 'ad_break').map(p => p.instanceId);
+          setExpandedAdBreakIds(adBreakIds);
+        }}
         onOpenSendToAdsModal={handleSendToAdReservation}
       />
 

@@ -15,8 +15,10 @@
 import React, { memo } from 'react';
 import {
   Tv, ArrowUp, ArrowDown, Trash2, Edit2,
-  Film, Megaphone, GripVertical, Check, Sparkles, Info, AlertTriangle, Pin, X
+  Film, Megaphone, GripVertical, Check, Sparkles, Info, AlertTriangle, Pin, X,
+  ChevronDown, ChevronRight
 } from 'lucide-react';
+import BroadcastAdBreakExpandPanel from './BroadcastAdBreakExpandPanel';
 import { formatFramesHuman } from '../../utils/timecodeUtils';
 import useThemeStore, { hexToRgba, BOX_SHADOW_OPTIONS } from '../../../../store/themeStore';
 import { getCategoryColor, getCategoryTitleTextColor } from '../../../draft/components/library/constants';
@@ -76,7 +78,19 @@ const BroadcastRundownRow = memo(function BroadcastRundownRow({
   onInspectClip,
   onUnpinProgram,
   onUpdateRamadanMeta,
-  showRamadanControls = false
+  showRamadanControls = false,
+  isAdBreakExpanded = false,
+  onToggleAdBreakExpand = null,
+  adPlacementBlock = null,
+  adsCatalogMaterials = [],
+  adsCatalogCompanies = [],
+  adsReservations = [],
+  selectedChannel = 'ch_hd',
+  selectedDate = '',
+  onMoveAdInBreak = null,
+  onRemoveAdFromBreak = null,
+  onAddAdToBreak = null,
+  isDayLockedReadOnly = false
 }) {
   const isAd = item.type === 'ad_break';
   const isFiller = isFillerRundownItem(item);
@@ -719,6 +733,54 @@ const BroadcastRundownRow = memo(function BroadcastRundownRow({
               </select>
             )}
 
+            {isAd && onToggleAdBreakExpand && (() => {
+              const placedList = Array.isArray(adPlacementBlock?.ads) ? adPlacementBlock.ads : [];
+              const commCount = placedList.filter(a => !a.isBumperAd).length;
+              const totalCount = placedList.length;
+              return (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleAdBreakExpand(item.instanceId);
+                  }}
+                  title="Tıklayarak bu kuşağa yerleşen reklam kliplerini açıp kapatın ve düzenleyin"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    padding: '3px 10px',
+                    borderRadius: '6px',
+                    border: isAdBreakExpanded
+                      ? '1.5px solid #d97706'
+                      : totalCount > 0
+                      ? '1.5px solid rgba(16, 185, 129, 0.55)'
+                      : '1px dashed rgba(217, 119, 6, 0.55)',
+                    background: isAdBreakExpanded
+                      ? '#d97706'
+                      : totalCount > 0
+                      ? 'rgba(16, 185, 129, 0.14)'
+                      : 'rgba(245, 158, 11, 0.12)',
+                    color: isAdBreakExpanded
+                      ? '#ffffff'
+                      : totalCount > 0
+                      ? '#047857'
+                      : '#b45309',
+                    fontSize: '11.5px',
+                    fontWeight: 900,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {isAdBreakExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+                  <span>
+                    {totalCount > 0
+                      ? `${commCount} Reklam Spotu (${totalCount} Klip) — ${isAdBreakExpanded ? 'Klipleri Gizle' : 'Reklam Kliplerini Gör'}`
+                      : (isAdBreakExpanded ? 'Kuşak İçeriğini Gizle' : 'Reklam Kliplerini Gör / Ekle')}
+                  </span>
+                </button>
+              );
+            })()}
+
             {(isFiller || isFillerClip) && onOpenFillerModal && (
               <button
                 type="button"
@@ -1061,6 +1123,23 @@ const BroadcastRundownRow = memo(function BroadcastRundownRow({
           </button>
         </div>
       </div>
+
+      {/* REKLAM KUŞAĞI AÇILIR / KAPANIR (ACCORDION) REKLAM KLİPLERİ VE DÜZENLEME PANELİ */}
+      {isAd && isAdBreakExpanded && (
+        <BroadcastAdBreakExpandPanel
+          breakItem={item}
+          placementBlock={adPlacementBlock}
+          materials={adsCatalogMaterials}
+          companies={adsCatalogCompanies}
+          reservations={adsReservations}
+          selectedChannel={selectedChannel}
+          selectedDate={selectedDate}
+          onMoveAdInBreak={onMoveAdInBreak}
+          onRemoveAdFromBreak={onRemoveAdFromBreak}
+          onAddAdToBreak={onAddAdToBreak}
+          isDayLockedReadOnly={isDayLockedReadOnly}
+        />
+      )}
     </>
   );
 });

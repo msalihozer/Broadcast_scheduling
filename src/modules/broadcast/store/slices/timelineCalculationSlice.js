@@ -181,6 +181,9 @@ export const createTimelineCalculationSlice = (set, get) => ({
       savedAt: variantObj.savedAt || null,
       sentToAdsAt: variantObj.sentToAdsAt || null,
       lastDraftAppliedAt: variantObj.lastDraftAppliedAt || null,
+      lastCheckedSignature: variantObj.lastCheckedSignature || null,
+      lastSavedSignature: variantObj.lastSavedSignature || null,
+      lastAdsPlacedSignature: variantObj.lastAdsPlacedSignature || null,
       unaddedDraftSlots: Array.isArray(variantObj.unaddedDraftSlots) ? variantObj.unaddedDraftSlots : [],
       manuallyMarkedDraftSlotIds: Array.isArray(variantObj.manuallyMarkedDraftSlotIds)
         ? variantObj.manuallyMarkedDraftSlotIds
