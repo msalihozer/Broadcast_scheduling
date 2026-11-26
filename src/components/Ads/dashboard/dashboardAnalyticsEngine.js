@@ -396,7 +396,15 @@ export function computeDashboardAnalytics({
     );
     if (allChannelIds.length === 0) allChannelIds.push('ch_hd');
 
-    // Finansal / Gelir Hesabı (Yalnızca girilen ücret veya kullanıcının tanımladığı tarife üzerinden hesaplanır)
+    // Finansal / Gelir Hesabı (Saniye Ücreti ₺/sn veya Birim Spot Ücreti ₺/spot hangisi girilirse otomatik hesaplanır)
+    const matDurSec = Math.max(1, Number(mat?.duration) || Number(res.materialDurationSec || firstItem.materialDurationSec) || 25);
+    const totalPlannedSeconds = totalPlanned * matDurSec;
+    const effectiveRealizedSeconds = Math.max(
+      placementSecByResId.get(String(res.id)) || 0,
+      effectiveRealized * matDurSec
+    );
+
+    const explicitPerSecPrice = Number(res.perSecondPrice || firstItem.perSecondPrice) || 0;
     const explicitSpotPrice = Number(res.spotPrice || firstItem.spotPrice) || 0;
     const explicitBudget =
       Number(res.totalAmount) ||
@@ -404,7 +412,11 @@ export function computeDashboardAnalytics({
       Number(res.toplamTutar) ||
       items.reduce(
         (sum, it) =>
-          sum + (Number(it.totalBudget) || (Number(it.plannedSpots) || 0) * (Number(it.spotPrice) || 0)),
+          sum +
+          (Number(it.totalBudget) ||
+            (Number(it.perSecondPrice) > 0
+              ? (Number(it.plannedSpots) || 0) * matDurSec * Number(it.perSecondPrice)
+              : (Number(it.plannedSpots) || 0) * (Number(it.spotPrice) || 0))),
         0
       );
 
@@ -413,27 +425,58 @@ export function computeDashboardAnalytics({
     const tariffBaseSpotRate = Number(adsPricingConfig?.defaultSpotPrice) || 0;
     const tariffSponsorRate = Number(adsPricingConfig?.sponsorSpotPrice) || tariffBaseSpotRate;
     const tariffSecRate = Number(adsPricingConfig?.defaultPerSecondPrice) || 0;
-    const matDurSec = Number(mat?.duration) || 25;
 
-    const fallbackTariffSpotPrice = res.isSponsor
-      ? tariffSponsorRate
-      : tariffChannelRate > 0
-      ? tariffChannelRate
-      : tariffBaseSpotRate > 0
-      ? tariffBaseSpotRate
-      : tariffSecRate > 0
-      ? Math.round(matDurSec * tariffSecRate)
-      : 0;
+    const fallbackTariffPerSecPrice =
+      tariffSecRate > 0
+        ? tariffSecRate
+        : tariffChannelRate > 0
+        ? Math.round((tariffChannelRate / matDurSec) * 100) / 100
+        : tariffBaseSpotRate > 0
+        ? Math.round((tariffBaseSpotRate / matDurSec) * 100) / 100
+        : 0;
+
+    const fallbackTariffSpotPrice =
+      tariffSecRate > 0
+        ? Math.round(matDurSec * tariffSecRate * 100) / 100
+        : res.isSponsor
+        ? tariffSponsorRate
+        : tariffChannelRate > 0
+        ? tariffChannelRate
+        : tariffBaseSpotRate > 0
+        ? tariffBaseSpotRate
+        : 0;
+
+    const unitPerSecondPrice =
+      explicitPerSecPrice > 0
+        ? explicitPerSecPrice
+        : explicitSpotPrice > 0
+        ? Math.round((explicitSpotPrice / matDurSec) * 100) / 100
+        : explicitBudget > 0 && totalPlannedSeconds > 0
+        ? Math.round((explicitBudget / totalPlannedSeconds) * 100) / 100
+        : fallbackTariffPerSecPrice;
 
     const unitSpotPrice =
       explicitSpotPrice > 0
         ? explicitSpotPrice
+        : explicitPerSecPrice > 0
+        ? Math.round(explicitPerSecPrice * matDurSec * 100) / 100
         : explicitBudget > 0 && totalPlanned > 0
-        ? Math.round(explicitBudget / totalPlanned)
+        ? Math.round((explicitBudget / totalPlanned) * 100) / 100
         : fallbackTariffSpotPrice;
 
-    const plannedRevenue = explicitBudget > 0 ? explicitBudget : totalPlanned * unitSpotPrice;
-    const realizedRevenue = unitSpotPrice > 0 ? effectiveRealized * unitSpotPrice : 0;
+    const plannedRevenue =
+      explicitBudget > 0
+        ? explicitBudget
+        : explicitPerSecPrice > 0
+        ? Math.round(totalPlannedSeconds * explicitPerSecPrice * 100) / 100
+        : Math.round(totalPlanned * unitSpotPrice * 100) / 100;
+
+    const realizedRevenue =
+      unitPerSecondPrice > 0 && (explicitPerSecPrice > 0 || tariffSecRate > 0)
+        ? Math.round(effectiveRealizedSeconds * unitPerSecondPrice * 100) / 100
+        : unitSpotPrice > 0
+        ? Math.round(effectiveRealized * unitSpotPrice * 100) / 100
+        : 0;
 
     // Tahsilat durumu (Sadece girilen gerçek tahsilat veya ödeme durumu baz alınır)
     const collectedAmount =
@@ -467,10 +510,14 @@ export function computeDashboardAnalytics({
       daysToEnd,
       totalPlanned,
       effectiveRealized,
+      materialDurationSec: matDurSec,
+      totalPlannedSeconds,
+      effectiveRealizedSeconds,
       rawMissingSpots,
       makegoodScheduledSpots,
       makegoodRequiredSpots,
       realizationRatePct,
+      unitPerSecondPrice,
       unitSpotPrice,
       plannedRevenue,
       realizedRevenue,

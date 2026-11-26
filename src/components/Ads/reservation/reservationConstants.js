@@ -179,22 +179,28 @@ export const PRIORITY_OPTIONS = [
 
 export const PRICING_MODES = [
   {
-    id: 'spots_only',
-    label: 'Sadece Spot Adedi',
-    shortDesc: 'Ücret girilmeden',
-    icon: Hash
+    id: 'by_second_price',
+    label: 'Saniye Ücreti İle (₺/sn)',
+    shortDesc: 'Toplam Saniye × Saniye Ücreti = Toplam',
+    icon: Calculator
   },
   {
     id: 'by_spot_price',
-    label: 'Spot Ücreti İle',
-    shortDesc: 'Spot × Birim Ücret = Toplam',
+    label: 'Spot Ücreti İle (₺/spot)',
+    shortDesc: 'Spot × Birim Spot Ücreti = Toplam',
     icon: Calculator
   },
   {
     id: 'by_total_budget',
-    label: 'Toplam Tutar İle',
-    shortDesc: 'Toplam Bütçe ÷ Spot Ücreti = Spot',
+    label: 'Toplam Bütçe İle',
+    shortDesc: 'Toplam Bütçe ÷ (Saniye veya Spot Ücreti)',
     icon: Wallet
+  },
+  {
+    id: 'spots_only',
+    label: 'Ücretsiz (Sadece Kota)',
+    shortDesc: 'Ücret girilmeden',
+    icon: Hash
   }
 ];
 
@@ -297,13 +303,15 @@ export const createEmptyProductPlan = (companyId = '', defaults = {}) => ({
   companyId: companyId || '',
   productId: defaults.productId || '',
   materialId: defaults.materialId || '',
+  materialDurationSec: Number(defaults.materialDurationSec) || 0,
   priority: String(defaults.priority || '700'),
   startDate: defaults.startDate || getTodayIso(),
   endDate: defaults.endDate || getPlusDaysIso(6),
-  pricingMode: defaults.pricingMode || 'spots_only', // 'spots_only' | 'by_spot_price' | 'by_total_budget'
+  pricingMode: defaults.pricingMode || 'by_second_price', // 'by_second_price' | 'by_spot_price' | 'by_total_budget' | 'spots_only'
   plannedSpots: defaults.plannedSpots !== undefined ? defaults.plannedSpots : 20,
   dailyMinSpots: defaults.dailyMinSpots !== undefined ? defaults.dailyMinSpots : 1,
   dailyMaxSpots: defaults.dailyMaxSpots !== undefined ? defaults.dailyMaxSpots : 4,
+  perSecondPrice: defaults.perSecondPrice !== undefined ? defaults.perSecondPrice : '',
   spotPrice: defaults.spotPrice !== undefined ? defaults.spotPrice : '',
   totalBudget: defaults.totalBudget !== undefined ? defaults.totalBudget : '',
   channelIds: Array.isArray(defaults.channelIds) && defaults.channelIds.length > 0 ? [...defaults.channelIds] : ['ch_hd'],
@@ -330,36 +338,131 @@ export const createEmptyProductPlan = (companyId = '', defaults = {}) => ({
 });
 
 /**
- * Ürün satırının seçili fiyat moduna göre efektif spot sayısını ve toplam tutarını hesaplar.
+ * Ürün satırının seçili fiyat moduna ve klip saniyesine göre efektif spot sayısını,
+ * toplam yayın saniyesini, saniye ücretini (₺/sn), spot ücretini (₺/spot) ve toplam tutarını hesaplar.
+ * Saniye ücreti veya Spot ücretinden hangisi girilirse diğerini otomatik türetir.
  */
-export const calculateRowPricing = (item) => {
-  const mode = item.pricingMode || 'spots_only';
-  const rawSpots = Math.max(0, Number(item.plannedSpots) || 0);
-  const rawSpotPrice = Math.max(0, Number(item.spotPrice) || 0);
-  const rawTotalBudget = Math.max(0, Number(item.totalBudget) || 0);
+export const calculateRowPricing = (item, explicitClipDurationSec = null) => {
+  const mode = item?.pricingMode || 'by_second_price';
+  const clipDurSec = Math.max(
+    1,
+    Number(explicitClipDurationSec) ||
+      Number(item?.materialDurationSec) ||
+      Number(item?.durationSec) ||
+      Number(item?.duration) ||
+      25
+  );
+  const rawSpots = Math.max(0, Number(item?.plannedSpots) || 0);
+  const rawPerSecPrice = Math.max(0, Number(item?.perSecondPrice) || 0);
+  const rawSpotPrice = Math.max(0, Number(item?.spotPrice) || 0);
+  const rawTotalBudget = Math.max(0, Number(item?.totalBudget) || 0);
+
+  if (mode === 'spots_only') {
+    const totalSeconds = rawSpots * clipDurSec;
+    return {
+      clipDurationSec: clipDurSec,
+      effectiveSpots: rawSpots,
+      effectiveTotalSeconds: totalSeconds,
+      effectivePerSecondPrice: 0,
+      effectiveSpotPrice: 0,
+      effectiveTotalBudget: 0,
+      measurementBasis: 'none'
+    };
+  }
+
+  // Hangisi girildiyse (Saniye Ücreti veya Spot Ücreti) diğerini hesapla
+  const hasPerSec = rawPerSecPrice > 0;
+  const hasSpot = rawSpotPrice > 0;
+
+  if (mode === 'by_second_price' || (mode !== 'by_total_budget' && hasPerSec && !hasSpot)) {
+    const effPerSec = hasPerSec
+      ? rawPerSecPrice
+      : hasSpot
+      ? Math.round((rawSpotPrice / clipDurSec) * 100) / 100
+      : 0;
+    const effSpot = hasPerSec
+      ? Math.round(effPerSec * clipDurSec * 100) / 100
+      : rawSpotPrice;
+    const totalSeconds = rawSpots * clipDurSec;
+    const computedTotal = hasPerSec
+      ? Math.round(totalSeconds * effPerSec * 100) / 100
+      : Math.round(rawSpots * effSpot * 100) / 100;
+
+    return {
+      clipDurationSec: clipDurSec,
+      effectiveSpots: rawSpots,
+      effectiveTotalSeconds: totalSeconds,
+      effectivePerSecondPrice: effPerSec,
+      effectiveSpotPrice: effSpot,
+      effectiveTotalBudget: computedTotal,
+      measurementBasis: hasPerSec ? 'per_second' : hasSpot ? 'per_spot' : 'per_second'
+    };
+  }
 
   if (mode === 'by_spot_price') {
-    const computedTotal = Math.round(rawSpots * rawSpotPrice * 100) / 100;
+    const effSpot = hasSpot
+      ? rawSpotPrice
+      : hasPerSec
+      ? Math.round(rawPerSecPrice * clipDurSec * 100) / 100
+      : 0;
+    const effPerSec = effSpot > 0
+      ? Math.round((effSpot / clipDurSec) * 100) / 100
+      : rawPerSecPrice;
+    const totalSeconds = rawSpots * clipDurSec;
+    const computedTotal = Math.round(rawSpots * effSpot * 100) / 100;
+
     return {
+      clipDurationSec: clipDurSec,
       effectiveSpots: rawSpots,
-      effectiveSpotPrice: rawSpotPrice,
-      effectiveTotalBudget: computedTotal
+      effectiveTotalSeconds: totalSeconds,
+      effectivePerSecondPrice: effPerSec,
+      effectiveSpotPrice: effSpot,
+      effectiveTotalBudget: computedTotal,
+      measurementBasis: hasSpot ? 'per_spot' : 'per_second'
     };
   }
 
   if (mode === 'by_total_budget') {
-    const computedSpots = rawSpotPrice > 0 ? Math.floor(rawTotalBudget / rawSpotPrice) : rawSpots;
+    // Toplam bütçe girildiğinde: Saniye ücreti girildiyse saniye üzerinden, spot ücreti girildiyse spot üzerinden hesapla
+    let effPerSec = rawPerSecPrice;
+    let effSpot = rawSpotPrice;
+    let computedSpots = rawSpots;
+
+    if (hasPerSec) {
+      effSpot = Math.round(rawPerSecPrice * clipDurSec * 100) / 100;
+      if (rawTotalBudget > 0 && effSpot > 0) {
+        computedSpots = Math.max(1, Math.floor(rawTotalBudget / effSpot));
+      }
+    } else if (hasSpot) {
+      effPerSec = Math.round((rawSpotPrice / clipDurSec) * 100) / 100;
+      if (rawTotalBudget > 0 && rawSpotPrice > 0) {
+        computedSpots = Math.max(1, Math.floor(rawTotalBudget / rawSpotPrice));
+      }
+    } else if (rawTotalBudget > 0 && rawSpots > 0) {
+      effSpot = Math.round((rawTotalBudget / rawSpots) * 100) / 100;
+      effPerSec = Math.round((effSpot / clipDurSec) * 100) / 100;
+    }
+
+    const totalSeconds = computedSpots * clipDurSec;
     return {
+      clipDurationSec: clipDurSec,
       effectiveSpots: computedSpots,
-      effectiveSpotPrice: rawSpotPrice,
-      effectiveTotalBudget: rawTotalBudget
+      effectiveTotalSeconds: totalSeconds,
+      effectivePerSecondPrice: effPerSec,
+      effectiveSpotPrice: effSpot,
+      effectiveTotalBudget: rawTotalBudget,
+      measurementBasis: hasPerSec ? 'per_second' : 'per_spot'
     };
   }
 
   return {
+    clipDurationSec: clipDurSec,
     effectiveSpots: rawSpots,
+    effectiveTotalSeconds: rawSpots * clipDurSec,
+    effectivePerSecondPrice: 0,
     effectiveSpotPrice: 0,
-    effectiveTotalBudget: 0
+    effectiveTotalBudget: 0,
+    measurementBasis: 'none'
   };
 };
 

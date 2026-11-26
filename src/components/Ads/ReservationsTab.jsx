@@ -368,12 +368,34 @@ const ReservationsTab = ({ setActiveTab }) => {
         const itemEndDate = it.endDate || res.endDate;
         const itemDailyMin = Number(it.dailyMinSpots ?? res.dailyMinSpots ?? 1);
         const itemDailyMax = Number(it.dailyMaxSpots ?? res.dailyMaxSpots ?? 4);
-        const itemSpotPrice = Number(it.spotPrice || res.spotPrice || 0);
+        const clipDurationSec = Math.max(
+          1,
+          Number(material?.duration) || Number(it.materialDurationSec || res.materialDurationSec) || 25
+        );
+        const totalPlannedSeconds = itemPlanned * clipDurationSec;
+        const effectiveRealizedSeconds = effectiveRealized * clipDurationSec;
+
+        const rawPerSec = Number(it.perSecondPrice || res.perSecondPrice || 0);
+        const rawSpot = Number(it.spotPrice || res.spotPrice || 0);
+        const itemPerSecondPrice =
+          rawPerSec > 0
+            ? rawPerSec
+            : rawSpot > 0
+            ? Math.round((rawSpot / clipDurationSec) * 100) / 100
+            : 0;
+        const itemSpotPrice =
+          rawSpot > 0
+            ? rawSpot
+            : rawPerSec > 0
+            ? Math.round(rawPerSec * clipDurationSec * 100) / 100
+            : 0;
         const itemTotalBudget =
           Number(it.totalBudget) > 0
             ? Number(it.totalBudget)
+            : itemPerSecondPrice > 0 && rawPerSec > 0
+            ? Math.round(totalPlannedSeconds * itemPerSecondPrice * 100) / 100
             : itemSpotPrice > 0
-            ? itemSpotPrice * itemPlanned
+            ? Math.round(itemSpotPrice * itemPlanned * 100) / 100
             : 0;
 
         const overageInfo = calculateItemOverageMetrics(
@@ -421,10 +443,14 @@ const ReservationsTab = ({ setActiveTab }) => {
           endDate: itemEndDate,
           dailyMinSpots: itemDailyMin,
           dailyMaxSpots: itemDailyMax,
+          perSecondPrice: itemPerSecondPrice,
           spotPrice: itemSpotPrice,
           totalBudget: itemTotalBudget,
           effectiveRealized,
           totalPlanned: itemPlanned,
+          clipDurationSec,
+          totalPlannedSeconds,
+          effectiveRealizedSeconds,
           overageInfo
         });
       });
@@ -891,8 +917,8 @@ const ReservationsTab = ({ setActiveTab }) => {
                             }}
                           >
                             {hasFixedBlockCounts
-                              ? `${row.totalPlanned} Spot (Kuşak Sabit: Günlük ${fixedDailyTotal})`
-                              : `${row.totalPlanned} Spot (Günlük ${row.dailyMinSpots}–${row.dailyMaxSpots})`}
+                              ? `${row.totalPlanned} Spot • ${row.totalPlannedSeconds.toLocaleString('tr-TR')} sn (Kuşak Sabit: Günlük ${fixedDailyTotal})`
+                              : `${row.totalPlanned} Spot • ${row.totalPlannedSeconds.toLocaleString('tr-TR')} sn (Günlük ${row.dailyMinSpots}–${row.dailyMaxSpots})`}
                           </span>
 
                           {row.totalBudget > 0 && (
@@ -905,7 +931,9 @@ const ReservationsTab = ({ setActiveTab }) => {
                                 background: 'rgba(13, 148, 136, 0.14)',
                                 color: '#0d9488'
                               }}
+                              title={`${row.perSecondPrice.toLocaleString('tr-TR')} ₺/sn | ${row.spotPrice.toLocaleString('tr-TR')} ₺/spot`}
                             >
+                              {row.perSecondPrice > 0 ? `${row.perSecondPrice.toLocaleString('tr-TR')} ₺/sn • ` : ''}
                               {row.totalBudget.toLocaleString('tr-TR')} ₺
                             </span>
                           )}
@@ -1006,16 +1034,19 @@ const ReservationsTab = ({ setActiveTab }) => {
                       </div>
                     </td>
 
-                    {/* 6. Yalnızca Bu Reklam Klibinin Kendi Spot İlerlemesi */}
+                    {/* 6. Yalnızca Bu Reklam Klibinin Kendi Saniye & Spot İlerlemesi */}
                     <td>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '125px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '135px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px', fontWeight: '800' }}>
                           <span style={{ color: row.effectiveRealized > row.totalPlanned ? '#dc2626' : 'var(--ads-brand)' }}>
-                            {row.effectiveRealized} / {row.totalPlanned}
+                            {row.effectiveRealized} / {row.totalPlanned} Spot
                           </span>
                           <span style={{ color: row.effectiveRealized > row.totalPlanned ? '#dc2626' : 'var(--ads-text-muted)', fontSize: '10.5px' }}>
                             %{Math.round((row.effectiveRealized / Math.max(1, row.totalPlanned)) * 100)}
                           </span>
+                        </div>
+                        <div style={{ fontSize: '10.5px', fontWeight: '700', color: 'var(--ads-text-sub)', fontFamily: 'monospace' }}>
+                          {row.effectiveRealizedSeconds.toLocaleString('tr-TR')} / {row.totalPlannedSeconds.toLocaleString('tr-TR')} sn
                         </div>
                         <div style={{ height: '6px', background: 'var(--ads-pill-bar-bg)', borderRadius: '999px', overflow: 'hidden' }}>
                           <div

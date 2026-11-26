@@ -192,16 +192,36 @@ const AdsReservationForm = ({ onClose, existingData = null, defaultSponsorMode =
                   ? Boolean(it.isSponsor)
                   : Boolean(existingData.isSponsor || defaultSponsorMode);
 
+              const itemMat = materials.find(m => String(m.id) === String(it.materialId || existingData.materialId));
+              const itemMatDur = Math.max(1, Number(itemMat?.duration) || Number(it.materialDurationSec || existingData.materialDurationSec) || 25);
+              const existingSpotPrice = it.spotPrice !== undefined && Number(it.spotPrice) > 0
+                ? Number(it.spotPrice)
+                : existingData.spotPrice !== undefined && Number(existingData.spotPrice) > 0
+                ? Number(existingData.spotPrice)
+                : '';
+              const existingPerSecPrice = it.perSecondPrice !== undefined && Number(it.perSecondPrice) > 0
+                ? Number(it.perSecondPrice)
+                : existingData.perSecondPrice !== undefined && Number(existingData.perSecondPrice) > 0
+                ? Number(existingData.perSecondPrice)
+                : existingSpotPrice
+                ? Math.round((Number(existingSpotPrice) / itemMatDur) * 100) / 100
+                : '';
+
               return {
                 id: it.id || `item-${idx}-${Date.now()}`,
                 companyId: it.companyId || existingData.companyId || initialCompanyId,
                 productId: it.productId || '',
                 materialId: it.materialId || '',
+                materialDurationSec: itemMatDur,
                 priority: String(it.priority || existingData.priority || (itemIsSponsor ? '1000' : '700')),
                 startDate: it.startDate || existingData.startDate || getTodayIso(),
                 endDate: it.endDate || existingData.endDate || getPlusDaysIso(6),
                 pricingMode:
-                  inferredMode === 'by_ spot_price' ? 'by_spot_price' : inferredMode,
+                  inferredMode === 'by_ spot_price'
+                    ? 'by_spot_price'
+                    : existingPerSecPrice && inferredMode === 'spots_only'
+                    ? 'by_second_price'
+                    : inferredMode,
                 plannedSpots:
                   it.plannedSpots !== undefined
                     ? it.plannedSpots
@@ -214,7 +234,8 @@ const AdsReservationForm = ({ onClose, existingData = null, defaultSponsorMode =
                   it.dailyMaxSpots !== undefined
                     ? it.dailyMaxSpots
                     : existingData.dailyMaxSpots || 4,
-                spotPrice: it.spotPrice !== undefined && Number(it.spotPrice) > 0 ? it.spotPrice : '',
+                perSecondPrice: existingPerSecPrice,
+                spotPrice: existingSpotPrice,
                 totalBudget: it.totalBudget !== undefined && Number(it.totalBudget) > 0 ? it.totalBudget : '',
                 channelIds:
                   Array.isArray(it.channelIds) && it.channelIds.length > 0
@@ -350,7 +371,42 @@ const AdsReservationForm = ({ onClose, existingData = null, defaultSponsorMode =
 
       if (field === 'productId') {
         const prodMats = materials.filter(m => String(m.productId) === String(value));
-        current.materialId = prodMats[0]?.id || '';
+        const firstM = prodMats[0];
+        current.materialId = firstM?.id || '';
+        current.materialDurationSec = Number(firstM?.duration) || 25;
+      }
+
+      if (field === 'materialId') {
+        const matObj = materials.find(m => String(m.id) === String(value));
+        if (matObj) {
+          current.materialDurationSec = Number(matObj.duration) || 25;
+          // Eğer saniye ücreti girilmişse yeni klip süresine göre birim spot ücretini otomatik güncelle
+          if (Number(current.perSecondPrice) > 0) {
+            current.spotPrice = Math.round(Number(current.perSecondPrice) * current.materialDurationSec * 100) / 100;
+          } else if (Number(current.spotPrice) > 0) {
+            current.perSecondPrice = Math.round((Number(current.spotPrice) / current.materialDurationSec) * 100) / 100;
+          }
+        }
+      }
+
+      const clipDur = Math.max(
+        1,
+        Number(current.materialDurationSec) ||
+          Number(materials.find(m => String(m.id) === String(current.materialId))?.duration) ||
+          25
+      );
+      current.materialDurationSec = clipDur;
+
+      // Saniye Ücreti (perSecondPrice) girildiğinde Birim Spot Ücretini (spotPrice) otomatik hesapla
+      if (field === 'perSecondPrice') {
+        const secRate = Number(value) || 0;
+        current.spotPrice = secRate > 0 ? Math.round(secRate * clipDur * 100) / 100 : '';
+      }
+
+      // Birim Spot Ücreti (spotPrice) girildiğinde Saniye Ücretini (perSecondPrice) otomatik hesapla
+      if (field === 'spotPrice') {
+        const spRate = Number(value) || 0;
+        current.perSecondPrice = spRate > 0 ? Math.round((spRate / clipDur) * 100) / 100 : '';
       }
 
       if (field === 'isSponsor' && value === true && String(current.priority) !== '1000') {
@@ -363,16 +419,17 @@ const AdsReservationForm = ({ onClose, existingData = null, defaultSponsorMode =
       }
 
       if (field === 'pricingMode') {
-        if (value === 'by_total_budget' && current.spotPrice && current.plannedSpots && !current.totalBudget) {
-          current.totalBudget = Number(current.plannedSpots) * Number(current.spotPrice);
+        const calcNow = calculateRowPricing(current, clipDur);
+        if (value === 'by_total_budget' && calcNow.effectiveTotalBudget > 0 && !current.totalBudget) {
+          current.totalBudget = calcNow.effectiveTotalBudget;
         }
       }
 
-      if (current.pricingMode === 'by_total_budget' && (field === 'totalBudget' || field === 'spotPrice')) {
+      if (current.pricingMode === 'by_total_budget' && (field === 'totalBudget' || field === 'spotPrice' || field === 'perSecondPrice')) {
         const budget = Number(field === 'totalBudget' ? value : current.totalBudget) || 0;
-        const unit = Number(field === 'spotPrice' ? value : current.spotPrice) || 0;
-        if (unit > 0 && budget > 0) {
-          current.plannedSpots = Math.max(1, Math.floor(budget / unit));
+        const unitSpot = Number(current.spotPrice) || (Number(current.perSecondPrice) > 0 ? Number(current.perSecondPrice) * clipDur : 0);
+        if (unitSpot > 0 && budget > 0) {
+          current.plannedSpots = Math.max(1, Math.floor(budget / unitSpot));
         }
       }
 
@@ -768,8 +825,10 @@ const AdsReservationForm = ({ onClose, existingData = null, defaultSponsorMode =
     }
 
     const normalizedItems = formData.items.map(it => {
-      const calc = calculateRowPricing(it);
-      const itemMetrics = calculateItemOverageMetrics(it, existingData?.realizedSpots || 0, ramadanConfig);
+      const matObj = materials.find(m => String(m.id) === String(it.materialId));
+      const clipDurSec = Math.max(1, Number(matObj?.duration) || Number(it.materialDurationSec) || 25);
+      const calc = calculateRowPricing(it, clipDurSec);
+      const itemMetrics = calculateItemOverageMetrics({ ...it, materialDurationSec: clipDurSec }, existingData?.realizedSpots || 0, ramadanConfig);
       const cleanedTbCounts = {};
       if (it.timeBlockSpotCounts && typeof it.timeBlockSpotCounts === 'object') {
         Object.entries(it.timeBlockSpotCounts).forEach(([tbId, cVal]) => {
@@ -786,13 +845,17 @@ const AdsReservationForm = ({ onClose, existingData = null, defaultSponsorMode =
         companyId: formData.companyId,
         productId: it.productId,
         materialId: it.materialId,
+        materialDurationSec: clipDurSec,
         priority: Number(it.priority) || (it.isSponsor || it.isRamadanSpecial ? 1000 : 700),
         startDate: it.startDate,
         endDate: it.endDate,
-        pricingMode: it.pricingMode || 'spots_only',
+        pricingMode: it.pricingMode || 'by_second_price',
+        measurementBasis: calc.measurementBasis || 'per_second',
         plannedSpots: Math.max(1, calc.effectiveSpots || 1),
+        plannedSeconds: calc.effectiveTotalSeconds || (Math.max(1, calc.effectiveSpots || 1) * clipDurSec),
         dailyMinSpots: fixedSum > 0 ? fixedSum : (Number(it.dailyMinSpots) || 1),
         dailyMaxSpots: fixedSum > 0 ? fixedSum : (Number(it.dailyMaxSpots) || 4),
+        perSecondPrice: calc.effectivePerSecondPrice,
         spotPrice: calc.effectiveSpotPrice,
         totalBudget: calc.effectiveTotalBudget,
         channelIds: Array.isArray(it.channelIds) && it.channelIds.length > 0 ? it.channelIds : ['ch_hd'],
@@ -843,6 +906,9 @@ const AdsReservationForm = ({ onClose, existingData = null, defaultSponsorMode =
         startDate: itemObj.startDate,
         endDate: itemObj.endDate,
         totalPlannedSpots: itemObj.plannedSpots,
+        totalPlannedSeconds: itemObj.plannedSeconds,
+        materialDurationSec: itemObj.materialDurationSec,
+        measurementBasis: itemObj.measurementBasis,
         dailyMinSpots: Number(itemObj.dailyMinSpots) || 1,
         dailyMaxSpots: Number(itemObj.dailyMaxSpots) || 4,
         timeBlockIds: itemObj.timeBlockIds,
@@ -857,6 +923,7 @@ const AdsReservationForm = ({ onClose, existingData = null, defaultSponsorMode =
         isRamadanSpecial: Boolean(itemObj.isRamadanSpecial),
         ramadanTarget: itemObj.isRamadanSpecial ? (itemObj.ramadanTarget || 'iftar') : null,
         ramadanPositions: itemObj.isRamadanSpecial ? itemObj.ramadanPositions : [],
+        perSecondPrice: itemObj.perSecondPrice || 0,
         spotPrice: itemObj.spotPrice || 0,
         toplamTutar: itemObj.totalBudget || 0,
         overageSpots: itemObj.overageSpots || 0,

@@ -91,8 +91,9 @@ const ClipReservationCard = ({
   }, [baseRowMaterials, companyAllMaterials, materials, materialSearchQuery]);
 
   const selectedMatObj = materials.find(m => String(m.id) === String(item.materialId));
-  const rowCalc = calculateRowPricing(item);
-  const overageMetrics = calculateItemOverageMetrics(item, null, ramadanConfig);
+  const clipDurationSec = Math.max(1, Number(selectedMatObj?.duration) || Number(item.materialDurationSec) || 25);
+  const rowCalc = calculateRowPricing(item, clipDurationSec);
+  const overageMetrics = calculateItemOverageMetrics({ ...item, materialDurationSec: clipDurationSec }, null, ramadanConfig);
   const fixedTimeBlockSum = useMemo(() => {
     const counts = item.timeBlockSpotCounts || {};
     const blocks = item.timeBlockIds || [];
@@ -230,7 +231,7 @@ const ClipReservationCard = ({
                   : 'var(--ads-brand)'
             }}
           >
-            {rowCalc.effectiveSpots} Spot
+            {rowCalc.effectiveSpots} Spot ({rowCalc.effectiveTotalSeconds.toLocaleString('tr-TR')} sn)
             {mode !== 'spots_only' && rowCalc.effectiveTotalBudget > 0
               ? ` • ${rowCalc.effectiveTotalBudget.toLocaleString('tr-TR')} ₺`
               : ''}
@@ -526,7 +527,10 @@ const ClipReservationCard = ({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
           <span style={{ fontSize: '11.5px', fontWeight: '800', color: 'var(--ads-text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Wallet size={14} color="var(--ads-teal)" />
-            Spot &amp; Fiyatlandırma Seçeneği <span style={{ fontWeight: '500', color: 'var(--ads-text-muted)' }}>(Ücret girmek zorunlu değildir)</span>
+            Saniye / Spot &amp; Fiyatlandırma Hesaplayıcı{' '}
+            <span style={{ fontWeight: '600', color: 'var(--ads-brand)' }}>
+              (Klip Süresi: {clipDurationSec} sn — Saniye veya Spot Ücretinden Hangisi Girilirse Otomatik Hesaplar)
+            </span>
           </span>
 
           <div style={{ display: 'inline-flex', background: 'var(--ads-pill-bar-bg)', padding: '3px', borderRadius: '8px', gap: '4px' }}>
@@ -577,16 +581,17 @@ const ClipReservationCard = ({
               />
             </div>
             <div style={{ fontSize: '11.5px', color: 'var(--ads-text-muted)', paddingTop: '14px' }}>
-              Ücret bilgisi girilmeden yalnızca <strong>{rowCalc.effectiveSpots} spot</strong> üzerinden planlama yapılır.
+              Ücret bilgisi girilmeden yalnızca <strong>{rowCalc.effectiveSpots} spot</strong> (Toplam{' '}
+              <strong>{rowCalc.effectiveTotalSeconds.toLocaleString('tr-TR')} saniye</strong> / Klip: {clipDurationSec} sn) üzerinden planlama yapılır.
             </div>
           </div>
         )}
 
-        {mode === 'by_spot_price' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.2fr', gap: '12px', alignItems: 'end' }}>
+        {(mode === 'by_second_price' || mode === 'by_spot_price') && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1.35fr', gap: '12px', alignItems: 'end' }}>
             <div>
               <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: 'var(--ads-text-sub)', marginBottom: '4px' }}>
-                Hedef Spot Adedi *
+                Hedef Spot Adedi * ({rowCalc.effectiveTotalSeconds.toLocaleString('tr-TR')} sn)
               </label>
               <input
                 type="number"
@@ -598,21 +603,47 @@ const ClipReservationCard = ({
                 style={{ width: '100%', fontWeight: '800' }}
               />
             </div>
+
             <div>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: 'var(--ads-text-sub)', marginBottom: '4px' }}>
-                Birim Spot Ücreti (₺)
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: '800', color: '#0284c7', marginBottom: '4px' }}>
+                Birim Saniye Ücreti (₺ / sn)
               </label>
               <input
                 type="number"
                 min="0"
                 step="any"
-                value={item.spotPrice}
-                onChange={e => onItemChange(index, 'spotPrice', e.target.value)}
-                placeholder="Örn: 250"
+                value={item.perSecondPrice ?? ''}
+                onChange={e => onItemChange(index, 'perSecondPrice', e.target.value)}
+                placeholder="Örn: 10 ₺/sn"
                 className="ads-saas-input"
-                style={{ width: '100%', fontWeight: '800' }}
+                style={{
+                  width: '100%',
+                  fontWeight: '800',
+                  borderColor: mode === 'by_second_price' ? '#0284c7' : undefined
+                }}
               />
             </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: '800', color: 'var(--ads-brand)', marginBottom: '4px' }}>
+                Birim Spot Ücreti (₺ / {clipDurationSec} sn)
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="any"
+                value={item.spotPrice ?? ''}
+                onChange={e => onItemChange(index, 'spotPrice', e.target.value)}
+                placeholder={`Örn: ${clipDurationSec * 10} ₺/spot`}
+                className="ads-saas-input"
+                style={{
+                  width: '100%',
+                  fontWeight: '800',
+                  borderColor: mode === 'by_spot_price' ? 'var(--ads-brand)' : undefined
+                }}
+              />
+            </div>
+
             <div
               style={{
                 padding: '8px 12px',
@@ -620,22 +651,29 @@ const ClipReservationCard = ({
                 background: 'rgba(13, 148, 136, 0.1)',
                 border: '1px solid rgba(13, 148, 136, 0.3)',
                 display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between'
+                flexDirection: 'column',
+                gap: '2px'
               }}
             >
-              <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--ads-text-sub)' }}>
-                Hesaplanan Toplam Tutar:
-              </span>
-              <span style={{ fontSize: '14px', fontWeight: '800', color: '#0d9488' }}>
-                {rowCalc.effectiveTotalBudget.toLocaleString('tr-TR')} ₺
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--ads-text-sub)' }}>
+                  Toplam Tutar ({rowCalc.effectiveTotalSeconds.toLocaleString('tr-TR')} sn):
+                </span>
+                <span style={{ fontSize: '14px', fontWeight: '900', color: '#0d9488' }}>
+                  {rowCalc.effectiveTotalBudget.toLocaleString('tr-TR')} ₺
+                </span>
+              </div>
+              <div style={{ fontSize: '10px', color: 'var(--ads-text-muted)', fontWeight: '700' }}>
+                {rowCalc.effectivePerSecondPrice > 0
+                  ? `${rowCalc.effectivePerSecondPrice.toLocaleString('tr-TR')} ₺/sn × ${clipDurationSec} sn = ${rowCalc.effectiveSpotPrice.toLocaleString('tr-TR')} ₺/spot`
+                  : 'Saniye veya Spot ücreti girdiğinizde otomatik hesaplanır'}
+              </div>
             </div>
           </div>
         )}
 
         {mode === 'by_total_budget' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.2fr', gap: '12px', alignItems: 'end' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1.35fr', gap: '12px', alignItems: 'end' }}>
             <div>
               <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: 'var(--ads-text-sub)', marginBottom: '4px' }}>
                 Verilen Toplam Tutar / Bütçe (₺)
@@ -651,21 +689,39 @@ const ClipReservationCard = ({
                 style={{ width: '100%', fontWeight: '800' }}
               />
             </div>
+
             <div>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: 'var(--ads-text-sub)', marginBottom: '4px' }}>
-                Birim Spot Ücreti (₺)
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: '800', color: '#0284c7', marginBottom: '4px' }}>
+                Birim Saniye Ücreti (₺ / sn)
               </label>
               <input
                 type="number"
                 min="0"
                 step="any"
-                value={item.spotPrice}
-                onChange={e => onItemChange(index, 'spotPrice', e.target.value)}
-                placeholder="Örn: 100"
+                value={item.perSecondPrice ?? ''}
+                onChange={e => onItemChange(index, 'perSecondPrice', e.target.value)}
+                placeholder="Örn: 10 ₺/sn"
                 className="ads-saas-input"
                 style={{ width: '100%', fontWeight: '800' }}
               />
             </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: '800', color: 'var(--ads-brand)', marginBottom: '4px' }}>
+                Birim Spot Ücreti (₺ / {clipDurationSec} sn)
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="any"
+                value={item.spotPrice ?? ''}
+                onChange={e => onItemChange(index, 'spotPrice', e.target.value)}
+                placeholder="Örn: 250 ₺/spot"
+                className="ads-saas-input"
+                style={{ width: '100%', fontWeight: '800' }}
+              />
+            </div>
+
             <div
               style={{
                 padding: '8px 12px',
@@ -673,16 +729,23 @@ const ClipReservationCard = ({
                 background: 'var(--ads-brand-soft)',
                 border: '1px solid rgba(0, 102, 255, 0.3)',
                 display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between'
+                flexDirection: 'column',
+                gap: '2px'
               }}
             >
-              <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--ads-text-sub)' }}>
-                Otomatik Hesaplanan Spot:
-              </span>
-              <span style={{ fontSize: '14px', fontWeight: '800', color: 'var(--ads-brand)' }}>
-                {rowCalc.effectiveSpots} Spot
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--ads-text-sub)' }}>
+                  Hesaplanan Kota:
+                </span>
+                <span style={{ fontSize: '13.5px', fontWeight: '900', color: 'var(--ads-brand)' }}>
+                  {rowCalc.effectiveSpots} Spot ({rowCalc.effectiveTotalSeconds.toLocaleString('tr-TR')} sn)
+                </span>
+              </div>
+              <div style={{ fontSize: '10px', color: 'var(--ads-text-muted)', fontWeight: '700' }}>
+                {rowCalc.effectivePerSecondPrice > 0
+                  ? `${rowCalc.effectivePerSecondPrice.toLocaleString('tr-TR')} ₺/sn | ${rowCalc.effectiveSpotPrice.toLocaleString('tr-TR')} ₺/spot`
+                  : 'Saniye veya Spot ücreti girin'}
+              </div>
             </div>
           </div>
         )}

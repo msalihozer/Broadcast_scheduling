@@ -60,20 +60,29 @@ const DashboardPricingPanel = ({
     if (!onUpdateReservation) return;
     const numVal = Math.max(0, Number(rawVal) || 0);
     const currentPlanned = Math.max(1, Number(res.totalPlanned) || 1);
-    const currentUnit = Number(res.unitSpotPrice) || 0;
+    const clipDurSec = Math.max(1, Number(res.materialDurationSec) || Number(res.materialObj?.duration) || 25);
+    const currentUnitSpot = Number(res.unitSpotPrice) || 0;
+    const currentUnitSec = Number(res.unitPerSecondPrice) || (currentUnitSpot > 0 ? Math.round((currentUnitSpot / clipDurSec) * 100) / 100 : 0);
 
     if (field === 'totalPlannedSpots') {
       const nextPlanned = Math.max(1, numVal);
-      const nextBudget = currentUnit > 0 ? Math.round(nextPlanned * currentUnit) : Number(res.plannedRevenue) || 0;
+      const nextSeconds = nextPlanned * clipDurSec;
+      const nextBudget =
+        currentUnitSec > 0
+          ? Math.round(nextSeconds * currentUnitSec * 100) / 100
+          : currentUnitSpot > 0
+          ? Math.round(nextPlanned * currentUnitSpot * 100) / 100
+          : Number(res.plannedRevenue) || 0;
       const nextItems = Array.isArray(res.items)
         ? res.items.map((it, idx) =>
             idx === 0
-              ? { ...it, plannedSpots: nextPlanned, totalBudget: nextBudget }
+              ? { ...it, plannedSpots: nextPlanned, plannedSeconds: nextSeconds, totalBudget: nextBudget }
               : it
           )
         : res.items;
       onUpdateReservation(res.id, {
         totalPlannedSpots: nextPlanned,
+        totalPlannedSeconds: nextSeconds,
         totalBudget: nextBudget,
         totalAmount: nextBudget,
         toplamTutar: nextBudget,
@@ -83,32 +92,63 @@ const DashboardPricingPanel = ({
       onUpdateReservation(res.id, {
         realizedSpots: numVal
       });
+    } else if (field === 'perSecondPrice') {
+      const nextSpotPrice = Math.round(numVal * clipDurSec * 100) / 100;
+      const totalSeconds = currentPlanned * clipDurSec;
+      const nextBudget = Math.round(totalSeconds * numVal * 100) / 100;
+      const nextItems = Array.isArray(res.items)
+        ? res.items.map(it => {
+            const itSpots = Number(it.plannedSpots) || currentPlanned;
+            return {
+              ...it,
+              perSecondPrice: numVal,
+              spotPrice: nextSpotPrice,
+              totalBudget: Math.round(itSpots * clipDurSec * numVal * 100) / 100
+            };
+          })
+        : res.items;
+      onUpdateReservation(res.id, {
+        perSecondPrice: numVal,
+        spotPrice: nextSpotPrice,
+        measurementBasis: 'per_second',
+        totalBudget: nextBudget,
+        totalAmount: nextBudget,
+        toplamTutar: nextBudget,
+        items: nextItems
+      });
     } else if (field === 'spotPrice') {
-      const nextBudget = Math.round(currentPlanned * numVal);
+      const nextPerSecPrice = Math.round((numVal / clipDurSec) * 100) / 100;
+      const nextBudget = Math.round(currentPlanned * numVal * 100) / 100;
       const nextItems = Array.isArray(res.items)
         ? res.items.map(it => ({
             ...it,
+            perSecondPrice: nextPerSecPrice,
             spotPrice: numVal,
-            totalBudget: Math.round((Number(it.plannedSpots) || currentPlanned) * numVal)
+            totalBudget: Math.round((Number(it.plannedSpots) || currentPlanned) * numVal * 100) / 100
           }))
         : res.items;
       onUpdateReservation(res.id, {
+        perSecondPrice: nextPerSecPrice,
         spotPrice: numVal,
+        measurementBasis: 'per_spot',
         totalBudget: nextBudget,
         totalAmount: nextBudget,
         toplamTutar: nextBudget,
         items: nextItems
       });
     } else if (field === 'totalBudget') {
-      const nextUnit = currentPlanned > 0 ? Math.round(numVal / currentPlanned) : 0;
+      const totalSeconds = currentPlanned * clipDurSec;
+      const nextPerSec = totalSeconds > 0 ? Math.round((numVal / totalSeconds) * 100) / 100 : 0;
+      const nextUnit = currentPlanned > 0 ? Math.round((numVal / currentPlanned) * 100) / 100 : 0;
       const nextItems = Array.isArray(res.items)
         ? res.items.map((it, idx) =>
             idx === 0
-              ? { ...it, spotPrice: nextUnit, totalBudget: numVal }
+              ? { ...it, perSecondPrice: nextPerSec, spotPrice: nextUnit, totalBudget: numVal }
               : it
           )
         : res.items;
       onUpdateReservation(res.id, {
+        perSecondPrice: nextPerSec,
         spotPrice: nextUnit,
         totalBudget: numVal,
         totalAmount: numVal,
@@ -431,17 +471,22 @@ const DashboardPricingPanel = ({
                     <tr>
                       <th>Firma &amp; Kampanya / Klip</th>
                       <th>Kanal &amp; Tarih</th>
-                      <th style={{ width: '115px' }}>Planlanan Spot</th>
-                      <th style={{ width: '115px' }}>Yayınlanan Spot</th>
-                      <th style={{ width: '140px' }}>Birim Spot Ücreti (₺)</th>
+                      <th style={{ width: '130px' }}>Planlanan (Spot / Sn)</th>
+                      <th style={{ width: '130px' }}>Yayınlanan (Spot / Sn)</th>
+                      <th style={{ width: '135px' }}>Saniye Ücreti (₺/sn)</th>
+                      <th style={{ width: '135px' }}>Spot Ücreti (₺/spot)</th>
                       <th style={{ width: '150px' }}>Toplam Tutar / Bütçe (₺)</th>
-                      <th style={{ width: '140px' }}>Gerçekleşen Tutar</th>
-                      <th style={{ width: '155px' }}>Tahsil Edilen (₺)</th>
-                      <th style={{ width: '135px' }}>Kalan Alacak</th>
+                      <th style={{ width: '135px' }}>Gerçekleşen Tutar</th>
+                      <th style={{ width: '150px' }}>Tahsil Edilen (₺)</th>
+                      <th style={{ width: '125px' }}>Kalan Alacak</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {reservations.map(res => (
+                    {reservations.map(res => {
+                      const clipDur = Math.max(1, Number(res.materialDurationSec) || Number(res.materialObj?.duration) || 25);
+                      const plannedSec = (Number(res.totalPlanned) || 0) * clipDur;
+                      const realizedSec = (Number(res.effectiveRealized) || 0) * clipDur;
+                      return (
                       <tr key={`price-row-${res.id}`}>
                         <td>
                           <div style={{ fontWeight: '800', fontSize: '12.5px', color: 'var(--ads-text-main)', display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -453,7 +498,7 @@ const DashboardPricingPanel = ({
                             )}
                           </div>
                           <div style={{ fontSize: '11px', color: 'var(--ads-text-muted)' }}>
-                            {res.productName} • {res.materialName}
+                            {res.productName} • {res.materialName} ({clipDur} sn)
                           </div>
                         </td>
 
@@ -466,41 +511,65 @@ const DashboardPricingPanel = ({
                           </div>
                         </td>
 
-                        {/* Planlanan Spot Girişi */}
+                        {/* Planlanan Spot & Saniye */}
                         <td>
-                          <input
-                            type="number"
-                            min="1"
-                            value={res.totalPlanned ?? ''}
-                            onChange={e => handleReservationPricingChange(res, 'totalPlannedSpots', e.target.value)}
-                            className="ads-saas-input"
-                            style={{ width: '95px', fontWeight: '800', textAlign: 'center' }}
-                          />
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                            <input
+                              type="number"
+                              min="1"
+                              value={res.totalPlanned ?? ''}
+                              onChange={e => handleReservationPricingChange(res, 'totalPlannedSpots', e.target.value)}
+                              className="ads-saas-input"
+                              style={{ width: '90px', fontWeight: '800', textAlign: 'center' }}
+                            />
+                            <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--ads-text-muted)', fontFamily: 'monospace' }}>
+                              {plannedSec.toLocaleString('tr-TR')} sn
+                            </span>
+                          </div>
                         </td>
 
-                        {/* Yayınlanan / Gerçekleşen Spot Girişi */}
+                        {/* Yayınlanan / Gerçekleşen Spot & Saniye */}
+                        <td>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                            <input
+                              type="number"
+                              min="0"
+                              value={res.effectiveRealized ?? ''}
+                              onChange={e => handleReservationPricingChange(res, 'realizedSpots', e.target.value)}
+                              className="ads-saas-input"
+                              style={{ width: '90px', fontWeight: '800', textAlign: 'center', color: '#0284c7' }}
+                            />
+                            <span style={{ fontSize: '10px', fontWeight: '700', color: '#0284c7', fontFamily: 'monospace' }}>
+                              {realizedSec.toLocaleString('tr-TR')} sn
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* Birim Saniye Ücreti (₺/sn) */}
                         <td>
                           <input
                             type="number"
                             min="0"
-                            value={res.effectiveRealized ?? ''}
-                            onChange={e => handleReservationPricingChange(res, 'realizedSpots', e.target.value)}
+                            step="any"
+                            value={res.unitPerSecondPrice || ''}
+                            onChange={e => handleReservationPricingChange(res, 'perSecondPrice', e.target.value)}
+                            placeholder="0 ₺/sn"
                             className="ads-saas-input"
-                            style={{ width: '95px', fontWeight: '800', textAlign: 'center', color: '#0284c7' }}
+                            style={{ width: '115px', fontWeight: '800', color: '#0284c7' }}
                           />
                         </td>
 
-                        {/* Birim Spot Ücreti (₺) */}
+                        {/* Birim Spot Ücreti (₺/spot) */}
                         <td>
                           <input
                             type="number"
                             min="0"
-                            step="50"
+                            step="any"
                             value={res.unitSpotPrice || ''}
                             onChange={e => handleReservationPricingChange(res, 'spotPrice', e.target.value)}
-                            placeholder="0 ₺"
+                            placeholder="0 ₺/spot"
                             className="ads-saas-input"
-                            style={{ width: '120px', fontWeight: '800' }}
+                            style={{ width: '115px', fontWeight: '800' }}
                           />
                         </td>
 
@@ -561,7 +630,8 @@ const DashboardPricingPanel = ({
                           {res.remainingReceivable > 0 ? formatCurrency(res.remainingReceivable) : 'Kapandı'}
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
