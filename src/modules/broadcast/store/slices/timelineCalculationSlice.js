@@ -136,6 +136,8 @@ export const createTimelineCalculationSlice = (set, get) => ({
         ? (effectiveStartFrames - currentTimelineFrames)
         : 0;
       const precedingGapSec = Math.round(precedingGapFrames / BROADCAST_FPS);
+      const precedingGapStartClock = precedingGapFrames > 0 ? framesToClockTime(currentTimelineFrames) : null;
+      const precedingGapEndClock = precedingGapFrames > 0 ? framesToClockTime(effectiveStartFrames) : null;
       const startClock = framesToClockTime(effectiveStartFrames);
       const endTimelineFrames = effectiveStartFrames + itemFrames;
       const endClock = framesToClockTime(endTimelineFrames);
@@ -153,10 +155,12 @@ export const createTimelineCalculationSlice = (set, get) => ({
         order: index + 1,
         durationFrames: itemFrames,
         durationTc: durTc,
-        isPinnedTime: pinnedFrames !== null,
-        pinnedStartFrames: pinnedFrames,
+        isPinnedTime: Boolean(p.isPinnedTime),
+        pinnedStartFrames: resolvePinnedStartFrames(p),
         precedingGapFrames,
         precedingGapSec,
+        precedingGapStartClock,
+        precedingGapEndClock,
         calculatedStartTime: startClock,
         calculatedEndTime: endClock,
         isOverflow,

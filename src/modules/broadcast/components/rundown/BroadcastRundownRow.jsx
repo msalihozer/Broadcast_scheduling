@@ -197,6 +197,89 @@ const BroadcastRundownRow = memo(function BroadcastRundownRow({
         }} />
       )}
 
+      {/* SABİTLENEN PROGRAM ÖNCESİNDE BOŞLUK VARSA ÜSTÜNDE TAM GENİŞLİKLİ BELİRGİN BOŞLUK SATIRI */}
+      {item.precedingGapSec > 0 && (() => {
+        const gapTotalSec = Math.round(item.precedingGapSec);
+        const gapHours = Math.floor(gapTotalSec / 3600);
+        const gapMins = Math.floor((gapTotalSec % 3600) / 60);
+        const gapSecs = gapTotalSec % 60;
+        const gapParts = [];
+        if (gapHours > 0) gapParts.push(`${gapHours} saat`);
+        if (gapMins > 0) gapParts.push(`${gapMins} dk`);
+        if (gapSecs > 0 || gapParts.length === 0) gapParts.push(`${gapSecs} sn`);
+        const gapDurationText = gapParts.join(' ');
+        const gapStartDisp = item.precedingGapStartClock ? parseTimecodeDisplay(item.precedingGapStartClock) : null;
+        const gapEndDisp = item.precedingGapEndClock ? parseTimecodeDisplay(item.precedingGapEndClock) : startInfo;
+
+        return (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '10px',
+              padding: '9px 14px',
+              margin: '4px 0',
+              background: 'linear-gradient(90deg, rgba(245, 158, 11, 0.18) 0%, rgba(234, 88, 12, 0.10) 100%)',
+              borderTop: '1.5px dashed #d97706',
+              borderBottom: '1.5px dashed #d97706',
+              borderLeft: '6px solid #d97706',
+              color: 'var(--text-primary)'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  background: '#d97706',
+                  color: '#ffffff',
+                  fontSize: '12px',
+                  fontWeight: 900,
+                  letterSpacing: '0.03em',
+                  textTransform: 'uppercase',
+                  boxShadow: '0 2px 6px rgba(217, 119, 6, 0.28)'
+                }}
+              >
+                <Ikon ad="saat" size={14} color="#ffffff" />
+                <span>BOŞLUK KALAN SÜRE: {gapDurationText}</span>
+              </span>
+
+              {gapStartDisp && gapEndDisp && (
+                <span
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '12.5px',
+                    fontWeight: 800,
+                    padding: '3px 9px',
+                    borderRadius: '5px',
+                    background: 'var(--bg-secondary)',
+                    border: '1px solid rgba(217, 119, 6, 0.45)',
+                    color: '#b45309'
+                  }}
+                >
+                  {gapStartDisp.hhmm}:{gapStartDisp.ss} → {gapEndDisp.hhmm}:{gapEndDisp.ss} Arası Boş
+                </span>
+              )}
+            </div>
+
+            <span
+              style={{
+                fontSize: '11.5px',
+                fontWeight: 700,
+                color: '#92400e'
+              }}
+            >
+              Sabit program öncesinde {gapDurationText} doldurulabilir boş alan bulunuyor
+            </span>
+          </div>
+        );
+      })()}
+
       {/* ANA YAYIN SATIRI (FLEX TABLO SATIRI) */}
       <div
         draggable
@@ -275,24 +358,8 @@ const BroadcastRundownRow = memo(function BroadcastRundownRow({
           </span>
         </div>
 
-        {/* 2. GİRİŞ SAATİ (Saat alanında ortada büyük gösterim, öncesinde boşluk varsa üstte uyarı etiketi) */}
+        {/* 2. GİRİŞ SAATİ (Saat alanında ortada büyük gösterim) */}
         <div style={{ ...RUNDOWN_FLEX_COLUMNS.time, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
-          {item.precedingGapSec > 5 && (
-            <span
-              title={`Bu sabit saatten önce ${Math.round(item.precedingGapSec / 60)} dk ${item.precedingGapSec % 60} sn boşluk bulunuyor`}
-              style={{
-                fontSize: '9.5px',
-                fontWeight: 800,
-                padding: '1px 5px',
-                borderRadius: '3px',
-                background: 'rgba(232, 180, 76, 0.25)',
-                color: '#92400e',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              +{Math.floor(item.precedingGapSec / 60)}dk Boşluk
-            </span>
-          )}
           <div
             title={`Giriş Saati: ${startInfo.hhmm}:${startInfo.ss} • Çıkış Saati: ${endInfo.hhmm}:${endInfo.ss}`}
             style={{
